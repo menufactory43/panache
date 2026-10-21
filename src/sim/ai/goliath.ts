@@ -1,4 +1,4 @@
-import { BUILDINGS, ECONOMY, GOLIATH, TERRAIN, TICK_RATE, UNITS } from "../balance";
+import { BUILDINGS, ECONOMY, TERRAIN, TICK_RATE, UNITS } from "../balance";
 import { engageable } from "../combat";
 import { canPlaceBuilding } from "../economy";
 import { isVisible, knownBuildings, type KnownBuilding } from "../fog";
@@ -7,11 +7,17 @@ import {
   anchorBlocker,
   canWalk,
   distToFootprint,
+  fliesSuper,
   goliathCost,
   goliathsOf,
   isAnchored,
   isLifted,
+  isSuperKind,
   readyFirepower,
+  superKindOf,
+  superOf,
+  superTune,
+  trainableBy,
   UNIT_IN_THE_WAY,
   weaponsDown
 } from "../goliath";
@@ -83,6 +89,13 @@ import { cos, sin } from "../fmath";
  * on to a fresh field when its own runs dry or the ring is full. Under Robot
  * Love its Goliaths keep clear of the enemy's (a meeting is a draw), unless
  * it is plainly losing.
+ *
+ * THE ZÉNITH (the République's super-unit, goliath.ts SUPER) plays the same
+ * plan: it flies, so every site is in reach without a lift (an island
+ * relay, a field across the water — fields its harvesters can't drive to
+ * score less), it moors where the Goliath would dig in, and moored it turns
+ * out aircraft instead of squads (goliathBarracks: Éole, Blériot once enemy
+ * air is about, a Pasteur when it is hurt with none by it).
  */
 
 export const GOLIATH_AI = {
@@ -348,7 +361,7 @@ const kbCentre = (kb: KnownBuilding): P => ({ x: kb.tx + BUILDINGS[kb.kind].size
  */
 export function threatValue(u: Unit): number {
   if (!u.goliath) return UNITS[u.kind].cost;
-  return UNITS.goliath.cost * (0.5 * readyFirepower(u) + 0.5 * hpShare(u));
+  return UNITS[u.kind].cost * (0.5 * readyFirepower(u) + 0.5 * hpShare(u));
 }
 
 // --- home: the HQ, or where it stood ------------------------------------
@@ -424,7 +437,7 @@ export function goliathFund(w: World, faction: Faction, s: AiState, ctx: FundCon
 /** Room for another Goliath (alive and on the cradle under GOLIATH_AI.max)? */
 function roomForGoliath(w: World, faction: Faction, s: AiState): boolean {
   let n = goliathsOf(w, faction).length;
-  for (const b of w.buildings.values()) if (b.faction === faction) for (const q of b.queue) if (q.kind === "goliath") n++;
+  for (const b of w.buildings.values()) if (b.faction === faction) for (const q of b.queue) if (isSuperKind(q.kind)) n++;
   return n < (w.rules?.islands ? GOLIATH_AI.islandMax : GOLIATH_AI.max[s.difficulty]);
 }
 
@@ -463,7 +476,7 @@ export function wantGantry(
   ctx: { armyValue: number; threatened: boolean; home: P; enemyHome: P }
 ): boolean {
   if (w.survival || w.ops) return false;
-  if (bannedBy(w, "gantry", faction) || bannedBy(w, "goliath", faction)) return false;
+  if (bannedBy(w, "gantry", faction) || bannedBy(w, superKindOf(w, faction), faction)) return false;
   const f = w.factions[faction];
   const m = memo(s);
   // one standing, or going up: nothing to do (one lost: not again at once, and not a third time)
@@ -720,8 +733,12 @@ function chooseSite(w: World, faction: Faction, s: AiState, g: Unit, ctx: Goliat
   const home = ctx.hqC;
   const enemyHq = ctx.enemyHqPos;
   const fr = sideFrame(w, faction);
-  const gRegion = regionAt(w, Math.floor(g.x), Math.floor(g.y), "ground");
-  const lifts = canLift(w, faction, s) && w.tick >= (m.plans.get(g.id)?.noLift ?? -1e9);
+  // (a Zénith flies: every site is in reach, no lift; a field cut off from home by ground is
+  // one its harvesters can't drive to, worth less)
+  const flies = fliesSuper(g.kind);
+  const gRegion = flies ? 0 : regionAt(w, Math.floor(g.x), Math.floor(g.y), "ground");
+  const homeRegion = flies ? regionAt(w, Math.floor(home.x), Math.floor(home.y), "ground") : 0;
+  const lifts = !flies && canLift(w, faction, s) && w.tick >= (m.plans.get(g.id)?.noLift ?? -1e9);
   // (a site by lift only with a way there clear of anti-air now: the Condors are only held then)
   const sky = lifts ? liftAirspace(w, faction, ctx.seen) : null;
   const flyable = (at: P) => !!sky && !sky.covered(at.x, at.y) && route(w, g, at, sky.clear) !== undefined;
@@ -757,29 +774,29 @@ function chooseSite(w: World, faction: Faction, s: AiState, g: Unit, ctx: Goliat
     const reach = Math.min(12, GOLIATH_AI.siteReach + Math.sqrt(tiles.length));
     const at = spotNear(w, faction, c, 0, reach, (p) => Math.abs(nearField(p) - 2) * 2 + dist(p.x, p.y, home.x, home.y) * 0.02);
     if (!at || nearField(at) > 3.2 || underGuns(known, at) || !clearOfThem(at)) continue;
-    const lift = regionAt(w, Math.floor(at.x), Math.floor(at.y), "ground") !== gRegion;
+    const lift = !flies && regionAt(w, Math.floor(at.x), Math.floor(at.y), "ground") !== gRegion;
     if (lift && !flyable(at)) continue;
     const d = dist(g.x, g.y, at.x, at.y);
     let score = (cl.value / (d + 30)) * (1 - 0.5 * caution * Math.max(0, exposure(at))) - enemyNear(ctx.seen, at, 8) / 40;
-    if (lift) score *= 0.7;
+    if (lift || (flies && regionAt(w, Math.floor(at.x), Math.floor(at.y), "ground") !== homeRegion)) score *= 0.7;
     cands.push({ kind: "field", at, field: c, value: cl.value, score, lift, key: cl.key });
   }
 
   // island relays (the island maps): two Condors fly it out, it trains the crew
-  if (lifts && w.rules?.islands)
+  if ((lifts || flies) && w.rules?.islands)
     for (const l of w.objectives.uplinks) {
       if (!l.infantryOnly) continue;
       const lr = regionAt(w, Math.floor(l.x), Math.floor(l.y), "ground");
-      if (!lr || lr === gRegion || taken.some((t) => dist(t.x, t.y, l.x, l.y) < 6) || avoided(l)) continue;
+      if (!lr || lr === (flies ? homeRegion : gRegion) || taken.some((t) => dist(t.x, t.y, l.x, l.y) < 6) || avoided(l)) continue;
       // an enemy Goliath already there: not a landing
       if (ctx.seen.some((e) => e.goliath && regionAt(w, Math.floor(e.x), Math.floor(e.y), "ground") === lr)) continue;
       const at = spotNear(w, faction, l, GOLIATH_AI.relayMin, GOLIATH_AI.relayMax, (p) => dist(p.x, p.y, l.x, l.y) + dist(p.x, p.y, home.x, home.y) * 0.02, lr);
-      if (!at || underGuns(known, at) || !clearOfThem(at) || !flyable(at)) continue;
+      if (!at || underGuns(known, at) || !clearOfThem(at) || (!flies && !flyable(at))) continue;
       const enemyOwned = l.owner !== null && l.owner !== faction ? 1.3 : 1;
       const v = uplinkPay(l) * GOLIATH_AI.relayWorth * enemyOwned;
       const d = dist(g.x, g.y, at.x, at.y);
       const score = (v / (d + 30)) * (1 - 0.5 * caution * Math.max(0, exposure(at))) * 0.7 - enemyNear(ctx.seen, at, 8) / 40;
-      cands.push({ kind: "relay", at, field: null, value: v, score, lift: true, relayId: l.id, key: fr.pt(l) });
+      cands.push({ kind: "relay", at, field: null, value: v, score, lift: !flies, relayId: l.id, key: fr.pt(l) });
     }
 
   cands.sort((a, b) => b.score - a.score || a.key.y - b.key.y || a.key.x - b.key.x);
@@ -787,7 +804,7 @@ function chooseSite(w: World, faction: Faction, s: AiState, g: Unit, ctx: Goliat
   let paths = 0;
   for (const c of cands) {
     if (c.value < GOLIATH_AI.siteMin && c.kind === "field") continue;
-    if (!c.lift) {
+    if (!c.lift && !flies) {
       if (paths++ >= 3) break;
       const path = findPath(w, g.x, g.y, c.at.x, c.at.y, "ground", faction);
       const end = path?.[path.length - 1];
@@ -1034,7 +1051,8 @@ function outpostSpotFor(w: World, faction: Faction, g: Unit, site: Site, kind: B
   const k = 3 / Math.max(3, dist(g.x, g.y, toward.x, toward.y));
   const aim: P = kind === "depot" && site.field ? site.field : { x: g.x + (toward.x - g.x) * k, y: g.y + (toward.y - g.y) * k };
   const A = fr.pt(aim);
-  const R = Math.ceil(GOLIATH.buildRing + size);
+  const ring = superTune(g.kind);
+  const R = Math.ceil(ring.buildRing + size);
   let best: { tx: number; ty: number } | null = null;
   let bestD = Infinity;
   for (let dy = -R; dy <= R; dy++)
@@ -1045,7 +1063,7 @@ function outpostSpotFor(w: World, faction: Faction, g: Unit, site: Site, kind: B
       if (d >= bestD - 1e-9) continue;
       const [tx, ty] = fr.tile(fx, fy, size);
       const gap = distToFootprint(tx, ty, size, g.x, g.y);
-      if (gap > GOLIATH.buildRing || gap < GOLIATH.footprint / 2 + 1) continue; // (a lane round its feet)
+      if (gap > ring.buildRing || gap < ring.footprint / 2 + 1) continue; // (a lane round its feet)
       if (!canPlaceBuilding(w, faction, kind, tx, ty)) continue;
       if (size > 1 && cramped(w, tx, ty, size)) continue;
       best = { tx, ty };
@@ -1088,6 +1106,13 @@ export function goliathBarracks(
   const out: { id: number; queue: QueueItem[]; kind: UnitKind }[] = [];
   for (const g of goliathsOf(w, faction).sort(byId)) {
     if (!isAnchored(g) || g.goliath!.queue.length > 0) continue;
+    const def = superOf(g.kind);
+    if (def && def.kind !== "goliath") {
+      // a moored Zénith is a hangar: aircraft to fly round it
+      const kind = hangarPick(w, faction, s, g, hasHq, m?.plans.get(g.id)?.site?.kind === "relay");
+      if (kind) out.push({ id: g.id, queue: g.goliath!.queue, kind });
+      continue;
+    }
     const plan = m?.plans.get(g.id);
     const want = !hasHq ? GOLIATH_AI.lastGarrison : plan?.site?.kind === "relay" ? GOLIATH_AI.relayGarrison : GOLIATH_AI.garrison;
     let have = 0;
@@ -1097,6 +1122,30 @@ export function goliathBarracks(
     out.push({ id: g.id, queue: g.goliath!.queue, kind: rockets && r() < 0.6 ? "rocket-squad" : "trooper" });
   }
   return out;
+}
+
+/**
+ * What moored Zénith `g` should turn out now, or null (enough about it): a
+ * Pasteur when it is hurt with none of ours by it (only Pasteurs mend it),
+ * Blériots once enemy air is about, Éoles otherwise — as many as the
+ * Goliath's garrison, counted among the aircraft it trains near it. Only
+ * kinds it may train (trainableBy: the roster) and the rules allow.
+ */
+function hangarPick(w: World, faction: Faction, s: AiState, g: Unit, hasHq: boolean, relay: boolean): UnitKind | null {
+  const ok = (k: UnitKind) => trainableBy(w, g, k) && !bannedBy(w, k, faction);
+  let have = 0;
+  let healers = 0;
+  for (const u of w.units.values()) {
+    if (u.faction !== faction || u.id === g.id || dist(u.x, u.y, g.x, g.y) > 7 || !trainableBy(w, g, u.kind)) continue;
+    if (UNITS[u.kind].heal) healers++;
+    else if (UNITS[u.kind].dps > 0) have++;
+  }
+  if ((hpShare(g) < 0.85 || weaponsDown(g).length > 0) && healers === 0 && ok("mender")) return "mender";
+  const want = !hasHq ? GOLIATH_AI.lastGarrison : relay ? GOLIATH_AI.relayGarrison : GOLIATH_AI.garrison;
+  if (have >= want) return null;
+  if (s.seenAir >= 2 && ok("raptor")) return "raptor";
+  if (ok("wasp")) return "wasp";
+  return ok("raptor") ? "raptor" : null;
 }
 
 // --- the plan ------------------------------------------------------------
@@ -1206,7 +1255,7 @@ function loveStep(w: World, faction: Faction, g: Unit, plan: Plan, ctx: GoliathC
     return true;
   }
   const gap = GOLIATH_AI.loveGap;
-  if (d > gap + (gs.mode === "walking" ? 0 : GOLIATH.packTime * UNITS.goliath.speed)) return false;
+  if (d > gap + (gs.mode === "walking" ? 0 : superTune(g.kind).packTime * UNITS[g.kind].speed)) return false;
   leaveLift();
   if (gs.mode === "anchored" || gs.mode === "anchoring") {
     cmds.push({ type: "packUp", faction, unitIds: [g.id] });
@@ -1254,7 +1303,7 @@ function step(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan, ctx: 
   // anchored and losing: pack up and go (packing takes a while: only once it's plainly losing)
   if (isAnchored(g) && plan.phase === "hold") {
     const threat = enemyNear(ctx.seen, g, GOLIATH_AI.danger);
-    const local = UNITS.goliath.cost * hp + value(ctx.army.filter((u) => dist(u.x, u.y, g.x, g.y) <= 6)) +
+    const local = UNITS[g.kind].cost * hp + value(ctx.army.filter((u) => dist(u.x, u.y, g.x, g.y) <= 6)) +
       ownBuildingsNear(w, faction, g, 6).reduce((v, b) => v + (BUILDINGS[b.kind].dps > 0 ? BUILDINGS[b.kind].cost : 0), 0);
     if (threat > GOLIATH_AI.loseEdge * local && hp < 0.6 && ctx.hasHq && walkable(w, g, ctx.hqC)) {
       cmds.push({ type: "packUp", faction, unitIds: [g.id] });
@@ -1324,7 +1373,7 @@ function step(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan, ctx: 
       if (w.tick - plan.checked > GOLIATH_AI.recheck * TICK_RATE) {
         plan.checked = w.tick;
         const known = knownBuildings(w, faction);
-        if (underGuns(known, site.at) || enemyNear(ctx.seen, site.at, 6) > UNITS.goliath.cost * hp * 1.5) {
+        if (underGuns(known, site.at) || enemyNear(ctx.seen, site.at, 6) > UNITS[g.kind].cost * hp * 1.5) {
           avoidSite(w, m, site);
           setPhase(w, plan, "muster");
           return;
@@ -1364,7 +1413,7 @@ function step(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan, ctx: 
       const relay = site.relayId !== undefined ? w.objectives.uplinks.find((l) => l.id === site.relayId) : undefined;
       const offRelay = (p: P) => !relay || dist(p.x, p.y, relay.x, relay.y) >= GOLIATH_AI.relayMin;
       const alt = spotNear(w, faction, g, 0, 2.5, (p) => dist(p.x, p.y, g.x, g.y) + (offRelay(p) ? 0 : 99));
-      if (alt && offRelay(alt) && anchorBlockedAt(w, faction, alt.x, alt.y, g.id) === null && plan.tries < 3) {
+      if (alt && offRelay(alt) && anchorBlockedAt(w, faction, alt.x, alt.y, g.id, g.kind) === null && plan.tries < 3) {
         plan.tries++;
         site.at = alt;
         cmds.push({ type: "move", faction, unitIds: [g.id], x: alt.x, y: alt.y });
@@ -1541,8 +1590,9 @@ function waveLead(ctx: GoliathContext, escorts: ReadonlySet<number>): P | null {
   return lead && best >= GOLIATH_AI.company ? { x: lead.x, y: lead.y } : null;
 }
 
-/** Can Goliath `g` walk to within reach of `p` (not across the water)? */
-const walkable = (w: World, g: Unit, p: P): boolean => canGetWithin(w, "ground", g.x, g.y, p.x, p.y, 2.5);
+/** Can Goliath `g` walk to within reach of `p` (not across the water)? A Zénith flies anywhere on the map. */
+const walkable = (w: World, g: Unit, p: P): boolean =>
+  fliesSuper(g.kind) ? p.x >= 0 && p.y >= 0 && p.x < w.width && p.y < w.height : canGetWithin(w, "ground", g.x, g.y, p.x, p.y, 2.5);
 
 /** Our own units standing on an anchoring Goliath's footprint step aside. */
 function shoveAside(w: World, faction: Faction, g: Unit, ctx: GoliathContext, cmds: Command[]): void {
@@ -1588,7 +1638,7 @@ function keepEscorts(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan
   // home from home: the escort stands down when the Goliath guards the base anyway
   const atHome = ctx.hasHq && dist(g.x, g.y, ctx.hqC.x, ctx.hqC.y) < 10;
   const remote = plan.phase === "hold" && plan.site?.kind !== "front";
-  const want = atHome ? 0 : UNITS.goliath.cost * GOLIATH_AI.escort * (remote ? 0.6 : 1);
+  const want = atHome ? 0 : UNITS[g.kind].cost * GOLIATH_AI.escort * (remote ? 0.6 : 1);
   if (ctx.threatened && ctx.hasHq) {
     plan.escorts = [];
     return;
@@ -1638,7 +1688,7 @@ function keepEscorts(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan
 function liftAirspace(w: World, faction: Faction, seen: readonly Sighting[]) {
   const sources = aaSources(w, faction, seen);
   // (under Robot Love a lift never flies within loveGap of an enemy Goliath: a meeting is a draw)
-  const love = rulesOf(w).robotLove ? seen.filter((e) => e.kind === "goliath") : [];
+  const love = rulesOf(w).robotLove ? seen.filter((e) => isSuperKind(e.kind)) : [];
   const covered = (x: number, y: number) =>
     aaStrengthAt(sources, x, y) > GOLIATH_AI.liftAa || love.some((e) => dist(e.x, e.y, x, y) < GOLIATH_AI.loveGap);
   const clear = (ax: number, ay: number, bx: number, by: number) => {
@@ -1934,8 +1984,8 @@ export function enemyGantryBuilds(w: World, faction: Faction): { id: number; x: 
   for (const kb of knownBuildings(w, faction)) {
     if (kb.kind !== "gantry") continue;
     const head = w.buildings.get(kb.id)?.queue[0];
-    if (!head || head.kind !== "goliath") continue;
-    const total = UNITS.goliath.buildTime * TICK_RATE;
+    if (!head || !isSuperKind(head.kind)) continue;
+    const total = UNITS[head.kind].buildTime * TICK_RATE;
     const c = kbCentre(kb);
     out.push({ id: kb.id, x: c.x, y: c.y, progress: 1 - head.remaining / total });
   }

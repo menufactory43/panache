@@ -1,9 +1,9 @@
-import { BUILDINGS, GOLIATH, TERRAIN, TICK_RATE, UNITS } from "./balance";
+import { BUILDINGS, GOLIATH, ROLES, TERRAIN, TICK_RATE, UNITS, ZENITH, type GoliathWeaponStats, type ZenithWeapon } from "./balance";
 import { blocksObjective } from "./objectives";
 import { isStunned } from "./powers";
-import { applySpawnRank, goliathBase, rulesOf } from "./rules";
-import type { Command, Faction, GoliathMode, GoliathWeapon, Unit, UnitKind, World } from "./types";
-import { buildingCenter, hqOf, inBounds, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
+import { applySpawnRank, goliathBase, inRoster, nationOf, rulesOf } from "./rules";
+import type { Command, Faction, GoliathMode, GoliathState, GoliathWeapon, NationOrClassic, Unit, UnitKind, World } from "./types";
+import { buildingCenter, hqOf, inBounds, newGoliathState, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
 import { hypot } from "./fmath";
 
 /** Placement refused because a ground unit stands there (it may move off: callers compare with this). */
@@ -28,7 +28,184 @@ export const UNIT_IN_THE_WAY = "Une unité gêne";
  *   every one the side already has.
  *
  * Its state lives on the unit (Unit.goliath, created by spawnUnit).
+ *
+ * THE SUPER-UNITS (PANACHE-CONCEPTION.md §1.5, WP2). Everything above is
+ * read through SUPER[kind], so the République's Zénith — an airborne
+ * Goliath — shares the code: it FLIES (UNITS.zenith.domain "air": only
+ * anti-air and "both" weapons touch it, and it never takes a lift), MOORS
+ * (the Goliath's "anchored" mode: ZENITH.anchorTime to moor over a 2×2 of
+ * buildable ground, the mooring mast stamped like the Goliath's feet;
+ * ZENITH.packTime to cast off), and moored it is a drop-off, a build ring
+ * and a hangar that turns out ZENITH.trains (Éole, Blériot, Pasteur,
+ * Patrie) instead of infantry. Its four systems sit in the Goliath's four
+ * weapon slots, lost at the same lines (ZENITH_SLOTS: mortars → nacelle
+ * Branly guns, laser → bow arc, cannons → bomb bay, mg → gallery machine
+ * guns); only ZENITH.repairedBy (the Pasteur) mends it. Every Goliath
+ * number is unchanged: Classique and the Empire play exactly as before.
  */
+
+// ------------------------------------------------------- super-units ---
+
+/** The super-unit kinds (UNITS[k].base "goliath", or the Goliath itself). */
+export type SuperKind = "goliath" | "zenith";
+
+/** The numbers every super-unit has (GOLIATH and ZENITH both carry them; read live, so --tune reaches them). */
+export interface SuperTune {
+  costStep: number;
+  queueMax: number;
+  nearlyDone: number;
+  anchorTime: number;
+  packTime: number;
+  footprint: number;
+  buildRing: number;
+  reboot: number;
+  restoreMargin: number;
+}
+
+/** One super-unit's rules (SUPER[kind]). */
+export interface SuperDef {
+  kind: SuperKind;
+  /** Its tunable numbers (GOLIATH or ZENITH). */
+  tune: SuperTune;
+  /** The stats in weapon slot `k` (lost below `lostBelow` of max HP). */
+  weapon: (k: GoliathWeapon) => GoliathWeaponStats;
+  /** The id of the system in slot `k` (renderer, HUD): the slot itself for the Goliath, ZENITH_SLOTS for the Zénith. */
+  weaponId: (k: GoliathWeapon) => string;
+  /** Can it train `kind` while anchored / moored (before roster, tech and bans)? */
+  trains: (kind: UnitKind) => boolean;
+  /** The healer kinds that may repair it (null: any healer, as for the Goliath). */
+  repairedBy: readonly UnitKind[] | null;
+  /** Two Condors (Titans) can lift it (the Goliath); a flying one never needs it. */
+  liftable: boolean;
+  /** HUD phrases: dug in / moored, digging in / mooring, packing / casting off, not dug in, what it is. */
+  words: { settled: string; settling: string; leaving: string; notSettled: string; notOne: string; trainHint: string };
+}
+
+/** The Zénith's systems in the Goliath's four weapon slots (same loss lines: 0.75, 0.5, 0.25, never). */
+export const ZENITH_SLOTS: Readonly<Record<GoliathWeapon, ZenithWeapon>> = { mortars: "branly", laser: "arc", cannons: "bombs", mg: "mg" };
+
+export const SUPER: Readonly<Record<SuperKind, SuperDef>> = {
+  goliath: {
+    kind: "goliath",
+    tune: GOLIATH,
+    weapon: (k) => GOLIATH.weapons[k],
+    weaponId: (k) => k,
+    trains: (kind) => UNITS[kind].builtAt === "assembly-bay",
+    repairedBy: null,
+    liftable: true,
+    words: {
+      settled: "Déjà ancré",
+      settling: "Déjà ancré",
+      leaving: "Levée de l'ancre en cours",
+      notSettled: "Pas ancré",
+      notOne: "Pas un Gargantua",
+      trainHint: "Ancre-le pour produire"
+    }
+  },
+  zenith: {
+    kind: "zenith",
+    tune: ZENITH,
+    weapon: (k) => ZENITH.weapons[ZENITH_SLOTS[k]],
+    weaponId: (k) => ZENITH_SLOTS[k],
+    trains: (kind) => ZENITH.trains.includes(kind),
+    repairedBy: ZENITH.repairedBy,
+    liftable: false,
+    words: {
+      settled: "Déjà amarré",
+      settling: "Amarrage en cours",
+      leaving: "Largage des amarres en cours",
+      notSettled: "Pas amarré",
+      notOne: "Pas un Zénith",
+      trainHint: "Amarre-le pour produire"
+    }
+  }
+};
+
+/** Is `kind` a super-unit (the Goliath, the Zénith, or any kind built on the Goliath's behaviour)? */
+export const isSuperKind = (kind: UnitKind): boolean => kind in SUPER || UNITS[kind]?.base === "goliath";
+
+/** The rules for super-unit kind `kind` (a kind based on the Goliath falls back to the Goliath's). Null for any other kind. */
+export function superOf(kind: UnitKind): SuperDef | null {
+  const d = (SUPER as Partial<Record<UnitKind, SuperDef>>)[kind];
+  if (d) return d;
+  return UNITS[kind]?.base === "goliath" ? SUPER.goliath : null;
+}
+
+/** superOf for a kind known to be a super-unit (the Goliath's rules for anything else: callers hold a Unit.goliath). */
+const sup = (kind: UnitKind): SuperDef => superOf(kind) ?? SUPER.goliath;
+
+/** A super-unit's tunable numbers (the Goliath's for anything else). */
+export const superTune = (kind: UnitKind): SuperTune => sup(kind).tune;
+
+/** Does super-unit kind `kind` fly (the Zénith)? */
+export const fliesSuper = (kind: UnitKind): boolean => UNITS[kind].domain === "air";
+
+/** The super-unit `faction` fields: its nation's (ROLES[n].super), the Goliath in Classique. */
+export const superKindOf = (w: World, faction: Faction): UnitKind => ROLES[nationOf(w, faction)].super;
+
+/** The stats in weapon slot `k` of super-unit `u` (combat.ts fires these: the Zénith's are ZENITH's). */
+export const weaponStats = (u: Unit, k: GoliathWeapon): GoliathWeaponStats => sup(u.kind).weapon(k);
+
+/**
+ * Give a super-unit its state if it has none yet (world.ts spawnUnit only
+ * makes one for the Goliath until behaves() reaches it): returns the state,
+ * or null for any other unit.
+ */
+export function ensureSuper(u: Unit): GoliathState | null {
+  if (u.goliath) return u.goliath;
+  if (!isSuperKind(u.kind)) return null;
+  u.goliath = newGoliathState();
+  return u.goliath;
+}
+
+/** Spawn a super-unit with its state (the Goliath through spawnUnit as ever; a Zénith gets its state at once). */
+export function spawnSuper(w: World, kind: UnitKind, faction: Faction, x: number, y: number): Unit {
+  const u = spawnUnit(w, kind, faction, x, y);
+  ensureSuper(u);
+  return u;
+}
+
+/**
+ * May healer kind `healer` repair unit `target`? Anything not a super-unit:
+ * yes. A super-unit: only its SUPER.repairedBy kinds, the Goliath any healer. (combat.ts tickHealer should ask this.)
+ */
+export function canRepair(healer: UnitKind, target: Unit): boolean {
+  const d = superOf(target.kind);
+  if (!d || !d.repairedBy) return true;
+  return d.repairedBy.includes(healer); // (exactly those: the Atelier roulant is based on the Mender, and is no Pasteur)
+}
+
+/**
+ * Plain fields for the renderer and HUD (WP5e's Zénith model): mode, how far
+ * a mooring or casting-off has got, and each system's id and state.
+ */
+export function superView(u: Unit): {
+  kind: UnitKind;
+  flies: boolean;
+  mode: GoliathMode;
+  progress: number;
+  moored: boolean;
+  weapons: { slot: GoliathWeapon; id: string; name: string; online: boolean; rebooting: boolean; firedTick: number }[];
+} | null {
+  const g = u.goliath;
+  if (!g) return null;
+  const d = sup(u.kind);
+  return {
+    kind: u.kind,
+    flies: fliesSuper(u.kind),
+    mode: g.mode,
+    progress: modeProgress(u),
+    moored: isAnchored(u),
+    weapons: GOLIATH_WEAPONS.map((k) => ({
+      slot: k,
+      id: d.weaponId(k),
+      name: d.weapon(k).name,
+      online: g.weapons[k].online,
+      rebooting: g.weapons[k].reboot >= 0,
+      firedTick: g.weapons[k].firedTick
+    }))
+  };
+}
 
 /** Every weapon system, in firing order (the heaviest last: it turns the torso). */
 export const GOLIATH_WEAPONS: readonly GoliathWeapon[] = ["mg", "mortars", "laser", "cannons"];
@@ -73,17 +250,19 @@ export function hasGoliath(w: World, faction: Faction): boolean {
  * of it for every Goliath the side already has — alive, or paid for and on a
  * Gantry. Losing one makes the next one cheaper again.
  */
-export function goliathCost(w: World, faction: Faction): number {
+export function goliathCost(w: World, faction: Faction, kind: UnitKind = superKindOf(w, faction)): number {
   let have = 0;
-  for (const u of w.units.values()) if (u.goliath && u.faction === faction && u.hp > 0) have++;
+  // (the Goliath counts every Goliath, as it always did; another super-unit, those of its own kind)
+  for (const u of w.units.values())
+    if (u.faction === faction && u.hp > 0 && (kind === "goliath" ? !!u.goliath : u.kind === kind)) have++;
   for (const b of w.buildings.values())
-    if (b.faction === faction) for (const q of b.queue) if (q.kind === "goliath") have++;
-  return Math.round(UNITS.goliath.cost * (1 + GOLIATH.costStep * have));
+    if (b.faction === faction) for (const q of b.queue) if (q.kind === kind) have++;
+  return Math.round(UNITS[kind].cost * (1 + superTune(kind).costStep * have));
 }
 
-/** What a unit of `kind` costs `faction` right now (only the Goliath's price moves). */
+/** What a unit of `kind` costs `faction` right now (only the super-units' price moves). */
 export function unitCost(w: World, faction: Faction, kind: UnitKind): number {
-  return kind === "goliath" ? goliathCost(w, faction) : UNITS[kind].cost;
+  return isSuperKind(kind) ? goliathCost(w, faction, kind) : UNITS[kind].cost;
 }
 
 /** Is weapon `k` of Goliath `u` able to fire right now (online, and not grounded to the machine guns by a lift)? */
@@ -96,7 +275,7 @@ export function weaponReady(u: Unit, k: GoliathWeapon): boolean {
 /** The reach (tiles) of Goliath `u`'s longest-ranged weapon that is up (for threat rings and AI). */
 export function goliathReach(u: Unit): number {
   let r = 0;
-  for (const k of GOLIATH_WEAPONS) if (weaponReady(u, k)) r = Math.max(r, GOLIATH.weapons[k].range);
+  for (const k of GOLIATH_WEAPONS) if (weaponReady(u, k)) r = Math.max(r, weaponStats(u, k).range);
   return r;
 }
 
@@ -108,8 +287,8 @@ export function goliathReach(u: Unit): number {
 export function goliathReachAt(u: Unit, domain: "ground" | "air"): number {
   let r = 0;
   for (const k of GOLIATH_WEAPONS) {
-    const t = GOLIATH.weapons[k].targets;
-    if (weaponReady(u, k) && (t === "both" || t === domain)) r = Math.max(r, GOLIATH.weapons[k].range);
+    const st = weaponStats(u, k);
+    if (weaponReady(u, k) && (st.targets === "both" || st.targets === domain)) r = Math.max(r, st.range);
   }
   return r;
 }
@@ -136,7 +315,7 @@ export function repairUrgency(u: Unit): number {
     if (ws.online) continue;
     if (ws.reboot >= 0) urgency = Math.max(urgency, 2); // rebooting: keep the HP up
     else {
-      const need = GOLIATH.weapons[k].lostBelow + GOLIATH.restoreMargin - share;
+      const need = weaponStats(u, k).lostBelow + superTune(u.kind).restoreMargin - share;
       urgency = Math.max(urgency, need <= 0.08 ? 3 : 1); // about to come back: worth the most
     }
   }
@@ -146,8 +325,8 @@ export function repairUrgency(u: Unit): number {
 // ---------------------------------------------------------- anchoring ---
 
 /** The footprint (top-left tile and edge) of ground a Goliath standing at (x, y) needs to anchor, in its side's frame. */
-export function anchorFootprint(w: World, faction: Faction, x: number, y: number): { tx: number; ty: number; size: number } {
-  const size = GOLIATH.footprint;
+export function anchorFootprint(w: World, faction: Faction, x: number, y: number, kind: UnitKind = "goliath"): { tx: number; ty: number; size: number } {
+  const size = superTune(kind).footprint;
   const fr = sideFrame(w, faction);
   const p = fr.pt({ x, y });
   // the size² block of tiles whose middle is nearest the Goliath (in the side's own frame: mirror-fair rounding)
@@ -159,15 +338,18 @@ export function anchorFootprint(w: World, faction: Faction, x: number, y: number
  * Why Goliath `u` can't anchor where it stands, as a short phrase for the HUD,
  * or null when it can. It digs in anywhere a building could be placed —
  * buildable ground, no building, Uplink platform, crate or other ground unit
- * in the way — with no build-range requirement.
+ * in the way — with no build-range requirement. A Zénith moors the same way,
+ * over the same ground (its mooring mast takes the 2×2).
  */
 export function anchorBlocker(w: World, u: Unit): string | null {
   const g = u.goliath;
-  if (!g) return "Pas un Gargantua";
-  if (g.lift) return "En cours de levage";
-  if (g.mode === "anchored" || g.mode === "anchoring") return "Déjà ancré";
-  if (g.mode === "packing") return "Levée de l'ancre en cours";
-  const { tx, ty, size } = anchorFootprint(w, u.faction, u.x, u.y);
+  const words = sup(u.kind).words;
+  if (!g && !isSuperKind(u.kind)) return SUPER.goliath.words.notOne;
+  if (g?.lift) return "En cours de levage";
+  if (g?.mode === "anchored") return words.settled;
+  if (g?.mode === "anchoring") return words.settling;
+  if (g?.mode === "packing") return words.leaving;
+  const { tx, ty, size } = anchorFootprint(w, u.faction, u.x, u.y, u.kind);
   for (let dy = 0; dy < size; dy++)
     for (let dx = 0; dx < size; dx++) {
       const x = tx + dx;
@@ -196,16 +378,18 @@ export function anchorBlocker(w: World, u: Unit): string | null {
 export function modeProgress(u: Unit): number {
   const g = u.goliath;
   if (!g || (g.mode !== "anchoring" && g.mode !== "packing")) return 1;
-  const total = Math.round((g.mode === "anchoring" ? GOLIATH.anchorTime : GOLIATH.packTime) * TICK_RATE);
+  const t = superTune(u.kind);
+  const total = Math.round((g.mode === "anchoring" ? t.anchorTime : t.packTime) * TICK_RATE);
   return Math.max(0, Math.min(1, 1 - g.modeTicks / total));
 }
 
 /** Why Goliath `u` can't pack up now (null: it can). */
 export function packUpBlocker(u: Unit): string | null {
   const g = u.goliath;
-  if (!g) return "Pas un Gargantua";
-  if (g.mode === "walking") return "Pas ancré";
-  if (g.mode === "packing") return "Levée de l'ancre en cours";
+  const words = sup(u.kind).words;
+  if (!g) return SUPER.goliath.words.notOne;
+  if (g.mode === "walking") return words.notSettled;
+  if (g.mode === "packing") return words.leaving;
   return null;
 }
 
@@ -218,12 +402,13 @@ function setMode(w: World, u: Unit, mode: GoliathMode, ticks: number): void {
 
 /** Dig in where it stands (anchorBlocker permitting): it settles onto the middle of its footprint and stops. */
 export function anchor(w: World, u: Unit): boolean {
+  ensureSuper(u);
   if (anchorBlocker(w, u)) return false;
   plant(w, u);
   u.order = { type: "idle" };
   u.path = null;
   u.pathGoal = null;
-  setMode(w, u, "anchoring", Math.round(GOLIATH.anchorTime * TICK_RATE));
+  setMode(w, u, "anchoring", Math.round(superTune(u.kind).anchorTime * TICK_RATE));
   return true;
 }
 
@@ -234,7 +419,7 @@ export function anchor(w: World, u: Unit): boolean {
  * across it re-plan.
  */
 function plant(w: World, u: Unit): void {
-  const { tx, ty, size } = anchorFootprint(w, u.faction, u.x, u.y);
+  const { tx, ty, size } = anchorFootprint(w, u.faction, u.x, u.y, u.kind);
   u.x = tx + size / 2;
   u.y = ty + size / 2;
   u.goliath!.foot = { tx, ty };
@@ -249,7 +434,7 @@ function plant(w: World, u: Unit): void {
 export function unplant(w: World, u: Unit): void {
   const foot = u.goliath?.foot;
   if (!foot) return;
-  const size = GOLIATH.footprint;
+  const size = superTune(u.kind).footprint;
   for (let dy = 0; dy < size; dy++)
     for (let dx = 0; dx < size; dx++) {
       const i = (foot.ty + dy) * w.width + foot.tx + dx;
@@ -261,7 +446,7 @@ export function unplant(w: World, u: Unit): void {
 /** Start packing up (anchored or still digging in): it walks again GOLIATH.packTime later. */
 export function packUp(w: World, u: Unit): boolean {
   if (packUpBlocker(u)) return false;
-  setMode(w, u, "packing", Math.round(GOLIATH.packTime * TICK_RATE));
+  setMode(w, u, "packing", Math.round(superTune(u.kind).packTime * TICK_RATE));
   return true;
 }
 
@@ -269,7 +454,7 @@ export function packUp(w: World, u: Unit): boolean {
 export function applyGoliathCommand(w: World, c: Extract<Command, { type: "anchor" | "packUp" }>): void {
   for (const id of c.unitIds) {
     const u = w.units.get(id);
-    if (!u || u.faction !== c.faction || !u.goliath) continue;
+    if (!u || u.faction !== c.faction || !ensureSuper(u)) continue;
     if (c.type === "anchor") anchor(w, u);
     else packUp(w, u);
   }
@@ -301,14 +486,18 @@ export function distToFootprint(tx: number, ty: number, size: number, x: number,
  */
 export function inGoliathRing(w: World, faction: Faction, tx: number, ty: number, size: number): boolean {
   for (const u of w.units.values())
-    if (u.faction === faction && isAnchored(u) && distToFootprint(tx, ty, size, u.x, u.y) <= GOLIATH.buildRing) return true;
+    if (u.faction === faction && isAnchored(u) && distToFootprint(tx, ty, size, u.x, u.y) <= superTune(u.kind).buildRing) return true;
   return false;
 }
 
-/** Does a `size`² footprint at (tx, ty) overlap the body of a Goliath on the ground (any side)? */
+/**
+ * Does a `size`² footprint at (tx, ty) overlap the body of a Goliath on the
+ * ground (any side)? A Zénith flies over buildings (moored, its mast's 2×2 is
+ * in World.occupancy like any dug-in footprint).
+ */
 export function overlapsGoliath(w: World, tx: number, ty: number, size: number): boolean {
   for (const u of w.units.values())
-    if (u.goliath && !isLifted(u) && distToFootprint(tx, ty, size, u.x, u.y) < UNITS.goliath.radius) return true;
+    if (u.goliath && !isLifted(u) && !fliesSuper(u.kind) && distToFootprint(tx, ty, size, u.x, u.y) < UNITS[u.kind].radius) return true;
   return false;
 }
 
@@ -323,8 +512,35 @@ export function goliathTrainer(w: World, id: number, faction: Faction): Unit | n
 /** Can an anchored Goliath train this kind? (Robot infantry: what an Assembly Bay builds.) */
 export const trainable = (kind: UnitKind): boolean => UNITS[kind].builtAt === "assembly-bay";
 
-/** Can an anchored Goliath build this kind in this match? Robot infantry, and under Nomads or Goliath Armada Harvesters too (no HQ to build them). */
-export const trainableAt = (w: World, kind: UnitKind): boolean => trainable(kind) || (kind === "harvester" && goliathBase(w));
+/**
+ * Can a super-unit of nation `n` train `kind` (in `n`'s roster, and on its
+ * super-unit's SUPER.trains list, or its worker under Nomads / Goliath Armada)?
+ */
+function trainableIn(w: World, n: NationOrClassic, kind: UnitKind): boolean {
+  if (!inRoster(n, kind)) return false;
+  return sup(ROLES[n].super).trains(kind) || (kind === ROLES[n].worker && goliathBase(w));
+}
+
+/**
+ * Can an anchored Goliath (a moored Zénith) build this kind in this match?
+ * Classique: robot infantry, and under Nomads or Goliath Armada Harvesters too
+ * (no HQ to build them). With nations: what a nation's own super-unit trains
+ * (the Goliath its infantry, the Zénith Éole, Blériot, Pasteur and Patrie) —
+ * no kind is in both rosters, so this is exact for either side.
+ */
+export const trainableAt = (w: World, kind: UnitKind): boolean => {
+  const nations = rulesOf(w).nations;
+  if (!nations) return trainable(kind) || (kind === "harvester" && goliathBase(w));
+  return trainableIn(w, nations.blue, kind) || trainableIn(w, nations.red, kind);
+};
+
+/** Can super-unit `g` (anchored or moored) train `kind`: trainableAt, for its own kind and side. */
+export function trainableBy(w: World, g: Unit, kind: UnitKind): boolean {
+  if (!rulesOf(w).nations) return trainableAt(w, kind);
+  const n = nationOf(w, g.faction);
+  if (!inRoster(n, kind)) return false;
+  return sup(g.kind).trains(kind) || (kind === ROLES[n].worker && goliathBase(w));
+}
 
 // ------------------------------------------------------------ mutators ---
 
@@ -341,7 +557,8 @@ export function nomadStart(w: World): void {
     if (!hq) continue;
     const c = buildingCenter(hq);
     removeBuilding(w, hq);
-    const g = spawnUnit(w, "goliath", f, c.x, c.y);
+    // (with nations, the side's own super-unit: a Zénith starts moored)
+    const g = spawnSuper(w, superKindOf(w, f), f, c.x, c.y);
     applySpawnRank(w, g); // (Veterans: rank 1, like the starting squads)
     g.goliath!.mode = "anchored";
     plant(w, g);
@@ -383,10 +600,12 @@ export function tickLove(w: World): void {
  * reboot too).
  */
 export function tickGoliaths(w: World): void {
-  const rebootTicks = Math.round(GOLIATH.reboot * TICK_RATE);
   for (const u of w.units.values()) {
-    const g = u.goliath;
+    // (a Zénith spawned without its state gets it here: world.ts spawnUnit only knows the Goliath)
+    const g = u.goliath ?? (u.hp > 0 && isSuperKind(u.kind) ? ensureSuper(u) : null);
     if (!g || u.hp <= 0) continue;
+    const t = superTune(u.kind);
+    const rebootTicks = Math.round(t.reboot * TICK_RATE);
     if ((g.mode === "anchoring" || g.mode === "packing") && !isStunned(w, u.id) && --g.modeTicks <= 0) {
       if (g.mode === "packing") unplant(w, u); // free to walk: its ground is open again
       setMode(w, u, g.mode === "anchoring" ? "anchored" : "walking", 0);
@@ -394,7 +613,7 @@ export function tickGoliaths(w: World): void {
     const share = u.hp / UNITS[u.kind].hp;
     for (const k of LOSABLE_WEAPONS) {
       const ws = g.weapons[k];
-      const line = GOLIATH.weapons[k].lostBelow;
+      const line = weaponStats(u, k).lostBelow;
       const ev = (state: "offline" | "rebooting" | "online") =>
         w.fx.push({ type: "goliathWeapon", faction: u.faction, id: u.id, weapon: k, state, x: u.x, y: u.y });
       if (ws.online) {
@@ -415,7 +634,7 @@ export function tickGoliaths(w: World): void {
           ws.cooldown = 0;
           ev("online");
         }
-      } else if (share >= line + GOLIATH.restoreMargin) {
+      } else if (share >= line + t.restoreMargin) {
         ws.reboot = rebootTicks;
         ev("rebooting");
       }
@@ -423,8 +642,8 @@ export function tickGoliaths(w: World): void {
   }
 }
 
-/** Display name of a weapon system ("Mortars", "Eye laser"…). */
-export const weaponName = (k: GoliathWeapon): string => GOLIATH.weapons[k].name;
+/** Display name of a weapon system ("Mortiers", "Arc de proue"…) of a super-unit of `kind` (the Goliath's by default). */
+export const weaponName = (k: GoliathWeapon, kind: UnitKind = "goliath"): string => sup(kind).weapon(k).name;
 
 /** Building kinds that can go up as outposts in a Goliath's build ring (anything but an HQ). */
 export const outpostable = (kind: keyof typeof BUILDINGS): boolean => kind !== "hq";
@@ -436,8 +655,8 @@ export const outpostable = (kind: keyof typeof BUILDINGS): boolean => kind !== "
  * it could: anchorBlocker's ground checks for a spot it hasn't walked to yet
  * (the AI vets a site before the trip). `selfId` is never in its own way.
  */
-export function anchorBlockedAt(w: World, faction: Faction, x: number, y: number, selfId = -1): string | null {
-  const { tx, ty, size } = anchorFootprint(w, faction, x, y);
+export function anchorBlockedAt(w: World, faction: Faction, x: number, y: number, selfId = -1, kind: UnitKind = "goliath"): string | null {
+  const { tx, ty, size } = anchorFootprint(w, faction, x, y, kind);
   for (let dy = 0; dy < size; dy++)
     for (let dx = 0; dx < size; dx++) {
       const fx = tx + dx;
@@ -463,8 +682,9 @@ export function readyFirepower(u: Unit): number {
   let all = 0;
   let up = 0;
   for (const k of GOLIATH_WEAPONS) {
-    all += GOLIATH.weapons[k].dps;
-    if (weaponReady(u, k)) up += GOLIATH.weapons[k].dps;
+    const dps = weaponStats(u, k).dps;
+    all += dps;
+    if (weaponReady(u, k)) up += dps;
   }
   return all > 0 ? up / all : 0;
 }
