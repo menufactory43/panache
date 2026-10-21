@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Biome } from "../../sim/types";
 import { ModelBuilder, type Vec3 } from "./builder";
+import { BELLE_EPOQUE } from "./theme";
 
 /**
  * Prop geometry for the battlefield: trees per biome, rock crags and loose
@@ -313,6 +314,7 @@ export function treeGeos(biome: Biome): THREE.BufferGeometry[] {
  * core glinting on top — gunmetal and rust, so a field reads as metal.
  */
 export function scrapGeos(): THREE.BufferGeometry[] {
+  if (BELLE_EPOQUE) return coalGeos();
   const out: THREE.BufferGeometry[] = [];
   const plates = [0x737a83, 0x5d636b, 0x8a4a2a, 0x9a7a44, 0x868c94];
   const junk = [0x6e5238, 0x8a6a3a, 0x5a5f66, 0x7a4a2a, 0x9a7a44, 0x46494e];
@@ -348,6 +350,40 @@ export function scrapGeos(): THREE.BufferGeometry[] {
   return out;
 }
 
+/**
+ * Belle Époque (theme.ts): the scrap fields are coal. A low black heap of
+ * glossy lumps, a shovel stuck in it, a few pit props, and a smouldering
+ * ember on top where the salvage core was, so a field still glints.
+ */
+function coalGeos(): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const lumps = [0x1d1c1b, 0x272624, 0x312f2c, 0x3b3834, 0x46423d];
+  for (let v = 0; v < 3; v++) {
+    const b = new ModelBuilder();
+    const rnd = prng(v * 7919 + 13);
+    b.sphere(0.36, [0, -0.05, 0], 0x1a1918, { w: 9, h: 4, phi: Math.PI / 2, scale: [1, 0.4, 1] });
+    for (let i = 0; i < 14; i++) {
+      const a = rnd() * Math.PI * 2;
+      const d = rnd() * 0.28;
+      const r = 0.035 + rnd() * 0.045;
+      b.add(new THREE.DodecahedronGeometry(r, 0), [Math.cos(a) * d, 0.04 + (0.28 - d) * 0.42, Math.sin(a) * d], lumps[Math.floor(rnd() * lumps.length)]!, {
+        rot: [rnd() * 3, rnd() * 3, rnd() * 3]
+      });
+    }
+    // a coal shovel stuck in the heap (ash handle, iron blade), and two pit props lying by it
+    const sa = rnd() * Math.PI * 2;
+    b.box(0.02, 0.3, 0.02, [Math.cos(sa) * 0.08, 0.24, Math.sin(sa) * 0.08], 0x9a7448, { rot: [Math.sin(sa) * 0.45, 0, -Math.cos(sa) * 0.45] });
+    b.box(0.08, 0.012, 0.09, [Math.cos(sa) * 0.02, 0.1, Math.sin(sa) * 0.02], 0x4a4d52, { rot: [Math.sin(sa) * 0.45, sa, -Math.cos(sa) * 0.45] });
+    const pa = sa + 2 + rnd();
+    for (const k of [0, 1]) {
+      b.cyl(0.022, 0.022, 0.3, 6, [Math.cos(pa) * (0.3 + k * 0.05), 0.025 + k * 0.03, Math.sin(pa) * (0.3 + k * 0.05)], 0x7a5a36, { rot: [Math.PI / 2, pa + 1.57, 0] });
+    }
+    b.box(0.05, 0.035, 0.05, [0.03, 0.2, -0.02], 0xff8a2a, { glow: 0.75, rot: [0.6, 0.4, 0] });
+    out.push(b.build());
+  }
+  return out;
+}
+
 export function crystalGeos(): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   for (let v = 0; v < 3; v++) {
@@ -362,7 +398,8 @@ export function crystalGeos(): THREE.BufferGeometry[] {
       const h = (i === 0 ? 0.5 : 0.22 + rnd() * 0.22) * 1.1;
       const r = i === 0 ? 0.07 : 0.04 + rnd() * 0.03;
       const lean = i === 0 ? 0 : 0.35 + rnd() * 0.3;
-      const col = [0x3dffa0, 0x2fd88a, 0x6dffc0][i % 3]!;
+      // (Belle Époque: radium — Curie's pale blue-green glow)
+      const col = (BELLE_EPOQUE ? [0x9cffe4, 0x6fe8d2, 0xd2fff4] : [0x3dffa0, 0x2fd88a, 0x6dffc0])[i % 3]!;
       const x = Math.cos(a) * d;
       const z = Math.sin(a) * d;
       b.cyl(0, r, h, 5, [x + Math.cos(a) * Math.sin(lean) * h * 0.5, h * 0.5 * Math.cos(lean), z + Math.sin(a) * Math.sin(lean) * h * 0.5], col, {

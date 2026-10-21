@@ -6,6 +6,7 @@ import { GroundGfx } from "./ground-gfx";
 import { SquadRig } from "./infantry";
 import { discMat, glowMat, modelMat, setFogLook, type FogLook } from "./materials";
 import { ScreenLayer } from "./screen";
+import { BELLE_EPOQUE } from "./theme";
 
 /**
  * The WebGL stage: renderer, scene, sun and sky light per biome, the camera
@@ -148,6 +149,8 @@ export class Stage {
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
     r.domElement.className = "view3d";
+    // Belle Époque: an old-photograph warmth over the whole battlefield
+    if (BELLE_EPOQUE) r.domElement.style.filter = "sepia(0.32) saturate(0.92) contrast(1.04)";
     parent.appendChild(r.domElement);
     this.renderer = r;
     this.screen = new ScreenLayer(parent, this.rig);

@@ -4,6 +4,8 @@ import { ModelBuilder, type Section, type Vec3 } from "./builder";
 import { GANTRY_STAGES, GOLIATH_RIG, gantryStage, goliathStatic } from "./goliath";
 import { botStatic, botHeight, J, squadStatic, type BotKind } from "./infantry";
 import { modelMat } from "./materials";
+import { BELLE_EPOQUE } from "./theme";
+import { BE_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS } from "./belle";
 
 /**
  * Every vehicle, aircraft, building and map objective as a procedural
@@ -22,30 +24,39 @@ import { modelMat } from "./materials";
  * World units are tiles (1 = one map tile).
  */
 
-export const GM = 0x50575f;
-export const GM_D = 0x31353b;
-export const GM_L = 0x747d87;
-export const TRACK = 0x1c1e21;
-export const BARREL = 0x2a2d31;
-export const AMBER = 0xff9c1f;
-export const WHITE = 0xd6dbe1;
-export const HAZ = 0xe0b23a;
+// Belle Époque (theme.ts): bronze bodies, blackened iron, polished brass, gaslight amber, ivory.
+export const GM = BELLE_EPOQUE ? 0x8a6a3c : 0x50575f;
+export const GM_D = BELLE_EPOQUE ? 0x3d3026 : 0x31353b;
+export const GM_L = BELLE_EPOQUE ? 0xd2a856 : 0x747d87;
+export const TRACK = BELLE_EPOQUE ? 0x2a2019 : 0x1c1e21;
+export const BARREL = BELLE_EPOQUE ? 0x3a2f26 : 0x2a2d31;
+export const AMBER = BELLE_EPOQUE ? 0xffc561 : 0xff9c1f;
+export const WHITE = BELLE_EPOQUE ? 0xeadfc4 : 0xd6dbe1;
+export const HAZ = BELLE_EPOQUE ? 0xc9a24a : 0xe0b23a;
 export const HAZ_D = 0x2b2a28;
-const GREEN = 0x5dff8a;
+export const GREEN = 0x5dff8a;
 /** Amber-tinted cockpit glass (lit a little from inside). */
-const GLASS = 0xcf7f2a;
-const EXHAUST = 0xffa040;
+export const GLASS = BELLE_EPOQUE ? 0xe2a64a : 0xcf7f2a;
+export const EXHAUST = 0xffa040;
+/** Belle Époque dirigible: varnished canvas and polished brass. */
+export const CANVAS = 0xe4d6b4;
+export const BRASS = 0xd8ae58;
 
-interface Team {
+export interface Team {
   main: number;
   dark: number;
   light: number;
 }
 
-export const TEAMS: Record<Faction, Team> = {
-  blue: { main: 0x2a6cf2, dark: 0x1a3f94, light: 0x7aacff },
-  red: { main: 0xe0322e, dark: 0x8c1c16, light: 0xff7a62 }
-};
+export const TEAMS: Record<Faction, Team> = BELLE_EPOQUE
+  ? {
+      blue: { main: 0x2f5fb8, dark: 0x1c3566, light: 0x7d9fd8 },
+      red: { main: 0xb02a24, dark: 0x5e1612, light: 0xe0705c }
+    }
+  : {
+      blue: { main: 0x2a6cf2, dark: 0x1a3f94, light: 0x7aacff },
+      red: { main: 0xe0322e, dark: 0x8c1c16, light: 0xff7a62 }
+    };
 
 /** A spinning part: geometry pivoting at its own origin, placed at `at`, spinning about `axis`. */
 export interface Rotor {
@@ -85,34 +96,34 @@ export interface ModelDef {
 // ------------------------------------------------------------ helpers ---
 
 /** Ground hulls: per-part grade plus contact occlusion near the ground. */
-const hullB = () => new ModelBuilder({ grade: 0.3, ao: [0.12, 0.4] });
+export const hullB = () => new ModelBuilder({ grade: 0.3, ao: [0.12, 0.4] });
 /** Turrets, heads and aircraft: per-part grade only (their origin isn't the ground). */
-const partB = () => new ModelBuilder({ grade: 0.26 });
+export const partB = () => new ModelBuilder({ grade: 0.26 });
 /** Buildings and objectives: a gentler grade, occlusion over a taller band. */
-const siteB = () => new ModelBuilder({ grade: 0.22, ao: [0.3, 0.38] });
+export const siteB = () => new ModelBuilder({ grade: 0.22, ao: [0.3, 0.38] });
 
 /**
  * Rear rotor rings: halfway from the team's dark shade to its main colour, so
  * the front pair still reads as the nose but the rear stays team-bright over
  * dark ground (team-dark alone sinks into ash and shadow).
  */
-function rearRing(t: Team): number {
+export function rearRing(t: Team): number {
   return ((t.main >> 1) & 0x7f7f7f) + ((t.dark >> 1) & 0x7f7f7f);
 }
 
 /** A barrel of length `len` from base point `at`, pitched up by `pitch`, along -Z. */
-function barrel(b: ModelBuilder, at: Vec3, r: number, len: number, pitch: number, hex: number, seg = 6): void {
+export function barrel(b: ModelBuilder, at: Vec3, r: number, len: number, pitch: number, hex: number, seg = 6): void {
   const dy = Math.sin(pitch);
   const dz = -Math.cos(pitch);
   b.tube(r, len, seg, [at[0], at[1] + (dy * len) / 2, at[2] + (dz * len) / 2], hex, { rot: [pitch, 0, 0] });
 }
 
 /** End of a pitched barrel. */
-function barrelTip(at: Vec3, len: number, pitch: number): Vec3 {
+export function barrelTip(at: Vec3, len: number, pitch: number): Vec3 {
   return [at[0], at[1] + Math.sin(pitch) * len, at[2] - Math.cos(pitch) * len];
 }
 
-function wheels(b: ModelBuilder, x: number, y: number, r: number, w: number, zs: number[]): void {
+export function wheels(b: ModelBuilder, x: number, y: number, r: number, w: number, zs: number[]): void {
   for (const z of zs) {
     b.cyl(r, r, w, 10, [x, y, z], TRACK, { rot: [0, 0, Math.PI / 2] });
     b.cyl(r, r, w, 10, [-x, y, z], TRACK, { rot: [0, 0, Math.PI / 2] });
@@ -122,7 +133,7 @@ function wheels(b: ModelBuilder, x: number, y: number, r: number, w: number, zs:
 }
 
 /** A tracked running gear: track block, road wheels and a team fender. */
-function tracks(b: ModelBuilder, x: number, w: number, h: number, len: number, z = 0, fender?: number): void {
+export function tracks(b: ModelBuilder, x: number, w: number, h: number, len: number, z = 0, fender?: number): void {
   for (const s of [1, -1]) {
     b.block(w, h, len, [s * x, h / 2 + 0.01, z], TRACK, { bevel: h * 0.3, edge: 1.8 });
     const n = Math.max(3, Math.round(len / 0.16));
@@ -134,12 +145,12 @@ function tracks(b: ModelBuilder, x: number, w: number, h: number, len: number, z
   }
 }
 
-function light(b: ModelBuilder, at: Vec3, s = 0.03, hex = AMBER): void {
+export function light(b: ModelBuilder, at: Vec3, s = 0.03, hex = AMBER): void {
   b.box(s, s * 0.8, s, at, hex, { glow: 1 });
 }
 
 /** A rotor: two crossed blades and a hub. */
-function rotorGeo(r: number, axis: "y" | "z" = "y"): THREE.BufferGeometry {
+export function rotorGeo(r: number, axis: "y" | "z" = "y"): THREE.BufferGeometry {
   const b = new ModelBuilder();
   const rot: Vec3 = axis === "z" ? [Math.PI / 2, 0, 0] : [0, 0, 0];
   b.box(r * 2, 0.008, r * 0.18, [0, 0, 0], 0x1a1c1f, { rot });
@@ -149,24 +160,24 @@ function rotorGeo(r: number, axis: "y" | "z" = "y"): THREE.BufferGeometry {
 }
 
 /** An outline drawn on the right (x ≥ 0), or mirrored to the left for `s` -1 (wound the same way). */
-function sided(pts: [number, number][], s: number): [number, number][] {
+export function sided(pts: [number, number][], s: number): [number, number][] {
   return s > 0 ? pts : pts.map(([x, z]): [number, number] => [-x, z]).reverse();
 }
 
 /** A tapered octagonal skirt, flat faces to the front, back and sides, `w` × `d` at its foot. */
-function skirt(b: ModelBuilder, w: number, d: number, h: number, taper: number, at: Vec3, hex: number, glow = 0): void {
+export function skirt(b: ModelBuilder, w: number, d: number, h: number, taper: number, at: Vec3, hex: number, glow = 0): void {
   const k = 1 / Math.cos(Math.PI / 8);
   b.add(new THREE.CylinderGeometry(1 - taper, 1, h, 8, 1, false, Math.PI / 8), at, hex, { scale: [(w / 2) * k, 1, (d / 2) * k], glow });
 }
 
 /** A glowing jet nozzle pointing back (+Z) at `at`. */
-function nozzle(b: ModelBuilder, at: Vec3, r: number): void {
+export function nozzle(b: ModelBuilder, at: Vec3, r: number): void {
   b.tube(r, 0.06, 8, at, GM_D);
   b.sphere(r * 0.85, [at[0], at[1], at[2] + 0.03], EXHAUST, { glow: 1, w: 6, h: 4, scale: [1, 1, 0.7] });
 }
 
 /** An air-to-air missile along -Z: white body, team nose, dark cruciform tail fins. */
-function missile(b: ModelBuilder, at: Vec3, len: number, t: Team, r = 0.018): void {
+export function missile(b: ModelBuilder, at: Vec3, len: number, t: Team, r = 0.018): void {
   const [x, y, z] = at;
   b.tube(r, len, 6, at, WHITE);
   b.cone(r, r * 2.6, 6, [x, y, z - len / 2 - r * 1.3], t.main, { rot: [-Math.PI / 2, 0, 0] });
@@ -175,7 +186,7 @@ function missile(b: ModelBuilder, at: Vec3, len: number, t: Team, r = 0.018): vo
 }
 
 /** A round strut from `a` to `c` (legs, stabilisers). */
-function strut(m: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void {
+export function strut(m: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void {
   const d = new THREE.Vector3(c[0] - a[0], c[1] - a[1], c[2] - a[2]);
   const len = d.length();
   const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
@@ -183,7 +194,7 @@ function strut(m: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void 
 }
 
 /** A standing shell: grey case, amber tip. */
-function shell(b: ModelBuilder, at: Vec3, r = 0.016): void {
+export function shell(b: ModelBuilder, at: Vec3, r = 0.016): void {
   b.cyl(r, r, r * 4, 6, at, GM_L);
   b.cone(r, r * 2, 6, [at[0], at[1] + r * 3, at[2]], AMBER, { glow: 0.4 });
 }
@@ -1276,28 +1287,32 @@ function def(key: string, make: () => ModelDef): ModelDef {
 }
 
 export function unitDef(kind: UnitKind, f: Faction): ModelDef {
-  return def(`u/${f}/${kind}`, () => UNIT_MODELS[kind](TEAMS[f]));
+  const make = (BELLE_EPOQUE && BE_UNIT_MODELS[kind]) || UNIT_MODELS[kind];
+  return def(`u/${f}/${kind}`, () => make(TEAMS[f]));
 }
 
 export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
-  return def(`b/${f}/${kind}`, () => BUILDING_MODELS[kind](TEAMS[f]));
+  const make = (BELLE_EPOQUE && BE_BUILDING_MODELS[kind]) || BUILDING_MODELS[kind];
+  return def(`b/${f}/${kind}`, () => make(TEAMS[f]));
 }
 
 export function uplinkDef(): ModelDef {
-  return def("obj/uplink", uplinkModel);
+  return def("obj/uplink", (BELLE_EPOQUE && BE_OBJECTIVES.uplink) || uplinkModel);
 }
 
 export function crateDef(): ModelDef {
-  return def("obj/crate", crateModel);
+  return def("obj/crate", (BELLE_EPOQUE && BE_OBJECTIVES.crate) || crateModel);
 }
 
 export function podDef(f: Faction, open = false): ModelDef {
-  return def(`pod/${f}/${open}`, () => (open ? podOpenModel : podModel)(TEAMS[f]));
+  const make = BELLE_EPOQUE ? (open ? BE_OBJECTIVES.podOpen : BE_OBJECTIVES.pod) : undefined;
+  return def(`pod/${f}/${open}`, () => (make ?? (open ? podOpenModel : podModel))(TEAMS[f]));
 }
 
 /** Longest side of each unit in tiles (as the painted sprites were sized), before the 3D readability bump. */
+// (the Belle Époque dirigible is long and slim: sized by its length, it needs more to read as big as the quadcopter)
 const UNIT_SIZE: Record<UnitKind, number> = {
-  harvester: 1.15, scout: 0.85, stinger: 0.95, "flak-crawler": 1.0, mortar: 1.15, mastodon: 1.45,
+  harvester: 1.15, scout: BELLE_EPOQUE ? 1.25 : 0.85, stinger: 0.95, "flak-crawler": 1.0, mortar: 1.15, mastodon: 1.45,
   lancer: 1.05, wasp: 1.0, raptor: 1.15, hornet: 1.5, mender: 0.85,
   // (a squad's formation spans about its radius × 2: the robots are modelled at map scale, see unitScale)
   trooper: 0.8, "rocket-squad": 0.8, sniper: 0.7,

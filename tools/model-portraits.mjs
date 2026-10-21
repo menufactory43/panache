@@ -52,7 +52,7 @@ if ("all" in opt) {
   for (const k of [...UNITS, ...BUILDINGS]) jobs.push({ kind: k, faction: "red" });
 } else for (const k of args.filter((a) => !a.startsWith("--"))) jobs.push({ kind: k, faction: opt.faction ?? "blue" });
 
-const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((p) => existsSync(p));
+const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find((p) => existsSync(p));
 const browser = await chromium.launch({
   executablePath: exe,
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]

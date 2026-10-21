@@ -3,7 +3,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Faction } from "../../sim/types";
 import { ModelBuilder, type Vec3 } from "./builder";
 import { modelMat } from "./materials";
-import { AMBER, BARREL, CONDOR_BAY, GM, GM_D, GM_L, TEAMS, WHITE } from "./models";
+import { AMBER, BARREL, BRASS, CANVAS, CONDOR_BAY, GM, GM_D, GM_L, TEAMS, WHITE } from "./models";
+import { BELLE_EPOQUE } from "./theme";
 
 /**
  * Robot infantry: small articulated biped robots in the vehicles' painted
@@ -26,6 +27,9 @@ import { AMBER, BARREL, CONDOR_BAY, GM, GM_D, GM_L, TEAMS, WHITE } from "./model
  *
  * (models.ts imports this module and this one imports models.ts: nothing
  * here may touch an import at module load, only inside functions.)
+ *
+ * Belle Époque (theme.ts): the same rigs dressed as clockwork soldiers of
+ * 1900 — Pioupious, Artificiers and Chasseurs alpins (PARTS_BELLE).
  */
 
 type Team = (typeof TEAMS)[Faction];
@@ -357,12 +361,233 @@ const PARTS: Record<BotKind, (t: Team) => Parts> = {
   }
 };
 
+// ------------------------------------------- Belle Époque: clockwork soldiers ---
+
+/**
+ * BELLE_EPOQUE: the same robots dressed as clockwork automaton soldiers of
+ * the 1900 French army — round polished-brass bodies, ivory clock-dial faces
+ * with amber eyes, a wind-up key in the back, and a team-colour greatcoat,
+ * tunic or cape with the team's képi, shako or béret on top, so the side
+ * reads from the top-down camera. Same joints, proportions and muzzles as
+ * the originals (PARTS): only the shapes and paint differ.
+ */
+const BE_LIGHT = 0xe2bb6a;
+const BE_MID = 0xb88e4e;
+const BE_DARK = 0x86683e;
+const BE_JOINT = 0x4a3a2c;
+const LEATHER = 0x3a2a1e;
+const WOOD = 0x7a4e2a;
+const STEEL = 0xc9ccd0;
+
+/** Brass limbs: a ball hip, a trouser thigh, a brass knee, a leather gaiter over the boot. */
+function legsBelle(P: Parts, s: Spec, w: number, boot: [number, number, number], trousers: number): void {
+  const ankle = s.hipY - s.thigh - s.shin;
+  for (const [th, sh] of [[J.thighL, J.shinL], [J.thighR, J.shinR]] as const) {
+    let b = pb();
+    b.sphere(w * 0.6, [0, 0, 0], BE_JOINT, { w: 6, h: 4 });
+    b.cyl(w * 0.56, w * 0.5, s.thigh + 0.006, 8, [0, -s.thigh / 2 - 0.002, 0], trousers);
+    P[th] = b.build();
+    b = pb();
+    b.sphere(w * 0.55, [0, -0.002, -0.002], BE_LIGHT, { w: 6, h: 4 });
+    b.cyl(w * 0.46, w * 0.4, s.shin * 0.5, 8, [0, -s.shin * 0.3, 0], BE_MID);
+    b.cyl(w * 0.52, w * 0.56, s.shin * 0.48, 8, [0, -s.shin * 0.72, 0.001], LEATHER);
+    b.block(boot[0], boot[1], boot[2], [0, -s.shin - ankle + boot[1] / 2, -boot[2] * 0.18], 0x241a12, { bevel: 0.006, edge: 1.6 });
+    P[sh] = b.build();
+  }
+}
+
+/** Sleeved arms: a brass shoulder ball, the sleeve in `sleeve`, a brass cuff and a brass mitten. */
+function armsBelle(P: Parts, s: Spec, w: number, sleeve: number): void {
+  for (const j of [J.armL, J.armR]) {
+    const b = pb();
+    b.sphere(w * 0.66, [0, 0, 0], BE_LIGHT, { w: 7, h: 5 });
+    b.cyl(w * 0.56, w * 0.5, s.arm * 0.82, 7, [0, -s.arm * 0.46, 0], sleeve);
+    b.cyl(w * 0.58, w * 0.58, s.arm * 0.12, 7, [0, -s.arm * 0.86, 0], BRASS);
+    b.sphere(w * 0.5, [0, -s.arm, -0.002], BE_LIGHT, { w: 6, h: 4 });
+    P[j] = b.build();
+  }
+}
+
+/** The face: a brass head ball and an ivory clock dial in a brass bezel, with two amber eyes. */
+function dialFace(b: ModelBuilder, r: number, y: number, eyes = true): void {
+  b.sphere(r, [0, y, 0.002], BE_LIGHT, { w: 10, h: 7 });
+  b.cyl(r * 0.74, r * 0.74, 0.006, 12, [0, y - r * 0.05, -r * 0.84], WHITE, { rot: [Math.PI / 2, 0, 0] });
+  b.torus(r * 0.75, r * 0.08, [0, y - r * 0.05, -r * 0.86], BRASS, { seg: 12 });
+  // (the dial's hour marks)
+  for (const [dx, dy] of [[0, 0.56], [0.56, 0], [-0.56, 0]] as const) b.box(r * 0.08, r * 0.08, 0.003, [dx * r, y - r * 0.05 + dy * r, -r * 0.89], BE_JOINT);
+  if (eyes) for (const sx of [-1, 1]) b.box(r * 0.2, r * 0.16, 0.004, [sx * r * 0.3, y + r * 0.1, -r * 0.9], AMBER, { glow: 1 });
+}
+
+/** A clockwork key in the back at (y, z): the stem and its two-lobed bow. */
+function windKey(b: ModelBuilder, y: number, z: number, s: number): void {
+  b.cyl(s * 0.12, s * 0.12, s * 0.9, 5, [0, y, z + s * 0.45], BRASS, { rot: [Math.PI / 2, 0, 0] });
+  for (const sx of [-1, 1]) b.torus(s * 0.4, s * 0.12, [sx * s * 0.42, y, z + s], BRASS, { rot: [0, Math.PI / 2, 0], seg: 8 });
+}
+
+const PARTS_BELLE: Record<BotKind, (t: Team) => Parts> = {
+  // ---- Pioupiou: line infantry in the capote, képi, havresac and blanket roll, a Lebel with its long bayonet
+  trooper: (t) => {
+    const s = SPECS.trooper;
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.036, [0, 0.006, 0.002], BE_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsBelle(P, s, 0.032, [0.042, 0.02, 0.066], BE_MID);
+    b = pb();
+    // the round brass body, buttoned into the greatcoat (skirts to mid-thigh), belted, a clock dial on the chest
+    b.sphere(0.046, [0, 0.052, 0], BE_LIGHT, { w: 10, h: 7, scale: [1.05, 1, 0.82] });
+    b.cyl(0.04, 0.052, 0.1, 10, [0, 0.022, 0], t.main, { scale: [1.08, 1, 0.84] });
+    b.sphere(0.044, [0, 0.07, 0.001], t.main, { w: 10, h: 5, phi: Math.PI / 2, scale: [1.32, 0.72, 0.92] });
+    b.cyl(0.0455, 0.0455, 0.009, 10, [0, 0.012, 0], LEATHER, { scale: [1.12, 1, 0.88] });
+    b.box(0.012, 0.01, 0.006, [0, 0.012, -0.04], BRASS);
+    for (const sx of [-1, 1]) {
+      b.box(0.016, 0.014, 0.01, [sx * 0.024, 0.014, -0.038], LEATHER);
+      for (const y of [0.03, 0.048]) b.box(0.005, 0.005, 0.004, [sx * 0.012, y, -0.044], BRASS);
+      // epaulettes, brass-fringed
+      b.block(0.024, 0.008, 0.028, [sx * 0.062, 0.094, 0.002], t.light, { bevel: 0.003 });
+      b.box(0.026, 0.006, 0.03, [sx * 0.062, 0.087, 0.002], BRASS);
+    }
+    b.cyl(0.011, 0.011, 0.004, 10, [0, 0.07, -0.043], WHITE, { rot: [Math.PI / 2, 0, 0] });
+    b.box(0.002, 0.008, 0.002, [0, 0.073, -0.046], BE_JOINT);
+    // the havresac, its blanket roll and mess tin on top, the key behind
+    b.block(0.06, 0.054, 0.028, [0, 0.052, 0.046], LEATHER, { bevel: 0.006 });
+    b.cyl(0.011, 0.011, 0.074, 7, [0, 0.088, 0.046], CANVAS, { rot: [0, 0, Math.PI / 2] });
+    b.cyl(0.009, 0.009, 0.01, 7, [0, 0.1, 0.05], GM_L);
+    windKey(b, 0.05, 0.06, 0.016);
+    b.drum(0.016, 0.014, 0.008, 8, [0, 0.092, 0], BRASS);
+    P[J.torso] = b.build();
+    // head: the dial face, a waxed moustache, the képi with its dark band and visor
+    b = pb();
+    dialFace(b, 0.026, 0.026);
+    b.box(0.02, 0.004, 0.004, [0, 0.017, -0.026], BE_JOINT, { rot: [0, 0, 0] });
+    b.cyl(0.021, 0.025, 0.03, 10, [0, 0.052, 0.002], t.main, { rot: [-0.14, 0, 0] });
+    b.cyl(0.0255, 0.0255, 0.009, 10, [0, 0.042, 0.003], t.dark);
+    b.cyl(0.0215, 0.0215, 0.003, 10, [0, 0.068, -0.001], t.light, { rot: [-0.14, 0, 0] });
+    b.box(0.03, 0.003, 0.016, [0, 0.039, -0.027], LEATHER, { rot: [0.3, 0, 0] });
+    b.box(0.006, 0.006, 0.004, [0, 0.05, -0.026], BRASS);
+    P[J.head] = b.build();
+    armsBelle(P, s, 0.028, t.main);
+    // the Lebel: walnut stock, blued barrel with brass bands, the long épée-bayonet
+    b = pb();
+    b.block(0.016, 0.026, 0.11, [0, 0.008, -0.03], WOOD, { bevel: 0.004 });
+    b.box(0.016, 0.03, 0.04, [0, 0.0, 0.03], WOOD);
+    b.tube(0.0055, 0.07, 6, [0, 0.016, -0.1], BARREL);
+    for (const z of [-0.06, -0.09]) b.tube(0.008, 0.005, 6, [0, 0.016, z], BRASS);
+    b.box(0.003, 0.004, 0.06, [0, 0.01, -0.16], STEEL);
+    b.box(0.008, 0.012, 0.016, [0, -0.012, -0.03], BE_JOINT);
+    b.box(0.006, 0.006, 0.012, [0.009, 0.02, -0.005], BRASS);
+    P[J.gun] = b.build();
+    return P;
+  },
+
+  // ---- Artificier: a stocky rocketeer in a frogged dolman, a shako with a pompon, brass goggles, a Congreve tube
+  "rocket-squad": (t) => {
+    const s = SPECS["rocket-squad"];
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.044, [0, 0.006, 0.002], BE_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsBelle(P, s, 0.042, [0.054, 0.024, 0.078], BE_DARK);
+    b = pb();
+    // a barrel of a brass body in the team dolman, brass frogging across the chest, broad shoulders
+    b.sphere(0.058, [0, 0.05, 0], BE_LIGHT, { w: 10, h: 7, scale: [1.05, 0.95, 0.85] });
+    b.cyl(0.054, 0.058, 0.07, 10, [0, 0.042, 0], t.main, { scale: [1.08, 1, 0.86] });
+    b.sphere(0.058, [0, 0.074, 0.001], t.main, { w: 10, h: 5, phi: Math.PI / 2, scale: [1.38, 0.62, 0.92] });
+    for (let i = 0; i < 3; i++) b.box(0.05 - i * 0.006, 0.004, 0.004, [0, 0.03 + i * 0.016, -0.05], BRASS);
+    b.cyl(0.06, 0.06, 0.01, 10, [0, 0.008, 0], LEATHER, { scale: [1.12, 1, 0.88] });
+    b.box(0.014, 0.012, 0.006, [0, 0.008, -0.052], BRASS);
+    for (const sx of [-1, 1]) {
+      b.block(0.03, 0.01, 0.036, [sx * 0.08, 0.098, 0.002], t.light, { bevel: 0.003 });
+      b.box(0.032, 0.007, 0.038, [sx * 0.08, 0.09, 0.002], BRASS);
+    }
+    // the quiver of Congreve rockets on its back: iron cases, red warheads, their guide sticks hanging below
+    b.block(0.07, 0.05, 0.026, [0, 0.05, 0.06], LEATHER, { bevel: 0.006 });
+    for (const x of [-0.024, 0, 0.024]) {
+      b.cyl(0.009, 0.009, 0.05, 6, [x, 0.098, 0.064], BE_JOINT);
+      b.cone(0.0095, 0.02, 6, [x, 0.133, 0.064], 0xc84a3a);
+      b.cyl(0.0025, 0.0025, 0.1, 4, [x, 0.0, 0.07], WOOD);
+    }
+    windKey(b, 0.04, 0.075, 0.018);
+    P[J.torso] = b.build();
+    // head: the dial face behind brass goggles, a shako with a brass plate and a pompon
+    b = pb();
+    dialFace(b, 0.027, 0.024, false);
+    for (const sx of [-1, 1]) {
+      b.torus(0.007, 0.0025, [sx * 0.009, 0.027, -0.026], BRASS, { seg: 8 });
+      b.cyl(0.006, 0.006, 0.004, 8, [sx * 0.009, 0.027, -0.027], AMBER, { glow: 1, rot: [Math.PI / 2, 0, 0] });
+    }
+    b.box(0.05, 0.004, 0.004, [0, 0.027, -0.02], LEATHER);
+    b.cyl(0.026, 0.023, 0.04, 10, [0, 0.056, 0.002], t.main);
+    b.cyl(0.0265, 0.0265, 0.006, 10, [0, 0.074, 0.002], t.dark);
+    b.box(0.012, 0.014, 0.004, [0, 0.055, -0.024], BRASS);
+    b.box(0.032, 0.003, 0.016, [0, 0.038, -0.026], LEATHER, { rot: [0.25, 0, 0] });
+    b.sphere(0.009, [0, 0.084, -0.012], t.light, { w: 6, h: 4 });
+    P[J.head] = b.build();
+    armsBelle(P, s, 0.034, t.main);
+    // the Congreve tube: brass, team-banded, flared at the mouth with a warhead showing, a sight and a grip
+    b = pb();
+    b.tube(0.025, 0.24, 12, [0, 0, -0.03], 0x9c7644);
+    b.tube(0.028, 0.04, 10, [0, 0, 0.03], t.main);
+    for (const z of [-0.08, 0.06]) b.tube(0.028, 0.008, 10, [0, 0, z], BRASS);
+    b.cone(0.034, 0.03, 10, [0, 0, -0.155], BRASS, { rot: [Math.PI / 2, 0, 0] });
+    b.cone(0.02, 0.034, 8, [0, 0, -0.146], 0xc84a3a, { rot: [-Math.PI / 2, 0, 0] });
+    b.cone(0.034, 0.03, 12, [0, 0, 0.1], BE_JOINT, { rot: [-Math.PI / 2, 0, 0] });
+    b.box(0.006, 0.02, 0.006, [-0.026, 0.024, -0.06], BRASS);
+    light(b, [-0.026, 0.036, -0.06], 0.009);
+    b.box(0.012, 0.032, 0.014, [0, -0.034, -0.04], WOOD);
+    P[J.gun] = b.build();
+    return P;
+  },
+
+  // ---- Chasseur alpin: a lean marksman under the great flat béret and team cape, a long rifle with a brass scope
+  sniper: (t) => {
+    const s = SPECS.sniper;
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.032, [0, 0.006, 0.002], BE_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsBelle(P, s, 0.028, [0.038, 0.02, 0.062], t.dark);
+    b = pb();
+    // a slim brass body in the dark vareuse, the cape (pèlerine) over its shoulders, a rolled blanket across them
+    b.sphere(0.038, [0, 0.046, 0], BE_LIGHT, { w: 10, h: 7, scale: [1.05, 1.15, 0.85] });
+    b.cyl(0.034, 0.042, 0.08, 10, [0, 0.03, 0], t.dark, { scale: [1.05, 1, 0.85] });
+    b.cone(0.07, 0.085, 10, [0, 0.05, 0.004], t.main, { scale: [1, 1, 0.9] });
+    b.box(0.07, 0.07, 0.006, [0, 0.025, 0.054], t.main, { rot: [0.18, 0, 0] });
+    b.torus(0.042, 0.009, [0, 0.07, 0.004], CANVAS, { rot: [Math.PI / 2, 0, 0.5], seg: 10 });
+    b.cyl(0.004, 0.004, 0.012, 6, [0, 0.091, -0.004], BRASS);
+    b.box(0.008, 0.008, 0.004, [0.012, 0.062, -0.044], BRASS);
+    windKey(b, 0.03, 0.06, 0.015);
+    P[J.torso] = b.build();
+    // head: the dial face with a brass monocle, the wide béret alpin tipped over with a hunting-horn badge
+    b = pb();
+    dialFace(b, 0.024, 0.026);
+    b.torus(0.006, 0.0018, [0.007, 0.029, -0.023], BRASS, { seg: 8 });
+    b.cyl(0.043, 0.036, 0.012, 14, [0.004, 0.05, 0.004], t.main, { rot: [0.05, 0, -0.22] });
+    b.cyl(0.026, 0.026, 0.006, 12, [0.002, 0.04, 0.003], t.dark);
+    b.torus(0.006, 0.002, [-0.026, 0.046, 0.0], BRASS, { rot: [0, Math.PI / 2, 0], seg: 8 });
+    b.cyl(0.002, 0.002, 0.008, 4, [0.008, 0.058, 0.004], t.dark);
+    P[J.head] = b.build();
+    armsBelle(P, s, 0.024, t.dark);
+    // the long rifle: walnut stock, a long blued barrel with brass bands, a brass telescope with an amber lens
+    b = pb();
+    b.block(0.018, 0.024, 0.13, [0, 0.004, -0.03], WOOD, { bevel: 0.005 });
+    b.box(0.016, 0.026, 0.06, [0, -0.002, 0.06], WOOD);
+    b.tube(0.0055, 0.15, 6, [0, 0.006, -0.18], BARREL);
+    for (const z of [-0.11, -0.2]) b.tube(0.008, 0.006, 6, [0, 0.006, z], BRASS);
+    b.tube(0.0075, 0.075, 7, [0, 0.026, -0.04], BRASS);
+    b.box(0.012, 0.012, 0.004, [0, 0.026, -0.078], AMBER, { glow: 1 });
+    b.box(0.012, 0.028, 0.012, [0, -0.02, -0.01], BE_JOINT);
+    P[J.gun] = b.build();
+    return P;
+  }
+};
+
 const partsCache = new Map<string, Parts>();
 function partsOf(kind: BotKind, f: Faction): Parts {
   const key = `${kind}/${f}`;
   let p = partsCache.get(key);
   if (!p) {
-    p = PARTS[kind](TEAMS[f]);
+    p = (BELLE_EPOQUE ? PARTS_BELLE : PARTS)[kind](TEAMS[f]);
     partsCache.set(key, p);
   }
   return p;
