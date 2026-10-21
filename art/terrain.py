@@ -69,7 +69,12 @@ SUN_SLOPE = 0.85  # tan(sun elevation): shadow length == occluder height / SUN_S
 # 0.42 => the 1024 texture covers ~430 px (~9 tiles) on the map.
 # Doodads: sheet index (row-major in the 3x3 sheet) ->
 #   (name, min size, max size [tiles, longest side], height for shadows [tiles], weight).
-# Sheet indices 0-2 are always the tree crowns.
+# Sheet indices 0-2 are always the tree crowns. The slot names are the painter's roles (they drive
+# placement rules); the Panache sheets hold Belle Époque objects in them: temperate bush = haystack,
+# log = firewood stack, wreck = hay cart; desert cactus = balloon basket, skull = expedition crates,
+# wreck = covered wagon; arctic wreck = ruined refuge, crate = loaded sled; volcanic fumarole =
+# basalt columns, debris = mine cart, wreck = lava-stone hut ruin, sulfur = dry grass; tropical
+# (Brittany) mangrove = gorse, coral = shells, log = rowing boat, wreck = fishing boat, crate = lobster pots.
 
 BIOMES: dict[str, dict] = {
     "temperate": dict(
@@ -85,13 +90,13 @@ BIOMES: dict[str, dict] = {
             foam=(0.86, 0.92, 0.9), wet=0.28,
         ),
         rock_h=0.95, forest_h=0.5, tree_h=0.7,
-        rail=(0.74, 0.72, 0.68), deck_tint=(0.92, 0.92, 0.92),
+        rail=(0.44, 0.34, 0.24), deck_tint=(1.0, 0.98, 0.95), deck="planks", wood=(0.6, 0.47, 0.33),
         stain=(0.8, 0.75, 0.7), crystal_tint=(0.9, 1.0, 0.92), road_curb=0.08,
         grade=dict(sat=1.08, contrast=1.06, lift=(0.0, 0.0, 0.01), gain=(1.02, 1.01, 0.98), gamma=1.0),
         shadow_col=(0.52, 0.56, 0.66), shadow_k=0.8,
         trees=[0, 1, 2], tree_size=(1.05, 1.5),
         big={3: ("boulder", 0.85, 1.1, 0.30, 5), 6: ("log", 0.95, 1.2, 0.12, 3), 7: ("wreck", 1.05, 1.25, 0.18, 1)},
-        small={4: ("rocks", 0.6, 0.85, 0.1, 2), 5: ("bush", 0.6, 0.85, 0.14, 3), 8: ("flowers", 0.6, 0.85, 0.0, 3)},
+        small={4: ("rocks", 0.6, 0.85, 0.1, 2), 5: ("bush", 0.75, 0.95, 0.14, 1), 8: ("flowers", 0.6, 0.85, 0.0, 3)},
         tree_w=[0.45, 0.2, 0.35],
     ),
     "desert": dict(
@@ -149,13 +154,13 @@ BIOMES: dict[str, dict] = {
         ),
         rock_h=1.0, forest_h=0.12, tree_h=0.45,
         rail=(0.5, 0.48, 0.46), deck_tint=(0.85, 0.82, 0.8), deck_glow=True,
-        stain=(0.85, 0.8, 0.76), crystal_tint=(0.9, 1.0, 0.92),
-        road_contrast=1.5, road_mul=(0.72, 0.7, 0.68), road_curb=0.35,
-        forest_mul=1.55, tree_spacing=0.95, tree_density=0.95, tree_bright=1.1, embers=True,
+        stain=(0.85, 0.8, 0.76), crystal_tint=(0.9, 1.0, 0.92), coal=(0.1, 0.095, 0.09), radium=(0.07, 0.16, 0.12),
+        road_contrast=1.15, road_mul=(0.9, 0.88, 0.86), road_curb=0.25,
+        forest_mul=1.22, tree_spacing=0.7, tree_density=1.0, tree_bright=1.18,
         rock_rim=0.2, rock_mul=(1.15, 1.12, 1.12),
         grade=dict(sat=1.06, contrast=1.08, lift=(0.012, 0.004, 0.0), gain=(1.03, 1.0, 0.96), gamma=1.0),
         shadow_col=(0.45, 0.45, 0.52), shadow_k=0.75,
-        trees=[0, 1, 2], tree_size=(1.45, 1.85),
+        trees=[0, 1, 2], tree_size=(1.25, 1.6),
         big={3: ("boulder", 0.8, 1.05, 0.3, 5), 5: ("fumarole", 0.9, 1.1, 0.12, 2), 7: ("wreck", 1.05, 1.25, 0.18, 1)},
         small={4: ("lavarocks", 0.6, 0.8, 0.08, 3), 6: ("debris", 0.65, 0.85, 0.06, 2), 8: ("sulfur", 0.55, 0.7, 0.1, 1)},
     ),
@@ -163,29 +168,29 @@ BIOMES: dict[str, dict] = {
     # falling away past a line of surf into sapphire open sea (Terrain.Deep).
     "tropical": dict(
         scale=dict(ground=0.42, ground2=0.42, rough=0.44, rock=0.5, liquid=0.6, road=0.32, forest=0.6),
-        ground2_cover=0.18, ground2_tint=(1.03, 1.08, 1.06),
-        ground_tint=(0.79, 0.9, 0.85),
+        ground2_cover=0.18, ground2_tint=(1.02, 1.01, 0.97),
+        ground_tint=(0.94, 0.95, 0.88),
         beach=1.1,  # ground2 (white coral sand) forced into a band this many tiles wide along every wet edge
         lowfreq=(0.05, 0.025),
         water=dict(
-            near_mul=(0.5, 1.18, 1.16), near_add=(0.0, 0.15, 0.14),
-            deep_mul=(0.1, 0.5, 0.62), deep_add=(0.0, 0.03, 0.08), depth_reach=2.6,
+            near_mul=(0.62, 1.08, 1.0), near_add=(0.01, 0.1, 0.08),
+            deep_mul=(0.14, 0.48, 0.55), deep_add=(0.0, 0.03, 0.06), depth_reach=2.6,
             clarity=0.65, bed="ground2", bed_mul=(0.75, 0.98, 0.96),
             sh_mul=(0.85, 1.15, 1.12), sh_add=(0.05, 0.2, 0.2), sh_opacity=0.3, ford_stones=True,
             foam=(0.96, 0.99, 0.98), wet=0.22, drop=0.1,
             # the open sea: abyss colour, how far (tiles) past the reef it takes over, swells, surf, coral
-            abyss=(0.045, 0.17, 0.285), abyss_mix=0.62, abyss_reach=1.6, abyss_far=(0.3, 8.0),
+            abyss=(0.06, 0.18, 0.26), abyss_mix=0.62, abyss_reach=1.6, abyss_far=(0.3, 8.0),
             swell=0.055, surf=0.85, coral=0.4,
         ),
         rock_h=1.0, forest_h=0.55, tree_h=0.9,
-        rock_mul=(1.3, 1.27, 1.38), rock_notch=0.4,
-        forest_mul=(0.76, 1.2, 1.4), tree_tint=(0.88, 1.0, 1.08),
+        rock_mul=(1.12, 1.1, 1.1), rock_notch=0.4,
+        forest_mul=(0.98, 1.02, 1.0), tree_tint=(0.97, 1.0, 1.0),
         rail=(0.42, 0.37, 0.31), deck_tint=(1.0, 1.0, 1.0), deck="planks", wood=(0.6, 0.53, 0.45),
         bridge_reach=24,  # each Archipelago bridge spans ~20 tiles of sea
         trestle=1.5,      # timber trestles: a bent every 1.5 tiles
         road_blur=0.75, road_wobble=0.45,
         stain=(0.82, 0.78, 0.72), crystal_tint=(0.9, 1.0, 0.93), road_curb=0.06,
-        road_mul=(0.92, 0.86, 0.78),
+        road_mul=(1.0, 0.97, 0.92),
         grade=dict(sat=1.1, contrast=1.05, lift=(0.0, 0.006, 0.012), gain=(1.01, 1.01, 0.99), gamma=1.0),
         shadow_col=(0.42, 0.56, 0.62), shadow_k=0.8,
         trees=[0, 1, 2], tree_size=(1.15, 1.6), tree_w=[0.45, 0.35, 0.2],
@@ -584,7 +589,8 @@ def render(mid: str, debug: bool = False) -> dict:
     Hterr = np.zeros((H, W), np.float32)   # height field for cast shadows
     ao = np.zeros((H, W), np.float32)      # ambient-occlusion darkening 0..1
 
-    # ---- 2. scrap / crystal stains (disturbed, oily earth)
+    # ---- 2. coal fields (Scrap: blackened earth, coal-dust stains) / radium fields (Crystal: faint
+    #         pale blue-green glow in the soil); the game draws the coal heaps and radium itself
     rough_t = tex("rough")
     if has[SCRAP] or has[CRYSTAL]:
         rl = tex_layer(rough_t, H, W, rng, noise, variants=2)
@@ -597,13 +603,26 @@ def render(mid: str, debug: bool = False) -> dict:
             m = hmask(e, 0.12 * PX, det) * cfg.get("stain_opacity", 0.9)
             st = img * 0.2 + rl * 0.8
             st = st * np.asarray(cfg["stain"], np.float32)
-            # oily dark blotches toward the middle
             dark = sstep(0.2, 1.3, blot) * sstep(0.0, 0.5 * PX, e)
-            st = st * (1 - 0.3 * dark[..., None])
             L = lum(st)[..., None]
-            st = L + (st - L) * 0.75  # desaturate
-            if code == CRYSTAL:
+            if code == SCRAP:
+                # charcoal-black earth keeping the material's grain, darker coal-dust blotches inward
+                coal = np.asarray(cfg.get("coal", (0.23, 0.215, 0.2)), np.float32)
+                grain = L / (float(L[::7, ::7].mean()) + 1e-6)
+                st = coal * (0.55 + 0.45 * grain) * (1 - 0.4 * dark[..., None])
+                st = st + np.asarray((0.012, 0.012, 0.016), np.float32) * sstep(1.2, 2.2, blot)[..., None]  # faint sheen
+            else:
+                st = st * (1 - 0.15 * dark[..., None])
+                st = L + (st - L) * 0.55  # desaturate
                 st = st * np.asarray(cfg["crystal_tint"], np.float32)
+                # radium: a faint pale blue-green glow welling up toward the middle, carried by
+                # glinting grains (a flat wash alone would read as a puddle)
+                inner = sstep(0.0, 0.7 * PX, e)
+                glow = inner * (0.5 + 0.5 * sstep(-0.5, 1.2, blot))
+                st = st + np.asarray(cfg.get("radium", (0.05, 0.12, 0.09)), np.float32) * glow[..., None]
+                grains = sstep(1.6, 2.6, noise.fbm(H, W, 0.12 * PX, octaves=2)) * sstep(0.0, 0.3 * PX, e)
+                grains = np.clip(ndi.gaussian_filter(grains, 0.8) * 1.8, 0, 1)
+                st = st + np.asarray((0.42, 0.8, 0.62), np.float32) * (0.55 * grains)[..., None]
             img = img * (1 - m[..., None]) + st * m[..., None]
         del rl, det
 

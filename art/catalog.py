@@ -44,17 +44,23 @@ BUILDING = (
 TEXTURE = (
     "Seamless tileable top-down ground texture for a real-time strategy game map, "
     "viewed from directly above, filling the entire square image edge to edge. "
-    "Semi-realistic hand-painted style with natural detail at a scale where the whole image "
-    "covers roughly 20 by 20 meters. Even, flat, diffuse lighting with no strong directional "
-    "shadows, no vignette, no large distinct objects, no horizon, no text. "
+    "Landscapes of France around 1900, painted like a Belle Époque illustration: soft "
+    "painterly gouache and watercolour brushwork, a warm natural palette with a slight golden "
+    "light. Natural detail at a scale where the whole image covers roughly 20 by 20 meters. "
+    "Calm, low-contrast and low-noise so small game units stay readable on top of it. "
+    "Even, flat, diffuse lighting with no strong directional shadows, no vignette, no large "
+    "distinct objects, no horizon, no modern objects, no metal debris, no text. "
 )
 
 DOODADS = (
-    "Top-down game decoration sprite sheet, viewed from directly above, semi-realistic "
-    "hand-painted style matching a real-time strategy map. Nine separate objects arranged "
-    "in a loose 3 by 3 grid with wide transparent gaps between them so none touch or overlap. "
+    "Top-down game decoration sprite sheet, viewed from directly above, for a real-time "
+    "strategy map set around 1900, painted like a Belle Époque "
+    "illustration (soft painterly gouache brushwork, warm natural palette, slight golden light). "
+    "Nine separate objects arranged in a loose 3 by 3 grid with wide transparent gaps between "
+    "them so none touch or overlap, in reading order (left to right, top row first). "
     "Each object is complete and uncut. Fully transparent background, no ground under the "
-    "objects, no cast shadows, no text. Objects: "
+    "objects, no cast shadows, no modern machines, no metal wreckage, no text, no numbers. "
+    "Objects, separated by semicolons: "
 )
 
 # -------------------------------------------------------------------- assets
@@ -387,62 +393,84 @@ A["explosion"] = dict(
 # --- terrain materials per biome ----------------------------------------------------
 
 BIOMES: dict[str, dict[str, str]] = {
+    # French bocage (Riverlands, Proving Grounds)
     "temperate": {
-        "ground": "lush short green meadow grass with tiny wildflowers and subtle clumps",
-        "ground2": "bare brown earth and packed dirt with small pebbles and sparse grass tufts",
-        "rough": "churned muddy ground with tyre ruts, shallow brown puddles and trampled grass",
-        "rock": "grey granite bedrock surface with cracks, lichen and loose stones",
-        "liquid": "deep blue-green lake water surface with gentle ripples and small reflections",
-        "road": "old cracked grey asphalt road surface with patches and fine gravel",
-        "forest": "dense forest canopy seen from directly above: tightly packed round crowns of "
-        "deciduous trees in varied greens, with dark shade between the crowns",
+        "ground": "soft green pasture of short even meadow grass with a warm golden-green tint, "
+        "a few tiny clover leaves and scattered daisies, gentle low-contrast brushwork",
+        "ground2": "worn ochre-brown beaten earth of a farmyard or meadow path, packed dry soil "
+        "with faint straw, sparse grass tufts and a few small pebbles",
+        "rough": "freshly ploughed field of rich warm brown earth with soft irregular furrows, "
+        "clods and a little straw stubble",
+        "rock": "pale cream-grey limestone outcrop with layered ledges, cracks, grey and ochre "
+        "lichen and small tufts of grass in the joints",
+        "liquid": "calm river water, deep green-blue, with gentle ripples and soft pale sky "
+        "reflections",
+        "road": "old French country road paved with rounded grey granite cobblestones (pavés) "
+        "set in tight irregular rows, sand and a little moss in the joints",
+        "forest": "dense oak and beech woodland canopy seen from directly above: tightly packed "
+        "round tree crowns in warm greens with touches of olive and gold, dark shade between "
+        "the crowns",
     },
+    # period-neutral desert (Dune Sea)
     "desert": {
-        "ground": "fine golden desert sand with soft wind ripples",
-        "ground2": "cracked dry clay hardpan, pale tan, with a network of polygonal cracks",
-        "rough": "rocky desert scree of loose broken stones and gravel",
-        "rock": "red-orange sandstone bedrock surface with layered strata, cracks and wind erosion",
-        "liquid": "clear turquoise oasis water surface with gentle ripples",
-        "road": "packed dusty dirt track surface with faint tyre tracks and small stones",
-        "forest": "dense thicket of desert palms and dry scrub bushes seen from directly above, "
-        "packed palm fronds and olive-green shrubs with dark shade between",
+        "ground": "fine warm golden desert sand with soft wind ripples",
+        "ground2": "rocky desert reg: pale tan packed gravel plain with small flat stones",
+        "rough": "rocky desert scree of loose broken ochre stones and gravel with a few dry "
+        "scrub tufts",
+        "rock": "warm ochre and red sandstone bedrock with layered strata, cracks and wind "
+        "erosion",
+        "liquid": "open clear blue-green oasis water with gentle ripples, water only edge to "
+        "edge: no islands, no plants, no sand banks",
+        "road": "packed dusty caravan track of pale earth with two faint wagon-wheel ruts and "
+        "small stones",
+        "forest": "dense grove of date palms and dry scrub seen from directly above, packed "
+        "palm fronds and olive-green shrubs with dark shade between",
     },
+    # Alpine winter (Frostbite)
     "arctic": {
-        "ground": "fresh white snow with soft wind-sculpted ripples and a faint cool tint",
-        "ground2": "wind-scoured blue-white ice and hard packed snow with fine cracks",
-        "rough": "churned grey slushy snow with deep ruts and footprints",
-        "rock": "dark grey basalt rock surface with frost and small patches of snow in cracks",
-        "liquid": "dark cold arctic sea water surface with small floating ice floes",
-        "road": "plowed icy gravel road surface with frozen tyre tracks",
-        "forest": "dense snowy pine forest canopy seen from directly above: tightly packed "
-        "conifer tree tops dusted with snow, dark shade between them",
+        "ground": "smooth fresh white alpine snowfield, very calm and even, only faint soft "
+        "undulations and the lightest cool blue shadows, almost no texture",
+        "ground2": "wind-packed snow and pale blue ice with fine cracks",
+        "rough": "trampled snow with sled-runner tracks, footprints and patches of dry "
+        "straw-coloured alpine grass showing through",
+        "rock": "grey alpine granite rock with frost and small patches of snow in the cracks",
+        "liquid": "dark teal glacial lake water with thin floating ice floes",
+        "road": "snowy mountain track of packed snow with sled-runner and wagon tracks and a "
+        "little gravel showing through",
+        "forest": "dense alpine forest canopy seen from directly above: tightly packed spruce, "
+        "pine and larch tops dusted with snow, dark shade between them",
     },
+    # Auvergne volcanic land, the puys (Ashlands)
     "volcanic": {
-        "ground": "grey volcanic ash plain with fine dust and scattered small dark pebbles",
-        "ground2": "dark cracked basalt plates with thin dusty seams",
-        "rough": "loose black and rust-red volcanic cinders and scoria gravel",
-        "rock": "jagged black obsidian and dark volcanic rock surface with sharp facets",
+        "ground": "dark grey-brown volcanic ash soil with sparse short olive-green grass tufts "
+        "and small dark pebbles",
+        "ground2": "dark cracked basalt slabs with dusty seams and a little moss",
+        "rough": "loose black and rust-red volcanic scoria cinders (pouzzolane) and gravel",
+        "rock": "dark grey basalt rock with the hexagonal tops of basalt columns, cracks and "
+        "pale lichen",
         "liquid": "molten glowing orange-yellow lava with dark cooling crust plates",
-        "road": "rusted riveted steel deck plating, industrial and worn",
-        "forest": "dense field of dead charred black tree trunks and broken branches seen from "
-        "directly above, ash-covered, with dark gaps between",
+        "road": "old road paved with worn dark basalt cobblestones (pavés) set in irregular "
+        "rows, ash in the joints",
+        "forest": "sparse dark pine woods seen from directly above, ash-dusted pine crowns "
+        "with a few charred bare trunks and dark gaps between",
     },
+    # Brittany coast (Archipelago)
     "tropical": {
-        "ground": "pale sun-bleached tropical sandy grassland: sparse short green-gold grass and "
-        "creeping beach vines over warm white coral sand that shows through",
-        "ground2": "warm white coral beach sand, faintly pink, with crushed shell fragments, tiny "
-        "pieces of broken coral and soft footprint dimples",
-        "rough": "dark grey-brown tidal mangrove mudflat with small crab holes, shallow puddles "
-        "reflecting pale sky and thin tangled roots",
-        "rock": "pale grey limestone karst rock surface with sharp pitted weathering, dark vertical "
-        "rain streaks, and green moss and small ferns in the cracks",
-        "liquid": "clear turquoise tropical lagoon water surface over pale sand, with soft bright "
-        "caustic light ripples",
-        "road": "weathered silver-grey timber boardwalk of long planks laid lengthwise, fine sand "
-        "drifted into the gaps, small rusty nail heads",
-        "forest": "dense tropical rainforest canopy seen from directly above: tightly packed "
-        "coconut palm crowns and broadleaf jungle trees in vivid emerald and jade greens, with "
-        "dark shade between the crowns",
+        "ground": "Breton coastal moorland: short wind-cropped green turf with soft patches of "
+        "purple heather and small yellow gorse flecks, low contrast",
+        "ground2": "pale golden beach sand, fine and soft, with tiny shell fragments and faint "
+        "footprint dimples",
+        "rough": "wet grey-brown tidal flat (estran) of sand and mud with strands of brown "
+        "kelp and bladderwrack seaweed and small shallow pools",
+        "rock": "rounded weathered pink-grey Breton granite rock with smooth eroded forms, "
+        "cracks and orange and yellow lichen",
+        "liquid": "open clear emerald-turquoise Atlantic cove water over a pale sandy bottom, "
+        "with soft light ripples, water only edge to edge: no seaweed, no rocks, no islands",
+        "road": "pale sandy cart track running lengthwise with two parallel wagon-wheel ruts "
+        "and a thin strip of grass along the middle",
+        "forest": "dense windswept coastal woodland canopy seen from directly above: tightly "
+        "packed maritime pine crowns and round oak crowns in deep greens with dark shade "
+        "between the crowns",
     },
 }
 
@@ -455,28 +483,33 @@ for biome, mats in BIOMES.items():
             transparent=False,
         )
 
+# In reading order; the painter (art/terrain.py) keys off the cell: 0-2 are always tree crowns.
 DOODAD_SETS = {
-    "temperate": "three different round leafy deciduous tree crowns (varied sizes and greens), "
-    "a mossy grey boulder, a cluster of small rocks, a leafy green bush, a fallen log, a "
-    "rusted burned-out car wreck, a small patch of wildflowers",
-    "desert": "three different palm tree tops (radiating fronds), a large sandstone boulder, "
-    "a cluster of small red rocks, a dry tumbleweed bush, a round barrel cactus, a sun-bleached "
-    "animal skull, a half-buried rusted vehicle wreck",
-    "arctic": "three different snow-covered pine tree tops (varied sizes), a snowy dark "
-    "boulder, a cluster of ice chunks, a frozen shrub, a snow drift mound, a frozen rusted "
-    "vehicle wreck, a broken wooden crate half in snow",
-    "volcanic": "three different dead charred tree tops (bare black branches), a black "
-    "obsidian boulder, a cluster of small glowing-cracked lava rocks, a steaming fumarole "
-    "vent, a pile of ash-covered debris, a rusted burned-out vehicle wreck, a cluster of "
-    "sulfur-yellow crystals",
-    # in reading order (the painter keys off the cell): 0-2 tree crowns, then the rest
-    "tropical": "in reading order, left to right and top row first: a lush coconut palm crown "
-    "(long arching feathery vivid-green fronds radiating from the centre, a cluster of brown "
-    "coconuts in the middle), a broad layered emerald rainforest tree crown, a dense dark-green "
-    "mangrove tree crown, a pale grey pitted limestone boulder, a scatter of bleached white "
-    "coral rubble and seashells, a sun-bleached silver-grey driftwood log, a low sea-grape bush "
-    "with round leaves, a rusted beached military landing-craft wreck with its bow ramp down, a "
-    "stack of weathered wooden supply crates under a faded green tarp",
+    "temperate": "a large round oak tree crown; a round lighter-green beech tree crown; "
+    "a round apple tree crown dotted with small red apples; a big pale limestone boulder "
+    "with moss; a small cluster of pale limestone stones; a round golden haystack; "
+    "a neat stack of cut firewood logs; an old wooden two-wheeled farm cart with big spoked "
+    "wheels loaded with hay; a small patch of red poppies and wildflowers",
+    "desert": "a date palm top with radiating fronds; a smaller palm top; a dense palm "
+    "top with dry brown fronds; a large ochre sandstone boulder; a cluster of small red "
+    "stones; a dry thorny scrub bush; a broken wicker hot-air-balloon basket lying on its "
+    "side with loose ropes; a small stack of abandoned wooden expedition crates with rope "
+    "lashings; an abandoned wooden covered wagon with one broken spoked wheel",
+    "arctic": "a snow-covered spruce top; a snow-dusted larch top; a small snowy pine "
+    "top; a snowy dark granite boulder; a cluster of ice chunks; a frozen shrub poking "
+    "through snow; a soft snow drift mound; the roofless ruin of a small stone alpine "
+    "refuge hut with snow inside its walls; a wooden sled loaded with wooden crates and "
+    "ice axes",
+    "volcanic": "a dark ash-dusted pine crown; a half-charred pine crown with bare black "
+    "branches; a small dark pine crown; a dark basalt boulder; a cluster of small "
+    "dark lava stones with faint glowing orange cracks; a tight cluster of hexagonal "
+    "basalt column tops; an abandoned wooden mine cart on a short length of rail; the "
+    "roofless ruin of a small dark lava-stone hut; a tuft of dry yellow grass and heather",
+    "tropical": "a windswept maritime pine crown; a broad round oak crown; a dense "
+    "gorse bush covered in small yellow flowers; a lichen-covered pink-grey granite "
+    "boulder; a scatter of seashells and small pebbles; a small beached wooden rowing "
+    "boat; a low clump of purple heather; a beached Breton wooden sailing fishing boat "
+    "with a furled red-brown sail; a stack of wicker lobster pots with coiled rope",
 }
 for biome, objs in DOODAD_SETS.items():
     A[f"doodads-{biome}"] = dict(
