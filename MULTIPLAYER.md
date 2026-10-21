@@ -2,7 +2,16 @@
 
 ## Status
 
-A proposal. None of it is built. It covers online 1v1 skirmish between two
+**Built, in a simpler form (October 2026):** "🌐 Défier un ami (en ligne)"
+runs the sound duel's own stack (pairing, lockstep, session, feed:
+SOUND-DUEL.md) over a WebSocket to a tiny relay, `relay/` (one Durable
+Object per 4-letter room, packets forwarded as they are, a minute to
+reconnect). The client is `src/versus/online.ts`; the relay's rules are in
+`relay/README.md`. What follows is the original, fuller proposal, kept for
+its reasoning: lobby state in the Durable Object, server logs and the battle
+archive are not built.
+
+The proposal (none of it built as written). It covers online 1v1 skirmish between two
 phones (or any two browsers), using a small Cloudflare Worker with WebSockets.
 One player creates a match and sends a link, and the other player taps it to
 join. Where there is a real choice, the options are laid out with a

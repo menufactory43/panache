@@ -141,6 +141,7 @@ import { fullscreen } from "../ui/fullscreen";
 import { VersusFeed } from "./feed";
 import { LoopLink, type LoopParams } from "./loop-peer";
 import { FAILED_MESSAGE, NOTHING_HEARD_MESSAGE, NOTHING_HEARD_MS, VERSION_MESSAGE, type HostOffer, type PairingState } from "./pairing";
+import { OnlineError, browserOnlineEnv, drawKey, hostRoom, inviteUrl, joinRoom, normCode, relayBase, type OnlineInfo, type OnlineLink } from "./online";
 import { DUEL_KEY, parseRematch, type RematchPlan } from "./records";
 import { RelayTransport } from "./relay-transport";
 import { PEER_HEARD_MS, RX_SILENT_MS, Session } from "./session";
@@ -262,14 +263,21 @@ export interface DuelTap {
   micMode: MicMode;
   /** A practice link: no rig, no guard. */
   practice: PracticeMode | null;
+  /** An online duel (src/versus/online.ts): no rig, no guard either. */
+  online: boolean;
 }
 
-/** For main.ts's Duel tap (`rematch`: the rematch's reconnect tap). */
-export function tapPlan(rematch = false): DuelTap {
+/** For main.ts's Duel tap (`rematch`: the rematch's reconnect tap; `online`: the online duel's button). */
+export function tapPlan(rematch = false, online = false): DuelTap {
   const p = parseDuelParams(location.search);
-  const micMode = (rematch ? readRematch(false)?.micMode : null) ?? loadPrefs().micMode;
-  return { micMode, practice: p.mode === "sound" ? null : p.mode };
+  const stored = rematch ? readRematch(false) : null;
+  const micMode = stored?.micMode ?? loadPrefs().micMode;
+  const net = rematch ? !!stored?.online : online;
+  return { micMode, practice: net || p.mode === "sound" ? null : p.mode, online: net };
 }
+
+/** The room code of an invite link (`?salon=ABCD`), for main.ts's boot. */
+export { codeFromSearch } from "./online";
 
 /** Uniform in [0, 1) from the platform's CSPRNG: the pairing's nonces. */
 export const cryptoRandom = (): number => crypto.getRandomValues(new Uint32Array(1))[0]! / 4294967296;
@@ -305,8 +313,8 @@ export type LobbyStep =
   | "closed";
 
 export interface LobbyError {
-  /** "modem": the link's modem stopped (its words are the message). */
-  kind: "rig" | "version" | "failed" | "relay" | "left" | "modem" | "other";
+  /** "modem": the link's modem stopped (its words are the message). "online": the relay's room can't be had. */
+  kind: "rig" | "version" | "failed" | "relay" | "left" | "modem" | "online" | "other";
   message: string;
   /** A rig error's reason. */
   reason?: RigErrorReason;
@@ -339,6 +347,9 @@ export interface LobbyEnv {
   /** The rig the tap opened; null on a practice link. */
   rig: LobbyRig | null;
   practice: PracticeMode | null;
+  /** An online duel: no rig, no guard, no self-test, no role switch; its room's state (onlineInfo) shows. */
+  online?: boolean;
+  onlineInfo?: () => OnlineInfo | null;
   /** A link in these bands; `offer` is the host's, whoever hosts (the loop's friend may). Rejects with a RigError, or an Error named "RelayError". */
   link(cfg: { plan: BandPlan; tx: BandRole; rx: BandRole | "detect" }, offer: HostOffer): Promise<LobbyLink>;
   /** The game audio's band guard (null: off), at its full cut whatever the microphone mode (audio.ts GUARD_CUT_DB). Practice links have none. */
@@ -372,6 +383,9 @@ export interface LobbyView {
   step: LobbyStep;
   role: BandRole | null;
   practice: PracticeMode | null;
+  /** An online duel, and its room (null before there is one). */
+  isOnline: boolean;
+  online: OnlineInfo | null;
   rematch: boolean;
   /** Pairing in a role it can't switch (a rematch, a relay seat). */
   fixedRole: boolean;
@@ -468,8 +482,8 @@ export class LobbyMachine {
   private peakSample = -1;
 
   constructor(private readonly env: LobbyEnv) {
-    // (the tap turned the guard on in the high plan: practice links have none)
-    this.guardPlan = env.practice ? null : "high";
+    // (the tap turned the guard on in the high plan: practice links and online duels have none)
+    this.guardPlan = env.practice || env.online ? null : "high";
     const rig = env.rig;
     if (!rig) {
       this.step = "choose";
@@ -503,7 +517,7 @@ export class LobbyMachine {
   }
 
   startSelfTest(): void {
-    if (this.step === "choose" && !this.env.practice) void this.begin("host", true);
+    if (this.step === "choose" && !this.env.practice && !this.env.online) void this.begin("host", true);
   }
 
   /** The 8 s hint's one-tap switch: the other role, at once. */
@@ -621,13 +635,15 @@ export class LobbyMachine {
       step: error && this.step !== "closed" ? "error" : this.step,
       role: this.role,
       practice: env.practice,
+      isOnline: !!env.online,
+      online: env.onlineInfo?.() ?? null,
       rematch: env.rematch !== null,
       fixedRole,
       prefs: { ...env.prefs },
       error,
       lost: env.rig?.state === "lost",
       noWakeLock: env.rig !== null && !env.rig.wakeLockSupported,
-      switchRole: live && !this.selfTest && !fixedRole && !!p?.hint && !p.heard,
+      switchRole: live && !this.selfTest && !fixedRole && !env.online && !!p?.hint && !p.heard,
       tips: live && !this.selfTest && p !== null && !p.heard && now - this.sessionAt >= TIPS_MS,
       quiet: live && !this.selfTest && !error && (before || this.step === "go") && p !== null && p.heard && p.sinceHeardMs >= QUIET_MS,
       route: this.route,
@@ -749,7 +765,7 @@ export class LobbyMachine {
 
   /** The guard on `plan` (`force`: even if it should be on it already). */
   private setGuard(plan: BandPlan, force = false): void {
-    if (this.env.practice || (plan === this.guardPlan && !force)) return;
+    if (this.env.practice || this.env.online || (plan === this.guardPlan && !force)) return;
     this.guardPlan = plan;
     this.env.guard(plan);
   }
@@ -773,6 +789,7 @@ export class LobbyMachine {
     console.warn("sound duel:", e);
     if (e instanceof RigError) this.fatal = { kind: "rig", reason: e.reason, message: e.message };
     else if (e instanceof Error && e.name === "RelayError") this.fatal = { kind: "relay", message: e.message };
+    else if (e instanceof Error && e.name === "OnlineError") this.fatal = { kind: "online", message: e.message };
     else if (e instanceof ModemError) this.fatal = { kind: "modem", message: e.message };
     else this.fatal = { kind: "other", message: e instanceof Error ? e.message : String(e) };
     this.step = "error";
@@ -832,6 +849,8 @@ export interface LobbyOptions {
   start: (feed: VersusFeed) => void;
   /** The duel's audio was let go with no match (Cancel, an error, the rematch's fallback): the menu's music comes back. */
   onClose: (why: LobbyEnd) => void;
+  /** An online duel (src/versus/online.ts), and the room code an invite link brought (null: none). A rematch's is its own. */
+  online?: { code: string | null } | null;
 }
 
 /**
@@ -869,6 +888,8 @@ export interface DuelProbe {
   /** The hash trail after every tick stepped from `from` on: [tick, trail] (VersusFeed.trails). */
   trails(from: number): [number, number][];
   hash(): string | null;
+  /** An online duel's room (null: none, or not online). */
+  online(): OnlineInfo | null;
   readonly result: { end: string; winner: Faction | "draw" | null; resigned: Faction | null; tick: number | null; endCheck: string; desync: boolean } | null;
 }
 
@@ -894,7 +915,11 @@ const esc = (s: string): string => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;",
  * is offered (not in a rematch, which keeps its band); a practice link has
  * no sound to turn up, only the other page (the relay) or the page itself.
  */
-export function tipsText(v: Pick<LobbyView, "practice" | "rematch">): string {
+export function tipsText(v: Pick<LobbyView, "practice" | "rematch"> & Partial<Pick<LobbyView, "online">>): string {
+  if (v.online)
+    return v.online.role === "host"
+      ? `Toujours personne ? Vérifie que ton ami a saisi le code ${v.online.code} (ou ouvert ton lien), et qu'il est en ligne.`
+      : "Toujours rien ? Ton ami a peut-être fermé son salon : demande-lui le code affiché sur son écran.";
   if (v.practice === "loop") return "Toujours rien ? Recharge la page et touche Duel à nouveau.";
   if (v.practice === "relay") return "Toujours rien ? Vérifie que l'autre page est dans le salon et que le relais relie les deux.";
   const sound = "Toujours rien ? Monte le volume et coupe le mode silencieux. Débranche les écouteurs et coupe le Bluetooth. Garde les téléphones à 10–30 cm.";
@@ -912,6 +937,9 @@ export function routeText(v: Pick<LobbyView, "rematch" | "role" | "prefs">): str
     : `${head} Débranche les écouteurs, monte le volume, ou passe l'hôte en bande Basse.`;
 }
 const QUIET_TEXT = "Le téléphone de ton ami s'est tu. Rapproche les téléphones, ou touche Annuler si ton ami est parti.";
+const QUIET_ONLINE = "Ton ami ne répond plus. Attends-le un instant, ou touche Annuler s'il est parti.";
+/** Under the online sheet's title. */
+const ONLINE_NOTE = "Par Internet, où que soit ton ami : l'un crée un salon, l'autre entre son code (ou ouvre le lien partagé).";
 const PLACEMENT =
   "Pose les deux téléphones à plat, à 10–30 cm. Volume à environ 75 %, mode silencieux coupé. Sur iPhone, le son peut sortir de l'écouteur en haut : tourne les téléphones jusqu'à ce que les deux barres ci-dessous soient pleines.";
 
@@ -993,8 +1021,29 @@ export function rttLine(v: Pick<LobbyView, "practice" | "pairing" | "meter">): s
   return rtt === null ? "Aller-retour : mesure…" : `Aller-retour ${Math.round(rtt)} ms`;
 }
 
+/** The online duel's line in place of the sound meter: the relay, the friend in the room, the round trip. */
+function onlineHtml(v: LobbyView): string {
+  return v.isOnline ? `<p class="duel-net" data-m="net"></p>` : "";
+}
+
+/** That line's words. */
+export function onlineLine(v: Pick<LobbyView, "online" | "meter" | "practice" | "pairing">): string {
+  const o = v.online;
+  if (!o) return "🌐 Connexion au relais…";
+  if (o.state === "closed") return "🌐 Hors ligne";
+  if (o.state !== "open") return "🌐 Relais : reconnexion…";
+  const friend = o.peer ? "ton ami est là" : o.peerGoneMs !== null ? "ton ami s'est déconnecté" : "ton ami n'est pas encore là";
+  const rtt = v.meter?.rttMs ?? null;
+  return `🌐 Salon ${o.code} · ${friend}${o.peer && rtt !== null ? ` · aller-retour ${Math.round(rtt)} ms` : ""}`;
+}
+
 /** The meter's numbers and bars, every frame. */
 function fillMeter(root: HTMLElement, v: LobbyView): void {
+  const net = root.querySelector<HTMLElement>(`[data-m="net"]`);
+  if (net) {
+    const t = onlineLine(v);
+    if (net.textContent !== t) net.textContent = t;
+  }
   const m = v.meter;
   if (!m) return;
   const set = (k: string, text: string) => {
@@ -1022,11 +1071,65 @@ function layoutKey(v: LobbyView): string {
   const p = v.pairing;
   return [
     v.step, v.role, v.error?.kind, v.lost, v.switchRole, v.tips, v.quiet, v.route, v.loud, v.canBack, v.prefs.plan, v.prefs.micMode,
-    p?.phase, p?.pick, p?.picked, p?.offered.join(","), p?.config?.mapId, p?.side
+    p?.phase, p?.pick, p?.picked, p?.offered.join(","), p?.config?.mapId, p?.side, v.online?.code, v.online?.peer, v.online?.state === "open"
   ].join("|");
 }
 
-function bodyHtml(v: LobbyView, advOpen: boolean): { body: string; actions: string } {
+/** What the online sheet adds: the code an invite link brought, and a bad code typed. */
+export interface OnlineSheet {
+  linked: string | null;
+  badCode: boolean;
+}
+
+/** The online duel's steps where they differ from the sound's: choosing, connecting, waiting in the room. */
+function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: string } | null {
+  const cancel = `<button class="cta alt" data-act="cancel">Annuler</button>`;
+  const back = v.canBack ? `<button class="cta alt" data-act="back">Retour</button>` : "";
+  const o = v.online;
+  switch (v.step) {
+    case "choose": {
+      const linked = sheet.linked;
+      const bad = sheet.badCode ? `<p class="duel-err">Un code, ce sont 4 lettres.</p>` : "";
+      const join = `<div class="duel-join">
+          <p class="duel-lbl">${linked ? "Ton ami t'invite" : "Rejoindre avec un code"}</p>
+          <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="Code du salon" value="${esc(linked ?? "")}"/><button class="cta" data-act="join">Rejoindre</button></div>
+          ${bad}
+        </div>`;
+      const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>🏛 Créer un salon</b><small>Ta carte et tes mutateurs · un code à partager</small></button></div>`;
+      return {
+        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${linked ? join + `<p class="duel-or">ou</p>` + create : create + `<p class="duel-or">ou</p>` + join}`,
+        actions: cancel
+      };
+    }
+    case "connecting":
+      return { body: `<p class="duel-status">${v.role === "host" ? "Création du salon…" : "Connexion au salon…"}</p>`, actions: cancel };
+    case "pairing": {
+      const quiet = v.quiet ? `<p class="duel-hint">${QUIET_ONLINE}</p>` : "";
+      const tips = v.tips ? `<p class="duel-hint">${tipsText(v)}</p>` : "";
+      if (v.role === "host") {
+        const status = v.pairing?.phase === "linking" || o?.peer ? "Ton ami est là. Appairage…" : v.rematch ? "En attente que ton ami touche Revanche…" : "En attente de ton ami…";
+        return {
+          body: `<p class="duel-lbl duel-codelbl">Code du salon</p>
+            <p class="duel-bigcode" data-code="${esc(o?.code ?? "")}">${esc(o?.code ?? "····")}</p>
+            <div class="duel-share"><button class="cta" data-act="share">🔗 Partager le lien</button><button class="cta alt" data-act="copy">Copier</button></div>
+            <p class="duel-copied" hidden>Lien copié</p>
+            <p class="duel-status">${status}</p>${quiet}${onlineHtml(v)}${tips}`,
+          actions: back + cancel
+        };
+      }
+      const status = v.pairing?.phase === "linking" || o?.peer ? "Ton ami est là. Appairage…" : v.rematch ? "En attente que ton ami touche Revanche…" : "En attente de l'hôte…";
+      return { body: `<p class="duel-lbl duel-codelbl">Salon</p><p class="duel-bigcode small">${esc(o?.code ?? "")}</p><p class="duel-status">${status}</p>${quiet}${onlineHtml(v)}${tips}`, actions: back + cancel };
+    }
+    default:
+      return null;
+  }
+}
+
+function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked: null, badCode: false }): { body: string; actions: string } {
+  if (v.isOnline && v.step !== "error") {
+    const own = onlineBody(v, sheet);
+    if (own) return own;
+  }
   const cancel = `<button class="cta alt" data-act="cancel">Annuler</button>`;
   const back = v.canBack ? `<button class="cta alt" data-act="back">Retour</button>` : "";
   const notes: string[] = [];
@@ -1097,14 +1200,14 @@ function bodyHtml(v: LobbyView, advOpen: boolean): { body: string; actions: stri
         : `<p class="duel-status">Aucune ouverture n'est permise avec ces règles.</p>`;
       const head = picked ? `<p class="duel-status">En attente du choix de ton ami…</p>` : `<h3>Choisis ton ouverture <small data-m="pickleft"></small></h3>`;
       return {
-        body: `<p class="duel-paired">✓ Appairés · tu joues <b class="duel-side ${side}">${side === "red" ? "rouge" : "bleu"}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${head}${quiet}${cards}${meterHtml(v)}${notes.join("")}`,
+        body: `<p class="duel-paired">✓ Appairés · tu joues <b class="duel-side ${side}">${side === "red" ? "rouge" : "bleu"}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${head}${quiet}${cards}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`,
         actions: back + cancel
       };
     }
     case "go":
-      return { body: `<p class="duel-go">GO !</p><p class="duel-status">En attente de ton ami…</p>${quiet}${meterHtml(v)}${notes.join("")}`, actions: cancel };
+      return { body: `<p class="duel-go">GO !</p><p class="duel-status">En attente de ton ami…</p>${quiet}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
     case "loading":
-      return { body: `<p class="duel-go">GO !</p><p class="duel-status">Lancement de la partie…</p>${meterHtml(v)}${notes.join("")}`, actions: cancel };
+      return { body: `<p class="duel-go">GO !</p><p class="duel-status">Lancement de la partie…</p>${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
     case "error":
       return errorHtml(v);
     default:
@@ -1135,6 +1238,8 @@ function errorHtml(v: LobbyView): { body: string; actions: string } {
       return { body: `<p class="duel-err">${esc(e.message)}</p><p class="sh-note">The page has no window.__duelOut: connect it with the relay harness.</p>`, actions: close };
     case "left":
       return { body: `<p class="duel-err">${esc(e.message)}.</p>`, actions: close };
+    case "online":
+      return { body: `<p class="duel-err">${esc(e.message)}</p>`, actions: close };
     case "modem":
       return {
         body: `<p class="duel-err">La liaison sonore ne fonctionne plus.</p><p class="sh-note">Ferme, puis touche Duel pour la relancer. (${esc(e.message)})</p>`,
@@ -1148,10 +1253,17 @@ function errorHtml(v: LobbyView): { body: string; actions: string } {
 /** The sheet: the machine, its env in the browser, the frame loop, the taps. */
 function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const params = parseDuelParams(location.search);
-  const practice = params.mode === "sound" ? null : params.mode;
+  // (an online duel, from its button or its rematch, is never a practice link, whatever the URL says)
+  const online = rematch ? rematch.online ?? null : o.online ? { code: o.online.code ? normCode(o.online.code) : null, key: null } : null;
+  const practice = online || params.mode === "sound" ? null : params.mode;
   const build = duelBuild();
   let loop: LoopLink | null = null;
   let relay: RelayTransport | null = null;
+  let net: OnlineLink | null = null;
+  /** The seat's key (a rematch keeps its own), and the code the guest joins (typed, or the rematch's). */
+  const seatKey = online?.key ?? drawKey(cryptoRandom);
+  let joinCode: string | null = rematch?.online?.code ?? null;
+  const sheet: OnlineSheet = { linked: rematch ? null : online?.code ?? null, badCode: false };
   let feed: VersusFeed | null = null;
   let machine: LobbyMachine | null = null;
   let timer = 0;
@@ -1162,8 +1274,8 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const wrap = document.createElement("div");
   wrap.className = "sheet-wrap duel-wrap";
   wrap.innerHTML = `<div class="sheet duelsheet" role="dialog" aria-label="Défier un ami">
-      <h2>🔊 ${rematch ? "Revanche" : "Défier un ami"}</h2>
-      ${practice ? `<p class="duel-practice">Liaison d'entraînement (sans son) : ${practice === "loop" ? "un ami dans la page" : "le relais"}</p>` : `<p class="duel-noise" role="note">${NOISE_WARNING}</p>`}
+      <h2>${online ? "🌐" : "🔊"} ${rematch ? "Revanche" : online ? "Défier un ami (en ligne)" : "Défier un ami"}</h2>
+      ${online ? "" : practice ? `<p class="duel-practice">Liaison d'entraînement (sans son) : ${practice === "loop" ? "un ami dans la page" : "le relais"}</p>` : `<p class="duel-noise" role="note">${NOISE_WARNING}</p>`}
       <div class="duel-body"></div>
       <div class="sh-actions duel-actions"></div>
     </div>`;
@@ -1185,8 +1297,10 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const dropPractice = () => {
     loop?.close();
     relay?.close();
+    net?.close();
     loop = null;
     relay = null;
+    net = null;
   };
 
   const prefs = loadPrefs();
@@ -1196,12 +1310,28 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     random: cryptoRandom,
     rig: o.rig,
     practice,
+    online: online !== null,
+    onlineInfo: () => net?.info() ?? null,
     rematch,
     seat: practice === "relay" ? params.seat : null,
     prefs,
     savePrefs,
     offer: { map: o.shownMap, mutators: o.mutators, hostSide: practice ? params.side : "blue" },
     link: async (cfg, offer) => {
+      if (online) {
+        dropPractice();
+        const base = relayBase(location.search);
+        const env = browserOnlineEnv();
+        let l: OnlineLink;
+        if (cfg.tx === "host") l = await hostRoom({ base, key: seatKey, code: rematch?.online?.code, env, random: cryptoRandom });
+        else {
+          const code = joinCode;
+          if (!code) throw new OnlineError("unknown");
+          l = await joinRoom({ base, key: seatKey, code, env });
+        }
+        net = l;
+        return l;
+      }
       if (practice === "loop") {
         dropPractice();
         const friendOffer = rematch ? offer : { ...offer, hostSide: cfg.tx === "host" ? params.side : params.side === "blue" ? "red" : "blue" };
@@ -1230,18 +1360,20 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
       }
     },
     begin: (session) => {
-      const onFrame = loop ? () => loop?.pump() : relay ? () => relay?.tick() : undefined;
+      const n = net;
+      const onFrame = loop ? () => loop?.pump() : relay ? () => relay?.tick() : n ? () => n.tick() : undefined;
       let exited = false;
       const f = new VersusFeed({
         session,
         rig: o.rig,
         practice: practice !== null,
+        online: n ? { info: () => n.info(), code: n.code, key: n.key } : null,
         onExit: () => {
           if (exited) return;
           exited = true;
           dropPractice();
           o.rig?.close();
-          if (!practice) sfx.setLinkGuard(null);
+          if (!practice && !online) sfx.setLinkGuard(null);
         },
         ...(onFrame ? { onFrame } : {})
       });
@@ -1258,7 +1390,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     }
   };
 
-  if (practice) exposeProbe(() => machine, () => feed);
+  if (practice || online) exposeProbe(() => machine, () => feed, () => net);
   const m = (machine = new LobbyMachine(env));
 
   let key = "";
@@ -1269,7 +1401,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     const k = layoutKey(v);
     if (k !== key) {
       key = k;
-      const html = bodyHtml(v, advOpen);
+      const html = bodyHtml(v, advOpen, sheet);
       body.innerHTML = html.body;
       actions.innerHTML = html.actions;
       body.querySelector<HTMLDetailsElement>(".duel-adv")?.addEventListener("toggle", (e) => (advOpen = (e.target as HTMLDetailsElement).open));
@@ -1303,6 +1435,55 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   // (a hidden page gets no frames, and the link must go on)
   timer = window.setInterval(frame, 50);
 
+  /** The online guest's Join: the typed code (4 letters), else say so. */
+  const joinTyped = () => {
+    const code = normCode(body.querySelector<HTMLInputElement>(".duel-codein")?.value ?? "");
+    if (!code) {
+      sheet.badCode = true;
+      key = "";
+      return render();
+    }
+    sheet.badCode = false;
+    sheet.linked = code;
+    joinCode = code;
+    m.join();
+  };
+  /** The invite link to the host's room, shared (Web Share) or copied. */
+  const invite = async (share: boolean) => {
+    const code = net?.code;
+    if (!code) return;
+    const url = inviteUrl(location.href, code);
+    const copied = body.querySelector<HTMLElement>(".duel-copied");
+    if (share && typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Panache : un duel ?", text: `Viens m'affronter dans Panache ! Code du salon : ${code}`, url });
+        return;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+      }
+    }
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    } catch {
+      /* no clipboard: show it */
+    }
+    if (copied) {
+      copied.hidden = false;
+      copied.textContent = ok ? "Lien copié : envoie-le à ton ami" : url;
+    }
+  };
+  if (online) {
+    wrap.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.target as HTMLElement).classList?.contains("duel-codein")) joinTyped();
+    });
+    wrap.addEventListener("input", (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.classList?.contains("duel-codein")) t.value = t.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+    });
+  }
+
   wrap.addEventListener("click", (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>("[data-act]");
     if (!el || !wrap.contains(el)) return;
@@ -1310,7 +1491,11 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
       case "host":
         return m.host();
       case "join":
-        return m.join();
+        return online ? joinTyped() : m.join();
+      case "share":
+        return void invite(true);
+      case "copy":
+        return void invite(false);
       case "selftest":
         return m.startSelfTest();
       case "switch":
@@ -1343,7 +1528,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
 }
 
 /** window.__duel for the relay and loop harnesses. */
-function exposeProbe(machine: () => LobbyMachine | null, feed: () => VersusFeed | null): void {
+function exposeProbe(machine: () => LobbyMachine | null, feed: () => VersusFeed | null, net: () => OnlineLink | null = () => null): void {
   const probe: DuelProbe = {
     get state() {
       const f = feed();
@@ -1356,6 +1541,7 @@ function exposeProbe(machine: () => LobbyMachine | null, feed: () => VersusFeed 
       return feed()?.result.delay ?? null;
     },
     trail: () => feed()?.session.lockstep?.trail() ?? null,
+    online: () => net()?.info() ?? null,
     trails: (from) => feed()?.trails(from) ?? [],
     hash: () => {
       const f = feed();

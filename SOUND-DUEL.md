@@ -101,6 +101,7 @@ code runs in the browser, in the AudioWorklet and in Node tests.
 | `src/versus/records.ts` | Sound-duel win/loss record; the saved battle record |
 | `src/versus/loop-peer.ts` | In-page sim + AI peer for `?duel=loop` |
 | `src/versus/relay-transport.ts` | `LinkTransport` through page functions for `?duel=relay` |
+| `src/versus/online.ts` | The online duel: `OnlineLink`, RelayTransport's packets over a WebSocket to `relay/` (a Cloudflare Worker, one Durable Object per 4-letter room), with reconnect; room codes, invite links (`?salon=ABCD`), `?relais=` for a local relay |
 
 Import rules (enforced by a test like arena.test.ts):
 
