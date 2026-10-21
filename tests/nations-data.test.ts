@@ -15,7 +15,7 @@ import { setupWorld } from "../src/sim/setup";
 import { step } from "../src/sim/sim";
 import type { BuildingKind, Nation, PowerKind, Role, UnitKind } from "../src/sim/types";
 import { spawnBuilding, spawnUnit } from "../src/sim/world";
-import { PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL, lookalike, portraitKind, withStandIns } from "../src/game/three/belle/placeholders";
+import { PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL, STAND_IN, lookalike, portraitKind, withStandIns } from "../src/game/three/belle/placeholders";
 import { BELLE_VOICES, VOICES } from "../src/game/voices";
 
 /** PANACHE-CONCEPTION.md §1 and §3.2 WP0: the nations' types and data, and Classique left alone. */
@@ -304,7 +304,9 @@ describe("the nations' names in French (lexicon)", () => {
 
 describe("placeholders until the models land (WP5)", () => {
   it("draws every new kind with a Classique stand-in of its domain", () => {
-    expect(Object.keys(PLACEHOLDER_MODEL).sort()).toEqual([...NEW_UNITS].sort());
+    expect(Object.keys(STAND_IN).sort()).toEqual([...NEW_UNITS].sort());
+    // (models still provisional: a stand-in's, as STAND_IN says)
+    for (const [k, base] of Object.entries(PLACEHOLDER_MODEL)) expect(STAND_IN[k as keyof typeof STAND_IN], k).toBe(base);
     for (const k of NEW_UNITS) {
       const base = lookalike(k);
       expect(UNITS[base].nation, k).toBeUndefined();
