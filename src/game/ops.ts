@@ -31,6 +31,8 @@ export class OpsPresenter {
   constructor(private w: World, private o: OpsPresenterOpts) {
     this.op = opById(w.ops!.id)!;
     for (const [tag, ids] of Object.entries(w.ops!.tags)) this.tagAlive.set(tag, ids.length);
+    // (the Instruction opens on its own lesson bubble: no briefing banner)
+    if (this.op.tutorial) return;
     // real-time timer like the rules banner: a render-clock timer can fire late headless
     window.setTimeout(() => {
       if (this.w.winner) return;
@@ -107,6 +109,7 @@ export class OpsPresenter {
     const r = this.w.ops?.result;
     if (!r) return { key: "op-failed", text: "Op échouée", tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);
+    if (r.won && this.op.tutorial) return { key: "op-complete", text: "Op réussie", sub: "Instruction terminée · ★★★", tone: "epic", priority: 0, x: r.x, y: r.y };
     return r.won
       ? { key: "op-complete", text: "Op réussie", sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
       : { key: "op-failed", text: "Op échouée", sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };

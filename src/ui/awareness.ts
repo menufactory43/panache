@@ -200,8 +200,10 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
     const play: Rect = { x0: 0, y0: 0, x1: W, y1: H };
     const bar = root.querySelector(".buildbar");
     const bb = bar?.getBoundingClientRect();
-    if (bb && bb.width > 0 && bb.height > 0) {
+    // (only where it is on screen: Panache's closed drawer waits off the edge, the left one for a lefty)
+    if (bb && bb.width > 0 && bb.height > 0 && bb.right > 1 && bb.left < W - 1 && bb.top < H - 1) {
       if (bb.width >= W - 1) play.y1 = Math.min(play.y1, bb.top);
+      else if (bb.left + bb.width / 2 < W / 2) play.x0 = Math.max(play.x0, bb.right);
       else play.x1 = Math.min(play.x1, bb.left);
     }
     // the band of fixed widgets along the top

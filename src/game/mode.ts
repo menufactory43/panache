@@ -122,6 +122,22 @@ export function loadSettings(): void {
   }
 }
 
+/**
+ * Save the menu's mode pick from outside the menu (the Instruction's end
+ * screen: "⚔ Escarmouche", "🎖 Opérations"), keeping every other saved pick.
+ * `easyFirst`: a player with no saved difficulty starts on Easy.
+ */
+export function pickMode(mode: GameType, easyFirst = false): void {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    s.mode = mode;
+    if (easyFirst && !s.difficulty) s.difficulty = "easy";
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveSettings(): void {
   if (gameMode.daily || gameMode.op) return; // the Daily Op's / an op's map and difficulty are not the player's picks
   try {

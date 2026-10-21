@@ -127,7 +127,8 @@ export function mountHudLayout(root: HTMLElement): HudLayout {
     // top bar and minimap keep their places)
     const bar = q(".buildbar");
     const bb = bar && shown(bar) ? bar.getBoundingClientRect() : null;
-    const playRight = landscape && bb && bb.width < W - 1 ? bb.left : W;
+    // (a drawer waiting off screen, or a lefty's on the left edge, takes nothing off the right)
+    const playRight = landscape && bb && bb.width < W - 1 && bb.left > W / 2 && bb.left < W - 1 ? bb.left : W;
     const tr = topbar.getBoundingClientRect();
     let cx = landscape && tr.width > 0 ? (tr.left + tr.right) / 2 : playRight / 2;
     // in landscape the minimap and the calldown block sit level with the banner, on the

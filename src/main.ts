@@ -14,7 +14,10 @@ import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
 import { dailyOp, today, type DailyOp } from "./game/daily";
-import { opById, type OpDef } from "./sim/ops";
+import { TUTORIAL_OP, opById, type OpDef } from "./sim/ops";
+import { setTutorialState, tutorialState } from "./game/tutorial";
+import { showTutorialPrompt } from "./ui/tutorial";
+import { loadCareer } from "./game/career";
 import type { MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
 import { fullscreen, resetAudioSession } from "./ui/fullscreen";
@@ -322,6 +325,7 @@ function showMenu(linkedMap?: string | null): void {
       <button class="cta big" id="play">▶ Jouer</button>
       <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button></div>
       <div class="row">
+        <button class="cta alt" id="play-tuto" title="L'instruction guidée : un geste à la fois, 3 minutes">🎓 Instruction</button>
         <button class="cta alt" id="play-spectate">🤖 IA contre IA</button>
         <button class="cta alt" id="play-replay">🎬 Voir une rediffusion</button>
         <button class="cta alt" id="howto">? Comment jouer</button>
@@ -673,12 +677,27 @@ function showMenu(linkedMap?: string | null): void {
     menu.remove();
     void startGame(feed);
   };
-  menu.querySelector("#play")!.addEventListener("click", () => {
+  const play = () => {
     if (gameMode.mode !== "ops") return void begin(false);
     const op = ops.selected();
     sfx.play("click", 0.5);
     if (!ops.locked(op)) ops.openBrief(op);
+  };
+  // L'Instruction: offered on the first Jouer of a new player (never to a robot: the smoke test and tools play on)
+  const startTuto = () => void begin(false, startTutorial);
+  menu.querySelector("#play")!.addEventListener("click", () => {
+    if (tutorialState() === null && navigator.webdriver !== true && loadCareer().xp === 0) {
+      sfx.play("click", 0.5);
+      return showTutorialPrompt(menu, startTuto, () => {
+        setTutorialState("no");
+        play();
+      });
+    }
+    play();
   });
+  const tutoBtn = menu.querySelector<HTMLElement>("#play-tuto")!;
+  if (tutorialState() === "done") tutoBtn.textContent = "🎓 Instruction ✓";
+  tutoBtn.addEventListener("click", startTuto);
   menu.querySelector("#play-spectate")!.addEventListener("click", () => begin(true));
   // an agent battle's record, pasted or picked: the viewer loads only now (game/replay.ts)
   menu.querySelector("#play-replay")!.addEventListener("click", () => {
@@ -801,7 +820,8 @@ function showMenu(linkedMap?: string | null): void {
     rematch = token === "1" || token === "spectate" || token === "daily" || !!op;
     if (token === "spectate") gameMode.spectator = true; // another AI-vs-AI match
     if (token === "daily") startDaily(dailyOp(today()));
-    if (op) startOp(op);
+    if (op?.tutorial) startTutorial();
+    else if (op) startOp(op);
   } catch {
     /* ignore */
   }
@@ -853,6 +873,11 @@ function startOp(op: OpDef): void {
   gameMode.op = op;
   gameMode.mapId = op.map;
   gameMode.difficulty = op.ai && op.ai !== "survival" ? op.ai.difficulty : op.survival?.difficulty ?? "normal";
+}
+
+/** Point the next match at the Instruction (not saved: the menu's picks stay as they were). */
+function startTutorial(): void {
+  Object.assign(gameMode, { op: TUTORIAL_OP, mapId: TUTORIAL_OP.map, difficulty: "easy", daily: null, spectator: false });
 }
 
 /** Point the next match at the Daily Op (not saved: the player's own picks stay). */

@@ -30,6 +30,8 @@ import { FINALE, Finale, LOVE_FINALE, finaleBanner, finaleOutcome, finaleZoom, f
 import { HeroPresenter } from "./hero-fx";
 import { aiSeed, aiStrategy, announceRules, opEnemyAi, settleCareer } from "./meta";
 import { OpsPresenter } from "./ops";
+import { TutorialView } from "./tutorial-view";
+import { fullscreen } from "../ui/fullscreen";
 import { EntityRenderer } from "./render/entities";
 import { Fx } from "./render/fx";
 import { CombatJuice } from "./render/juice-view";
@@ -136,6 +138,8 @@ export class GameScene {
   private finaleAt: { x: number; y: number; size: number; cause: FinaleCause } | null = null;
   /** Ops: briefing banner, countdowns and star notices (null outside ops). */
   private ops: OpsPresenter | null = null;
+  /** L'Instruction: the guided first mission's director (null in every other match). */
+  private tutorial: TutorialView | null = null;
   private acc = 0;
   private prev = new Map<number, { x: number; y: number }>();
   readonly stage: Stage;
@@ -409,6 +413,7 @@ export class GameScene {
       pulse: (x, y, col) => this.fx.pulse(x, y, col, 1.4),
       // (a duel: both phones at 1×, the feed's slack trim aside)
       fixedSpeed: interactive,
+      calm: !!gameMode.op?.tutorial,
       took: () => this.cine?.hold()
     });
     if (gameMode.spectator) {
@@ -454,6 +459,35 @@ export class GameScene {
     // Daily Op / mutators banner (with opener cards up it waits for the pick: the cards would hide it)
     if (!this.holdStart) window.setTimeout(() => announceRules(this.world), 1200);
     if (this.world.ops) this.ops = new OpsPresenter(this.world, { notify: (m, t, x, y) => this.hud.notice(m, t, x, y) });
+    if (this.world.ops && gameMode.op?.tutorial && !gameMode.spectator) {
+      const tut = new TutorialView({
+        world: this.world,
+        ctrl: this.ctrl,
+        rig,
+        hudRoot: document.getElementById("hud")!,
+        belle: BELLE_EPOQUE,
+        glideTo: (x, y) => this.aware.glideTo(x, y),
+        zoomTo: (z) => {
+          this.targetZoom = this.clampedZoom(z);
+          this.zoomAnchor = null;
+        },
+        surfaceAt: (x, y) => this.terrain.surfaceAt(x, y),
+        screenOf: (id) => {
+          const p = this.entities.pos(id);
+          if (!p || !this.entities.isShown(id)) return null;
+          const s = rig.project(p.x, p.y, (p.h + p.top) / 2);
+          return s.behind ? null : s;
+        },
+        playCentre: () => this.aware.playCentre(),
+        inPlay: (x, y, m) => this.aware.inPlay(x, y, m),
+        targeting: () => this.powerUi?.targeting ?? null,
+        say: (text) => this.radio.push({ key: `tuto:${text}`, text, priority: 1, tone: "info", caption: false }),
+        pulse: (x, y, col, size) => this.fx.pulse(x, y, col, size),
+        leave: () => fullscreen.reload()
+      });
+      this.tutorial = tut;
+      this.teardown.push(() => tut.destroy());
+    }
     if (focus && !gameMode.op) this.frameStart(); // an op opens on its own focus point
     if (this.holdStart) {
       const picker = showOpenerPicker({
@@ -487,6 +521,8 @@ export class GameScene {
       aware: this.aware,
       place: this.place,
       command: this.command,
+      /** L'Instruction's director (null outside it). */
+      tutorial: this.tutorial,
       /** Tile point → CSS px on screen (for tests and tools). */
       toScreen: (x: number, y: number, h = 0) => rig.project(x, y, h),
       /** Where an entity is drawn on screen (its body), for tests and tools. */
@@ -719,7 +755,8 @@ export class GameScene {
     this.gest.tick(performance.now());
     this.updateCamera(delta);
 
-    if (!this.ctrl.paused && !this.ended && !this.holdStart) {
+    // (the Instruction's freeze-frames: the lesson waits on the player's tap)
+    if (!this.ctrl.paused && !this.ended && !this.holdStart && !this.tutorial?.hold) {
       // game speed (1–4×; a duel's slack trim), at most AWARE.maxTicksPerFrame ticks per frame
       const plan = planTicks(this.acc, delta, this.interactive ? this.feed?.speed?.() ?? 1 : this.aware.value);
       this.acc = plan.acc;
@@ -781,6 +818,7 @@ export class GameScene {
       this.ctrl.tip = null;
     }
     this.command.update();
+    if (!this.ctrl.paused) this.tutorial?.update(delta);
     this.aware.update(delta, this.ctrl.paused);
     voices.watchSelection(this.ctrl.selectedUnits, this.world);
     this.radio.update(delta, this.ctrl.paused);
@@ -970,6 +1008,7 @@ export class GameScene {
     voices.events(this.world.fx, this.voiceHooks);
     this.command.events(this.world.fx, this.simSeconds);
     this.ops?.tick();
+    this.tutorial?.afterTick();
     this.chronicle.tick();
     this.heroes.flush();
     const fb = this.ctrl.lastFeedback;
@@ -1250,6 +1289,7 @@ export class GameScene {
     // Goliaths' build rings, threat rings and anchoring arcs (read through the fog: they're always seen)
     this.entities.goliathMarks(this.view.over, this.ctrl.selectedUnits);
     this.survival?.drawOverlay(performance.now());
+    this.tutorial?.drawWorld(this.view.over);
     this.place.draw();
   }
 

@@ -53,6 +53,8 @@ export interface AwarenessHooks {
    * speed is ignored, and nothing drops the speed: there is nothing to drop.
    */
   fixedSpeed?: boolean;
+  /** No "enemy inbound" warnings (the Instruction stages its own enemies and says so itself). */
+  calm?: boolean;
   /** A glide (an arrow, ⚡, a squad chip) took the camera: the AI vs AI director stands aside. */
   took?(): void;
 }
@@ -160,7 +162,7 @@ export class Awareness {
         if ((inside(play, a.x, a.y) && (always || this.h.sees(ev.x, ev.y))) || (inside(play, b.x, b.y) && this.h.sees(ev.tx, ev.ty)))
           this.lastShotInView = t;
       }
-    if (this.h.spectator) return;
+    if (this.h.spectator || this.h.calm) return;
     const warnings = this.inbound.events(fx, t);
     // tempo safety: something needs the player's hands, so back to 1× (never off it at a fixed speed)
     const drop = this.h.fixedSpeed ? null : this.tempo.check(fx, t, warnings, this.speed.value > 1);

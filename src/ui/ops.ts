@@ -23,6 +23,8 @@ import { BELLE_EPOQUE } from "../game/three/theme";
 import { mapAssetBase } from "../game/assets";
 import { loadCareer, opUnlocked, opsCompleted, settlementOf, starCount, type CareerData } from "../game/career";
 import { addReportSection, type ReportContext, type ReportOpts } from "./report";
+import { pickMode } from "../game/mode";
+import { fullscreen } from "./fullscreen";
 
 /**
  * Ops UI: the menu's op cards and briefing sheet, the in-match goal pill
@@ -138,6 +140,8 @@ export interface OpsHud {
  */
 export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opts: { rematch(token: string): void }): OpsHud {
   const op = opById(w.ops!.id)!;
+  // the Instruction: its lesson bubble is the only objective on screen
+  if (op.tutorial) return tutorialHud(op, w, opts);
   pill.hidden = false;
   root.classList.add("has-ops");
   pill.innerHTML = `<b class="ol"></b><span class="ov"></span><span class="os"></span><span class="ostars"><i>★</i><i>★</i><i>★</i></span>`;
@@ -260,12 +264,53 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
   };
 }
 
+/** The Instruction's slice of the ops HUD: no pill, its own pause line and end-screen buttons. */
+function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }): OpsHud {
+  return {
+    update() {},
+    pauseLine: () => `${op.icon} Instruction · ${op.title}`,
+    pauseHtml: () => "",
+    reportOpts() {
+      const won = !!w.ops?.result?.won;
+      return {
+        head: {
+          title: won ? "INSTRUCTION RÉUSSIE" : "INSTRUCTION",
+          cls: won ? "win" : "lose",
+          sub: won ? "Tu es prêt, mon commandant !" : op.title
+        },
+        actions: [
+          {
+            id: "tuto-skirmish",
+            label: "⚔ Escarmouche",
+            on: () => {
+              // (a first skirmish: the Easy commander, unless one was picked before)
+              pickMode("skirmish", true);
+              opts.rematch("1");
+            }
+          },
+          {
+            id: "tuto-ops",
+            label: "🎖 Opérations",
+            cls: "alt",
+            on: () => {
+              pickMode("ops");
+              fullscreen.reload();
+            }
+          }
+        ],
+        rematchLabel: "↻ Rejouer l'instruction"
+      };
+    }
+  };
+}
+
 // -------------------------------------------------------------- end screen ---
 
 function opSectionHtml(ctx: ReportContext): string | null {
   const st = ctx.world.ops;
   const op = st ? opById(st.id) : null;
   if (!st || !op || ctx.spectator) return null;
+  if (op.tutorial) return tutorialSectionHtml(st.result?.won ?? false);
   const r = st.result;
   const s = settlementOf(ctx.world);
   const mask = r?.stars ?? 0;
@@ -287,6 +332,18 @@ function opSectionHtml(ctx: ReportContext): string | null {
     ${bestLine}
     ${unlocked ? `<p class="op-unlock">🔓 Nouvelle op débloquée : <b>${unlocked.icon} ${esc(unlocked.title)}</b></p>` : ""}
     ${r?.won ? "" : `<p class="op-tip"><b>Conseil</b><span>${esc(op.tip)}</span></p>`}
+  </div>`;
+}
+
+/** The Instruction's end: three stars, the send-off, and what to play next. */
+function tutorialSectionHtml(won: boolean): string | null {
+  if (!won) return null;
+  const stars = [0, 1, 2].map((i) => `<i class="on new" style="--i:${i}">★</i>`).join("");
+  return `<div class="op-res won tuto-res">
+    <div class="op-bigstars">${stars}</div>
+    <p class="op-reason">Instruction terminée</p>
+    <ul class="op-starlist"><li class="got"><b>★</b><span>Caméra, ordres et combat</span></li><li class="got"><b>★★</b><span>Forges et production</span></li><li class="got"><b>★★★</b><span>Armée, charbon et Feu roulant</span></li></ul>
+    <p class="op-tip"><b>Et maintenant ?</b><span>Une Escarmouche contre l'IA, ou la campagne des Opérations.</span></p>
   </div>`;
 }
 
