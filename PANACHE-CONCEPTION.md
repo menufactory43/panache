@@ -926,3 +926,59 @@ WP0 sauf par leur propriétaire.
 | Duel sonore : désaccord de protocole | proto 2 négocié, repli Classique automatique |
 | Performances mobile (25 nouveaux modèles) | budget : ≤ 600 triangles par unité, ≤ 1 500 par bâtiment, ≤ 4 000 pour le Zénith ; instanciation existante |
 | Ton : glissement vers le réel | relecture des cartons : pas de pays, de batailles ou d'uniformes réels ; Empire comique, jamais cruel |
+
+### 3.5 WP0 — fait
+
+Livré sur `feat/camps`. Classique vérifié bit pour bit : `tests/classic-hash.test.ts` rejoue les 9 records de
+`battles/showcase` et 3 parties IA-contre-IA de 10 min (riverlands, archipelago, frostbite + Nomades) et compare
+hachages `worldHash` tous les 500 ticks, fin de partie et empreinte des commandes de l'IA aux valeurs calculées
+sur `4eff7f6` (avant tout code de nation). Tests de données : `tests/nations-data.test.ts`.
+
+Où trouver quoi :
+- `types.ts` : `Nation`, `NationOrClassic`, `Role`, `ClassicUnitKind`/`NationUnitKind`,
+  `ClassicBuildingKind`/`NationBuildingKind`, `ClassicPowerKind`/`NationPowerKind`, `WeaponFx` + `arc-shell`, `heavy-shell`.
+- `balance.ts` : les 15 unités et 2 défenses (ajoutées **après** les genres Classique : l'ordre des clés reste
+  le même pour le Classique), champs `nation/base/cargo/healTargets`, `NATIONS`, `NATION_IDS`, `ROSTERS`,
+  `NATION_BUILDINGS` (noms et rôles des genres partagés par nation), `ROLES`, `ZENITH`, `POWERS.sonde/curie/gaz/pression`,
+  `POWER_SETS`, `POD_CREWS`.
+- `rules.ts` : `Rules.nations`, `nationOf()`, `kindNation()`, `inRoster()`, `rosterBan()` (appelé en tête de
+  `bannedBy`), `matchNations()`, `parseNations()`, `applyMutators(w, ids, nations)`.
+- `setup.ts` / `maps.ts` : `MatchSetup.nations`, `MatchOptions.nations`.
+- `lexicon.ts` : genre et pluriel de chaque nouveau nom, `NATION_NAMES`, `displayName(kind, nation)`, `grammarOf`,
+  `pluralName`, paramètre `nation` optionnel sur `isFeminine/agree/theName/aName/isVerb` ; h aspiré pour
+  Haut-fourneau et Hangar.
+- `three/belle/placeholders.ts` (réexporté par `belle/index.ts`) : `PLACEHOLDER_MODEL`, `PLACEHOLDER_BUILDING`,
+  `NATION_TEAMS`, `lookalike`, `portraitKind`, `withStandIns`.
+
+Partie de développement : `/?nations=republique,empire` (bleu, puis rouge ; `rep,emp` accepté) sur le
+serveur de dev ou le build ; escarmouche seulement (ni Survie, ni Opération, ni Défi du jour). Le tiroir de
+construction ne montre que l'effectif de la nation du joueur.
+
+Écarts au document, et pourquoi :
+1. `ROLES` vit dans `balance.ts` (et `Role` dans `types.ts`), pas dans `ai/roles.ts` qui appartient à WP3 : WP3
+   construit dessus.
+2. Les 16 unités Classique ne portent **pas** de champ `nation` (« tout genre avec `nation` est banni en
+   Classique ») : leur répartition est la table `ROSTERS`, qui couvre aussi les bâtiments (Rép sans Hotchkiss,
+   Emp sans Ruggieri).
+3. `NATIONS` est typé par une interface plutôt que `as const`, pour rester modifiable par `--tune` ; il gagne
+   `name`/`short` (« la République », « l'Empire de Carbonie ») pour les messages « Réservé à … ».
+4. `POD_CREWS` n'a d'équipage que pour la République (l'Empire n'a pas d'Obus-capsule dans `POWER_SETS`).
+5. Pas encore de changement de comportement : départ (`harvester` + `trooper` pour les deux nations), ouvertures,
+   IA, multiplicateurs, mécaniques et pouvoirs nouveaux sont à WP1–WP3. Une République ne peut donc pas encore
+   produire de récolteur (le Fourgon n'a pas son comportement `base` avant `behaves()`), et l'IA ne joue que les
+   genres de son effectif que `bannedBy` lui laisse.
+6. Listes des mutateurs (`GROUND_COMBAT`, `NO_GROUND_COMBAT`, `INFANTRY_SQUADS`, `NO_VEHICLES`) : étendues à la
+   main avec les nouveaux genres (Classique en tête, inchangé), pas encore calculées depuis `ROLES`. Le conflit
+   Nomades/Armada ↔ République n'est pas encore imposé.
+7. Duel sonore : `TABLES_COMPLETE` du codec ne vérifie que les genres Classique (les duels restent Classique
+   jusqu'à `LOBBY_PROTO = 2`, WP7) ; `tests/versus-codec.test.ts` ajusté en conséquence.
+8. Voix : `voice-lines.ts` n'énumère que les genres et pouvoirs Classique (les clips des nations sont WP5g).
+   Le briefing de l'arène (`unitTable`/`buildingTable`) reste Classique (WP4).
+9. Modèles provisoires : couleur de nation = `NATION_TEAMS[nation][camp]` (siège bleu : couleur propre ; siège
+   rouge : la variante « miroir » du §1.1, dans tous les cas) ; les escouades gardent la couleur du camp (le gréement
+   d'infanterie choisit ses couleurs par camp). Portraits, voix et tables par genre (`withStandIns`) : ceux du
+   modèle provisoire. Les fx `arc-shell` et `heavy-shell` sont dessinés comme `shell` (`GameScene`).
+10. Le Zénith est rangé dans l'onglet Véhicules à côté du Gargantua (unités du gantry, comme `TAB_OF`).
+11. Pluriels choisis : « Jamais-Contente » invariable (nom propre de la voiture), « Vulcains », « Zéniths », « Titans ».
+12. `tests/goliath.test.ts` « le Gargantua voit plus loin que toute autre unité » restreint aux unités Classique
+    (le Zénith voit à 11).

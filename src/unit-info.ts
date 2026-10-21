@@ -92,7 +92,23 @@ export const FEATURES: Record<UnitKind, string[]> = {
     `Ancre-le (${GOLIATH.anchorTime} s pour s'ancrer, ${GOLIATH.packTime} s pour lever l'ancre) : il reçoit le charbon des Fardiers, forme de l'infanterie et te laisse bâtir des avant-postes à ${GOLIATH.buildRing} cases de lui, n'importe où sur la carte.`,
     `Perd ses armes à mesure qu'il est touché : mortiers sous ${Math.round(GOLIATH.weapons.mortars.lostBelow * 100)} % de PV, arc électrique sous ${Math.round(GOLIATH.weapons.laser.lostBelow * 100)} %, canons sous ${Math.round(GOLIATH.weapons.cannons.lostBelow * 100)} %. Seuls les Pasteur le soignent, et chaque arme redémarre une fois réparée.`,
     `Toujours visible par l'ennemi. Deux Montgolfières vides peuvent le porter ; tant qu'un camp a un Gargantua, perdre son GQG ne fait pas perdre la partie. Chacun coûte ${Math.round(GOLIATH.costStep * 100)} % de plus par Gargantua déjà possédé.`
-  ]
+  ],
+  // ---- the nations' units (PANACHE-CONCEPTION.md §1.5); their full cards are WP6 ----
+  fourgon: ["Récolteur de la République : rapide, petite cale. Le radium lui rapporte davantage."],
+  "jamais-contente": ["Bolide électrique de début de partie : son arc court perce le blindage. Ne tire pas en l'air."],
+  "de-dion": ["Antiaérien rapide de la République, à tir de barrage. Impuissant au sol."],
+  branly: ["Artillerie électromagnétique de la République : obus rapides, longue portée, fragile de près."],
+  sapeurs: ["Infanterie antichar de la République : lances à arc qui fondent les blindés lourds. Ne tirent pas en l'air."],
+  zenith: ["Super-unité de la République : croiseur aérien et base volante, amarré pour produire et récolter."],
+  estafette: ["Éclaireur de l'Empire : motocyclette à vapeur, rapide et non armée, qui reste au sol."],
+  "mortier-280": ["Pièce de siège de l'Empire : surclasse toute défense en portée, mais il lui faut un guetteur."],
+  gyroptere: ["Appareil d'attaque de l'Empire : canon antichar sur cibles au sol. Craint la DCA."],
+  epervier: ["Chasseur de l'Empire : ses canons percent les grands aéronefs. Ne tire pas au sol."],
+  vulcain: ["Bombardier blindé de l'Empire, lent : écrase bases et colonnes. Escorte requise."],
+  atelier: ["Réparateur terrestre de l'Empire : répare véhicules, Gargantua et bâtiments, pas les aéronefs."],
+  fusiliers: ["Infanterie de ligne de l'Empire : automates cuirassés qui tirent sol et air, et se retranchent."],
+  carabiniers: ["Tireurs d'élite de l'Empire : effacent l'infanterie, avec une portée plus courte que les chasseurs alpins."],
+  titan: ["Transport de l'Empire : dirigeable-cargo cuirassé qui emporte trois escouades ; deux Titans soulèvent un Gargantua."]
 };
 
 export const GROUPS: { title: string; kinds: UnitKind[] }[] = [
@@ -326,7 +342,9 @@ const BUILDING_FEATURES: Record<BuildingKind, string[]> = {
     `Voit à ${BUILDINGS.radar.sight} cases dans toutes les directions, la plus large vision du jeu, grâce à la télégraphie sans fil.`,
     "Guette les attaques à travers le brouillard, ou repère le prochain gisement.",
     "Non armée et fragile : facile à perdre lors d'un raid."
-  ]
+  ],
+  arsonval: ["Défense de la République : tour à arc électrique qui perce les blindés au sol. Ne tire pas en l'air ; doit être alimentée."],
+  "flak-battery": ["Défense antiaérienne de l'Empire : canons à vapeur à longue portée contre les aéronefs."]
 };
 
 const B_NAME = (k: BuildingKind): string => `<a href="#${k}">${BUILDINGS[k].name}</a>`;

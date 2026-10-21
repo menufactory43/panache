@@ -25,6 +25,7 @@ import { PLAYER, type Controller } from "../game/controller";
 import { SQUAD } from "../game/squads";
 import { ADVISOR, COUNTERS, EnemyIntel, FACTORY_TAB, IdleWatch, adviceNote, counterAdvice, type FactoryTab } from "../game/advisor";
 import { HINTS, type HintOffer } from "../game/hints";
+import { portraitKind } from "../game/three/belle/placeholders";
 
 export interface CommandHooks {
   root: HTMLElement;
@@ -44,7 +45,7 @@ const HINTS_KEY = "battledrones.cmdhints";
 const BADGE_MS = 250;
 
 /** A squad chip's portrait, in our side's paint (red's art when we play red). */
-const icon = (kind: string) => `assets/icons/${PLAYER === "red" ? "red/" : ""}${kind}.webp`;
+const icon = (kind: string) => `assets/icons/${PLAYER === "red" ? "red/" : ""}${portraitKind(kind)}.webp`;
 
 /**
  * Build-bar tab of each build option (for the tab's ⚔ dot): a unit sits on

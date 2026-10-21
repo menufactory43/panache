@@ -22,21 +22,30 @@ import { atan2, cos, hypot, sin } from "./fmath";
  * credited to the firing side's HQ, so kills count for the right faction.
  */
 
+/** Classique's four powers (each nation's are POWER_SETS in balance.ts). */
 export const POWER_KINDS: PowerKind[] = ["barrage", "emp", "droppod", "hammer"];
 
 export const POWER_NAMES: Record<PowerKind, string> = {
   barrage: "Feu roulant",
   emp: "Fée Électricité",
   droppod: "Obus-capsule",
-  hammer: "Obus Méliès"
+  hammer: "Obus Méliès",
+  sonde: "Ballon-sonde",
+  curie: "Rayon Curie",
+  gaz: "Gaz de houille",
+  pression: "Pression des chaudières"
 };
 
 const FACTIONS: Faction[] = ["blue", "red"];
 const ticks = (secs: number) => Math.round(secs * TICK_RATE);
 
 export function createPowerState(): PowerState {
-  const ready = () => ({ barrage: 0, emp: 0, droppod: 0, hammer: ticks(POWERS.hammer.unlock) });
-  const zero = () => ({ barrage: 0, emp: 0, droppod: 0, hammer: 0 });
+  // (the nations' powers too, unused in Classique: nothing hashes or iterates these maps)
+  const ready = () => ({
+    barrage: 0, emp: 0, droppod: 0, hammer: ticks(POWERS.hammer.unlock),
+    sonde: 0, curie: ticks(POWERS.curie.unlock), gaz: 0, pression: 0
+  });
+  const zero = () => ({ barrage: 0, emp: 0, droppod: 0, hammer: 0, sonde: 0, curie: 0, gaz: 0, pression: 0 });
   return {
     meter: { blue: 0, red: 0 },
     readyAt: { blue: ready(), red: ready() },
@@ -48,7 +57,7 @@ export function createPowerState(): PowerState {
 
 /** Meter charge a power costs (the Sky Hammer runs on its own timer). */
 export function powerCost(p: PowerKind): number {
-  return p === "hammer" ? 0 : POWERS[p].cost;
+  return p === "hammer" || p === "curie" ? 0 : POWERS[p].cost;
 }
 
 /** Radius of the power's reticle (the area it can affect), in tiles. */

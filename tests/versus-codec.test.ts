@@ -437,10 +437,13 @@ describe("the command codec", () => {
     expect(CODEC_VERSION).toBe(1);
     expect(new Set(COMMAND_TYPES).size).toBe(COMMAND_TYPES.length);
     expect(COMMAND_TYPES.length).toBe(20);
-    expect(new Set(UNIT_KINDS)).toEqual(new Set(Object.keys(UNITS)));
-    expect(UNIT_KINDS.length).toBe(Object.keys(UNITS).length);
-    expect(new Set(BUILDING_KINDS)).toEqual(new Set(Object.keys(BUILDINGS)));
-    expect(BUILDING_KINDS.length).toBe(Object.keys(BUILDINGS).length);
+    // (Classique's kinds: duels play Classique until LOBBY_PROTO 2 brings the nations, PANACHE-CONCEPTION.md §1.10)
+    const classicUnits = Object.keys(UNITS).filter((k) => !UNITS[k as keyof typeof UNITS].nation);
+    const classicBuildings = Object.keys(BUILDINGS).filter((k) => !BUILDINGS[k as keyof typeof BUILDINGS].nation);
+    expect(new Set(UNIT_KINDS)).toEqual(new Set(classicUnits));
+    expect(UNIT_KINDS.length).toBe(classicUnits.length);
+    expect(new Set(BUILDING_KINDS)).toEqual(new Set(classicBuildings));
+    expect(BUILDING_KINDS.length).toBe(classicBuildings.length);
     expect([...POWER_KINDS]).toEqual([...SIM_POWER_KINDS]);
     // the fields are wide enough: type 5 bits, unitKind 5, buildingKind 4, power 2
     expect(COMMAND_TYPES.length).toBeLessThanOrEqual(32);

@@ -1,7 +1,7 @@
 import { BUILDINGS } from "./balance";
 import { setupObjectives, type UplinkDef } from "./objectives";
 import { applyOpener, spawnStartUnits, type OpenerId } from "./openers";
-import { Terrain, type Biome, type Faction, type UnitKind, type World } from "./types";
+import { Terrain, type Biome, type Faction, type Nation, type UnitKind, type World } from "./types";
 import { createWorld, inBounds, setTerrain, spawnBuilding, spawnUnit, terrainAt } from "./world";
 import { setupSurvival, type SurvivalOptions } from "./modes/survival";
 import { applyMutators, applySpawnRank, bannedBy, makeRules, rulesOf, type MutatorId } from "./rules";
@@ -513,6 +513,8 @@ export interface MatchOptions {
   openers?: Partial<Record<Faction, OpenerId>>;
   /** Uplink relays and supply drops (objectives.ts). Default: off (the classic skirmish). */
   objectives?: boolean;
+  /** The nation each side plays (PANACHE-CONCEPTION.md §1.10): both, or absent = Classique. */
+  nations?: Partial<Record<Faction, Nation>>;
 }
 
 /**
@@ -552,7 +554,7 @@ export function createMapWorld(id: string, opts: MatchOptions = {}): World {
     return spawnUnit(w, "trooper", f, p.x, p.y);
   });
   const mutators = (opts.mutators ?? []).filter((m) => !mapBansMutator(def, m));
-  if (mutators.length) applyMutators(w, mutators);
+  if (mutators.length || opts.nations) applyMutators(w, mutators, opts.nations);
   const skirmish = !opts.survival && !opts.op;
   if (skirmish) applyMapRules(w, def);
   if (rulesOf(w).islands) {

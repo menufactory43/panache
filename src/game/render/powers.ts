@@ -48,7 +48,11 @@ export interface TargetPreview {
 }
 
 const ENEMY = 0xff3b30;
-const OWN: Record<PowerKind, number> = { barrage: 0xffc93c, emp: 0x7fe3ff, droppod: 0x6eb0ff, hammer: 0xffd86e };
+// (the nations' powers borrow the colour of the Classique power in their slot until WP5g)
+const OWN: Record<PowerKind, number> = {
+  barrage: 0xffc93c, emp: 0x7fe3ff, droppod: 0x6eb0ff, hammer: 0xffd86e,
+  sonde: 0xe8e0c8, curie: 0x9fffd0, gaz: 0x8a8a7a, pression: 0xff9c4a
+};
 const EMP_BLUE = 0xbfeaff;
 /** Barrage shells appear this many sim ticks before they land, falling from this offset (tiles, height). */
 const SHELL_LEAD = 3.2;

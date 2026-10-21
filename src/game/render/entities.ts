@@ -4,6 +4,7 @@ import { isInfantry, squadAlive } from "../../sim/infantry";
 import { liftedBy } from "../../sim/lift";
 import type { Building, BuildingKind, Faction, FxEvent, Unit, UnitKind, WeaponFx, World } from "../../sim/types";
 import { baySeats, RIDER_SCALE, SquadRig, type BotKind, type Footprint } from "../three/infantry";
+import { lookalike } from "../three/belle/placeholders";
 import { discMat, eliteUniform, setVariant, type Variant } from "../three/materials";
 import { CRAWLER_LEGS, buildingDef, instance, unitDef, unitScale, type ModelDef, type ModelInstance } from "../three/models";
 import { BELLE_EPOQUE } from "../three/theme";
@@ -703,7 +704,7 @@ export class EntityRenderer {
 
   /** A robot squad: its rig stands in for a model instance (root and body are the rig's root). */
   private createSquad(u: Unit): UnitView {
-    const rig = new SquadRig(u.kind as BotKind, u.faction, u.id, squadAlive(u));
+    const rig = new SquadRig(lookalike(u.kind) as BotKind, u.faction, u.id, squadAlive(u));
     rig.onImpact = (p, kind) => {
       if (!this.visibleAt(p.x, p.z)) return;
       const at = { x: p.x, y: p.z, h: p.y };
@@ -1058,8 +1059,8 @@ export class EntityRenderer {
           c.bay.remove(r.rig.root);
           r.rig.dispose();
         }
-        const rig = new SquadRig(p.kind as BotKind, p.faction, p.id, squadAlive(p));
-        rig.seat(baySeats(p.kind as BotKind, side, v.scale));
+        const rig = new SquadRig(lookalike(p.kind) as BotKind, p.faction, p.id, squadAlive(p));
+        rig.seat(baySeats(lookalike(p.kind) as BotKind, side, v.scale));
         if (this.boarded.has(p.id)) rig.popIn(300);
         c.bay.add(rig.root);
         r = { rig, side };

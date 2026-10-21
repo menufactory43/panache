@@ -19,7 +19,7 @@ import { CRATE_NAMES } from "../sim/objectives";
 import { OPENERS, OPENER_IDS, allowedOpener } from "../sim/openers";
 import { GOLIATH_WEAPONS, isLifted, weaponReady } from "../sim/goliath";
 import { unitSeenBy } from "../sim/infantry";
-import { POWER_KINDS, POWER_NAMES, isStunned, powerBlocker } from "../sim/powers";
+import { POWER_KINDS, POWER_NAMES, isStunned, powerBlocker, powerCost } from "../sim/powers";
 import { goliathBase, rulesOf } from "../sim/rules";
 import type { BuildingKind, Faction, Unit, UnitKind, World } from "../sim/types";
 import { Terrain } from "../sim/types";
@@ -212,7 +212,7 @@ export function observeState(w: World, side: Faction): Observation {
 
   const powers = POWER_KINDS.map((p) => {
     const why = powerBlocker(w, side, p);
-    return { name: p, cost: p === "hammer" ? 0 : POWERS[p].cost, status: why ?? "ready" };
+    return { name: p, cost: powerCost(p), status: why ?? "ready" };
   });
 
   const wrecks = w.wrecks
@@ -501,7 +501,8 @@ const yes = (v: unknown) => (v ? "yes" : "");
 /** The unit and building tables, generated from balance.ts. */
 export function unitTable(): string {
   const head = "unit | cost | hp | speed | sight | range | dps | hits | armor | damage | built at | needs | notes";
-  const rows = (Object.keys(UNITS) as UnitKind[]).map((k) => {
+  // (Classique's: arena battles don't play the nations yet, PANACHE-CONCEPTION.md WP4)
+  const rows = (Object.keys(UNITS) as UnitKind[]).filter((k) => !UNITS[k].nation).map((k) => {
     const u = UNITS[k];
     const notes = [
       u.hover ? "hover: crosses water" : "",
@@ -520,7 +521,7 @@ export function unitTable(): string {
 
 export function buildingTable(): string {
   const head = "building | cost | hp | size | build time (s) | needs | weapon | notes";
-  const rows = (Object.keys(BUILDINGS) as BuildingKind[]).map((k) => {
+  const rows = (Object.keys(BUILDINGS) as BuildingKind[]).filter((k) => !BUILDINGS[k].nation).map((k) => {
     const b = BUILDINGS[k];
     const weapon = b.dps ? `${b.dps} dps vs ${b.targets}, range ${b.range}` : "-";
     return [k, b.cost || "-", b.hp, `${b.size}x${b.size}`, b.buildTime || "-", b.requires?.join(" or ") ?? "-", weapon, `${yes(b.dropOff) ? "harvesters unload here; " : ""}${b.role}`].join(" | ");

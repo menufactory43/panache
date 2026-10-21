@@ -5,8 +5,10 @@ import { Vis } from "../sim/fog";
 import { anchorBlocker, modeProgress, unitCost, weaponReady } from "../sim/goliath";
 import { isTransport, squadAlive, squadSize, unitSeenBy } from "../sim/infantry";
 import { liftedBy } from "../sim/lift";
-import { goliathBase } from "../sim/rules";
-import type { BuildingKind, Faction, GoliathWeapon, QueueItem, Unit, UnitKind, World } from "../sim/types";
+import { goliathBase, inRoster, nationOf } from "../sim/rules";
+import { displayName } from "../sim/lexicon";
+import { portraitKind } from "../game/three/belle/placeholders";
+import type { BuildingKind, Faction, GoliathWeapon, Nation, QueueItem, Unit, UnitKind, World } from "../sim/types";
 import { hasBuilding } from "../sim/world";
 import { sfx } from "../game/audio";
 import { mapThumbUrl } from "../game/assets";
@@ -132,16 +134,21 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "air", label: "Aviation", icon: "✈" }
 ];
 
-const BUILDABLE: BuildingKind[] = ["fab-plant", "airpad", "assembly-bay", "tech-lab", "depot", "turret", "sam-site", "radar", "gantry"];
-const GROUND: UnitKind[] = ["harvester", "stinger", "flak-crawler", "mortar", "mastodon", "lancer", "goliath"];
-const INFANTRY: UnitKind[] = ["trooper", "rocket-squad", "sniper"];
-const AIR: UnitKind[] = ["scout", "wasp", "raptor", "hornet", "mender", "condor"];
+// Every kind in its drawer place, the nations' among Classique's; a match shows
+// its side's roster (inRoster: Classique, exactly the 16 units and 9 buildings as before)
+const EVERY_BUILDABLE: BuildingKind[] = ["fab-plant", "airpad", "assembly-bay", "tech-lab", "depot", "turret", "arsonval", "sam-site", "flak-battery", "radar", "gantry"];
+const GROUND: UnitKind[] = [
+  "harvester", "fourgon", "estafette", "stinger", "jamais-contente", "flak-crawler", "de-dion", "mortar", "branly", "mortier-280",
+  "mastodon", "lancer", "atelier", "goliath", "zenith"
+];
+const INFANTRY: UnitKind[] = ["trooper", "fusiliers", "rocket-squad", "sapeurs", "sniper", "carabiniers"];
+const AIR: UnitKind[] = ["scout", "wasp", "gyroptere", "raptor", "epervier", "hornet", "vulcain", "mender", "condor", "titan"];
 const UNIT_TABS: { tab: Tab; kinds: UnitKind[] }[] = [
   { tab: "ground", kinds: GROUND },
   { tab: "infantry", kinds: INFANTRY },
   { tab: "air", kinds: AIR }
 ];
-const ALL_UNITS = UNIT_TABS.flatMap((t) => t.kinds);
+const EVERY_UNIT = UNIT_TABS.flatMap((t) => t.kinds);
 /** The build-bar tab a unit's button sits on. */
 const tabOf = (kind: UnitKind): Tab => UNIT_TABS.find((t) => t.kinds.includes(kind))?.tab ?? "ground";
 
@@ -201,6 +208,21 @@ const SHORT: Partial<Record<UnitKind | BuildingKind, string>> = {
   "fab-plant": "Forges", airpad: "Meudon", "tech-lab": "Poly", "sam-site": "Rugg.", radar: "TSF", turret: "Hotch.",
   "assembly-bay": "Manuf.", gantry: "Galerie", mortar: "Canon 75", lancer: "Hydro", condor: "Montgolfière",
   trooper: "Pioupious", "rocket-squad": "Artificiers", sniper: "Chasseurs"
+};
+
+/**
+ * Compact labels in a nations match: the nations' new kinds, and the shared
+ * buildings a nation renames (the Classique SHORT would name the wrong one).
+ */
+const NATION_SHORT: Record<Nation, Partial<Record<UnitKind | BuildingKind, string>>> = {
+  republique: {
+    fourgon: "Fourgon", "jamais-contente": "Jamais-C.", "de-dion": "De Dion", branly: "Branly", sapeurs: "Sapeurs",
+    arsonval: "Bobine", "fab-plant": "Garage", depot: "Station", gantry: "Hangar"
+  },
+  empire: {
+    estafette: "Estafette", "mortier-280": "Mortier 280", atelier: "Atelier", fusiliers: "Fusiliers", carabiniers: "Carabiniers",
+    "flak-battery": "Batt. 47", airpad: "Aérodrome", "tech-lab": "Ht-fourneau", radar: "Ballon", "assembly-bay": "Caserne"
+  }
 };
 
 const MINIMAP_PX = 256;
@@ -269,7 +291,7 @@ export function revealHtml(mapId: string): string {
 }
 
 /** A portrait in a side's paint (ours unless told otherwise): red's units and buildings show red, whoever is looking. */
-const icon = (kind: string, f: Faction = PLAYER) => `assets/icons/${f === "red" ? "red/" : ""}${kind}.webp`;
+const icon = (kind: string, f: Faction = PLAYER) => `assets/icons/${f === "red" ? "red/" : ""}${portraitKind(kind)}.webp`;
 
 export function createHud(api: HudApi): Hud {
   const root = document.getElementById("hud")!;
@@ -337,6 +359,16 @@ export function createHud(api: HudApi): Hud {
 
   const w = api.world;
   const f = () => w.factions[PLAYER];
+  // the drawer holds the player's roster: Classique's, or their nation's (PANACHE-CONCEPTION.md §1.4, §1.6)
+  const nation = nationOf(w, PLAYER);
+  const BUILDABLE = EVERY_BUILDABLE.filter((k) => inRoster(nation, k));
+  const ALL_UNITS = EVERY_UNIT.filter((k) => inRoster(nation, k));
+  const tabKinds = (t: Tab) => UNIT_TABS.find((u) => u.tab === t)!.kinds.filter((k) => inRoster(nation, k));
+  /** A button's label: the nation's name for a building it renames, else the compact one. */
+  const label = (k: UnitKind | BuildingKind) =>
+    (nation !== "classique" && (NATION_SHORT[nation][k] ?? (displayName(k, nation) !== displayName(k) ? displayName(k, nation) : undefined))) ||
+    SHORT[k] ||
+    displayName(k, nation);
   // Last Stand: wave pill, call-wave chip, minimap arrow, end screen
   const surv = w.survival
     ? createSurvivalHud($("#wavepill"), w, { ctrl: api.ctrl, spectator: api.ctrl.spectator, centerCamera: api.centerCamera })
@@ -421,7 +453,7 @@ export function createHud(api: HudApi): Hud {
   };
 
   for (const kind of BUILDABLE)
-    makeButton(`b:${kind}`, kind, BUILDINGS[kind].cost, SHORT[kind] ?? BUILDINGS[kind].name, () => {
+    makeButton(`b:${kind}`, kind, BUILDINGS[kind].cost, label(kind), () => {
       // (a sound duel: orders still on their way count as applied, controller.ts BuildView)
       const view = api.ctrl.view();
       const p = view.pending;
@@ -446,7 +478,7 @@ export function createHud(api: HudApi): Hud {
     }, () => showCard(kind));
 
   for (const kind of ALL_UNITS)
-    makeButton(`u:${kind}`, kind, unitCost(w, PLAYER, kind), SHORT[kind] ?? UNITS[kind].name, () => {
+    makeButton(`u:${kind}`, kind, unitCost(w, PLAYER, kind), label(kind), () => {
       const why = unitBlocker(w, PLAYER, kind);
       if (why) return toast(why);
       const view = api.ctrl.view();
@@ -464,7 +496,7 @@ export function createHud(api: HudApi): Hud {
   function renderGrid(): void {
     gridEl.innerHTML = "";
     const keys =
-      tab === "build" ? BUILDABLE.map((k) => `b:${k}`) : UNIT_TABS.find((t) => t.tab === tab)!.kinds.map((k) => `u:${k}`);
+      tab === "build" ? BUILDABLE.map((k) => `b:${k}`) : tabKinds(tab).map((k) => `u:${k}`);
     for (const k of keys) gridEl.appendChild(buttons.get(k)!);
     for (const el of tabsEl.children) (el as HTMLElement).classList.toggle("on", (el as HTMLElement).dataset.tab === tab);
     cardEl.hidden = true;

@@ -73,9 +73,10 @@ export function voiceFile(key: string): string {
   return `${slug.slice(0, 72)}.mp3`;
 }
 
-const UNIT_KINDS = Object.keys(UNITS) as UnitKind[];
-const BUILDING_KINDS = (Object.keys(BUILDINGS) as BuildingKind[]).filter((k) => k !== "hq");
-const POWERS = Object.keys(POWER_NAMES) as PowerKind[];
+// (Classique's kinds and powers: the nations' lines and clips are WP5g's, PANACHE-CONCEPTION.md §1.11)
+const UNIT_KINDS = (Object.keys(UNITS) as UnitKind[]).filter((k) => !UNITS[k].nation);
+const BUILDING_KINDS = (Object.keys(BUILDINGS) as BuildingKind[]).filter((k) => k !== "hq" && !BUILDINGS[k].nation);
+const POWERS: PowerKind[] = ["barrage", "emp", "droppod", "hammer"];
 const SIDES: Faction[] = ["blue", "red"];
 const WEAPONS = (Object.keys(GOLIATH_WORD) as GoliathWeapon[]).filter((k) => !!GOLIATH_WORD[k]);
 

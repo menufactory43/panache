@@ -1,8 +1,23 @@
 export type Faction = "blue" | "red";
+
+/**
+ * A nation (PANACHE-CONCEPTION.md §1): the "race" a side plays, with its own
+ * roster, economy and powers. Independent of the side (Faction: the seat).
+ * A match without nations is Classique: the 16 shared units, symmetric.
+ */
+export type Nation = "republique" | "empire";
+/** A nation, or "classique" (no nation: today's symmetric rules). */
+export type NationOrClassic = Nation | "classique";
+
+/** What a unit does in an army (§1.9): the AI names roles, each nation fills them with its own kinds. */
+export type Role =
+  | "worker" | "scout" | "light" | "aa" | "artillery" | "siege" | "heavy" | "antiArmour" | "airStrike"
+  | "interceptor" | "bomber" | "healer" | "line" | "at" | "sniper" | "transport" | "super";
 export type Domain = "ground" | "air";
 export type TargetDomain = "ground" | "air" | "both" | "none";
 
-export type UnitKind =
+/** The 16 units of Classique (and their order: indices elsewhere depend on it). */
+export type ClassicUnitKind =
   | "harvester"
   | "scout"
   | "stinger"
@@ -27,7 +42,33 @@ export type UnitKind =
    */
   | "goliath";
 
-export type BuildingKind =
+/**
+ * Units only a nation fields (PANACHE-CONCEPTION.md §1.5): banned in
+ * Classique and for the other nation. Each may point at a base behaviour
+ * (`UnitStats.base`).
+ */
+export type NationUnitKind =
+  // République
+  | "fourgon"
+  | "jamais-contente"
+  | "de-dion"
+  | "branly"
+  | "sapeurs"
+  | "zenith"
+  // Empire de Carbonie
+  | "estafette"
+  | "mortier-280"
+  | "gyroptere"
+  | "epervier"
+  | "vulcain"
+  | "atelier"
+  | "fusiliers"
+  | "carabiniers"
+  | "titan";
+
+export type UnitKind = ClassicUnitKind | NationUnitKind;
+
+export type ClassicBuildingKind =
   | "hq"
   | "fab-plant"
   | "airpad"
@@ -40,6 +81,11 @@ export type BuildingKind =
   | "assembly-bay"
   /** Top of the tree: builds the Goliath (one per side, always visible to the enemy). */
   | "gantry";
+
+/** Armed defences only one nation builds (§1.6): the République's arc tower, the Empire's AA battery. */
+export type NationBuildingKind = "arsonval" | "flak-battery";
+
+export type BuildingKind = ClassicBuildingKind | NationBuildingKind;
 
 /** Armor classes: weapons deal a damage-type-specific multiple vs each. */
 export type ArmorClass = "light" | "medium" | "heavy" | "structure" | "infantry";
@@ -61,7 +107,11 @@ export type WeaponFx =
   /** Trooper rifles: a crackle of light tracers from each robot standing. */
   | "rifle"
   /** Sniper rail-rifle: one bright, instant streak. */
-  | "snipe";
+  | "snipe"
+  /** Canon Branly: a glowing blue electromagnetic shell (§1.11; drawn as "shell" until its own fx). */
+  | "arc-shell"
+  /** Mortier de 280: a huge, slow siege shell (§1.11; drawn as "shell" until its own fx). */
+  | "heavy-shell";
 
 export const enum Terrain {
   Ground = 0,
@@ -700,7 +750,13 @@ export interface Wreck {
 }
 
 /** Commander calldowns (powers.ts): three on the Command meter plus the late-game Sky Hammer. */
-export type PowerKind = "barrage" | "emp" | "droppod" | "hammer";
+export type ClassicPowerKind = "barrage" | "emp" | "droppod" | "hammer";
+/**
+ * The nations' own powers (§1.7): Ballon-sonde and Rayon Curie (République),
+ * Gaz de houille and Pression des chaudières (Empire).
+ */
+export type NationPowerKind = "sonde" | "curie" | "gaz" | "pression";
+export type PowerKind = ClassicPowerKind | NationPowerKind;
 
 /** A calldown in flight: telegraphed from `startTick`, landing at `landTick`. */
 export interface Calldown {

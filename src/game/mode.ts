@@ -1,9 +1,9 @@
 import type { Difficulty } from "../sim/ai/commander";
 import { isKnownMapId, mapBansMutator, mapById, type MatchOptions } from "../sim/maps";
 import { isRandomMapId } from "../sim/mapgen";
-import { isMutatorId, type MutatorId } from "../sim/rules";
+import { isMutatorId, parseNations, type MutatorId } from "../sim/rules";
 import { opById, type OpDef } from "../sim/ops";
-import type { Faction } from "../sim/types";
+import type { Faction, Nation } from "../sim/types";
 import { setLocalSide } from "./controller";
 import type { DailyOp } from "./daily";
 
@@ -98,8 +98,19 @@ export function matchOptions(): MatchOptions {
     ...(survival ? { survival: { difficulty: gameMode.difficulty } } : { objectives: true }),
     // mutators, and the Daily Op's date seed (everyone plays the same match)
     ...(mutators.length ? { mutators } : {}),
-    ...(gameMode.daily ? { seed: gameMode.daily.seed } : {})
+    ...(gameMode.daily ? { seed: gameMode.daily.seed } : {}),
+    // nations (PANACHE-CONCEPTION.md §1.10): skirmish only, from the dev URL until the menu's picker (WP6)
+    ...(!survival && !gameMode.daily && urlNations() ? { nations: urlNations()! } : {})
   };
+}
+
+/**
+ * Development path to the nations before their picker exists:
+ * `?nations=republique,empire` (blue's, then red's; `rep,emp` will do) plays
+ * the next skirmishes with those rosters. Absent or malformed: Classique.
+ */
+export function urlNations(): Record<Faction, Nation> | null {
+  return typeof location === "undefined" ? null : parseNations(new URLSearchParams(location.search).get("nations"));
 }
 
 const KEY = "battledrones.settings";

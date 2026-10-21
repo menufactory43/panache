@@ -13,6 +13,7 @@
 import type { Faction, FxEvent, Unit, UnitKind, World } from "../sim/types";
 import { sfx, type AudioEngine } from "./audio";
 import { BELLE_EPOQUE } from "./three/theme";
+import { withStandIns } from "./three/belle/placeholders";
 
 export type VoiceLine = "select" | "move" | "attack" | "ready" | "rank" | "death";
 
@@ -62,7 +63,7 @@ export interface VoiceSpec {
 }
 
 /** One voice per unit class: heavy hulls growl low, drones buzz, the Mender rings, troopers chatter. */
-export const VOICES: Record<UnitKind, VoiceSpec> = {
+export const VOICES: Record<UnitKind, VoiceSpec> = withStandIns<VoiceSpec>({
   harvester: { f0: 260, wave: "triangle", formants: [620, 1400], q: 5, syl: 110, dry: 0.7, gain: 0.82 },
   scout: { f0: 560, wave: "triangle", formants: [1500, 3000], q: 6, syl: 55, dry: 0.55, gain: 1.0 },
   stinger: { f0: 320, wave: "square", formants: [800, 1800], q: 7, syl: 70, dry: 0.15, gain: 1.0 },
@@ -82,7 +83,7 @@ export const VOICES: Record<UnitKind, VoiceSpec> = {
   condor: { f0: 92, wave: "sawtooth", formants: [430, 900], q: 5, syl: 120, dry: 0.12, fm: { hz: 44, depth: 0.16 }, gain: 1.15 },
   // the Goliath: the deepest, slowest voice on the field, with a slow mechanical shudder
   goliath: { f0: 58, wave: "sawtooth", formants: [380, 780], q: 6, syl: 165, dry: 0.08, fm: { hz: 22, depth: 0.06 }, gain: 1.3 }
-};
+});
 
 /**
  * Belle Époque voices (theme.ts BELLE_EPOQUE): no robot chirps but the
@@ -100,7 +101,8 @@ export interface BelleVoiceSpec extends VoiceSpec {
   family: BelleFamily;
 }
 
-export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = {
+// (the nations' new units speak with their stand-ins' voices until WP5g gives them their own)
+export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = withStandIns<BelleVoiceSpec>({
   harvester: { family: "steam", f0: 560, wave: "sine", formants: [600, 1400], q: 5, syl: 110, dry: 1, gain: 0.42 },
   scout: { family: "balloon", f0: 150, wave: "triangle", formants: [700, 1500], q: 4, syl: 90, dry: 1, fm: { hz: 9, depth: 0.45 }, gain: 0.75 },
   stinger: { family: "horn", f0: 330, wave: "sawtooth", formants: [900, 1800], q: 3, syl: 70, dry: 0.3, gain: 1.0 },
@@ -117,7 +119,7 @@ export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = {
   sniper: { family: "clock", f0: 740, wave: "triangle", formants: [2200, 3400], q: 4, syl: 135, dry: 1, partial: 2.76, gain: 0.78 },
   condor: { family: "balloon", f0: 110, wave: "triangle", formants: [500, 1100], q: 4, syl: 120, dry: 1, fm: { hz: 7, depth: 0.45 }, gain: 1.0 },
   goliath: { family: "steam", f0: 175, wave: "sine", formants: [380, 780], q: 6, syl: 165, dry: 1, gain: 0.4 }
-};
+});
 
 /** The voices in play: the Belle Époque ones when that theme is on. */
 export const ACTIVE_VOICES: Record<UnitKind, VoiceSpec> = BELLE_EPOQUE ? BELLE_VOICES : VOICES;

@@ -15,6 +15,7 @@ import {
   type Sample
 } from "../game/chronicle";
 import { callsignOf, killsLabel, stars } from "../game/heroes";
+import { portraitKind } from "../game/three/belle/placeholders";
 
 /**
  * The after-action report: the end screen of a skirmish. It tells the
@@ -89,7 +90,7 @@ export function addReportSection(s: ReportSection): () => void {
 }
 
 /** A portrait in its side's paint (the red ones are shot from the red models). */
-const icon = (kind: string, f: Faction) => `assets/icons/${f === "red" ? "red/" : ""}${kind}.webp`;
+const icon = (kind: string, f: Faction) => `assets/icons/${f === "red" ? "red/" : ""}${portraitKind(kind)}.webp`;
 const short = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)));
 const sideName = (f: Faction, ctx: ReportOpts) =>
   ctx.spectator ? (f === "blue" ? "Bleu" : "Rouge") : f === ctx.pov ? "Toi" : ctx.opponent ? "Ami" : "Ennemi";

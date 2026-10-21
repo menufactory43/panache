@@ -48,7 +48,7 @@
  *  - the decoder also rejects an id ≥ 2^24, so whatever it accepts is
  *    canonical and could be sent again unchanged.
  */
-import type { BuildingKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
+import type { BuildingKind, ClassicBuildingKind, ClassicPowerKind, ClassicUnitKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
 
 export const CODEC_VERSION = 1;
 
@@ -84,13 +84,15 @@ const POWER_BITS = 2;
 /**
  * True while every command type, unit, building and power the sim has is in
  * its table: one added to the sim and not here fails tsc on this line (add it,
- * and bump CODEC_VERSION).
+ * and bump CODEC_VERSION). Classique kinds only: sound duels play Classique
+ * (LOBBY_PROTO 1); the nations' kinds join the tables with proto 2
+ * (PANACHE-CONCEPTION.md §1.10, WP7).
  */
 export const TABLES_COMPLETE: [
   | Exclude<Command["type"], (typeof COMMAND_TYPES)[number]>
-  | Exclude<UnitKind, (typeof UNIT_KINDS)[number]>
-  | Exclude<BuildingKind, (typeof BUILDING_KINDS)[number]>
-  | Exclude<PowerKind, (typeof POWER_KINDS)[number]>
+  | Exclude<ClassicUnitKind, (typeof UNIT_KINDS)[number]>
+  | Exclude<ClassicBuildingKind, (typeof BUILDING_KINDS)[number]>
+  | Exclude<ClassicPowerKind, (typeof POWER_KINDS)[number]>
 ] extends [never]
   ? true
   : never = true;

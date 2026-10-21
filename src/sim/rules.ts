@@ -1,6 +1,6 @@
-import { COMBAT, ECONOMY, UNITS } from "./balance";
+import { BUILDINGS, COMBAT, ECONOMY, NATIONS, NATION_IDS, ROSTERS, UNITS } from "./balance";
 import type { Strategy } from "./ai/commander";
-import type { BuildingKind, Faction, Unit, UnitKind, World } from "./types";
+import type { BuildingKind, Faction, Nation, NationOrClassic, Unit, UnitKind, World } from "./types";
 
 /**
  * Match rules and the mutators that change them. `World.rules` is absent
@@ -88,6 +88,11 @@ export interface Rules {
    * built) and the side plays on round a Goliath (world.ts onHomeLand).
    */
   homeTiles?: Record<Faction, [number, number]>;
+  /**
+   * The nation each side plays (PANACHE-CONCEPTION.md §1.10): both sides, or
+   * absent (Classique). Read through nationOf(w, f).
+   */
+  nations?: Record<Faction, Nation>;
 }
 
 export const DEFAULT_RULES: Readonly<Rules> = Object.freeze({
@@ -116,18 +121,25 @@ export interface MutatorDef {
   conflicts?: MutatorId[];
 }
 
-/** Ground combat units: the tanks, the robot infantry squads and the Goliath. */
-export const GROUND_COMBAT: UnitKind[] = ["stinger", "flak-crawler", "mortar", "mastodon", "lancer", "trooper", "rocket-squad", "sniper", "goliath"];
+/**
+ * Ground combat units: the tanks, the robot infantry squads and the Goliath
+ * (Classique's first, then the nations' own: a Classique world never meets
+ * those, they are banned there anyway).
+ */
+export const GROUND_COMBAT: UnitKind[] = [
+  "stinger", "flak-crawler", "mortar", "mastodon", "lancer", "trooper", "rocket-squad", "sniper", "goliath",
+  "jamais-contente", "de-dion", "branly", "sapeurs", "mortier-280", "fusiliers", "carabiniers"
+];
 
 /**
  * What "no ground combat" bans (Air War, Sky Pirates): GROUND_COMBAT, and the
  * Condor — the starting Trooper Squad is kept to guard home, and a dropship
  * would fly it into the fight.
  */
-export const NO_GROUND_COMBAT: UnitKind[] = [...GROUND_COMBAT, "condor"];
+export const NO_GROUND_COMBAT: UnitKind[] = [...GROUND_COMBAT, "condor", "titan"];
 
 /** Robot infantry: the squads an Assembly Bay builds. */
-export const INFANTRY_SQUADS: UnitKind[] = ["trooper", "rocket-squad", "sniper"];
+export const INFANTRY_SQUADS: UnitKind[] = ["trooper", "rocket-squad", "sniper", "sapeurs", "fusiliers", "carabiniers"];
 
 /**
  * What Infantry War bans: every combat vehicle and combat aircraft. Harvesters,
@@ -137,7 +149,11 @@ export const NO_VEHICLES: UnitKind[] = [
   ...GROUND_COMBAT.filter((k) => !INFANTRY_SQUADS.includes(k)),
   "wasp",
   "raptor",
-  "hornet"
+  "hornet",
+  "gyroptere",
+  "epervier",
+  "vulcain",
+  "zenith"
 ];
 
 export const MUTATORS: Record<MutatorId, MutatorDef> = {
@@ -291,15 +307,73 @@ export function makeRules(ids: readonly MutatorId[]): Rules {
   return r;
 }
 
-/** Install a match's mutators (createMapWorld calls this before the first tick). */
-export function applyMutators(w: World, ids: readonly MutatorId[]): void {
+/**
+ * Install a match's mutators and nations (createMapWorld calls this before
+ * the first tick). Neither: no rules at all, Classique as it always was.
+ */
+export function applyMutators(w: World, ids: readonly MutatorId[], nations?: Partial<Record<Faction, Nation>> | null): void {
   const r = makeRules(ids.filter(isMutatorId));
-  if (r.mutators.length === 0) return;
+  const n = matchNations(nations);
+  if (n) r.nations = n;
+  if (r.mutators.length === 0 && !n) return;
   w.rules = r;
   for (const f of Object.values(w.factions)) f.scrap = r.startScrap;
 }
 
 export const rulesOf = (w: World): Readonly<Rules> => w.rules ?? DEFAULT_RULES;
+
+// ------------------------------------------------------------- nations ---
+
+export const isNation = (s: unknown): s is Nation => typeof s === "string" && (NATION_IDS as string[]).includes(s);
+
+/**
+ * A match's nations: both sides', or null (Classique) — there is no
+ * Classique-against-a-nation match (§1.10), so a half-given pair is dropped.
+ */
+export function matchNations(n: Partial<Record<Faction, unknown>> | null | undefined): Record<Faction, Nation> | null {
+  return n && isNation(n.blue) && isNation(n.red) ? { blue: n.blue, red: n.red } : null;
+}
+
+/**
+ * "republique,empire" (blue's, then red's; "rep"/"emp" will do) → the pair,
+ * or null. The dev URL `?nations=…` and tools read nations this way.
+ */
+export function parseNations(s: string | null | undefined): Record<Faction, Nation> | null {
+  const alias = (x: string): string => ({ rep: "republique", "république": "republique", emp: "empire" })[x] ?? x;
+  const [blue, red] = (s ?? "").toLowerCase().split(",").map((x) => alias(x.trim()));
+  return matchNations({ blue, red });
+}
+
+/** The nation `f` plays, or "classique". */
+export const nationOf = (w: World, f: Faction): NationOrClassic => rulesOf(w).nations?.[f] ?? "classique";
+
+/** The nation that alone fields a kind (a new unit or defence), or null for the 26 Classique kinds. */
+export const kindNation = (kind: UnitKind | BuildingKind): Nation | null =>
+  (kind in UNITS ? UNITS[kind as UnitKind].nation : BUILDINGS[kind as BuildingKind].nation) ?? null;
+
+/** Does `nation` field this kind? (Classique: every kind that belongs to no nation.) */
+export function inRoster(nation: NationOrClassic, kind: UnitKind | BuildingKind): boolean {
+  if (nation === "classique") return kindNation(kind) === null;
+  const r = ROSTERS[nation];
+  return kind in UNITS ? r.units.includes(kind as UnitKind) : r.buildings.includes(kind as BuildingKind);
+}
+
+/**
+ * Why a kind is outside a side's roster (null = it's in it): in Classique,
+ * every nation's own kind; with nations, all the other nation fields. Without
+ * `faction` in a nations match, only a kind neither side fields.
+ */
+export function rosterBan(w: World, kind: UnitKind | BuildingKind, faction?: Faction): string | null {
+  const nations = rulesOf(w).nations;
+  const reserved = (n: Nation | null) => (n ? `Réservé à ${NATIONS[n].name}` : "Désactivé : règles de la partie");
+  if (!nations) {
+    const own = kindNation(kind);
+    return own ? reserved(own) : null;
+  }
+  const allowed = faction ? [nations[faction]] : [nations.blue, nations.red];
+  if (allowed.some((n) => inRoster(n, kind))) return null;
+  return reserved(NATION_IDS.find((n) => inRoster(n, kind)) ?? null);
+}
 
 /** Nomads and Goliath Armada: no HQ is ever built, and a side's Goliaths are its base. */
 export const goliathBase = (w: World): boolean => !!(rulesOf(w).nomads || rulesOf(w).armada);
@@ -314,10 +388,14 @@ export const incomeOf = (w: World, f: Faction): number => {
 };
 
 /**
- * Why a kind is disabled by this match's rules (null = allowed): a mutator
- * for both sides, or (with `faction`) an op's ban on that side alone.
+ * Why a kind is disabled by this match's rules (null = allowed): outside the
+ * side's roster (rosterBan: a nation's own kinds in Classique, the other
+ * nation's with nations), a mutator for both sides, or (with `faction`) an
+ * op's ban on that side alone.
  */
 export function bannedBy(w: World, kind: UnitKind | BuildingKind, faction?: Faction): string | null {
+  const roster = rosterBan(w, kind, faction);
+  if (roster) return roster;
   const r = rulesOf(w);
   const isUnit = kind in UNITS;
   const inList = (units?: readonly UnitKind[], buildings?: readonly BuildingKind[]) =>

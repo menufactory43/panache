@@ -1021,6 +1021,8 @@ export class GameScene {
         break;
       }
       case "shot": {
+        // (the nations' new shells are drawn as the Mortar's until WP5g gives them their own: fxLookalike)
+        if (ev.fx === "arc-shell" || ev.fx === "heavy-shell") ev = { ...ev, fx: "shell" };
         const src = w.units.get(ev.sourceId) ?? w.buildings.get(ev.sourceId);
         // (a Goliath is always seen: its guns flash even in the fog)
         const always = !!src && "goliath" in src && !!src.goliath;
