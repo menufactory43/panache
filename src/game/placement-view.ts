@@ -13,6 +13,7 @@
 import { BUILDINGS } from "../sim/balance";
 import { anchoredGoliaths, inGoliathRing } from "../sim/goliath";
 import { inBuildRange, suggestPlacement } from "../sim/placement";
+import { nationOf } from "../sim/rules";
 import type { BuildingKind, Faction, World } from "../sim/types";
 import { sfx } from "./audio";
 import { setVariant } from "./three/materials";
@@ -262,7 +263,7 @@ export class PlacementView {
     const y = at.ty;
     if (!this.ghost || this.ghostKind !== kind) {
       if (this.ghost) v.scene.remove(this.ghost.root);
-      this.ghost = instance(buildingDef(kind, PLAYER), false);
+      this.ghost = instance(buildingDef(kind, PLAYER, nationOf(this.h.world, PLAYER)), false);
       this.ghost.root.renderOrder = 21;
       this.ghost.root.traverse((o) => (o.renderOrder = 21));
       this.ghostKind = kind;

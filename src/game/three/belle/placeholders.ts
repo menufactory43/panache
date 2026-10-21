@@ -9,8 +9,12 @@
  */
 import type { ClassicBuildingKind, ClassicUnitKind, Faction, Nation, NationBuildingKind, NationUnitKind } from "../../../sim/types";
 
-/** The Classique unit whose model (and voice, and squad rig) stands in for each new unit. */
-export const PLACEHOLDER_MODEL: Record<NationUnitKind, ClassicUnitKind> = {
+/**
+ * The Classique unit that stands in for each new unit: its model under
+ * `?style=original` (and in Belle Époque until the kind has its own), its voice,
+ * its squad rig and its HUD portrait (until WP5g shoots the kind's own).
+ */
+export const STAND_IN: Record<NationUnitKind, ClassicUnitKind> = {
   // République
   fourgon: "harvester",
   "jamais-contente": "stinger",
@@ -30,11 +34,36 @@ export const PLACEHOLDER_MODEL: Record<NationUnitKind, ClassicUnitKind> = {
   titan: "condor"
 };
 
-/** The Classique building whose model stands in for each nation-only defence. */
-export const PLACEHOLDER_BUILDING: Record<NationBuildingKind, ClassicBuildingKind> = {
+/**
+ * The new units still drawn with their stand-in's model in Belle Époque: WP5
+ * removes a kind here when its own model lands in GROUND / AIR / the squad
+ * rigs (infantry.ts).
+ */
+export const PLACEHOLDER_MODEL: Partial<Record<NationUnitKind, ClassicUnitKind>> = {
+  // République
+  fourgon: "harvester",
+  "jamais-contente": "stinger",
+  "de-dion": "flak-crawler",
+  branly: "mortar",
+  zenith: "hornet",
+  // Empire
+  estafette: "stinger",
+  "mortier-280": "mortar",
+  gyroptere: "wasp",
+  epervier: "raptor",
+  vulcain: "hornet",
+  atelier: "harvester",
+  titan: "condor"
+};
+
+/** The Classique building that stands in for each nation-only defence (original style, portraits until WP5g). */
+export const STAND_IN_BUILDING: Record<NationBuildingKind, ClassicBuildingKind> = {
   arsonval: "turret",
   "flak-battery": "sam-site"
 };
+
+/** The nation-only defences still drawn with their stand-in in Belle Époque (none: buildings-rep.ts / buildings-emp.ts). */
+export const PLACEHOLDER_BUILDING: Partial<Record<NationBuildingKind, ClassicBuildingKind>> = {};
 
 /** A unit kind as the renderer and the sound know it: itself, or its stand-in. */
 export const lookalike = (k: ClassicUnitKind | NationUnitKind): ClassicUnitKind =>
@@ -71,10 +100,10 @@ export const NATION_TEAMS: Record<Nation, Record<Faction, NationTeam>> = {
 /** A per-unit table written for the 16 Classique units, completed for the new ones with their stand-ins' entries. */
 export function withStandIns<T>(table: Record<ClassicUnitKind, T>): Record<ClassicUnitKind | NationUnitKind, T> {
   const out = { ...table } as Record<ClassicUnitKind | NationUnitKind, T>;
-  for (const [k, base] of Object.entries(PLACEHOLDER_MODEL) as [NationUnitKind, ClassicUnitKind][]) out[k] = table[base];
+  for (const [k, base] of Object.entries(STAND_IN) as [NationUnitKind, ClassicUnitKind][]) out[k] = table[base];
   return out;
 }
 
 /** The portrait (assets/icons/<kind>.webp) a kind shows until WP5g draws its own: its stand-in's. */
 export const portraitKind = (k: string): string =>
-  (PLACEHOLDER_MODEL as Record<string, string>)[k] ?? (PLACEHOLDER_BUILDING as Record<string, string>)[k] ?? k;
+  (STAND_IN as Record<string, string>)[k] ?? (STAND_IN_BUILDING as Record<string, string>)[k] ?? k;

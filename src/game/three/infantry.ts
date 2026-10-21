@@ -5,6 +5,7 @@ import { ModelBuilder, type Vec3 } from "./builder";
 import { modelMat } from "./materials";
 import { AMBER, BARREL, BRASS, CANVAS, CONDOR_BAY, GM, GM_D, GM_L, TEAMS, WHITE } from "./models";
 import { BELLE_EPOQUE } from "./theme";
+import { NATION_TEAMS } from "./belle/placeholders";
 
 /**
  * Robot infantry: small articulated biped robots in the vehicles' painted
@@ -30,10 +31,23 @@ import { BELLE_EPOQUE } from "./theme";
  *
  * Belle Époque (theme.ts): the same rigs dressed as clockwork soldiers of
  * 1900 — Pioupious, Artificiers and Chasseurs alpins (PARTS_BELLE).
+ *
+ * The nations' squads (PANACHE-CONCEPTION.md §1.11, WP5d): Sapeurs-électriciens
+ * (République), Fusiliers and Carabiniers (Empire), on the same joints, painted
+ * in their nation's colours (NATION_TEAMS) for the seat. Under ?style=original
+ * they wear their stand-in's parts (Trooper, Trooper, Sniper).
+ *
+ * Tranchées (WP1): any squad can show a ring of sandbags round its formation —
+ * pass `entrenched` (0 or 1) in RigState each frame (the sim's flag for the
+ * squad, e.g. `entrenched: u.entrenched ? 1 : 0` in render/entities.ts); the
+ * ring rises out of the ground and sinks back as it changes (SquadRig.dug).
  */
 
 type Team = (typeof TEAMS)[Faction];
-export type BotKind = "trooper" | "rocket-squad" | "sniper";
+export type BotKind = "trooper" | "rocket-squad" | "sniper" | "sapeurs" | "fusiliers" | "carabiniers";
+
+/** The nations' squads and their nation (their colours come from NATION_TEAMS). */
+const NATION_BOT: Partial<Record<BotKind, "republique" | "empire">> = { sapeurs: "republique", fusiliers: "empire", carabiniers: "empire" };
 
 /** A robot's joints, one bone each, in this order. */
 export const J = { root: 0, hips: 1, torso: 2, head: 3, armL: 4, armR: 5, gun: 6, thighL: 7, shinL: 8, thighR: 9, shinR: 10 } as const;
@@ -136,6 +150,48 @@ const SPECS: Record<BotKind, Spec> = {
     // the marksman drops to one knee to take a shot
     brace: [1.15, -1.2, 0.2, -1.75, 0.055],
     seatArms: 0.85, seatGun: [1.35, 0, 0]
+  },
+  // Sapeurs-électriciens: three stocky linesmen, the arc lance held like a rifle, levelled to strike
+  sapeurs: {
+    n: 3, size: 1.4,
+    slots: [[0, -0.2], [-0.22, 0.11], [0.21, 0.13]],
+    falls: [2, 1, 0],
+    hipY: 0.142, hipX: 0.03, thigh: 0.06, shin: 0.058,
+    waist: 0.022, shX: 0.072, shY: 0.068, neck: 0.088, arm: 0.098,
+    gunOnHand: true, muzzle: [0, 0.016, -0.2],
+    carry: { armL: [0.05, 0.08], armR: [0.25, -0.12], gun: [-0.85, 0, 0], gunAt: [0, -0.1, 0], torso: 0 },
+    aim: { armL: [1.32, 0.62], armR: [1.42, -0.32], gun: [-1.42, 0, 0], gunAt: [0, -0.1, 0], torso: -0.06 },
+    swing: [0.58, 0.28], lean: -0.14, crouch: 0.004, stance: 0.36, lift: 0.028, cycle: 0.38,
+    brace: [0.4, -0.45, -0.32, -0.22, 0.016],
+    seatArms: 0.8, seatGun: [0.5, 0, 0]
+  },
+  // Fusiliers: the Trooper's drill, heavier on its feet
+  fusiliers: {
+    n: 5, size: 1.42,
+    slots: [[0, -0.25], [-0.25, -0.04], [0.25, -0.06], [-0.15, 0.23], [0.14, 0.24]],
+    falls: [4, 1, 3, 2, 0],
+    hipY: 0.145, hipX: 0.028, thigh: 0.062, shin: 0.06,
+    waist: 0.022, shX: 0.068, shY: 0.068, neck: 0.09, arm: 0.1,
+    gunOnHand: true, muzzle: [0, 0.016, -0.14],
+    carry: { armL: [0.05, 0.08], armR: [0.25, -0.12], gun: [-0.85, 0, 0], gunAt: [0, -0.1, 0], torso: 0 },
+    aim: { armL: [1.32, 0.62], armR: [1.42, -0.32], gun: [-1.42, 0, 0], gunAt: [0, -0.1, 0], torso: -0.04 },
+    swing: [0.5, 0.26], lean: -0.12, crouch: 0, stance: 0.36, lift: 0.026, cycle: 0.38,
+    brace: [0.32, -0.4, -0.24, -0.2, 0.012],
+    seatArms: 0.8, seatGun: [0.5, 0, 0]
+  },
+  // Carabiniers: the Sniper's stalk and kneeling shot
+  carabiniers: {
+    n: 2, size: 1.45,
+    slots: [[-0.11, -0.05], [0.12, 0.09]],
+    falls: [1, 0],
+    hipY: 0.158, hipX: 0.022, thigh: 0.07, shin: 0.066,
+    waist: 0.02, shX: 0.056, shY: 0.07, neck: 0.092, arm: 0.108,
+    gunOnHand: false, muzzle: [0, 0.006, -0.28],
+    carry: { armL: [0.95, 0.55], armR: [0.45, -0.12], gun: [-0.38, 0.22, 0], gunAt: [0.034, 0.028, -0.045], torso: 0 },
+    aim: { armL: [1.45, 0.5], armR: [1.3, -0.25], gun: [0, 0, 0], gunAt: [0.03, 0.068, -0.042], torso: -0.05 },
+    swing: [0.12, 0.12], lean: -0.2, crouch: 0.016, stance: 0.36, lift: 0.028, cycle: 0.42,
+    brace: [1.15, -1.2, 0.2, -1.75, 0.055],
+    seatArms: 0.85, seatGun: [1.35, 0, 0]
   }
 };
 
@@ -223,7 +279,7 @@ function arms(P: Parts, s: Spec, w: number): void {
   }
 }
 
-const PARTS: Record<BotKind, (t: Team) => Parts> = {
+const PARTS: Partial<Record<BotKind, (t: Team) => Parts>> & Record<"trooper" | "rocket-squad" | "sniper", (t: Team) => Parts> = {
   trooper: (t) => {
     const s = SPECS.trooper;
     const P: Parts = new Array(JOINTS).fill(null);
@@ -361,6 +417,11 @@ const PARTS: Record<BotKind, (t: Team) => Parts> = {
   }
 };
 
+// (?style=original: the nations' squads wear their stand-in's parts)
+PARTS.sapeurs = PARTS.trooper;
+PARTS.fusiliers = PARTS.trooper;
+PARTS.carabiniers = PARTS.sniper;
+
 // ------------------------------------------- Belle Époque: clockwork soldiers ---
 
 /**
@@ -409,8 +470,8 @@ function armsBelle(P: Parts, s: Spec, w: number, sleeve: number): void {
 }
 
 /** The face: a brass head ball and an ivory clock dial in a brass bezel, with two amber eyes. */
-function dialFace(b: ModelBuilder, r: number, y: number, eyes = true): void {
-  b.sphere(r, [0, y, 0.002], BE_LIGHT, { w: 10, h: 7 });
+function dialFace(b: ModelBuilder, r: number, y: number, eyes = true, metal = BE_LIGHT): void {
+  b.sphere(r, [0, y, 0.002], metal, { w: 10, h: 7 });
   b.cyl(r * 0.74, r * 0.74, 0.006, 12, [0, y - r * 0.05, -r * 0.84], WHITE, { rot: [Math.PI / 2, 0, 0] });
   b.torus(r * 0.75, r * 0.08, [0, y - r * 0.05, -r * 0.86], BRASS, { seg: 12 });
   // (the dial's hour marks)
@@ -422,6 +483,47 @@ function dialFace(b: ModelBuilder, r: number, y: number, eyes = true): void {
 function windKey(b: ModelBuilder, y: number, z: number, s: number): void {
   b.cyl(s * 0.12, s * 0.12, s * 0.9, 5, [0, y, z + s * 0.45], BRASS, { rot: [Math.PI / 2, 0, 0] });
   for (const sx of [-1, 1]) b.torus(s * 0.4, s * 0.12, [sx * s * 0.42, y, z + s], BRASS, { rot: [0, Math.PI / 2, 0], seg: 8 });
+}
+
+/** Imperial automatons: riveted steel instead of brass (lighter than the vehicles', see R_LIGHT). */
+const IR_LIGHT = 0xb4b8be;
+const IR_MID = 0x8a8f96;
+const IR_DARK = 0x5c6168;
+const IR_JOINT = 0x34363a;
+const SOOT = 0x1e1b19;
+const EMBER = 0xff7a2a;
+const LENS = 0xff5a3a;
+const WOOD_D = 0x4e3220;
+const COPPER = 0xc07a40;
+const ELEC = 0x8fdcff;
+
+/** Steel limbs: a ball hip, a trouser thigh, a steel knee, a black gaiter over the boot. */
+function legsIron(P: Parts, s: Spec, w: number, boot: [number, number, number], trousers: number): void {
+  const ankle = s.hipY - s.thigh - s.shin;
+  for (const [th, sh] of [[J.thighL, J.shinL], [J.thighR, J.shinR]] as const) {
+    let b = pb();
+    b.sphere(w * 0.6, [0, 0, 0], IR_JOINT, { w: 6, h: 4 });
+    b.cyl(w * 0.56, w * 0.5, s.thigh + 0.006, 7, [0, -s.thigh / 2 - 0.002, 0], trousers);
+    P[th] = b.build();
+    b = pb();
+    b.sphere(w * 0.55, [0, -0.002, -0.002], IR_LIGHT, { w: 6, h: 4 });
+    b.cyl(w * 0.46, w * 0.4, s.shin * 0.5, 7, [0, -s.shin * 0.3, 0], IR_MID);
+    b.cyl(w * 0.52, w * 0.56, s.shin * 0.48, 7, [0, -s.shin * 0.72, 0.001], 0x1c1a18);
+    b.block(boot[0], boot[1], boot[2], [0, -s.shin - ankle + boot[1] / 2, -boot[2] * 0.18], 0x18150f, { bevel: 0.006, edge: 1.6 });
+    P[sh] = b.build();
+  }
+}
+
+/** Steel arms: a riveted shoulder ball, the sleeve, a steel cuff and a steel mitten. */
+function armsIron(P: Parts, s: Spec, w: number, sleeve: number): void {
+  for (const j of [J.armL, J.armR]) {
+    const b = pb();
+    b.sphere(w * 0.66, [0, 0, 0], IR_LIGHT, { w: 7, h: 5 });
+    b.cyl(w * 0.56, w * 0.5, s.arm * 0.82, 7, [0, -s.arm * 0.46, 0], sleeve);
+    b.cyl(w * 0.58, w * 0.58, s.arm * 0.12, 7, [0, -s.arm * 0.86, 0], IR_MID);
+    b.sphere(w * 0.5, [0, -s.arm, -0.002], IR_LIGHT, { w: 6, h: 4 });
+    P[j] = b.build();
+  }
 }
 
 const PARTS_BELLE: Record<BotKind, (t: Team) => Parts> = {
@@ -579,6 +681,139 @@ const PARTS_BELLE: Record<BotKind, (t: Team) => Parts> = {
     b.box(0.012, 0.028, 0.012, [0, -0.02, -0.01], BE_JOINT);
     P[J.gun] = b.build();
     return P;
+  },
+
+  // ---- Sapeur-électricien: a stocky linesman in the team vareuse, a team fireman's casque with a brass comb,
+  // goggles up, the team battery pack on its back (glass accumulators, copper terminals), the arc lance
+  sapeurs: (t) => {
+    const s = SPECS.sapeurs;
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.04, [0, 0.006, 0.002], BE_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsBelle(P, s, 0.036, [0.048, 0.022, 0.072], t.dark);
+    b = pb();
+    b.sphere(0.05, [0, 0.05, 0], BE_LIGHT, { w: 10, h: 6, scale: [1.05, 1, 0.84] });
+    b.cyl(0.046, 0.054, 0.08, 10, [0, 0.03, 0], t.main, { scale: [1.08, 1, 0.86] });
+    b.cyl(0.052, 0.052, 0.01, 10, [0, 0.01, 0], LEATHER, { scale: [1.12, 1, 0.88] });
+    // leather braces crossing the chest to the pack, a brass dial gauge
+    for (const sx of [-1, 1]) b.box(0.01, 0.07, 0.006, [sx * 0.022, 0.06, -0.043], LEATHER, { rot: [0, 0, sx * 0.35] });
+    b.cyl(0.011, 0.011, 0.004, 8, [0, 0.07, -0.046], WHITE, { rot: [Math.PI / 2, 0, 0] });
+    for (const sx of [-1, 1]) b.block(0.026, 0.009, 0.03, [sx * 0.07, 0.094, 0.002], t.light, { bevel: 0.003 });
+    // the battery pack: a team case, three glass cells lit blue, copper terminals and a coiled lead
+    b.block(0.08, 0.07, 0.04, [0, 0.06, 0.058], t.main, { bevel: 0.007, edge: 1.4 });
+    for (const x of [-0.024, 0, 0.024]) {
+      b.cyl(0.009, 0.009, 0.03, 6, [x, 0.108, 0.058], ELEC, { glow: 0.8 });
+      b.box(0.006, 0.008, 0.006, [x, 0.127, 0.058], COPPER);
+    }
+    b.torus(0.014, 0.003, [0.046, 0.03, 0.05], 0x2a2019, { rot: [0, Math.PI / 2, 0], seg: 8 });
+    P[J.torso] = b.build();
+    // head: the dial face, goggles pushed up, the team casque with its brass comb and neck guard
+    b = pb();
+    dialFace(b, 0.026, 0.024);
+    b.sphere(0.03, [0, 0.036, 0.003], t.main, { w: 10, h: 4, phi: Math.PI / 2, scale: [1, 1.05, 1.12] });
+    b.box(0.006, 0.014, 0.05, [0, 0.07, 0.004], BRASS);
+    b.cyl(0.034, 0.036, 0.004, 10, [0, 0.036, 0.008], t.dark, { scale: [1, 1, 1.15] });
+    for (const sx of [-1, 1]) b.torus(0.007, 0.0025, [sx * 0.01, 0.046, -0.024], BRASS, { rot: [-0.4, 0, 0], seg: 8 });
+    P[J.head] = b.build();
+    armsBelle(P, s, 0.03, t.main);
+    // the arc lance: an insulated ash shaft, a copper coil, ivory insulators, the brass fork and its blue spark
+    b = pb();
+    b.box(0.014, 0.022, 0.09, [0, 0.008, -0.01], WOOD);
+    b.tube(0.006, 0.12, 6, [0, 0.016, -0.1], BE_JOINT);
+    b.tube(0.012, 0.04, 8, [0, 0.016, -0.09], COPPER);
+    b.tube(0.01, 0.012, 6, [0, 0.016, -0.14], WHITE);
+    b.pair(0.003, 0.004, 0.04, [0.007, 0.016, -0.176], BRASS);
+    b.sphere(0.009, [0, 0.016, -0.2], ELEC, { glow: 1, w: 6, h: 4 });
+    b.box(0.008, 0.012, 0.016, [0, -0.012, -0.02], BE_JOINT);
+    P[J.gun] = b.build();
+    return P;
+  },
+
+  // ---- Fusilier impérial: a riveted steel automaton under a big team cuirass, a toy-round spiked helmet in team
+  // colour with a brass ball, a little smokestack on its back glowing at the firebox, the Mauser and its bayonet
+  fusiliers: (t) => {
+    const s = SPECS.fusiliers;
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.036, [0, 0.006, 0.002], IR_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsIron(P, s, 0.032, [0.044, 0.02, 0.068], t.dark);
+    b = pb();
+    b.sphere(0.046, [0, 0.052, 0], IR_MID, { w: 10, h: 6, scale: [1.05, 1, 0.84] });
+    b.cyl(0.042, 0.05, 0.06, 10, [0, 0.022, 0], IR_DARK, { scale: [1.08, 1, 0.86] });
+    // the cuirass: a team breast- and back-plate with a brass rim, rivets down the middle
+    b.sphere(0.05, [0, 0.055, -0.004], t.main, { w: 10, h: 6, phi: Math.PI * 0.62, scale: [1.08, 1.05, 0.92] });
+    b.cyl(0.05, 0.05, 0.008, 10, [0, 0.024, -0.002], BRASS, { scale: [1.1, 1, 0.9] });
+    for (const y of [0.045, 0.065]) b.box(0.005, 0.005, 0.004, [0, y, -0.047], IR_LIGHT);
+    for (const sx of [-1, 1]) b.block(0.026, 0.01, 0.032, [sx * 0.064, 0.094, 0.002], IR_LIGHT, { bevel: 0.003 });
+    b.cyl(0.044, 0.044, 0.009, 10, [0, 0.012, 0], LEATHER, { scale: [1.12, 1, 0.88] });
+    // the boiler on its back and its smokestack, the firebox glowing
+    b.cyl(0.022, 0.024, 0.06, 8, [0, 0.055, 0.052], IR_DARK);
+    b.box(0.018, 0.012, 0.006, [0, 0.04, 0.075], EMBER, { glow: 0.9 });
+    b.cyl(0.008, 0.008, 0.05, 6, [0.012, 0.105, 0.05], SOOT);
+    b.cyl(0.011, 0.009, 0.01, 6, [0.012, 0.132, 0.05], SOOT);
+    P[J.torso] = b.build();
+    // head: a steel dial face, the round team helmet, brass ball spike, front plate and chinstrap
+    b = pb();
+    dialFace(b, 0.026, 0.024, true, IR_LIGHT);
+    b.sphere(0.03, [0, 0.034, 0.002], t.main, { w: 10, h: 4, phi: Math.PI / 2, scale: [1.05, 1.15, 1.1] });
+    b.cyl(0.0325, 0.0325, 0.005, 10, [0, 0.035, 0.002], LEATHER, { scale: [1.05, 1, 1.2] });
+    b.cyl(0.004, 0.006, 0.016, 6, [0, 0.074, 0.002], BRASS);
+    b.sphere(0.009, [0, 0.085, 0.002], BRASS, { w: 6, h: 4 });
+    b.box(0.016, 0.014, 0.004, [0, 0.048, -0.03], BRASS, { rot: [-0.3, 0, 0] });
+    P[J.head] = b.build();
+    armsIron(P, s, 0.028, t.dark);
+    // the rifle: dark walnut, a blued barrel, the bayonet
+    b = pb();
+    b.block(0.016, 0.026, 0.11, [0, 0.008, -0.03], WOOD_D, { bevel: 0.004 });
+    b.box(0.016, 0.03, 0.04, [0, 0.0, 0.03], WOOD_D);
+    b.tube(0.0055, 0.07, 6, [0, 0.016, -0.1], BARREL);
+    b.box(0.003, 0.004, 0.05, [0, 0.01, -0.155], STEEL);
+    b.box(0.008, 0.012, 0.016, [0, -0.012, -0.03], IR_DARK);
+    P[J.gun] = b.build();
+    return P;
+  },
+
+  // ---- Carabinier: a lean steel marksman under the great team cape, a dark bombe helmet, one red lens glowing
+  // in its dial, the long carbine with a brass scope whose lens catches the light
+  carabiniers: (t) => {
+    const s = SPECS.carabiniers;
+    const P: Parts = new Array(JOINTS).fill(null);
+    let b = pb();
+    b.sphere(0.032, [0, 0.006, 0.002], IR_DARK, { w: 8, h: 5, scale: [1.2, 0.7, 0.9] });
+    P[J.hips] = b.build();
+    legsIron(P, s, 0.028, [0.038, 0.02, 0.062], 0x2a2a30);
+    b = pb();
+    b.sphere(0.038, [0, 0.046, 0], IR_MID, { w: 10, h: 6, scale: [1.05, 1.15, 0.85] });
+    b.cyl(0.034, 0.042, 0.08, 10, [0, 0.03, 0], 0x2a2a30, { scale: [1.05, 1, 0.85] });
+    // the cape over the shoulders, long behind, a high collar and a brass clasp
+    b.cone(0.074, 0.09, 10, [0, 0.048, 0.006], t.main, { scale: [1, 1, 0.92] });
+    b.box(0.076, 0.1, 0.006, [0, 0.01, 0.058], t.main, { rot: [0.16, 0, 0] });
+    b.cyl(0.03, 0.034, 0.02, 10, [0, 0.098, 0.004], t.dark);
+    b.box(0.01, 0.01, 0.004, [0, 0.086, -0.036], BRASS);
+    P[J.torso] = b.build();
+    // head: the dial with one great red monocle lens, the dark bombe helmet with a team band
+    b = pb();
+    dialFace(b, 0.024, 0.026, false, IR_LIGHT);
+    b.box(0.006, 0.006, 0.004, [-0.007, 0.029, -0.022], AMBER, { glow: 1 });
+    b.torus(0.008, 0.0025, [0.008, 0.028, -0.023], BRASS, { seg: 8 });
+    b.cyl(0.0075, 0.0075, 0.004, 8, [0.008, 0.028, -0.024], LENS, { rot: [Math.PI / 2, 0, 0], glow: 1 });
+    b.sphere(0.027, [0, 0.04, 0.003], IR_DARK, { w: 10, h: 4, phi: Math.PI / 2, scale: [1, 0.9, 1.1] });
+    b.cyl(0.035, 0.035, 0.004, 10, [0, 0.04, 0.003], IR_DARK, { scale: [1, 1, 1.1] });
+    b.cyl(0.0275, 0.0275, 0.007, 10, [0, 0.045, 0.003], t.main, { scale: [1, 1, 1.1] });
+    P[J.head] = b.build();
+    armsIron(P, s, 0.024, 0x2a2a30);
+    // the long carbine: walnut, a long blued barrel, a brass scope with its glowing lens
+    b = pb();
+    b.block(0.018, 0.024, 0.13, [0, 0.004, -0.03], WOOD_D, { bevel: 0.005 });
+    b.box(0.016, 0.026, 0.06, [0, -0.002, 0.06], WOOD_D);
+    b.tube(0.0055, 0.16, 6, [0, 0.006, -0.185], BARREL);
+    b.tube(0.0075, 0.085, 7, [0, 0.026, -0.04], BRASS);
+    b.box(0.013, 0.013, 0.004, [0, 0.026, -0.083], LENS, { glow: 1 });
+    b.box(0.012, 0.028, 0.012, [0, -0.02, -0.01], IR_DARK);
+    P[J.gun] = b.build();
+    return P;
   }
 };
 
@@ -587,7 +822,9 @@ function partsOf(kind: BotKind, f: Faction): Parts {
   const key = `${kind}/${f}`;
   let p = partsCache.get(key);
   if (!p) {
-    p = (BELLE_EPOQUE ? PARTS_BELLE : PARTS)[kind](TEAMS[f]);
+    const nation = NATION_BOT[kind];
+    const t = nation ? NATION_TEAMS[nation][f] : TEAMS[f];
+    p = (BELLE_EPOQUE ? PARTS_BELLE : PARTS)[kind]!(t);
     partsCache.set(key, p);
   }
   return p;
@@ -687,6 +924,36 @@ export interface RigState {
   ready?: number;
   /** Vehicles close by: robots step aside out of their hulls (see Footprint). */
   avoid?: Footprint[];
+  /** Tranchées (WP1): the squad is dug in (1) or not (0): its sandbag ring rises or sinks (SquadRig.dug). */
+  entrenched?: number;
+}
+
+/** Sandbags, light and dark. */
+const SACK = 0xb9a173;
+const SACK_D = 0x9c8458;
+
+/** A squad's sandbag ring (two courses round its formation), shared per kind; robots stand inside it. */
+const bagGeos = new Map<BotKind, THREE.BufferGeometry>();
+function bagGeo(kind: BotKind): THREE.BufferGeometry {
+  let g = bagGeos.get(kind);
+  if (g) return g;
+  const s = SPECS[kind];
+  const r = Math.max(...s.slots.map(([x, z]) => Math.hypot(x, z))) + 0.13;
+  const b = new ModelBuilder({ grade: 0.25, ao: [0.08, 0.35] });
+  const n = Math.max(12, Math.round((r * Math.PI * 2) / 0.085));
+  for (let k = 0; k < 2; k++)
+    for (let i = 0; i < n; i++) {
+      const a = ((i + k * 0.5) / n) * Math.PI * 2;
+      const rr = r - k * 0.012;
+      b.block(0.085, 0.032, 0.05, [Math.sin(a) * rr, 0.016 + k * 0.03, Math.cos(a) * rr], (i + k) % 3 ? SACK : SACK_D, {
+        rot: [0, a, 0],
+        bevel: 0.01,
+        edge: 1.15
+      });
+    }
+  g = b.build();
+  bagGeos.set(kind, g);
+  return g;
 }
 
 /** A vehicle's hull on the ground: centre and heading (world, unit vector), half-length and half-width (tiles). */
@@ -731,6 +998,9 @@ export class SquadRig {
   private ready = 0;
   private time = 0;
   private last: RigState = { dt: 0, speed: 0, aim: 0, pitch: 0, alive: 0 };
+  /** How far the sandbag ring is up (0–1), easing toward RigState.entrenched. */
+  dug = 0;
+  private bags: THREE.Mesh | null = null;
 
   constructor(readonly kind: BotKind, readonly faction: Faction, seed = 0, alive?: number) {
     const s = (this.spec = SPECS[kind]);
@@ -915,6 +1185,7 @@ export class SquadRig {
         bot.pop = 0;
       } else if (!stand && bot.up) this.topple(bot);
     }
+    this.dig(st.entrenched ?? 0, k);
     const moveTarget = Math.min(1, st.speed / 0.5);
     this.move += (moveTarget - this.move) * (1 - Math.exp(-k * 9));
     this.ready += ((st.ready ?? 0) - this.ready) * (1 - Math.exp(-k * 6));
@@ -930,6 +1201,23 @@ export class SquadRig {
       if (bot.pop < 1) bot.pop = Math.min(1, bot.pop + k / 0.28);
       this.pose(i, st, st.dt);
     }
+  }
+
+  /** Raise or sink the sandbag ring toward `want` (0–1), `k` seconds on; built the first time it's needed. */
+  private dig(want: number, k: number): void {
+    if (want <= 0 && this.dug <= 0) return;
+    this.dug += (want - this.dug) * (k > 0 ? 1 - Math.exp(-k * 3) : 1);
+    if (this.dug < 0.005 && want <= 0) this.dug = 0;
+    if (!this.bags) {
+      const m = new THREE.Mesh(bagGeo(this.kind), modelMat("normal"));
+      m.userData.model = true;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.bags = m;
+      this.root.add(m);
+    }
+    this.bags.visible = this.dug > 0.01;
+    this.bags.scale.set(1, Math.max(1e-3, this.dug), 1);
   }
 
   private topple(bot: Bot): void {
@@ -1266,4 +1554,15 @@ export function baySeats(kind: BotKind, side: number, s: number): { x: number; y
   const out: { x: number; y: number; z: number; yaw: number }[] = [];
   for (let i = 0; i < n; i++) out.push({ x: sx * B.benchX * k, y: B.floor * k, z: (z0 + i * step) * k, yaw: (sx * Math.PI) / 2 });
   return out;
+}
+
+/**
+ * The nations' squads as unit models (belle/index.ts BE_UNIT_MODELS): the squad
+ * standing at ease, like models.ts squadModel. `t` is the side's TEAMS entry
+ * (unitDef passes it); the robots pick their nation's colours themselves.
+ */
+export function nationSquadDef(kind: BotKind, t: Team) {
+  const f: Faction = t === TEAMS.red ? "red" : "blue";
+  const h = botHeight(kind);
+  return { hull: squadStatic(kind, f), mount: [0, 0, 0] as Vec3, muzzle: [0, h * 0.75, -0.3] as Vec3, rotors: [], height: h };
 }

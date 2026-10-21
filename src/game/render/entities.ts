@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { BUILDINGS, ECONOMY, TICK_RATE, UNITS } from "../../sim/balance";
 import { isInfantry, squadAlive } from "../../sim/infantry";
 import { liftedBy } from "../../sim/lift";
+import { nationOf } from "../../sim/rules";
 import type { Building, BuildingKind, Faction, FxEvent, Unit, UnitKind, WeaponFx, World } from "../../sim/types";
 import { baySeats, RIDER_SCALE, SquadRig, type BotKind, type Footprint } from "../three/infantry";
 import { lookalike } from "../three/belle/placeholders";
@@ -154,7 +155,7 @@ const NO_RIDERS: readonly Unit[] = [];
 const puffAt: P3 = { x: 0, y: 0, h: 0 };
 
 /** Roof heights over a 3×3 grid across the middle half of each kind of building, found once per kind. */
-const roofs = new Map<BuildingKind, Float32Array>();
+const roofs = new Map<ModelDef, Float32Array>();
 /** roofOf's sample points (three close together per grid point) and the highest surface over each. */
 const roofX = new Float32Array(27);
 const roofZ = new Float32Array(27);
@@ -171,8 +172,8 @@ const roofMid = [0, 0, 0];
  * object per surface crossed, took up to ~20 ms, and several times that on
  * a phone).
  */
-function roofOf(kind: BuildingKind, def: ModelDef, size: number): Float32Array {
-  let r = roofs.get(kind);
+function roofOf(def: ModelDef, size: number): Float32Array {
+  let r = roofs.get(def);
   if (r) return r;
   for (let j = 0; j < 3; j++)
     for (let i = 0; i < 3; i++)
@@ -190,7 +191,7 @@ function roofOf(kind: BuildingKind, def: ModelDef, size: number): Float32Array {
     roofMid.sort((a, b) => a - b);
     r[n] = roofMid[1]!;
   }
-  roofs.set(kind, r);
+  roofs.set(def, r);
   return r;
 }
 
@@ -1079,13 +1080,13 @@ export class EntityRenderer {
     let base = 0;
     for (const [dx, dy] of [[0, 0], [-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]] as [number, number][])
       base = Math.max(base, t.heightAt(cx + dx * size, cy + dy * size));
-    const m = instance(buildingDef(b.kind, b.faction));
+    const m = instance(buildingDef(b.kind, b.faction, nationOf(this.world, b.faction)));
     m.root.position.set(cx, base - 0.02, cy);
     this.group.add(m.root);
     const v: BuildingView = {
       kind: "building", m, bkind: b.kind, faction: b.faction, face: b.facing, recoil: 0, lastFired: b.firedTick,
       smokeT: 0, size, tx: b.tx, ty: b.ty, cx, cy, base, visible: true, seen: true, hp: b.hp / BUILDINGS[b.kind].hp,
-      variant: "normal", warmUntil: 0, top: m.def.height, roof: roofOf(b.kind, m.def, size), gantry: null
+      variant: "normal", warmUntil: 0, top: m.def.height, roof: roofOf(m.def, size), gantry: null
     };
     // (the Gantry, and the Goliath taking shape on it, are always in the enemy's sight)
     if (b.kind === "gantry") v.gantry = new GantryView(this.host, m, b, cx, cy, base);

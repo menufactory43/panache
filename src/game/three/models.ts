@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import type { BuildingKind, ClassicBuildingKind, ClassicUnitKind, Faction, UnitKind } from "../../sim/types";
+import type { BuildingKind, ClassicBuildingKind, ClassicUnitKind, Faction, NationOrClassic, UnitKind } from "../../sim/types";
 import { BUILDINGS, UNITS } from "../../sim/balance";
 import { ModelBuilder, type Section, type Vec3 } from "./builder";
 import { GANTRY_STAGES, GOLIATH_RIG, gantryStage, goliathStatic } from "./goliath";
 import { botStatic, botHeight, J, squadStatic, type BotKind } from "./infantry";
 import { modelMat } from "./materials";
 import { BELLE_EPOQUE } from "./theme";
-import { BE_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL } from "./belle";
+import { BE_BUILDING_MODELS, BE_LANDMARKS, BE_NATION_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, STAND_IN, STAND_IN_BUILDING, type LandmarkKind } from "./belle";
 
 /**
  * Every vehicle, aircraft, building and map objective as a procedural
@@ -1293,7 +1293,7 @@ function def(key: string, make: () => ModelDef): ModelDef {
  * rig pick their colours by side, so those keep the side's.
  */
 function placeholderUnit(kind: UnitKind, f: Faction): { make: UnitBuilder; team: Team } | null {
-  const base = (PLACEHOLDER_MODEL as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
+  const base = (STAND_IN as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
   if (!base) return null;
   const make = (BELLE_EPOQUE && BE_UNIT_MODELS[base]) || UNIT_MODELS[base];
   const nation = UNITS[kind].nation;
@@ -1309,9 +1309,17 @@ export function unitDef(kind: UnitKind, f: Faction): ModelDef {
   return def(`u/${f}/${kind}`, () => make(TEAMS[f]));
 }
 
-export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
+/**
+ * A building's model. `nation` (the owner's, nationOf): a nation draws some
+ * shared kinds its own way (belle/index.ts BE_NATION_BUILDING_MODELS), in its
+ * colours; a nation-only kind always does.
+ */
+export function buildingDef(kind: BuildingKind, f: Faction, nation?: NationOrClassic): ModelDef {
+  const n = BUILDINGS[kind].nation ?? (nation === "classique" ? undefined : nation);
+  const mine = BELLE_EPOQUE && n ? BE_NATION_BUILDING_MODELS[n][kind] : undefined;
+  if (mine) return def(`b/${f}/${kind}/${n}`, () => mine(NATION_TEAMS[n!][f]));
   const own = BELLE_EPOQUE ? BE_BUILDING_MODELS[kind] : undefined;
-  const base = own ? undefined : (PLACEHOLDER_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
+  const base = own ? undefined : (STAND_IN_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
   if (base) {
     const make = (BELLE_EPOQUE && BE_BUILDING_MODELS[base]) || BUILDING_MODELS[base];
     const nation = BUILDINGS[kind].nation;
@@ -1319,6 +1327,11 @@ export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
   }
   const make = own || BUILDING_MODELS[kind as ClassicBuildingKind];
   return def(`b/${f}/${kind}`, () => make(TEAMS[f]));
+}
+
+/** A campaign landmark (the Eiffel Tower), its flag in `f`'s colours, or neutral. */
+export function landmarkDef(kind: LandmarkKind, f?: Faction): ModelDef {
+  return def(`lm/${kind}/${f ?? "-"}`, () => BE_LANDMARKS[kind](f ? TEAMS[f] : undefined));
 }
 
 export function uplinkDef(): ModelDef {
