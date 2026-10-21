@@ -1169,3 +1169,24 @@ Fardier 3 100), aucun blocage de production. C'est le chantier de WP4.
 Restes : portraits et voix des nouveaux genres (WP5g ; toujours ceux des doublures), art des cartes d'ouverture,
 « GQG attaqué » pour la Citadelle, `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne
 reconnaît que la Patrie comme éclaireur, aucun repère visuel du Réseau TSF.
+
+### 3.10 WP8 — Campagne — fait
+
+Livré sur `feat/camps-camp`. `src/sim/ops.ts` : `CAMPAIGN` (12 missions, anciens ids conservés) et `TRIALS` (les 8 ops
+Classique, ids `-classique`, onglet « Épreuves »), `OPS` = les deux ; `OpDef.nations/act/cards/dressing/art/script` ;
+but `reach` (atteint une fois, reste acquis) ; `destroy` par `tag` ; `CAMPAIGN_UNLOCKS`, `arsenalFor`, `playerBansOf`,
+`unlocksAfter` ; `rules.sideBans[f].powers` (lu par `powers.ts`) et `OpRules.enemyPowerBans` ; `Building.hpMult`
+(lu par `buildingMaxHp`) ; `OpsState.names/landmarks/events/tagDeaths`. Cartons : `src/ui/cine.ts` + `campaign.css`
+(moteur du film d'intro, projecteur, iris ; un plan sépia par chapitre, `public/assets/ui/campaign/`, `art/campaign.py`).
+Menu : onglet « 📜 Campagne » (chapitres par acte, nation, étoiles, verrous) et « 🎖 Épreuves ». Pilotes :
+`tests/ops-pilots.ts`, `npx vite-node tools/ops.ts campaign 3`.
+
+Écarts : M12 sur **Terres fluviales** (la Seine), pas le Terrain d'essai : la Tour TSF « eiffel » (1 case, PV ×4) est
+dessinée par `landmarkDef("eiffel")` à l'entrée du pont ; le Colosse part de la Citadelle avec une escorte (3 Creusot,
+1 Atelier) à 2:30. Habillage « polygone » : non fait (champ seulement). M7 : tunnel au nord-ouest (8, 2), route le
+long du lac (les coordonnées du doc tombaient dans le lac / près de la Citadelle), 5 Hotchkiss + 3 Fusiliers.
+M10 : une seule Batterie de 47 (deux abattent l'escadre fixe en Difficile). M3 : un Faucheux par ballon et une
+Batterie de 47 sur l'île du centre (sinon gagné en 2 min aux Éole). M4 : garnison républicaine + revenu 30 %.
+Réglages provisoires (Empire bien plus fort avant WP4) à revoir après l'équilibrage : M3 (assault 3600, revenu
+70 %), M6 (gagné par une ruée à 1:30 ; trop dur dès qu'on défend la base), M9 (Difficile tenu 2/3), M11 (2/3),
+M12 (combat ~2–3 min), Obus Méliès interdit à l'ennemi en M3 et M7.

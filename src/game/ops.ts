@@ -1,13 +1,17 @@
 import { TICK_RATE } from "../sim/balance";
-import { goalText, isAchieveGoal, objectiveLine, opById, opStatus, type OpDef } from "../sim/ops";
+import { goalText, isAchieveGoal, isCampaignOp, objectiveLine, opById, opIndex, opStatus, type OpDef } from "../sim/ops";
 import type { World } from "../sim/types";
 import { buildingCenter, hqOf } from "../sim/world";
+import { playReel } from "../ui/cine";
 import { announce, type Announcement } from "./announce";
+import { callsigns } from "./heroes";
 
 /**
- * Ops presentation (no three.js): the opening briefing banner, countdown
- * call-outs, "star lost / secured" notices, and the result line the finale
- * shows. The sim decides everything (src/sim/ops.ts); this only narrates.
+ * Ops presentation (no three.js): the campaign's silent-film cards before and
+ * after a mission (ui/cine.ts), the opening briefing banner, countdown
+ * call-outs, "star lost / secured" notices, scripted events (« Ferrand l'a
+ * fini ! ») and the result line the finale shows. The sim decides everything
+ * (src/sim/ops.ts); this only narrates.
  *
  * Announce keys (for the voice and music lanes): op-start (info), op-timer
  * (info or bad), op-complete (epic), op-failed (bad).
@@ -16,9 +20,26 @@ import { announce, type Announcement } from "./announce";
 export interface OpsPresenterOpts {
   /** A small toast; tapping it jumps to (x, y). */
   notify(msg: string, tone: "good" | "bad" | "info", x: number, y: number): void;
+  /** Hold the clock (the opening cards are up) or let it run. */
+  hold?(on: boolean): void;
+  /** Spectating (a replay, AI vs AI): no cards. */
+  spectator?: boolean;
 }
 
 const starName = (i: number) => (i === 0 ? "★★" : "★★★");
+
+export const ACT_NAMES: Record<1 | 2 | 3, string> = { 1: "Acte I — L'Ultimatum", 2: "Acte II — La Guerre des cimes", 3: "Acte III — Paris !" };
+
+/** « Acte I — L'Ultimatum · Mission 1 » / « Épreuve 3 ». */
+export function opKicker(op: OpDef): string {
+  return isCampaignOp(op) ? `${op.act ? `${ACT_NAMES[op.act]} · ` : ""}Mission ${opIndex(op.id) + 1}` : `Épreuve ${opIndex(op.id) + 1}`;
+}
+
+/** What a script's one-shot events say (OpsState.events). */
+const EVENT_LINES: Record<string, { text: string; sub: string; tone: "good" | "bad" }> = {
+  zenith: { text: "Ferrand l'a fini !", sub: "Le Zénith rejoint la bataille", tone: "good" },
+  march: { text: "Le Colosse se met en marche !", sub: "Défends la Tour Eiffel", tone: "bad" }
+};
 
 export class OpsPresenter {
   readonly op: OpDef;
@@ -27,16 +48,37 @@ export class OpsPresenter {
   private said = new Set<string>();
   private tagAlive = new Map<string, number>();
   private kills = new Map<number, number>();
+  private events = new Set<string>();
 
   constructor(private w: World, private o: OpsPresenterOpts) {
     this.op = opById(w.ops!.id)!;
     for (const [tag, ids] of Object.entries(w.ops!.tags)) this.tagAlive.set(tag, ids.length);
-    // real-time timer like the rules banner: a render-clock timer can fire late headless
-    window.setTimeout(() => {
-      if (this.w.winner) return;
-      const at = this.op.focus ?? this.home();
-      announce({ key: "op-start", text: this.op.title, sub: objectiveLine(this.op), tone: "info", priority: 1, x: at.x, y: at.y });
-    }, 1200);
+    // the setup's heroes keep their names (« Valmont »)
+    for (const [id, name] of Object.entries(w.ops!.names ?? {})) {
+      const u = w.units.get(Number(id));
+      if (u) callsigns(w).set(u.id, u.faction, name);
+    }
+    for (const k of Object.keys(w.ops!.events ?? {})) this.events.add(k);
+    const brief = () =>
+      // real-time timer like the rules banner: a render-clock timer can fire late headless
+      window.setTimeout(() => {
+        if (this.w.winner) return;
+        const at = this.op.focus ?? this.home();
+        announce({ key: "op-start", text: this.op.title, sub: objectiveLine(this.op), tone: "info", priority: 1, x: at.x, y: at.y });
+      }, 900);
+    const cards = this.op.cards;
+    if (cards && !o.spectator && w.tick === 0) {
+      o.hold?.(true);
+      playReel({
+        cards: cards.before,
+        kicker: opKicker(this.op),
+        art: this.op.art,
+        onDone: () => {
+          o.hold?.(false);
+          brief();
+        }
+      });
+    } else brief();
   }
 
   private home(): { x: number; y: number } {
@@ -58,15 +100,22 @@ export class OpsPresenter {
     const status = opStatus(w);
     if (!status) return;
     const home = this.home();
+    // a script's events
+    for (const k of Object.keys(st.events ?? {})) {
+      if (this.events.has(k)) continue;
+      this.events.add(k);
+      const line = EVENT_LINES[k];
+      if (line) announce({ key: "op-timer", text: line.text, sub: line.sub, tone: line.tone === "good" ? "info" : "bad", priority: 1 });
+    }
     // star conditions broken / achieved
     const lost = st.starsLost & ~this.starsLostSeen;
     this.starsLostSeen |= st.starsLost;
     this.op.stars.forEach((g, i) => {
       const bit = 2 << i;
-      if (lost & bit) this.o.notify(`${starName(i)} perdue : ${goalText(g, true).toLowerCase()}`, "bad", home.x, home.y);
+      if (lost & bit) this.o.notify(`${starName(i)} perdue : ${goalText(g, true, this.op).toLowerCase()}`, "bad", home.x, home.y);
       if (isAchieveGoal(g) && status.stars[i]!.eval.state === "done" && !(this.starsMetSeen & bit)) {
         this.starsMetSeen |= bit;
-        this.o.notify(`${starName(i)} acquise : ${goalText(g, true).toLowerCase()}`, "good", home.x, home.y);
+        this.o.notify(`${starName(i)} acquise : ${goalText(g, true, this.op).toLowerCase()}`, "good", home.x, home.y);
       }
     });
     // the protected group shrinking
@@ -93,8 +142,10 @@ export class OpsPresenter {
         if (left === 15) this.once(`t15:${g.type}`, () => this.o.notify(hold ? "⏱ 15 secondes — tiens bon !" : "⏱ Plus que 15 secondes !", hold ? "good" : "bad", home.x, home.y));
       } else if (g.type === "deliver" && e.progress >= 0.5) {
         this.once("half", () => this.o.notify(`⚙ À mi-chemin : ${e.value} charbon`, "good", home.x, home.y));
+      } else if (g.type === "reach" && e.progress > 0 && e.progress < 1) {
+        this.once(`reach:${e.value}`, () => this.o.notify(`🚩 ${e.label} ${e.value}`, "good", g.x, g.y));
       } else if (g.type === "destroy") {
-        const n = st.killed[g.kind] ?? 0;
+        const n = g.tag ? (st.tagDeaths[g.tag] ?? 0) : (st.killed[g.kind] ?? 0);
         const key = this.kills.get(this.op.goals.indexOf(g)) ?? 0;
         if (n > key && n < g.count) this.o.notify(`🎯 ${e.label} ${e.value}`, "good", home.x, home.y);
         this.kills.set(this.op.goals.indexOf(g), n);
@@ -105,10 +156,22 @@ export class OpsPresenter {
   /** The banner at the finale's flash. */
   endAnnouncement(): Announcement {
     const r = this.w.ops?.result;
-    if (!r) return { key: "op-failed", text: "Op échouée", tone: "bad", priority: 0 };
+    const camp = isCampaignOp(this.op);
+    // (the Trials keep the recorded « Op réussie / échouée »; the campaign's lines are not recorded yet)
+    const name = camp ? "Mission" : "Op";
+    if (!r) return { key: "op-failed", text: `${name} échouée`, tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);
     return r.won
-      ? { key: "op-complete", text: "Op réussie", sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
-      : { key: "op-failed", text: "Op échouée", sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
+      ? { key: "op-complete", text: `${name} réussie`, sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
+      : { key: "op-failed", text: `${name} échouée`, sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
+  }
+
+  /** After the finale, before the end screen: the campaign's closing card (and « FIN » after the last mission). */
+  outro(done: () => void): void {
+    const r = this.w.ops?.result;
+    const cards = this.op.cards;
+    if (!cards || !r || this.o.spectator) return done();
+    const end = r.won ? (cards.end ?? []) : [];
+    playReel({ cards: [r.won ? cards.win : cards.lose, ...end], tone: r.won ? "win" : "lose", finale: end.length, onDone: done });
   }
 }

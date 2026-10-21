@@ -1,0 +1,178 @@
+/*
+ * « La Campagne de 1900 »: the silent-film reels (cine.ts, on title.css's intertitles and film look)
+ * and the campaign's chapter list in the menu (ops.ts).
+ */
+
+/* ------------------------------------------------------------- the reels --- */
+.cine {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: #000;
+  overflow: hidden;
+  cursor: pointer;
+  animation: cine-in 0.35s ease-out both;
+}
+.cine.out {
+  animation: cine-out 0.4s ease-in both;
+  pointer-events: none;
+}
+@keyframes cine-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cine-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.cine .fl-pic {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: 50% 50%;
+}
+.cine-kick {
+  font-family: var(--serif);
+  font-size: clamp(12px, 2.6vmin, 18px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #c9a24f;
+  opacity: 0.9;
+  text-align: center;
+}
+.cine.cine-lose .fc-frame p {
+  color: #e8cfc0;
+}
+.cine.cine-lose .fc-frame {
+  border-color: #9a6a4a;
+}
+.cine .cine-fin .fc-frame p {
+  font-size: clamp(40px, 11vmin, 104px);
+  letter-spacing: 0.08em;
+  font-style: normal;
+}
+.cine .cine-fin:last-child .fc-frame p {
+  font-size: clamp(22px, 5vmin, 44px);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------- the chapter list --- */
+.campseg {
+  margin: 4px auto 6px;
+}
+.campacts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.campact h4 {
+  margin: 2px 4px 4px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 14px;
+  color: #c9a565;
+  letter-spacing: 0.04em;
+}
+.campact h4 small {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: 6px;
+}
+.camprow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+.campch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  text-align: left;
+  padding: 7px 9px;
+  min-height: 52px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 165, 101, 0.35);
+  background: linear-gradient(180deg, rgba(40, 28, 14, 0.82), rgba(22, 15, 8, 0.88));
+  color: #f1e6c8;
+  cursor: pointer;
+  font: inherit;
+}
+.campch .cn {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #c9a24f;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 14px;
+  color: #c9a24f;
+}
+.campch .ct {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.campch .cs {
+  font-size: 11px;
+  opacity: 0.85;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.campch .cs .stars {
+  color: #f0c25a;
+  letter-spacing: 1px;
+}
+.campch .nat {
+  display: inline-block;
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #1f3f8a;
+  color: #e6ecff;
+}
+.campch .nat.empire {
+  background: #7a1f2b;
+  color: #ffe6e9;
+}
+.campch.on {
+  border-color: #f0c25a;
+  box-shadow: 0 0 0 1px #f0c25a, 0 0 14px rgba(240, 194, 90, 0.35);
+}
+.campch.done .cn {
+  background: #c9a24f;
+  color: #1a120a;
+}
+.campch.locked {
+  opacity: 0.5;
+  cursor: default;
+}
+.campch.locked .cn {
+  border-style: dashed;
+}
+.ob-unlock {
+  font-size: 13px;
+  color: #d9c79f;
+  margin: 6px 0 0;
+}
+.ob-unlock b {
+  color: #f0c25a;
+}
+.op-unlock-kit {
+  font-size: 13px;
+  margin: 4px 0 0;
+}

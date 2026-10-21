@@ -76,7 +76,7 @@ export interface Title {
   readonly waiting: boolean;
 }
 
-const ornament = `<svg class="fc-orn" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round">
+export const ornament = `<svg class="fc-orn" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round">
   <path d="M6 114V30Q6 6 30 6h84" stroke-width="2.4"/>
   <path d="M16 100V38q0-22 22-22h62" stroke-width="1"/>
   <path d="M16 70c0-30 14-46 40-48M70 16c-30 0-46 14-48 40" stroke-width="1.2"/>
@@ -85,14 +85,14 @@ const ornament = `<svg class="fc-orn" viewBox="0 0 120 120" aria-hidden="true"><
   <circle cx="30" cy="30" r="2.6" fill="currentColor" stroke="none"/>
   <circle cx="84" cy="11" r="1.6" fill="currentColor" stroke="none"/><circle cx="11" cy="84" r="1.6" fill="currentColor" stroke="none"/>
 </g></svg>`;
-const fleuron = `<svg class="fc-fleur" viewBox="0 0 160 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round">
+export const fleuron = `<svg class="fc-fleur" viewBox="0 0 160 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round">
   <path d="M4 12h52M104 12h52" stroke-width="1"/>
   <path d="M80 4c-6 0-10 4-10 8s4 8 10 8s10-4 10-8s-4-8-10-8z" stroke-width="1.2"/>
   <path d="M70 12c-6-8-14-8-16 0c-2 6 6 8 8 3M90 12c6-8 14-8 16 0c2 6-6 8-8 3" stroke-width="1.2"/>
   <circle cx="80" cy="12" r="2.2" fill="currentColor" stroke="none"/>
 </g></svg>`;
 /** The old-film look: sepia wash, grain, flicker, scratches, dust, vignette. */
-const FILMFX = `<i class="o-sepia"></i><i class="o-grain"></i><i class="o-flick"></i><i class="o-scr s1"></i><i class="o-scr s2"></i><i class="o-dust"></i><i class="o-vig"></i>`;
+export const FILMFX = `<i class="o-sepia"></i><i class="o-grain"></i><i class="o-flick"></i><i class="o-scr s1"></i><i class="o-scr s2"></i><i class="o-dust"></i><i class="o-vig"></i>`;
 
 const img = (name: string, cls: string, k?: number) =>
   `<img class="${cls}" src="${ART}${name}.webp" alt="" draggable="false"${k !== undefined ? ` style="--k:${k}"` : ""} />`;
@@ -355,7 +355,7 @@ export function mountTitle(menu: HTMLElement, hooks: TitleHooks, skip: boolean):
 }
 
 /** The film grain's tile (inline: a document-relative URL keeps GitHub Pages subpaths working). */
-function grain(root: HTMLElement): void {
+export function grain(root: HTMLElement): void {
   for (const g of root.querySelectorAll<HTMLElement>(".o-grain")) g.style.backgroundImage = `url(${ART}grain.webp)`;
 }
 

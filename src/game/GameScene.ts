@@ -455,7 +455,13 @@ export class GameScene {
     });
     // Daily Op / mutators banner (with opener cards up it waits for the pick: the cards would hide it)
     if (!this.holdStart) window.setTimeout(() => announceRules(this.world), 1200);
-    if (this.world.ops) this.ops = new OpsPresenter(this.world, { notify: (m, t, x, y) => this.hud.notice(m, t, x, y) });
+    if (this.world.ops)
+      this.ops = new OpsPresenter(this.world, {
+        notify: (m, t, x, y) => this.hud.notice(m, t, x, y),
+        // (the campaign's opening cards hold the clock: ui/cine.ts)
+        hold: (on) => (this.ctrl.paused = on),
+        spectator: gameMode.spectator || !!this.feed
+      });
     if (focus && !gameMode.op) this.frameStart(); // an op opens on its own focus point
     if (this.holdStart) {
       const picker = showOpenerPicker({
@@ -938,7 +944,9 @@ export class GameScene {
       },
       onDone: () => {
         this.finale = null;
-        this.hud.showEnd(winner);
+        // (a campaign mission: its closing card first, game/ops.ts)
+        if (this.ops && !love) this.ops.outro(() => this.hud.showEnd(winner));
+        else this.hud.showEnd(winner);
       }
     });
     this.zoomBy(zoom / this.targetZoom);

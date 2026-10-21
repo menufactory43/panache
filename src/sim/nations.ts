@@ -138,7 +138,7 @@ export function buildingMaxHpOf(w: World, f: Faction, kind: BuildingKind): numbe
 }
 
 /** A standing building's max HP. Read this, not BUILDINGS[kind].hp, for health bars and repair. */
-export const buildingMaxHp = (w: World, b: Building): number => buildingMaxHpOf(w, b.faction, b.kind);
+export const buildingMaxHp = (w: World, b: Building): number => buildingMaxHpOf(w, b.faction, b.kind) * (b.hpMult ?? 1);
 
 /** Ticks a unit takes a side to build (Préfabriqué ×0.85, Vapeur ×1.3). */
 export function unitTicks(w: World, f: Faction, kind: UnitKind): number {
