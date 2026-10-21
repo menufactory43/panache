@@ -4,6 +4,7 @@ import { unitSeenBy } from "../infantry";
 import type { Building, Command, Faction, Unit, World, Wreck } from "../types";
 import { canGetWithin, distToBuilding, moveClassOf } from "../world";
 import { hypot } from "../fmath";
+import { behaves } from "./roles";
 
 /**
  * The commander's salvage sweeps (salvage.ts has the rules). It plays by the
@@ -86,7 +87,7 @@ export function planSalvage(w: World, faction: Faction, ctx: SalvageContext): Co
     claimed.add(r.id);
     ctx.used.add(u.id);
     // attack-move: a sweeper still answers anything that shows up on the way
-    cmds.push({ type: u.kind === "harvester" ? "move" : "attackMove", faction, unitIds: [u.id], x: r.x, y: r.y });
+    cmds.push({ type: behaves(u.kind, "harvester") ? "move" : "attackMove", faction, unitIds: [u.id], x: r.x, y: r.y });
   };
   // richest wrecks first (ties: oldest), each to the nearest free sweeper
   const ranked = loot.filter(safe).sort((a, b) => b.value - a.value || a.ttl - b.ttl);

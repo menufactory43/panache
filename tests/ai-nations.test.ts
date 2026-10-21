@@ -6,7 +6,7 @@ import { createMapWorld } from "../src/sim/maps";
 import { planWave } from "../src/sim/modes/survival";
 import { step } from "../src/sim/sim";
 import type { BuildingKind, Faction, Nation, World } from "../src/sim/types";
-import { buildingCenter, hqOf, spawnUnit } from "../src/sim/world";
+import { buildingCenter, hqOf, isResource, spawnUnit, tileIndex } from "../src/sim/world";
 
 /**
  * WP3 (PANACHE-CONCEPTION.md §3.2): the commander plays both nations by role.
@@ -29,7 +29,14 @@ function fourgonsMine(): boolean {
   const w = createMapWorld("riverlands", { nations: { blue: "republique", red: "empire" } });
   const c = buildingCenter(hqOf(w, "blue")!);
   const u = spawnUnit(w, "fourgon", "blue", c.x + 2.5, c.y);
-  step(w, [{ type: "harvest", faction: "blue", unitIds: [u.id], x: c.x + 6, y: c.y }]);
+  // (the nearest field tile: a harvest order elsewhere is ignored, whoever gets it)
+  let best = { x: c.x, y: c.y, d: Infinity };
+  for (let ty = 0; ty < w.height; ty++)
+    for (let tx = 0; tx < w.width; tx++) {
+      const d = Math.hypot(tx + 0.5 - c.x, ty + 0.5 - c.y);
+      if (d < best.d && isResource(w, tileIndex(w, tx, ty))) best = { x: tx + 0.5, y: ty + 0.5, d };
+    }
+  step(w, [{ type: "harvest", faction: "blue", unitIds: [u.id], x: best.x, y: best.y }]);
   return u.order.type === "harvest";
 }
 const STAND_INS = !fourgonsMine();

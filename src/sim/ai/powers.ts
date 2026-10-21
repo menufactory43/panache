@@ -1,6 +1,6 @@
 import { BUILDINGS, POWER_SETS, POWERS, TICK_RATE, UNITS } from "../balance";
 import { isVisible, knownBuildings } from "../fog";
-import { canWalk } from "../goliath";
+import { canWalk, isSuperKind } from "../goliath";
 import { POWER_KINDS, calldownBlocker, isStunned, powerStatus } from "../powers";
 import { nationOf } from "../rules";
 import { isDefence, isWorker } from "./roles";
@@ -226,7 +226,7 @@ const value = (us: Unit[]) => us.reduce((v, u) => v + UNITS[u.kind].cost, 0);
 const PRODUCTION: BuildingKind[] = ["fab-plant", "airpad", "assembly-bay", "tech-lab", "gantry"];
 /** A Sky Hammer's worth of a building it catches: production 1.5, a Gantry with a Goliath on the cradle (all that progress lost) 3. */
 const hammerWorth = (w: World, kb: { id: number; kind: BuildingKind }): number =>
-  kb.kind === "gantry" && w.buildings.get(kb.id)?.queue[0]?.kind === "goliath"
+  kb.kind === "gantry" && isSuperKind(w.buildings.get(kb.id)?.queue[0]?.kind ?? "harvester")
     ? 3
     : PRODUCTION.includes(kb.kind) ? 1.5 : kb.kind === "hq" ? 1.2 : 1;
 

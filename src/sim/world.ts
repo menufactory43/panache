@@ -258,7 +258,7 @@ export function spawnUnit(
     kills: 0
   };
   if (UNITS[kind].capacity) unit.passengers = [];
-  if (kind === "goliath") unit.goliath = newGoliathState();
+  if (kind === "goliath" || UNITS[kind].base === "goliath") unit.goliath = newGoliathState(); // (super-units: the Zénith too, goliath.ts SUPER)
   w.units.set(unit.id, unit);
   return unit;
 }

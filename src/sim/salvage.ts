@@ -1,5 +1,5 @@
 import { BUILDINGS, GOLIATH, SALVAGE, TICK_RATE, UNITS } from "./balance";
-import { behaves } from "./nations";
+import { behaves, unitTicks } from "./nations";
 import { isInfantry } from "./infantry";
 import type { Building, Faction, Unit, World, Wreck } from "./types";
 import { incomeOf } from "./rules";
@@ -129,7 +129,7 @@ export function scatterPiles(
  */
 function scatterGoliath(w: World, u: Unit): Wreck[] {
   const S = GOLIATH.salvage;
-  const value = Math.round(UNITS.goliath.cost * S.share * (wreckShareOf(w, u.faction) / SALVAGE.share));
+  const value = Math.round(UNITS[u.kind].cost * S.share * (wreckShareOf(w, u.faction) / SALVAGE.share));
   const count = S.piles[0] + Math.floor(worldRandom(w, "goliath-piles", w.tick) * (S.piles[1] - S.piles[0] + 1));
   return scatterPiles(w, u.faction, u.x, u.y, value, Math.min(count, S.piles[1]), S.spread, u.facing, "goliath-salvage");
 }
@@ -141,11 +141,11 @@ function scatterGoliath(w: World, u: Unit): Wreck[] {
  */
 export function scatterGantry(w: World, b: Building): Wreck[] {
   const head = b.queue[0];
-  if (!head || head.kind !== "goliath") return [];
-  const total = UNITS.goliath.buildTime * TICK_RATE;
+  if (!head || !behaves(head.kind, "goliath")) return []; // (the Gargantua, or the Zénith in its Hangar)
+  const total = unitTicks(w, b.faction, head.kind);
   const progress = Math.max(0, Math.min(1, 1 - head.remaining / total));
   const S = GOLIATH.gantrySalvage;
-  const value = Math.round((head.paid ?? UNITS.goliath.cost) * progress * S.share);
+  const value = Math.round((head.paid ?? UNITS[head.kind].cost) * progress * S.share);
   const count = Math.max(1, Math.round(S.piles * progress));
   const c = buildingCenter(b);
   // (the Gantry's own facing turns red's scatter as the mirror of blue's)

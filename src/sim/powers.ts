@@ -1,5 +1,5 @@
 import { POD_CREWS, POWERS, POWER_SETS, TICK_RATE, UNITS } from "./balance";
-import { hasGoliath } from "./goliath";
+import { hasGoliath, superKindOf } from "./goliath";
 import { areaBlast, strikeDamage } from "./combat";
 import { isExplored, isVisible } from "./fog";
 import { worldRandom } from "./rand";
@@ -122,7 +122,8 @@ const clock = (t: number) => {
 export function powerBlocker(w: World, faction: Faction, power: PowerKind): string | null {
   if (w.winner) return "La bataille est terminée";
   if (rulesOf(w).noCalldowns) return "Pas de frappes dans cette partie";
-  if (!hqOf(w, faction) && !hasGoliath(w, faction)) return "Frappes : il faut un GQG ou un Gargantua";
+  if (!hqOf(w, faction) && !hasGoliath(w, faction))
+    return superKindOf(w, faction) === "zenith" ? "Frappes : il faut un GQG ou un Zénith" : "Frappes : il faut un GQG ou un Gargantua";
   if (power === "droppod" && podCrew(w, faction).length === 0) return "Obus-capsule désactivé dans cette partie";
   const st = powerStatus(w, faction, power);
   if (st.locked > 0) return `${POWER_NAMES[power]} disponible à ${clock(st.locked + w.tick)}`;

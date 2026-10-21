@@ -46,6 +46,7 @@ import { airliftBusy } from "./airlift";
 import type { AiMode, AiState, Difficulty, StrategyName } from "./commander";
 import { dropCondorId, inMap, route } from "./condor";
 import { AA_COVER, USELESS, aaSources, aaStrengthAt, aaWeight, effectivenessVs, type Sighting } from "./intel";
+import { behaves } from "./roles";
 import { cos, sin } from "../fmath";
 
 /**
@@ -1600,7 +1601,7 @@ function shoveAside(w: World, faction: Faction, g: Unit, ctx: GoliathContext, cm
   for (const u of w.units.values()) {
     if (u.faction !== faction || u.id === g.id || UNITS[u.kind].domain !== "ground" || u.goliath) continue;
     if (dist(u.x, u.y, g.x, g.y) > 1.6) continue;
-    if (ctx.used.has(u.id) && u.kind !== "harvester") continue;
+    if (ctx.used.has(u.id) && !behaves(u.kind, "harvester")) continue;
     // straight out from its middle (a unit dead on centre: toward our own frame's south)
     let dx = u.x - g.x;
     let dy = u.y - g.y;

@@ -470,7 +470,7 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
   // (a nation's worker kind the sim won't set mining yet is left out, and not built: see the probe below)
   const nm = nation === "classique" ? null : netMemo(s);
   if (nm) {
-    for (const [id, kind] of nm.sent) if (w.units.get(id)?.order.type === "idle" && kind !== "harvester") nm.duds.add(kind);
+    for (const [id, kind] of nm.sent) if (w.units.get(id)?.order.type === "idle" && !isWorker(kind)) nm.duds.add(kind); // (WP1: every worker mines now)
     nm.sent.clear();
   }
   const harvesters = mine.filter((u) => isWorker(u.kind) && !nm?.duds.has(u.kind));
@@ -1084,7 +1084,7 @@ function pickPriorityTarget(w: World, faction: Faction, seen: Unit[], fallback: 
     .filter((u) => !!u.goliath)
     .sort((a, b) => dist(a.x, a.y, fallback.x, fallback.y) - dist(b.x, b.y, fallback.x, fallback.y) || a.id - b.id);
   const goliath = enemyGoliaths[0];
-  const goliathTarget = (g: Unit): PriorityTarget => ({ id: g.id, x: g.x, y: g.y, domain: domainOf(g), armor: UNITS.goliath.armor });
+  const goliathTarget = (g: Unit): PriorityTarget => ({ id: g.id, x: g.x, y: g.y, domain: domainOf(g), armor: UNITS[g.kind].armor });
   if (goliath && enemyHqGone(w, faction, fallback)) return goliathTarget(goliath);
   let best: PriorityTarget | null = null;
   let bestD = Infinity;

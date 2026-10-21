@@ -125,7 +125,8 @@ export function pickAiOpener(strategy: StrategyName, seed: number, faction: Fact
 export function openerBlocked(w: World, faction: Faction, id: OpenerId): string | null {
   if (rulesOf(w).armada) return `Désactivé : ${MUTATORS.armada.name}`; // (a side starts with its Goliaths and nothing else)
   const o = OPENERS[id];
-  for (const kind of [o.building, ...o.units]) {
+  // (with nations, each Classique unit stands for its nation's kind of the same role: a République blitz brings Jamais-Contente)
+  for (const kind of [o.building, ...o.units.map((k) => nationKind(w, faction, k))]) {
     const why = bannedBy(w, kind, faction);
     if (why) return why;
   }

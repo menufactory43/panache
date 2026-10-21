@@ -6,6 +6,7 @@ import { canGetWithin, dist, moveClassOf } from "../world";
 import type { AiMode, AiState } from "./commander";
 import { AA_COVER, aaSources, aaStrengthAt } from "./intel";
 import { hypot } from "../fmath";
+import { behaves } from "./roles";
 
 /**
  * The commander's play for the map objectives (objectives.ts): it races for
@@ -84,7 +85,7 @@ export function objectiveHolds(w: World, faction: Faction, s: AiState): number[]
   for (const l of o.uplinks) {
     if (!unfinished(l, faction) && !l.contested) continue;
     for (const u of w.units.values())
-      if (u.faction === faction && u.kind !== "harvester" && u.order.type === "idle" && inZone(u, l)) out.push(u.id);
+      if (u.faction === faction && !behaves(u.kind, "harvester") && u.order.type === "idle" && inZone(u, l)) out.push(u.id);
   }
   for (const [cid, ids] of m.runners) {
     const c = o.crates.find((x) => x.id === cid);

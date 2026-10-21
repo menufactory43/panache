@@ -1,5 +1,5 @@
-import { BUILDINGS, ECONOMY, GOLIATH, TERRAIN, TICK_RATE, UNITS } from "./balance";
-import { anchoredGoliaths, goliathTrainer, goliathsOf, hasGoliath, inGoliathRing, isAnchored, overlapsGoliath, trainableAt, unitCost } from "./goliath";
+import { BUILDINGS, ECONOMY, TERRAIN, TICK_RATE, UNITS } from "./balance";
+import { anchoredGoliaths, goliathTrainer, goliathsOf, hasGoliath, inGoliathRing, isAnchored, isSuperKind, overlapsGoliath, superKindOf, superOf, superTune, trainableAt, trainableBy, unitCost } from "./goliath";
 import { moveUnitToward } from "./movement";
 import { blocksObjective } from "./objectives";
 import { isStunned } from "./powers";
@@ -61,9 +61,9 @@ export function buildingBlocker(w: World, faction: Faction, kind: BuildingKind):
   if (kind === "hq") return "Unique";
   const banned = bannedBy(w, kind, faction);
   if (banned) return banned;
-  // a Gantry builds nothing but Goliaths: banned with them
+  // a Gantry builds nothing but its side's super-unit (a Goliath; the République's Hangar, a Zénith): banned with it
   if (kind === "gantry") {
-    const noGoliaths = bannedBy(w, "goliath", faction);
+    const noGoliaths = bannedBy(w, superKindOf(w, faction), faction);
     if (noGoliaths) return noGoliaths;
   }
   if (stats.unique && (hasBuilding(w, faction, kind) || w.factions[faction].pending?.kind === kind)) return "Un par camp";
@@ -85,7 +85,7 @@ export function unitBlocker(w: World, faction: Faction, kind: UnitKind): string 
   if (!hasBuilding(w, faction, stats.builtAt) && !(trainableAt(w, kind) && anchoredGoliaths(w, faction).length > 0))
     // (with a Goliath on the move and no HQ, which can never be built: say how to get the button back)
     return trainableAt(w, kind) && hasGoliath(w, faction) && stats.builtAt === "hq"
-      ? "Ancre un Gargantua"
+      ? superKindOf(w, faction) === "zenith" ? "Amarre un Zénith" : "Ancre un Gargantua"
       : `Requiert ${BUILDINGS[stats.builtAt].name}`;
   if (stats.requires && !hasBuilding(w, faction, stats.requires))
     return `Requiert ${BUILDINGS[stats.requires].name}`;
@@ -186,7 +186,7 @@ export function sellBuilding(w: World, faction: Faction, buildingId: number): vo
 export const paidFor = (q: QueueItem): number => q.paid ?? UNITS[q.kind].cost;
 
 /** Most units a producer queues at once (a Gantry: one Goliath on the cradle). */
-const queueCap = (kind: UnitKind): number => (kind === "goliath" ? GOLIATH.queueMax : ECONOMY.maxQueue);
+const queueCap = (kind: UnitKind): number => (isSuperKind(kind) ? superTune(kind).queueMax : ECONOMY.maxQueue);
 
 /**
  * Why an anchored Goliath can't train `kind` now (null = it can): robot
@@ -194,12 +194,12 @@ const queueCap = (kind: UnitKind): number => (kind === "goliath" ? GOLIATH.queue
  * usual tech and bans — but no Assembly Bay needed (the Goliath is the barracks).
  */
 export function trainBlocker(w: World, g: Unit, kind: UnitKind): string | null {
-  if (!g.goliath || !trainableAt(w, kind)) return "Production impossible";
+  if (!g.goliath || !trainableBy(w, g, kind)) return "Production impossible";
   const banned = bannedBy(w, kind, g.faction);
   if (banned) return banned;
   const req = UNITS[kind].requires;
   if (req && !hasBuilding(w, g.faction, req)) return `Requiert ${BUILDINGS[req].name}`;
-  if (!isAnchored(g)) return "Ancre-le pour produire";
+  if (!isAnchored(g)) return superOf(g.kind)?.words.trainHint ?? "Ancre-le pour produire";
   return null;
 }
 
@@ -244,7 +244,7 @@ export function producersOf(w: World, faction: Faction, kind: UnitKind): Produce
   const out: Producer[] = [];
   for (const b of w.buildings.values())
     if (b.faction === faction && b.kind === UNITS[kind].builtAt) out.push({ id: b.id, queue: b.queue, goliath: null });
-  if (trainableAt(w, kind)) for (const g of anchoredGoliaths(w, faction)) out.push({ id: g.id, queue: g.goliath!.queue, goliath: g });
+  for (const g of anchoredGoliaths(w, faction)) if (trainableBy(w, g, kind)) out.push({ id: g.id, queue: g.goliath!.queue, goliath: g });
   return out;
 }
 
@@ -316,7 +316,7 @@ export function tickProduction(w: World): void {
       const total = unitTicks(w, b.faction, head.kind);
       const before = head.remaining;
       head.remaining -= rulesOf(w).buildSpeed;
-      if (head.kind === "goliath") goliathBuildNews(w, b, total, before, head.remaining);
+      if (isSuperKind(head.kind)) goliathBuildNews(w, b, head.kind, total, before, head.remaining);
       if (head.remaining <= 0) done.push(head);
     }
     for (const head of done) {
@@ -331,7 +331,7 @@ export function tickProduction(w: World): void {
     if (UNITS[head.kind].requires && !hasBuilding(w, g.faction, UNITS[head.kind].requires!)) continue;
     if ((head.remaining -= rulesOf(w).buildSpeed) > 0) continue;
     g.goliath!.queue.shift();
-    const size = GOLIATH.footprint;
+    const size = superTune(g.kind).footprint;
     // around its feet, even out on an island (no special island rules for a Goliath)
     const spot = findSpawnSpot(w, { tx: g.x - size / 2, ty: g.y - size / 2, size, faction: g.faction }, head.kind, false);
     const u = spawnUnit(w, head.kind, g.faction, spot.x, spot.y);
@@ -359,12 +359,12 @@ function rollOut(w: World, b: Building, kind: UnitKind): void {
 }
 
 /** A Gantry's Goliath build ticked from `before` to `after` (of `total`) remaining: public news when it starts and nears the end. */
-function goliathBuildNews(w: World, b: Building, total: number, before: number, after: number): void {
+function goliathBuildNews(w: World, b: Building, kind: UnitKind, total: number, before: number, after: number): void {
   const c = buildingCenter(b);
   const ev = (stage: "started" | "nearlyDone") =>
     w.fx.push({ type: "goliathBuild", faction: b.faction, buildingId: b.id, stage, x: c.x, y: c.y });
   if (before >= total) ev("started");
-  const line = total * (1 - GOLIATH.nearlyDone);
+  const line = total * (1 - superTune(kind).nearlyDone);
   if (before > line && after <= line && after > 0) ev("nearlyDone");
 }
 

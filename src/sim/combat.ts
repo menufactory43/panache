@@ -1,5 +1,5 @@
-import { BUILDINGS, COMBAT, DAMAGE_VS, GOLIATH, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
-import { GOLIATH_WEAPONS, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady } from "./goliath";
+import { BUILDINGS, COMBAT, DAMAGE_VS, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
+import { GOLIATH_WEAPONS, canRepair, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady, weaponStats } from "./goliath";
 import { dropLifts } from "./lift";
 import { concealedFrom, isInfantry, squadFirepower } from "./infantry";
 import { IGNORE_TICKS, moveUnitToward } from "./movement";
@@ -334,6 +334,7 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
   for (const o of w.units.values()) {
     if (o.faction !== u.faction || o.id === u.id || o.hp >= UNITS[o.kind].hp) continue;
     if (groundOnly && unitDomain(o) === "air") continue;
+    if (!canRepair(u.kind, o)) continue; // (the Zénith: Pasteur only, goliath.ts SUPER.zenith.repairedBy)
     if (o.goliath && isStunned(w, o.id)) continue; // an EMP blocks repair on a Goliath while it lasts
     const d = hypot(o.x - u.x, o.y - u.y);
     if (d > reach) continue;
@@ -506,7 +507,7 @@ function goliathWeapons(w: World, u: Unit, healers: Unit[], incidents: Incident[
       ws.targetId = null;
       continue;
     }
-    const st = GOLIATH.weapons[k];
+    const st = weaponStats(u, k); // (the Zénith's own systems in the Goliath's slots)
     const minR = st.minRange ?? 0;
     const inReach = (id: number | null): id is number => {
       if (id === null) return false;
