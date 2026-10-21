@@ -486,26 +486,130 @@ for biome, objs in DOODAD_SETS.items():
 # --- menu art ------------------------------------------------------------------------
 
 KEY_ART = (
-    "Epic cinematic key art for a mobile real-time strategy game called Battle Drones: a "
-    "dramatic high-angle view over a war-torn battlefield at golden dusk. A blue-marked army "
-    "of tracked tank drones, hover tanks and flying strike drones clashes with a red-marked "
-    "army across a river valley; missile trails, tracer fire, explosions and smoke, a "
-    "fortified blue command base in the foreground. Painterly semi-realistic concept-art "
-    "style, rich warm light against cool shadows, strong depth. Leave the upper third as "
-    "calmer sky suitable for a title overlay. Absolutely no text, letters, logos or UI."
+    "Epic cinematic key art for a French Belle Époque real-time strategy game called Panache "
+    "(about 1900, steampunk-tinged but grounded): a dramatic high-angle view over a "
+    "battlefield in the French countryside at golden dusk. A navy-blue-bannered army clashes "
+    "with a burgundy-bannered army across a river valley: riveted bronze land ironclads on "
+    "tracks, steam traction engines, early armoured cars with spoked wheels, six-legged brass "
+    "mechanical spider guns, clockwork automaton soldiers in képis; overhead, cigar-shaped "
+    "dirigibles, a Montgolfier-style balloon transport, bat-winged flying machines and a "
+    "Jules-Verne-style rotor airship. In the background a distant Eiffel-like iron lattice "
+    "radio tower and smokestacks of a foundry. Cannon smoke, Congreve rocket trails, shell "
+    "bursts, gaslight glows. Painterly semi-realistic concept art in the spirit of a Belle "
+    "Époque poster and Jules Verne engravings, warm sepia-gold light against cool shadows, "
+    "strong depth. Leave the upper third as calmer sky suitable for a title overlay. "
+    "Absolutely no text, letters, logos or UI."
 )
 A["keyart-portrait"] = dict(prompt=KEY_ART, size="1024x1536", quality="high", transparent=False)
 A["keyart-landscape"] = dict(prompt=KEY_ART, size="1536x1024", quality="high", transparent=False)
 A["icon"] = dict(
     prompt=(
-        "Mobile game app icon for Battle Drones: a menacing sleek blue-marked combat drone "
-        "with glowing amber sensor eye, seen at a dynamic three-quarter angle, bursting "
-        "toward the viewer over a dark navy background with a subtle orange explosion glow "
-        "behind it. Bold, simple, high contrast, readable at small sizes, subject centered "
-        "inside the middle 75 percent. Painterly semi-realistic style. No text, no letters, "
-        "no border."
+        "Mobile game app icon for Panache, a French Belle Époque strategy game: a proud "
+        "cigar-shaped observation dirigible with a varnished cream canvas envelope ringed with "
+        "polished brass bands, a navy-blue stripe and navy fins, a wooden gondola with warm "
+        "gaslit windows and a spinning propeller, seen at a dynamic three-quarter angle, "
+        "flying toward the viewer over a deep navy night sky with a soft golden glow and a "
+        "hint of cannon smoke behind it. Bold, simple, high contrast, readable at small sizes, "
+        "subject centered inside the middle 75 percent. Painterly semi-realistic style. "
+        "No text, no letters, no border."
     ),
     size="1024x1024",
+    quality="high",
+    transparent=False,
+)
+
+# ------------------------------------------------------------------ title screen (Panache)
+# Parallax layers for the cinematograph title screen (src/ui/title.ts): a painted backdrop and
+# cut-out actors that CSS drifts in front of it.
+TITLE_STYLE = (
+    "Painterly semi-realistic Belle Époque illustration in the spirit of a 1900 Paris poster and "
+    "Jules Verne engravings, warm sepia-gold dusk light against cool shadows. No text, no letters, "
+    "no logos, no UI."
+)
+A["titre-fond"] = dict(
+    prompt=(
+        "Wide panoramic backdrop: Paris at golden dusk seen from the heights of Montmartre around "
+        "1900, a sea of grey slate mansard roofs and chimneys, the Seine glinting, the Eiffel Tower "
+        "standing tall in the middle distance, factory smokestacks and a few searchlight beams, a "
+        "huge dramatic sky with glowing clouds taking the upper half. Keep the sky EMPTY of any "
+        "aircraft or balloons. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["titre-dirigeable"] = dict(
+    prompt=(
+        "A single cigar-shaped observation dirigible seen exactly from the side, flying to the "
+        "right: varnished cream canvas envelope ringed with polished brass bands, a navy-blue "
+        "stripe along its length and navy tail fins, a small wooden gondola with warm gaslit "
+        "windows hanging below, a spinning propeller at the back. Isolated on a fully transparent "
+        "background, no ground, no shadow. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=True,
+)
+A["titre-montgolfiere"] = dict(
+    prompt=(
+        "A single ornate Montgolfier-style hot-air balloon, upright: an envelope of alternating "
+        "navy-blue and ivory vertical gores with gilded bands and garlands, a wicker-and-wood "
+        "basket with a small brass brazier glowing, a few ropes. Isolated on a fully transparent "
+        "background, no ground. " + TITLE_STYLE
+    ),
+    size="1024x1536",
+    quality="high",
+    transparent=True,
+)
+A["titre-gargantua"] = dict(
+    prompt=(
+        "A giant two-legged walking steam fortress called Gargantua, seen in three-quarter view "
+        "mid-stride: riveted bronze body like a small mansion with a navy-blue mansard roof, twin "
+        "smokestacks puffing coal smoke, gaslit portholes, round turrets with cannon on each "
+        "shoulder, a diving-helmet head with one glowing porthole eye, massive elephant-like "
+        "riveted legs with brass bands. Isolated on a fully transparent background, no ground. "
+        + TITLE_STYLE
+    ),
+    size="1024x1536",
+    quality="high",
+    transparent=True,
+)
+A["titre-heros"] = dict(
+    prompt=(
+        "Foreground hero character, waist-up and slightly from below, looking proudly to the "
+        "right: a clockwork automaton officer of the French army around 1900, polished brass "
+        "body with an ivory clock-dial face and warm amber glowing eyes, a navy-blue greatcoat "
+        "with brass buttons and gold epaulettes, a navy képi, a curled brass moustache, one hand "
+        "holding a sabre raised, a wind-up key on its back. Isolated on a fully transparent "
+        "background. " + TITLE_STYLE
+    ),
+    size="1024x1536",
+    quality="high",
+    transparent=True,
+)
+# The intro "silent film" (src/ui/title.ts): wide shots the camera pans across.
+A["intro-marche"] = dict(
+    prompt=(
+        "Wide cinematic shot of a misty battlefield in the French countryside at dawn around 1900: "
+        "a giant two-legged riveted bronze steam walking fortress with a navy-blue mansard roof and "
+        "twin smoking stacks strides forward through coal smoke, while long ranks of clockwork brass "
+        "automaton soldiers in navy-blue kepis and greatcoats march in step with Lebel rifles, "
+        "riveted land ironclads on tracks behind them, navy banners. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["intro-feu"] = dict(
+    prompt=(
+        "Wide cinematic shot at dusk of a great artillery duel in the French countryside around 1900: "
+        "in the foreground a French 75 field gun fires, a huge billowing cloud of white black-powder "
+        "smoke and a bright muzzle flash; across a river valley burgundy-bannered steam war machines "
+        "and a six-legged brass mechanical spider gun; the sky is full of bat-winged flying "
+        "machines, a striped Montgolfier hot-air balloon, cigar-shaped dirigibles and bursting "
+        "Congreve firework rockets. " + TITLE_STYLE
+    ),
+    size="1536x1024",
     quality="high",
     transparent=False,
 )
