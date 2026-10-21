@@ -1,0 +1,15 @@
+# Le relais du duel en ligne de Panache (README.md) : un salon par code de 4 lettres, un Durable Object qui fait passer
+# les paquets entre l'hôte et l'invité. Pas de boucle de jeu ici : le salon hiberne entre deux messages.
+# Mise en ligne : npx wrangler deploy (depuis ce dossier, CLOUDFLARE_API_TOKEN dans l'environnement)
+name = "panache-relais"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "SALON"
+class_name = "Salon"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Salon"]

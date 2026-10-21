@@ -107,6 +107,10 @@ const loadDuel = (): Promise<typeof DuelLobby> => (duelLoad ??= import("./versus
 const duelPractice = ["loop", "relay"].includes(new URLSearchParams(location.search).get("duel") ?? "");
 const canDuel = (): boolean =>
   duelPractice || (window.isSecureContext && typeof AudioWorkletNode === "function" && typeof navigator.mediaDevices?.getUserMedia === "function");
+/** The online duel (src/versus/online.ts, same chunk): a WebSocket to the relay is all it needs. */
+const canDuelOnline = (): boolean => typeof WebSocket === "function";
+/** An invite link's room code (`?salon=ABCD`): the menu opens the online duel's lobby on it (the URL loses it at boot). */
+const salonLink = new URLSearchParams(location.search).get("salon");
 const DUEL_UPDATE = "Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)";
 /**
  * sessionStorage: what the next boot skips into (the end screen's Rematch: "1", "spectate", "daily", "op:<id>",
@@ -115,6 +119,15 @@ const DUEL_UPDATE = "Une nouvelle version est prête : recharge ce téléphone (
  */
 const REMATCH_KEY: typeof DuelLobby.REMATCH_KEY = "battledrones.rematch";
 const DUEL_REMATCH: typeof DuelLobby.REMATCH_DUEL = "duel";
+const DUEL_KEY: typeof DuelLobby.DUEL_KEY = "battledrones.duel";
+/** The stored rematch is an online duel's (its plan names a room): no sound, so no link mode at boot. */
+const rematchIsOnline = (): boolean => {
+  try {
+    return /"online"\s*:\s*\{/.test(sessionStorage.getItem(DUEL_KEY) ?? "");
+  } catch {
+    return false;
+  }
+};
 
 /** Render at device resolution (capped at 2× for phone GPUs) for crisp art. */
 const dpr = () => Math.min(2, Math.max(1, window.devicePixelRatio || 1));
@@ -230,7 +243,8 @@ function showMenu(linkedMap?: string | null): void {
   // rate"). The menu's sound waits for the reconnect tap. (A practice link opens no rig and no guard, so no
   // link mode.)
   const duelRematch = token === DUEL_REMATCH;
-  if (duelRematch && !duelPractice) sfx.linkMode = true;
+  const onlineRematch = duelRematch && rematchIsOnline();
+  if (duelRematch && !duelPractice && !onlineRematch) sfx.linkMode = true;
   // ?map=<id> (a shared random map, or any built-in): preselect it and keep it as the pick
   if (linkedMap && isKnownMapId(linkedMap)) {
     gameMode.mapId = linkedMap;
@@ -320,7 +334,7 @@ function showMenu(linkedMap?: string | null): void {
       </div>
       <button class="mutbtn main"></button>
       <button class="cta big" id="play">▶ Jouer</button>
-      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button></div>
+      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button><button class="cta alt" id="play-online" disabled>🌐 Défier un ami (en ligne)</button></div>
       <div class="row">
         <button class="cta alt" id="play-spectate">🤖 IA contre IA</button>
         <button class="cta alt" id="play-replay">🎬 Voir une rediffusion</button>
@@ -351,7 +365,7 @@ function showMenu(linkedMap?: string | null): void {
           music.stop();
         }
       },
-      token !== null
+      token !== null || !!salonLink
     );
     musicGo = !title.waiting;
   } else {
@@ -366,17 +380,21 @@ function showMenu(linkedMap?: string | null): void {
 
   // menu music: a gentle take on the selected map's theme, from the first touch
   const biomeOf = (id: string) => mapById(id).biome;
-  if (!duelRematch) sfx.unlockOnGesture();
+  if (!duelRematch || onlineRematch) sfx.unlockOnGesture();
   const muteBtn = menu.querySelector<HTMLButtonElement>("#menu-mute")!;
   const syncMute = () => (muteBtn.textContent = sfx.muted ? "🔇" : "🔊");
   syncMute();
   const offMute = sfx.onChange(syncMute);
   muteBtn.addEventListener("click", () => sfx.setMuted(!sfx.muted));
   const offUpdate = mountUpdatePill(menu);
-  // the sound duel's button (Skirmish only), disabled until its chunk is in
+  // the duel buttons (Skirmish only), over sound and online, disabled until their chunk is in
   const duelable = canDuel();
+  const onlineable = canDuelOnline();
   const duelRow = menu.querySelector<HTMLElement>("#duelrow")!;
   const duelBtn = menu.querySelector<HTMLButtonElement>("#play-duel")!;
+  const onlineBtn = menu.querySelector<HTMLButtonElement>("#play-online")!;
+  duelBtn.hidden = !duelable;
+  onlineBtn.hidden = !onlineable;
   let duel: typeof DuelLobby | null = null;
   let duelBroken = false;
   let duelLoaded = false;
@@ -384,10 +402,12 @@ function showMenu(linkedMap?: string | null): void {
   let duelLive = false;
   const syncDuelBtn = () => {
     const on = duelLoaded && !duelLive;
-    duelBtn.disabled = !on;
-    duelBtn.style.opacity = on ? "" : "0.6";
+    for (const b of [duelBtn, onlineBtn]) {
+      b.disabled = !on;
+      b.style.opacity = on ? "" : "0.6";
+    }
   };
-  if (duelable || duelRematch) {
+  if (duelable || onlineable || duelRematch) {
     syncDuelBtn();
     loadDuel()
       .then(
@@ -483,7 +503,7 @@ function showMenu(linkedMap?: string | null): void {
     syncRandom();
     ops.sync();
     menu.querySelector<HTMLElement>("#play-spectate")!.hidden = opsMode;
-    duelRow.hidden = !duelable || gameMode.mode !== "skirmish";
+    duelRow.hidden = !(duelable || onlineable) || gameMode.mode !== "skirmish";
     menu.classList.toggle("ops-mode", opsMode);
     // Last Stand isn't offered on every map (the island map): show the first that is, without
     // losing the skirmish pick (Play points the match at the shown map: see begin)
@@ -713,19 +733,22 @@ function showMenu(linkedMap?: string | null): void {
     sfx.unlockOnGesture();
     music.play("menu", biomeOf(shownMap()));
   };
-  /** The Duel tap, synchronously, in this order (SOUND-DUEL.md "The tap"); `rematch`: the rematch's reconnect tap. */
-  const duelTap = (d: typeof DuelLobby, rematch: boolean) => {
+  /**
+   * The Duel tap, synchronously, in this order (SOUND-DUEL.md "The tap"); `rematch`: the rematch's reconnect tap;
+   * `online`: the online duel's button (no rig, no guard), `code` the room an invite link brought.
+   */
+  const duelTap = (d: typeof DuelLobby, rematch: boolean, online = false, code: string | null = null) => {
     // (one lobby at a time: an old one's late release would turn the new one's guard and link mode off)
     if (duelLive) return;
     duelLive = true;
     syncDuelBtn();
-    const tap = d.tapPlan(rematch);
+    const tap = d.tapPlan(rematch, online);
     // the game's context before the rig's play-and-record, as the rig's own (src/link/rig.ts "The rate"): from
     // the menu the first touch has made it already and this only resumes it, but the rematch boot makes none
     // until this tap, and after the rig it would be born under play-and-record
     sfx.unlock();
-    const rig = tap.practice ? null : d.openRig({ micMode: tap.micMode });
-    if (!tap.practice)
+    const rig = tap.practice || tap.online ? null : d.openRig({ micMode: tap.micMode });
+    if (rig)
       try {
         sfx.setLinkGuard("high");
       } catch (e) {
@@ -744,7 +767,10 @@ function showMenu(linkedMap?: string | null): void {
         },
         () => undefined // (the lobby tells it)
       );
-    const o = { host: menu, rig, shownMap: shownMap(), mutators: activeMutators(), start: startDuel, onClose: duelClosed };
+    const o = {
+      host: menu, rig, shownMap: shownMap(), mutators: activeMutators(), start: startDuel, onClose: duelClosed,
+      online: tap.online ? { code } : null
+    };
     if (rematch) d.reconnect(o);
     else d.showLobby(o);
   };
@@ -762,6 +788,20 @@ function showMenu(linkedMap?: string | null): void {
     if (duel) duelTap(duel, false);
     else if (duelBroken) duelUpdate();
   });
+  onlineBtn.addEventListener("click", () => {
+    if (duel) duelTap(duel, false, true);
+    else if (duelBroken) duelUpdate();
+  });
+  // an invite link (?salon=ABCD): the online lobby opens on its code, its Join one tap away
+  if (salonLink && !duelRematch && onlineable) {
+    gameMode.mode = "skirmish";
+    void loadDuel().then(
+      (d) => {
+        if (!starting) duelTap(d, false, true, salonLink);
+      },
+      () => duelUpdate()
+    );
+  }
   // a duel's Rematch: one button, whose tap is the Duel tap paired with the stored role and plan
   if (duelRematch) {
     music.stop();
@@ -782,7 +822,11 @@ function showMenu(linkedMap?: string | null): void {
       else if (duelBroken) duelUpdate();
     });
     void loadDuel().then(
-      () => (btn.disabled = false),
+      (d) => {
+        btn.disabled = false;
+        // (an online rematch: no microphone, the same room)
+        if (d.tapPlan(true).online) btn.textContent = "Revanche · touche pour retrouver ton ami";
+      },
       () => {
         btn.disabled = false;
         btn.textContent = DUEL_UPDATE;
@@ -872,8 +916,10 @@ if (replayLink) void watchLinked(replayLink, import.meta.env.DEV && params.has("
 else {
   // /?map=<id> (the random map panel's 🔗 link): preselect that map once; the saved pick carries it after
   const linkedMap = params.get("map")?.trim().toLowerCase();
-  if (params.has("map")) {
+  // (?salon=, an online duel's invite, is read already: salonLink; a reload mustn't join again)
+  if (params.has("map") || params.has("salon")) {
     params.delete("map");
+    params.delete("salon");
     const q = params.toString();
     history.replaceState(null, "", `${location.pathname}${q ? `?${q}` : ""}${location.hash}`);
   }

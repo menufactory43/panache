@@ -56,6 +56,8 @@ import type { Command, Faction } from "../sim/types";
 export const HASH_EVERY = 100;
 /** localStorage: the sound-duel record. */
 export const RECORD_KEY = "battledrones.soundduel";
+/** localStorage: the online duel's record (its own: a match over the internet isn't one over sound). */
+export const ONLINE_RECORD_KEY = "panache.duelenligne";
 /**
  * sessionStorage: what the reloaded page starts with (the single-player end
  * screen's Rematch writes its own tokens under the same key: "1", "spectate",
@@ -86,10 +88,10 @@ const FIELD: Record<DuelOutcome, keyof DuelTally> = { win: "w", loss: "l", draw:
 const count = (v: unknown): number => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : 0);
 
 /** The record so far (zero where there is none, it can't be read, or storage is blocked). */
-export function readTally(store: Pick<Storage, "getItem"> | null): DuelTally {
+export function readTally(store: Pick<Storage, "getItem"> | null, key = RECORD_KEY): DuelTally {
   let o: Partial<Record<keyof DuelTally, unknown>> | null = null;
   try {
-    const raw = store?.getItem(RECORD_KEY);
+    const raw = store?.getItem(key);
     if (raw) o = JSON.parse(raw) as Partial<Record<keyof DuelTally, unknown>> | null;
   } catch {
     /* blocked or junk: from zero */
@@ -102,10 +104,10 @@ export function readTally(store: Pick<Storage, "getItem"> | null): DuelTally {
 export const withOutcome = (t: DuelTally, o: DuelOutcome): DuelTally => ({ ...t, [FIELD[o]]: t[FIELD[o]] + 1 });
 
 /** Count one match: returns the record as stored (as it would be, where storage is blocked). */
-export function addOutcome(o: DuelOutcome, store: Store | null): DuelTally {
-  const t = withOutcome(readTally(store), o);
+export function addOutcome(o: DuelOutcome, store: Store | null, key = RECORD_KEY): DuelTally {
+  const t = withOutcome(readTally(store, key), o);
   try {
-    store?.setItem(RECORD_KEY, JSON.stringify(t));
+    store?.setItem(key, JSON.stringify(t));
   } catch {
     /* blocked: the report still shows it */
   }
@@ -117,12 +119,12 @@ export function addOutcome(o: DuelOutcome, store: Store | null): DuelTally {
  * turned out to be no contest, or the stand-in abandoned a hidden page
  * counted, once the match ends): returns the record as stored.
  */
-export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | null): DuelTally {
-  const t = readTally(store);
+export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | null, key = RECORD_KEY): DuelTally {
+  const t = readTally(store, key);
   const f = FIELD[from];
   const back = withOutcome({ ...t, [f]: Math.max(0, t[f] - 1) }, to);
   try {
-    store?.setItem(RECORD_KEY, JSON.stringify(back));
+    store?.setItem(key, JSON.stringify(back));
   } catch {
     /* blocked: the report still shows it */
   }
@@ -157,6 +159,8 @@ export interface DuelRecordInput {
   setup: MatchSetup;
   /** Which band each side's phone played (the host plays hostSide). */
   seats: Record<Faction, BandRole>;
+  /** The seats' prefix: "sound-duel" (the default) or "online-duel". */
+  via?: "sound-duel" | "online-duel";
   /** Non-empty turns as stepped: [tick, side, commands], blue's before red's on a tick. */
   turns: [number, Faction, Command[]][];
   /** [tick, worldHash] every HASH_EVERY ticks. */
@@ -184,7 +188,7 @@ export function battleRecord(o: DuelRecordInput): BattleRecord {
     maxTicks: o.end.tick,
     openers: { ...s.openers },
     ...(s.income ? { income: { ...s.income } } : {}),
-    seats: { blue: { player: `sound-duel:${o.seats.blue}` }, red: { player: `sound-duel:${o.seats.red}` } },
+    seats: { blue: { player: `${o.via ?? "sound-duel"}:${o.seats.blue}` }, red: { player: `${o.via ?? "sound-duel"}:${o.seats.red}` } },
     frames: "own",
     turns: o.turns.map(([t, f, cmds]) => [t, f, cmds]),
     radio: [],
@@ -227,6 +231,8 @@ export interface RematchPlan {
   hostSide: Faction;
   mapId: string;
   mutators: MutatorId[];
+  /** An online duel's room and this page's seat key (src/versus/online.ts): the rematch takes the same seat back. */
+  online?: { code: string; key: string };
 }
 
 /** Leave the rematch for the next page. False where storage is blocked (the page then opens the menu). */
@@ -253,13 +259,17 @@ export function parseRematch(raw: string | null): RematchPlan | null {
   try {
     const o = JSON.parse(raw) as Partial<Record<keyof RematchPlan, unknown>> | null;
     if (!o || typeof o !== "object") return null;
-    const { role, plan, micMode, hostSide, mapId, mutators } = o;
+    const { role, plan, micMode, hostSide, mapId, mutators, online } = o;
     if (role !== "host" && role !== "guest") return null;
     if (plan !== "high" && plan !== "low") return null;
     if (hostSide !== "blue" && hostSide !== "red") return null;
     if (typeof mapId !== "string" || !isKnownMapId(mapId)) return null;
     const muts = Array.isArray(mutators) ? mutators.filter((m): m is MutatorId => typeof m === "string" && isMutatorId(m)) : [];
-    return { role, plan, micMode: micMode === "ec" ? "ec" : "raw", hostSide, mapId, mutators: muts };
+    const r: RematchPlan = { role, plan, micMode: micMode === "ec" ? "ec" : "raw", hostSide, mapId, mutators: muts };
+    const on = online as { code?: unknown; key?: unknown } | null | undefined;
+    if (on && typeof on === "object" && typeof on.code === "string" && /^[A-Z]{4}$/.test(on.code) && typeof on.key === "string" && /^[0-9a-f]{1,64}$/.test(on.key))
+      r.online = { code: on.code, key: on.key };
+    return r;
   } catch {
     return null;
   }
