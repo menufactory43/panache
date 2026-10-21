@@ -1302,11 +1302,15 @@ function placeholderUnit(kind: UnitKind, f: Faction): { make: UnitBuilder; team:
 }
 
 export function unitDef(kind: UnitKind, f: Faction): ModelDef {
-  const own = BELLE_EPOQUE ? BE_UNIT_MODELS[kind] : undefined;
+  const nation = UNITS[kind].nation;
+  // (a nation's own models exist only in the Belle Époque style: ?style=original draws them too)
+  const own = BELLE_EPOQUE || nation ? BE_UNIT_MODELS[kind] : undefined;
   const stand = own ? null : placeholderUnit(kind, f);
   if (stand) return def(`u/${f}/${kind}`, () => stand.make(stand.team));
   const make = own || UNIT_MODELS[kind as ClassicUnitKind];
-  return def(`u/${f}/${kind}`, () => make(TEAMS[f]));
+  // (a nation's unit wears its nation's colours, §1.1; squads pick theirs by side in their rig)
+  const team = nation && !MAP_SCALE.has(kind) ? NATION_TEAMS[nation][f] : TEAMS[f];
+  return def(`u/${f}/${kind}`, () => make(team));
 }
 
 export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
