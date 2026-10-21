@@ -1,58 +1,36 @@
-name: Publish Pages
+name: Publier Panache
 
 on:
   push:
     branches: [main]
-  release:
-    types: [published]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages-${{ github.event_name == 'pull_request' && github.ref || github.event_name == 'release' && 'release' || 'production' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-  release:
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      # A release runs in a tag context, which the github-pages environment may
-      # disallow. Dispatch main so both the code and deployment identity use main.
-      - name: Publish the updated archive from main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
-
   build:
-    if: github.event_name != 'release'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-        with:
-          # The root site and build tooling come from main, even for manual
-          # runs. PRs validate their proposed changes instead.
-          ref: ${{ github.event_name == 'pull_request' && github.ref || 'main' }}
-          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
       - run: npm ci
-      - name: Build current game and every version tag
-        run: npm run build:pages
+      # vite.config.ts builds with a relative base ("./"), so the site works under /panache/
+      - run: npm run build
+      - run: touch dist/.nojekyll
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: _site
+          path: dist
 
   deploy:
-    if: github.event_name != 'pull_request' && github.event_name != 'release'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -62,6 +40,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Déployer sur GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

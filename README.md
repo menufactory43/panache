@@ -1,3 +1,15 @@
+# Panache
+
+**Panache** est un jeu de stratégie en temps réel pour mobile et navigateur, dans la France de la Belle Époque (vers 1900) : dirigeables, Fardiers à vapeur, Creusot cuirassés, automates en képi, Gargantua la forteresse marchante — et beaucoup de panache.
+
+**Jouer : <https://menufactory43.github.io/panache/>**
+
+Panache est une adaptation française de [Battle Drones](https://github.com/simonw/battledrones) de Simon Willison (licence Apache 2.0) : traduction, nouveaux noms, modèles 3D, effets, son, musique, écran-titre et interface mobile repensés. `?style=original` dans l'adresse affiche le style d'origine pour comparer.
+
+---
+
+*Ce qui suit est le README d'origine de Battle Drones.*
+
 # Battle Drones
 
 Battle Drones is a mobile-friendly real-time strategy (RTS) game inspired by Command & Conquer: two armies of drones — flying and ground-based — battle for territory and resources.
