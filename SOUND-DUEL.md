@@ -399,7 +399,7 @@ then by type:
   placeBuilding:                 tx, ty     (ceil(log2(size)) bits each)
   sell:                          id(buildingId)
   rally:                         id(buildingId), x, y
-  calldown:                      power 2, x, y
+  calldown:                      power 3, x, y
   board:                         units, id(carrierId)
   unload:                        units, hasPoint 1, [x, y]
   lift:                          units, id(goliathId)
@@ -450,9 +450,19 @@ confHash 16   this phone's hash of (config, plan, both nonces); 0 = none yet
 pick 2        OPENER_IDS index, or 3 = no opener (all blocked under the config)
 picked 1
 go 1          then theirs 2: the peer's pick as this phone holds it
+[LOBBY_PROTO 2] nations 1 (1: the extension follows), nation 2 (what this phone asks for: 0 Classique / none,
+              1 République, 2 Empire), then, with a config: hostNation 2  guestNation 2 (both 0: Classique)
 ```
 
-The longest frame is 157 bits, which fits a packet. (`hold` is 7 bits: with
+Nations (LOBBY_PROTO 2, PANACHE-CONCEPTION.md §1.10) ride in a trailing
+extension, so a proto-2 frame keeps proto 1's header and layout: a proto-1
+phone reads it as its own (the bits after `theirs` are the modem's zero
+padding to it), and a proto-2 phone that hears no extension offers no nations,
+so the pair falls back to Classique with no version error. The host offers its
+menu nation; the guest asks for one in the lobby's nation picker (none: the
+host's rival); the nations enter the confHash only when they aren't Classique.
+
+The longest frame is 164 bits (157 without the extension), which fits a packet. (`hold` is 7 bits: with
 200 ms packets holds of 210–400 ms are normal, and 400 ms packets give up to
 800 ms.)
 
@@ -807,7 +817,7 @@ in detail; the main ones:
   bands until it locks, then sets its plan. Until then it transmits in the
   high plan's guest band whenever the rate allows (clear of both host bands),
   and `capacity()` is 186, what either plan carries (lobby frames are at most
-  157 bits).
+  164 bits).
 
 ### CPU rules
 

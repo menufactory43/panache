@@ -39,8 +39,13 @@ export const gameMode = {
   nation: "classique" as NationOrClassic
 };
 
-/** Set by duelSetup: a duel plays Classique whatever the menu's nation (both phones must agree: WP7). */
-let duelMatch = false;
+/**
+ * Set by duelSetup: a duel plays the nations its lobby agreed (LOBBY_PROTO 2,
+ * versus/pairing.ts), never the menu's pick; null: Classique. (The match's
+ * world is the feed's, built from the agreed setup: this keeps matchOptions
+ * telling the same.)
+ */
+let duelMatch: { nations: Partial<Record<Faction, Nation>> | null } | null = null;
 
 /** Is the coming match on a generated map played Uncharted (not when watching AI vs AI, an op or the Daily)? */
 export const unchartedMatch = (): boolean =>
@@ -65,7 +70,7 @@ export function activeMutators(): MutatorId[] {
  * plain skirmish played by this phone as `local`, so startGame loads the art
  * for the map both phones play. Never saved: the menu's own picks stay.
  */
-export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Faction }): void {
+export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Faction; nations?: Partial<Record<Faction, Nation>> }): void {
   gameMode.mapId = cfg.mapId;
   gameMode.mode = "skirmish";
   gameMode.mutators = cfg.mutators.slice();
@@ -73,7 +78,7 @@ export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Fa
   gameMode.daily = null;
   gameMode.op = null;
   gameMode.uncharted = false;
-  duelMatch = true;
+  duelMatch = { nations: cfg.nations ? { ...cfg.nations } : null };
   setLocalSide(cfg.local);
 }
 
@@ -110,7 +115,9 @@ export function matchOptions(): MatchOptions {
     ...(mutators.length ? { mutators } : {}),
     ...(gameMode.daily ? { seed: gameMode.daily.seed } : {}),
     // nations (PANACHE-CONCEPTION.md §1.10): skirmish only (the URL's, or the menu's pick)
-    ...(!survival && !gameMode.daily && !duelMatch && matchNationsPick() ? { nations: matchNationsPick()! } : {})
+    ...(duelMatch
+      ? duelMatch.nations ? { nations: { ...duelMatch.nations } } : {}
+      : !survival && !gameMode.daily && matchNationsPick() ? { nations: matchNationsPick()! } : {})
   };
 }
 

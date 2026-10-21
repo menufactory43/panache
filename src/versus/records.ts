@@ -19,7 +19,7 @@
  * code is used for its types only.
  *
  * Rematch. sessionStorage `battledrones.rematch` = "duel" and
- * `battledrones.duel` = { role, plan, micMode, hostSide, mapId, mutators },
+ * `battledrones.duel` = { role, plan, micMode, hostSide, mapId, mutators, nation? },
  * the host side already flipped: rematches swap sides, never roles or bands.
  * main.ts reads it at boot, before any audio context exists, and the lobby
  * pairs with it. The keys, the token and the parser live here alone: the
@@ -50,7 +50,7 @@ import type { BandPlan, BandRole } from "../link/transport";
 import { isKnownMapId } from "../sim/maps";
 import { isMutatorId, type MutatorId } from "../sim/rules";
 import type { MatchSetup } from "../sim/setup";
-import type { Command, Faction } from "../sim/types";
+import type { Command, Faction, Nation } from "../sim/types";
 
 /** A world hash goes into the saved record every this many ticks (the arena's rate: the viewer checks them). */
 export const HASH_EVERY = 100;
@@ -188,6 +188,8 @@ export function battleRecord(o: DuelRecordInput): BattleRecord {
     maxTicks: o.end.tick,
     openers: { ...s.openers },
     ...(s.income ? { income: { ...s.income } } : {}),
+    // (the nations the pairing agreed: the viewer and the arena replay them, setupWorld(record))
+    ...(s.nations ? { nations: { ...s.nations } } : {}),
     seats: { blue: { player: `${o.via ?? "sound-duel"}:${o.seats.blue}` }, red: { player: `${o.via ?? "sound-duel"}:${o.seats.red}` } },
     frames: "own",
     turns: o.turns.map(([t, f, cmds]) => [t, f, cmds]),
@@ -231,6 +233,8 @@ export interface RematchPlan {
   hostSide: Faction;
   mapId: string;
   mutators: MutatorId[];
+  /** The nation this phone played (PANACHE-CONCEPTION.md §1.10): the host's offer, the guest's ask. Absent: Classique. */
+  nation?: Nation;
   /** An online duel's room and this page's seat key (src/versus/online.ts): the rematch takes the same seat back. */
   online?: { code: string; key: string };
 }
@@ -259,13 +263,14 @@ export function parseRematch(raw: string | null): RematchPlan | null {
   try {
     const o = JSON.parse(raw) as Partial<Record<keyof RematchPlan, unknown>> | null;
     if (!o || typeof o !== "object") return null;
-    const { role, plan, micMode, hostSide, mapId, mutators, online } = o;
+    const { role, plan, micMode, hostSide, mapId, mutators, online, nation } = o;
     if (role !== "host" && role !== "guest") return null;
     if (plan !== "high" && plan !== "low") return null;
     if (hostSide !== "blue" && hostSide !== "red") return null;
     if (typeof mapId !== "string" || !isKnownMapId(mapId)) return null;
     const muts = Array.isArray(mutators) ? mutators.filter((m): m is MutatorId => typeof m === "string" && isMutatorId(m)) : [];
     const r: RematchPlan = { role, plan, micMode: micMode === "ec" ? "ec" : "raw", hostSide, mapId, mutators: muts };
+    if (nation === "republique" || nation === "empire") r.nation = nation;
     const on = online as { code?: unknown; key?: unknown } | null | undefined;
     if (on && typeof on === "object" && typeof on.code === "string" && /^[A-Z]{4}$/.test(on.code) && typeof on.key === "string" && /^[0-9a-f]{1,64}$/.test(on.key))
       r.online = { code: on.code, key: on.key };

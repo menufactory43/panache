@@ -367,13 +367,13 @@ describe("the command codec", () => {
     // a type outside the table
     for (let t = COMMAND_TYPES.length; t < 32; t++) expect(one(bits([t, 5], [0, 40])), `type ${t}`).toThrow(/outside its table/);
     // a unit kind or building kind outside its table
-    expect(one(bits([T("produce"), 5], [0b010, 3], [16, 5]))).toThrow(/outside its table/);
-    expect(one(bits([T("startBuilding"), 5], [10, 4]))).toThrow(/outside its table/);
+    expect(one(bits([T("produce"), 5], [0b010, 3], [31, 5]))).toThrow(/outside its table/);
+    expect(one(bits([T("startBuilding"), 5], [12, 4]))).toThrow(/outside its table/);
     // sameAsPrevious with no previous list
     expect(one(bits([T("stop"), 5], [1, 1]))).toThrow(/no previous/);
     // a cell off the map, a tile off the map
     expect(one(bits([T("rally"), 5], [1, 1], [768, 10], [5, 10]))).toThrow(/off a 48-tile map/);
-    expect(one(bits([T("calldown"), 5], [0, 2], [5, 10], [1023, 10]))).toThrow(/off a 48-tile map/);
+    expect(one(bits([T("calldown"), 5], [0, 3], [5, 10], [1023, 10]))).toThrow(/off a 48-tile map/);
     expect(one(bits([T("placeBuilding"), 5], [48, 6], [0, 6]))).toThrow(/off a 48-tile map/);
     expect(one(bits([T("placeBuilding"), 5], [3, 6], [63, 6]))).toThrow(/off a 48-tile map/);
     // a UE with more than 24 leading zeros
@@ -434,21 +434,24 @@ describe("the command codec", () => {
 
   it("has complete, explicit tables", () => {
     expect(TABLES_COMPLETE).toBe(true);
-    expect(CODEC_VERSION).toBe(1);
+    expect(CODEC_VERSION).toBe(2);
     expect(new Set(COMMAND_TYPES).size).toBe(COMMAND_TYPES.length);
     expect(COMMAND_TYPES.length).toBe(20);
-    // (Classique's kinds: duels play Classique until LOBBY_PROTO 2 brings the nations, PANACHE-CONCEPTION.md §1.10)
+    // every kind, Classique's first in their old order (LOBBY_PROTO 2 brought the nations', PANACHE-CONCEPTION.md §1.10)
     const classicUnits = Object.keys(UNITS).filter((k) => !UNITS[k as keyof typeof UNITS].nation);
     const classicBuildings = Object.keys(BUILDINGS).filter((k) => !BUILDINGS[k as keyof typeof BUILDINGS].nation);
-    expect(new Set(UNIT_KINDS)).toEqual(new Set(classicUnits));
-    expect(UNIT_KINDS.length).toBe(classicUnits.length);
-    expect(new Set(BUILDING_KINDS)).toEqual(new Set(classicBuildings));
-    expect(BUILDING_KINDS.length).toBe(classicBuildings.length);
-    expect([...POWER_KINDS]).toEqual([...SIM_POWER_KINDS]);
-    // the fields are wide enough: type 5 bits, unitKind 5, buildingKind 4, power 2
+    expect(new Set(UNIT_KINDS)).toEqual(new Set(Object.keys(UNITS)));
+    expect(UNIT_KINDS.length).toBe(Object.keys(UNITS).length);
+    expect(new Set(UNIT_KINDS.slice(0, classicUnits.length))).toEqual(new Set(classicUnits));
+    expect(new Set(BUILDING_KINDS)).toEqual(new Set(Object.keys(BUILDINGS)));
+    expect(BUILDING_KINDS.length).toBe(Object.keys(BUILDINGS).length);
+    expect(new Set(BUILDING_KINDS.slice(0, classicBuildings.length))).toEqual(new Set(classicBuildings));
+    expect([...POWER_KINDS.slice(0, 4)]).toEqual([...SIM_POWER_KINDS]);
+    expect(new Set(POWER_KINDS).size).toBe(8);
+    // the fields are wide enough: type 5 bits, unitKind 5, buildingKind 4, power 3
     expect(COMMAND_TYPES.length).toBeLessThanOrEqual(32);
     expect(UNIT_KINDS.length).toBeLessThanOrEqual(32);
     expect(BUILDING_KINDS.length).toBeLessThanOrEqual(16);
-    expect(POWER_KINDS.length).toBeLessThanOrEqual(4);
+    expect(POWER_KINDS.length).toBeLessThanOrEqual(8);
   });
 });

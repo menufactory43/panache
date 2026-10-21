@@ -130,17 +130,20 @@ import { gameMode } from "../game/mode";
 import type { ModemStats } from "../link/modem/core";
 import { CAPTURE_OK_MS, RIG_ADVICE, RigError, type MicMode, type Rig, type RigErrorReason } from "../link/rig";
 import type { BandPlan, BandRole, LinkTransport } from "../link/transport";
-import { BUILDINGS, UNITS } from "../sim/balance";
-import { PLURALS } from "../sim/lexicon";
+import { ROLES, UNITS } from "../sim/balance";
+import { displayName, pluralName } from "../sim/lexicon";
+import { inRoster } from "../sim/rules";
+import { nationText, type Words } from "../ui/openers";
+import { portraitKind } from "../game/three/belle/placeholders";
 import { worldHash } from "../sim/checksum";
 import { mapById } from "../sim/maps";
 import { OPENERS, type OpenerId } from "../sim/openers";
 import { MUTATORS, type MutatorId } from "../sim/rules";
-import type { Faction, UnitKind } from "../sim/types";
+import type { Faction, Nation, NationOrClassic, Role, UnitKind } from "../sim/types";
 import { fullscreen } from "../ui/fullscreen";
 import { VersusFeed } from "./feed";
 import { LoopLink, type LoopParams } from "./loop-peer";
-import { FAILED_MESSAGE, NOTHING_HEARD_MESSAGE, NOTHING_HEARD_MS, VERSION_MESSAGE, type HostOffer, type PairingState } from "./pairing";
+import { FAILED_MESSAGE, NOTHING_HEARD_MESSAGE, NOTHING_HEARD_MS, VERSION_MESSAGE, configNations, rivalOf, type DuelConfig, type HostOffer, type PairingState } from "./pairing";
 import { OnlineError, browserOnlineEnv, drawKey, hostRoom, inviteUrl, joinRoom, normCode, relayBase, type OnlineInfo, type OnlineLink } from "./online";
 import { DUEL_KEY, parseRematch, type RematchPlan } from "./records";
 import { RelayTransport } from "./relay-transport";
@@ -354,8 +357,8 @@ export interface LobbyEnv {
   link(cfg: { plan: BandPlan; tx: BandRole; rx: BandRole | "detect" }, offer: HostOffer): Promise<LobbyLink>;
   /** The game audio's band guard (null: off), at its full cut whatever the microphone mode (audio.ts GUARD_CUT_DB). Practice links have none. */
   guard(plan: BandPlan | null): void;
-  /** The menu's shownMap() and activeMutators() at the tap, and the side the host plays. */
-  offer: { map: string; mutators: MutatorId[]; hostSide: Faction };
+  /** The menu's shownMap() and activeMutators() at the tap, the side the host plays, and the menu's nation (default Classique). */
+  offer: { map: string; mutators: MutatorId[]; hostSide: Faction; nation?: NationOrClassic };
   /** Pair at once: a rematch (its role, plan, and the host's map, mutators and side), or a relay seat. */
   rematch: DuelRematch | null;
   seat: BandRole | null;
@@ -390,6 +393,11 @@ export interface LobbyView {
   /** Pairing in a role it can't switch (a rematch, a relay seat). */
   fixedRole: boolean;
   prefs: LobbyPrefs;
+  /**
+   * The nation this phone plays (LOBBY_PROTO 2): what it offers when it hosts, what it asks for when it joins.
+   * Classique: hosting, a Classique match; joining, the host's rival nation (or Classique under a Classique host).
+   */
+  nation: NationOrClassic;
   error: LobbyError | null;
   /** The rig lost its audio: "Tap to reconnect the sound link". */
   lost: boolean;
@@ -480,8 +488,11 @@ export class LobbyMachine {
   private loudSince: number | null = null;
   private loudAt = -Infinity;
   private peakSample = -1;
+  /** The nation this phone plays (a rematch: the one it played). */
+  private nation: NationOrClassic;
 
   constructor(private readonly env: LobbyEnv) {
+    this.nation = env.rematch ? env.rematch.nation ?? "classique" : env.offer.nation ?? "classique";
     // (the tap turned the guard on in the high plan: practice links and online duels have none)
     this.guardPlan = env.practice || env.online ? null : "high";
     const rig = env.rig;
@@ -551,6 +562,11 @@ export class LobbyMachine {
   /** "Tap to start sound", and "Tap to reconnect the sound link": inside the tap. */
   tapToStart(): void {
     void this.env.rig?.reconnect();
+  }
+
+  /** The nation picked on the Host / Join step (not in a rematch, which keeps its own). */
+  setNation(n: NationOrClassic): void {
+    if (this.step === "choose" && !this.env.rematch) this.nation = n;
   }
 
   setPlan(plan: BandPlan): void {
@@ -640,6 +656,7 @@ export class LobbyMachine {
       rematch: env.rematch !== null,
       fixedRole,
       prefs: { ...env.prefs },
+      nation: this.nation,
       error,
       lost: env.rig?.state === "lost",
       noWakeLock: env.rig !== null && !env.rig.wakeLockSupported,
@@ -687,8 +704,8 @@ export class LobbyMachine {
   /** The host's offer, whoever hosts. */
   private offer(): HostOffer {
     const r = this.env.rematch;
-    if (r) return { map: r.mapId, mutators: r.mutators, hostSide: r.hostSide };
-    return { map: this.env.offer.map, mutators: this.env.offer.mutators, hostSide: this.env.offer.hostSide };
+    if (r) return { map: r.mapId, mutators: r.mutators, hostSide: r.hostSide, nation: this.nation };
+    return { map: this.env.offer.map, mutators: this.env.offer.mutators, hostSide: this.env.offer.hostSide, nation: this.nation };
   }
 
   private async begin(role: BandRole, selfTest: boolean): Promise<void> {
@@ -727,7 +744,7 @@ export class LobbyMachine {
     this.loudSince = null;
     this.loudAt = -Infinity;
     this.peakSample = -1;
-    this.session = new Session({ transport: link, role, build: env.build, random: env.random, ...(role === "host" ? { host: this.offer() } : {}) });
+    this.session = new Session({ transport: link, role, build: env.build, random: env.random, ...(role === "host" ? { host: this.offer() } : { nation: this.nation }) });
     this.step = selfTest ? "self-test" : "pairing";
     // (a Join that detects keeps the guard it has until its link locks on a plan)
     this.setGuard(cfg.rx === "detect" ? this.guardPlan ?? cfg.plan : cfg.plan, true);
@@ -959,30 +976,105 @@ function mapLine(mapId: string, mutators: readonly MutatorId[]): string {
   return `<p class="duel-map"><b>🗺 ${name}</b></p><p class="duel-muts">${muts}</p>`;
 }
 
+/** The nations as the lobby names them, with a one-line identity (PANACHE-CONCEPTION.md §1.1). */
+const NATION_LABEL: Record<NationOrClassic, { name: string; line: string }> = {
+  classique: { name: "Classique", line: "Mêmes unités" },
+  republique: { name: "République", line: "Rapide, aérienne, électrique" },
+  empire: { name: "Empire", line: "Vapeur, acier, artillerie" }
+};
+
+/** A nation's crest (public/assets/ui/crest-*.webp); Classique has a scale instead. */
+export function crestHtml(n: NationOrClassic, cls = "duel-crest"): string {
+  return n === "classique"
+    ? `<span class="${cls} classique" aria-hidden="true">⚖</span>`
+    : `<img class="${cls}" src="assets/ui/crest-${n}.webp" alt="" draggable="false"/>`;
+}
+
+/**
+ * The Host / Join step's nation picker (LOBBY_PROTO 2): what this phone offers
+ * when it hosts, what it asks for when it joins. Not in a rematch, which keeps
+ * the nations it played.
+ */
+export function nationPicker(v: Pick<LobbyView, "nation" | "rematch" | "isOnline">): string {
+  if (v.rematch) return "";
+  const btn = (n: NationOrClassic) =>
+    `<button class="duel-nat nat-${n}${v.nation === n ? " on" : ""}" data-act="nation" data-v="${n}" aria-pressed="${v.nation === n}">${crestHtml(n)}<b>${NATION_LABEL[n].name}</b><small>${NATION_LABEL[n].line}</small></button>`;
+  return `<div class="duel-nation">
+      <p class="duel-lbl">Ta nation</p>
+      <div class="duel-nats">${btn("republique")}${btn("empire")}${btn("classique")}</div>
+      <p class="duel-natnote">L'hôte décide : en Classique, les deux camps jouent Classique. Sinon chacun joue sa nation${v.nation === "classique" ? " (toi, celle qui affronte l'hôte)" : ""}.</p>
+    </div>`;
+}
+
+/** Before pairing: the nation this phone brings (a host's offer, a guest's ask). */
+export function myNationLine(v: Pick<LobbyView, "nation" | "role">): string {
+  const n = v.nation;
+  const what =
+    v.role === "host"
+      ? n === "classique" ? "Partie Classique : les mêmes unités des deux côtés" : `Tu joues la <b>${NATION_LABEL[n].name}</b> · ton ami choisit la sienne`
+      : n === "classique" ? "Tu joueras la nation qui affronte celle de l'hôte" : `Tu demandes la <b>${NATION_LABEL[n].name}</b> (si l'hôte joue une nation)`;
+  return `<p class="duel-nations">${crestHtml(n)}<span>${what}</span></p>`;
+}
+
+/** The paired view's nations line: this phone's and the friend's, under the config agreed (null: Classique). */
+export function nationsLine(config: DuelConfig | null, side: Faction | null): string {
+  const n = config ? configNations(config) : undefined;
+  if (!config || !side) return "";
+  if (!n) return `<p class="duel-nations">${crestHtml("classique")}<span>Classique : les mêmes unités des deux côtés</span></p>`;
+  const mine = n[side]!;
+  const theirs = n[side === "blue" ? "red" : "blue"]!;
+  return `<p class="duel-nations"><span class="dn-side">${crestHtml(mine)}<span>Toi : <b>${NATION_LABEL[mine].name}</b></span></span><span class="dn-vs">contre</span><span class="dn-side">${crestHtml(theirs)}<span>Ton ami : <b>${NATION_LABEL[theirs].name}</b></span></span></p>`;
+}
+
 /**
  * What an opener gives, as the single-player picker's pills say it
  * (src/ui/openers.ts), from the same data (OPENERS, and the building and unit
  * names): "Fab Plant · 3 Stingers · 2 Harvesters · −100 scrap".
  */
-export function openerGives(id: OpenerId): string {
+export function openerGives(id: OpenerId, words: Words = CLASSIC): string {
   const o = OPENERS[id];
-  const parts = [BUILDINGS[o.building].name];
+  const n = words.nation;
+  const parts = [displayName(o.building, n)];
   const counts = new Map<UnitKind, number>();
-  for (const k of o.units) counts.set(k, (counts.get(k) ?? 0) + 1);
-  for (const [k, n] of counts) parts.push(`${n} ${n > 1 ? PLURALS[k] : UNITS[k].name}`);
-  parts.push(`${o.harvesters} ${o.harvesters > 1 ? PLURALS.harvester : UNITS.harvester.name}`);
+  for (const k of o.units) counts.set(words.kindFor(k), (counts.get(words.kindFor(k)) ?? 0) + 1);
+  for (const [k, c] of counts) parts.push(`${c} ${c > 1 ? pluralName(k, n) : UNITS[k].name}`);
+  const worker = words.kindFor("harvester");
+  parts.push(`${o.harvesters} ${o.harvesters > 1 ? pluralName(worker, n) : UNITS[worker].name}`);
   if (o.scrap > 0) parts.push(`+${o.scrap} charbon`);
   if (o.scrap < 0) parts.push(`−${-o.scrap} charbon`);
   return parts.join(" · ");
 }
 
-function openerCard(id: OpenerId, side: Faction, picked: boolean): string {
+const CLASSIC: Words = { nation: "classique", kindFor: (k) => k };
+const CLASSIC_ROLE = new Map<UnitKind, Role>();
+for (const [role, kind] of Object.entries(ROLES.classique) as [Role, UnitKind][]) if (!CLASSIC_ROLE.has(kind)) CLASSIC_ROLE.set(kind, role);
+
+/**
+ * How the opener cards name things for a side's nation (sim/nations.ts
+ * nationKind, without a world: the kind itself in Classique or when the
+ * nation fields it, else the nation's kind for its role), and the friend's
+ * workers in "leurs Fardiers".
+ */
+export function lobbyWords(mine: NationOrClassic, theirs: NationOrClassic = mine): Words {
+  const kindFor = (n: NationOrClassic) => (k: UnitKind): UnitKind => {
+    if (n === "classique" || inRoster(n, k)) return k;
+    const role = CLASSIC_ROLE.get(k);
+    return role ? ROLES[n][role] : k;
+  };
+  return {
+    nation: mine,
+    kindFor: kindFor(mine),
+    ...(theirs !== mine ? { enemyWorker: { nation: theirs, kind: kindFor(theirs)("harvester") } } : {})
+  };
+}
+
+function openerCard(id: OpenerId, side: Faction, picked: boolean, words: Words = CLASSIC): string {
   const o = OPENERS[id];
-  const unit = o.units[0] ?? "harvester";
+  const unit = words.kindFor(o.units[0] ?? "harvester");
   const n = o.units.length || o.harvesters;
   return `<button class="op-card op-${id}${picked ? " picked" : ""}" data-act="pick" data-id="${id}">
-      <div class="op-art"><img class="op-b" src="${iconUrl(o.building, side)}" alt="" draggable="false"/><img class="op-u" src="${iconUrl(unit, side)}" alt="" draggable="false"/><span class="op-n">×${n}</span></div>
-      <div class="op-text"><b class="op-name">${esc(o.name)}</b><span class="op-tag">${esc(o.tagline)}</span><span class="op-gives">${openerGives(id)
+      <div class="op-art"><img class="op-b" src="${iconUrl(o.building, side)}" alt="" draggable="false"/><img class="op-u" src="${iconUrl(portraitKind(unit), side)}" alt="" draggable="false"/><span class="op-n">×${n}</span></div>
+      <div class="op-text"><b class="op-name">${esc(o.name)}</b><span class="op-tag">${esc(nationText(o.tagline, id, words))}</span><span class="op-gives">${openerGives(id, words)
         .split(" · ")
         .map((part) => `<span>${esc(part)}</span>`)
         .join(" · ")}</span></div>
@@ -1071,7 +1163,8 @@ function layoutKey(v: LobbyView): string {
   const p = v.pairing;
   return [
     v.step, v.role, v.error?.kind, v.lost, v.switchRole, v.tips, v.quiet, v.route, v.loud, v.canBack, v.prefs.plan, v.prefs.micMode,
-    p?.phase, p?.pick, p?.picked, p?.offered.join(","), p?.config?.mapId, p?.side, v.online?.code, v.online?.peer, v.online?.state === "open"
+    p?.phase, p?.pick, p?.picked, p?.offered.join(","), p?.config?.mapId, p?.side, v.online?.code, v.online?.peer, v.online?.state === "open",
+    v.nation, p?.config?.nations?.host, p?.config?.nations?.guest
   ].join("|");
 }
 
@@ -1079,6 +1172,8 @@ function layoutKey(v: LobbyView): string {
 export interface OnlineSheet {
   linked: string | null;
   badCode: boolean;
+  /** What the code box held when the sheet was last rebuilt (a nation tap rebuilds it): kept, not retyped. */
+  typed?: string;
 }
 
 /** The online duel's steps where they differ from the sound's: choosing, connecting, waiting in the room. */
@@ -1092,12 +1187,12 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
       const bad = sheet.badCode ? `<p class="duel-err">Un code, ce sont 4 lettres.</p>` : "";
       const join = `<div class="duel-join">
           <p class="duel-lbl">${linked ? "Ton ami t'invite" : "Rejoindre avec un code"}</p>
-          <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="Code du salon" value="${esc(linked ?? "")}"/><button class="cta" data-act="join">Rejoindre</button></div>
+          <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="Code du salon" value="${esc(sheet.typed ?? linked ?? "")}"/><button class="cta" data-act="join">Rejoindre</button></div>
           ${bad}
         </div>`;
       const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>🏛 Créer un salon</b><small>Ta carte et tes mutateurs · un code à partager</small></button></div>`;
       return {
-        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${linked ? join + `<p class="duel-or">ou</p>` + create : create + `<p class="duel-or">ou</p>` + join}`,
+        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${linked ? join + `<p class="duel-or">ou</p>` + create : create + `<p class="duel-or">ou</p>` + join}`,
         actions: cancel
       };
     }
@@ -1113,12 +1208,12 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
             <p class="duel-bigcode" data-code="${esc(o?.code ?? "")}">${esc(o?.code ?? "····")}</p>
             <div class="duel-share"><button class="cta" data-act="share">🔗 Partager le lien</button><button class="cta alt" data-act="copy">Copier</button></div>
             <p class="duel-copied" hidden>Lien copié</p>
-            <p class="duel-status">${status}</p>${quiet}${onlineHtml(v)}${tips}`,
+            <p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`,
           actions: back + cancel
         };
       }
       const status = v.pairing?.phase === "linking" || o?.peer ? "Ton ami est là. Appairage…" : v.rematch ? "En attente que ton ami touche Revanche…" : "En attente de l'hôte…";
-      return { body: `<p class="duel-lbl duel-codelbl">Salon</p><p class="duel-bigcode small">${esc(o?.code ?? "")}</p><p class="duel-status">${status}</p>${quiet}${onlineHtml(v)}${tips}`, actions: back + cancel };
+      return { body: `<p class="duel-lbl duel-codelbl">Salon</p><p class="duel-bigcode small">${esc(o?.code ?? "")}</p><p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`, actions: back + cancel };
     }
     default:
       return null;
@@ -1161,6 +1256,7 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
             <button class="duel-role" data-act="host"><b>📡 Héberger</b><small>Ta carte et tes mutateurs</small></button>
             <button class="duel-role" data-act="join"><b>📲 Rejoindre</b><small>Ton ami héberge</small></button>
           </div>
+          ${nationPicker(v)}
           ${notes.join("")}${adv}`,
         actions: cancel
       };
@@ -1186,7 +1282,7 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
         : "";
       const tips = v.tips ? `<p class="duel-hint">${tipsText(v)}</p>` : "";
       return {
-        body: `<p class="sh-sub duel-place">${PLACEMENT}</p><p class="duel-status">${status}</p>${quiet}${meterHtml(v)}${hint}${tips}${notes.join("")}`,
+        body: `<p class="sh-sub duel-place">${PLACEMENT}</p><p class="duel-status">${status}</p>${v.rematch ? "" : myNationLine(v)}${quiet}${meterHtml(v)}${hint}${tips}${notes.join("")}`,
         actions: back + cancel
       };
     }
@@ -1195,12 +1291,14 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
       const side = p?.side ?? "blue";
       const offered = p?.offered ?? [];
       const picked = v.step === "waiting";
+      const nations = p?.config ? configNations(p.config) : undefined;
+      const words = nations ? lobbyWords(nations[side]!, nations[side === "blue" ? "red" : "blue"]!) : CLASSIC;
       const cards = offered.length
-        ? `<div class="duel-cards${picked ? " chosen" : ""}">${offered.map((id) => openerCard(id, side, picked && p?.pick === id)).join("")}</div>`
+        ? `<div class="duel-cards${picked ? " chosen" : ""}">${offered.map((id) => openerCard(id, side, picked && p?.pick === id, words)).join("")}</div>`
         : `<p class="duel-status">Aucune ouverture n'est permise avec ces règles.</p>`;
       const head = picked ? `<p class="duel-status">En attente du choix de ton ami…</p>` : `<h3>Choisis ton ouverture <small data-m="pickleft"></small></h3>`;
       return {
-        body: `<p class="duel-paired">✓ Appairés · tu joues <b class="duel-side ${side}">${side === "red" ? "rouge" : "bleu"}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${head}${quiet}${cards}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`,
+        body: `<p class="duel-paired">✓ Appairés · tu joues <b class="duel-side ${side}">${side === "red" ? "rouge" : "bleu"}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${nationsLine(p?.config ?? null, p?.side ?? null)}${head}${quiet}${cards}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`,
         actions: back + cancel
       };
     }
@@ -1316,7 +1414,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     seat: practice === "relay" ? params.seat : null,
     prefs,
     savePrefs,
-    offer: { map: o.shownMap, mutators: o.mutators, hostSide: practice ? params.side : "blue" },
+    offer: { map: o.shownMap, mutators: o.mutators, hostSide: practice ? params.side : "blue", nation: gameMode.nation },
     link: async (cfg, offer) => {
       if (online) {
         dropPractice();
@@ -1334,7 +1432,9 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
       }
       if (practice === "loop") {
         dropPractice();
-        const friendOffer = rematch ? offer : { ...offer, hostSide: cfg.tx === "host" ? params.side : params.side === "blue" ? "red" : "blue" };
+        const friendOffer: HostOffer = rematch ? offer : { ...offer, hostSide: cfg.tx === "host" ? params.side : params.side === "blue" ? "red" : "blue" };
+        // (the in-page friend hosting offers the nation facing this page's: a République page meets an Empire)
+        if (cfg.tx === "guest" && offer.nation && offer.nation !== "classique") friendOffer.nation = rivalOf(offer.nation as Nation);
         loop = new LoopLink({ params: params.loop, role: cfg.tx, offer: friendOffer, build, seed: (cryptoRandom() * 4294967296) >>> 0 });
         return loop.page;
       }
@@ -1401,6 +1501,8 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     const k = layoutKey(v);
     if (k !== key) {
       key = k;
+      const typed = body.querySelector<HTMLInputElement>(".duel-codein")?.value;
+      if (typed !== undefined) sheet.typed = typed;
       const html = bodyHtml(v, advOpen, sheet);
       body.innerHTML = html.body;
       actions.innerHTML = html.actions;
@@ -1509,6 +1611,14 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
       case "plan":
         m.setPlan(el.dataset.v === "low" ? "low" : "high");
         return render();
+      case "nation": {
+        const n = el.dataset.v;
+        if (n === "classique" || n === "republique" || n === "empire") {
+          m.setNation(n);
+          sfx.play("click", 0.5);
+        }
+        return render();
+      }
       case "mic":
         m.setMicMode(el.dataset.v === "ec" ? "ec" : "raw");
         return render();
