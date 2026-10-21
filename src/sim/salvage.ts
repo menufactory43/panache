@@ -1,4 +1,5 @@
 import { BUILDINGS, GOLIATH, SALVAGE, TICK_RATE, UNITS } from "./balance";
+import { behaves } from "./nations";
 import { isInfantry } from "./infantry";
 import type { Building, Faction, Unit, World, Wreck } from "./types";
 import { incomeOf } from "./rules";
@@ -20,7 +21,7 @@ import { cos, hypot, sin } from "./fmath";
  * hull; and 0 for robot infantry: a fallen squad leaves nothing worth hauling).
  */
 export function wreckValue(kind: Unit["kind"], share: number = SALVAGE.share): number {
-  if (kind === "harvester" || isInfantry(kind)) return 0;
+  if (behaves(kind, "harvester") || isInfantry(kind)) return 0;
   return Math.round(UNITS[kind].cost * share);
 }
 

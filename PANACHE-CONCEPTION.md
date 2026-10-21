@@ -982,3 +982,52 @@ construction ne montre que l'effectif de la nation du joueur.
 11. Pluriels choisis : « Jamais-Contente » invariable (nom propre de la voiture), « Vulcains », « Zéniths », « Titans ».
 12. `tests/goliath.test.ts` « le Gargantua voit plus loin que toute autre unité » restreint aux unités Classique
     (le Zénith voit à 11).
+
+### 3.6 WP1 — fait
+
+Livré sur `feat/camps-wp1`. Classique inchangé bit pour bit (`tests/classic-hash.test.ts` vert) ; tests des
+mécaniques : `tests/nations.test.ts` (25 tests : chaque mécanique, chaque pouvoir, déterminisme, miroirs Rép-Rép et
+Emp-Emp).
+
+Où trouver quoi :
+- `src/sim/nations.ts` (nouveau) : `behaves(kind, base)` / `buildingBehaves`, `nationKind(w, f, kind)` (genre Classique →
+  genre de la nation pour le même rôle), multiplicateurs (`buildingCostFor`, `buildingTicks`, `buildingMaxHp(w, b)`,
+  `unitTicks`, `parallelOf`, `radiumValue`, `harvestRate`, `holdOf`), Réseau électrique (`powerSources`, `inPowerRange`,
+  `needsPower`, `onGrid`, `isUnpowered`), Réseau TSF (`tsfSources`, `speedMult`, `sightBonus`), Tranchées
+  (`trenchCover`), zones de pouvoirs (`revealedTo`, `veiled`), `tickNations` (appelé par `sim.ts`) et `nationStart`
+  (appelé par `maps.ts`).
+- État exposé au rendu et à l'UI (champs simples, absents en Classique) : `Building.unpowered`, `Unit.entrenched`,
+  `Unit.still`, `Unit.tsf` (aura), `Unit.overdrive` (tick de fin de la Pression), `World.nation.reveals` (ballons-sondes,
+  publics) et `World.nation.clouds` (nuages de gaz, publics). `worldHash` ne les couvre que si `World.nation` existe.
+- `powers.ts` : `powerSet(w, f)` (les quatre pouvoirs du camp), Ballon-sonde, Gaz de houille, Pression, Rayon Curie
+  (`landHammer` paramétré), `podCrew` par nation (`POD_CREWS`).
+
+Écarts au document, et pourquoi :
+1. Les nouveaux champs d'état sont déclarés depuis `nations.ts` par augmentation de module (`declare module "./types"`)
+   au lieu d'être écrits dans `types.ts` (registre de WP0, gelé) : mêmes champs, visibles partout.
+2. Pas de `FxEvent` nouveaux (« hors réseau », « retranchée ») : l'union est dans `types.ts` ; le rendu lit les drapeaux.
+   La surchauffe de la Pression émet l'événement `stun` existant.
+3. Les tests de genre du Gargantua (`kind === "goliath"`, `spawnUnit` qui crée `GoliathState`, Zénith) restent à WP2
+   (`goliath.ts`, `lift.ts`) ; `nations.ts` compte déjà un Zénith (`kind === "zenith"`, amarré : `goliath.mode ===
+   "anchored"`) comme source des deux réseaux. Levage par deux Titans : `lift.ts` (WP2) ; le transport d'escouades du
+   Titan (capacité 3) marche déjà par `UNITS.capacity`.
+4. Tranchées : « immobile » = pas d'ordre `move/attackMove/board` et pas déplacée de plus de 0,02 case depuis le tick
+   précédent ; près d'une Hotchkiss, l'escouade immobile est retranchée dès le tick suivant.
+5. Gaz : le seuil d'acquisition est `POWERS.gaz.acquire` = 2 cases (le test vérifie bloqué à 2,5, pas à 1,5) ; il filtre
+   l'acquisition automatique (unités et défenses) et fait lâcher une cible auto entrée dans le nuage, pas un ordre
+   d'attaque explicite. Le nuage masque aussi sous Ciel dégagé.
+6. Ballon-sonde : peut viser une zone inexplorée (c'est son rôle) ; les autres pouvoirs gardent la règle.
+7. Pression : tous les véhicules terrestres non-infanterie du camp dans le rayon (Gargantua compris).
+8. Coûts de bâtiments par nation arrondis à l'entier (Tour TSF républicaine : 128) ; PV max arrondis.
+9. Réseau électrique : un bâtiment dans l'anneau d'un Gargantua/Zénith amarré reste plaçable (règle d'avant-poste) ;
+   `placementBlocker` dit « Hors du réseau électrique » ; `suggestPlacement` cherche aussi autour des sources.
+10. Fichiers hors liste touchés au minimum pour `behaves()`/`nationKind()` : `sim.ts` (commande `harvest`, appel de
+    `tickNations`), `maps.ts` (`nationStart`, unités de départ de la carte et d'Aéroportés par nation), `rules.ts`
+    (`nationBansMutator` : Nomades/Armada retirés si la République joue), `openers.ts` (Fourgons et unités d'ouverture
+    de la nation), `lifeline.ts` (Titan/Fusiliers pour l'Empire), `objectives.ts` et `salvage.ts` (récolteurs),
+    `tests/salvage.test.ts` (le Fourgon ne laisse pas d'épave, comme le Fardier).
+11. Reste aux autres lots (sites qui lisent encore `kind === "harvester"` ou `BUILDINGS[k].hp`) : WP6 —
+    `game/controller.ts` (ordre de récolte au clic, `isArmyUnit`), `GameScene.ts` (récolteur de départ du joueur mis au
+    travail), `render/entities.ts` (barres de vie : utiliser `buildingMaxHp`), `ui/hud.ts`/`controller.ts` (prix de
+    revente), `awareness.ts`, `chronicle.ts`, textes d'ouverture (« Fardiers ») ; WP3 — `ai/*` (`ai/menders.ts` PV
+    des bâtiments, placement sous réseau via `inPowerRange`/`powerSources`), `modes/survival.ts` ; WP4 — `arena/observe.ts`.

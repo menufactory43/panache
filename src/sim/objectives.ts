@@ -1,4 +1,5 @@
 import { COMBAT, INFANTRY, OBJECTIVES, POWERS, TICK_RATE, UNITS } from "./balance";
+import { behaves } from "./nations";
 import { isInfantry } from "./infantry";
 import { worldPick, worldRandom } from "./rand";
 import type { Crate, CrateReward, Faction, ObjectiveState, Unit, UnitKind, Uplink, World } from "./types";
@@ -88,7 +89,7 @@ export function setupObjectives(w: World, uplinks: readonly UplinkDef[], dropSit
  * elsewhere aircraft half, infantry double, everything else one.
  */
 export function captureWeight(l: Uplink, kind: UnitKind): number {
-  if (kind === "harvester") return 0;
+  if (behaves(kind, "harvester")) return 0;
   if (isInfantry(kind)) return INFANTRY.captureWeight;
   if (l.infantryOnly) return 0;
   return UNITS[kind].domain === "air" ? U.airWeight : 1;
@@ -288,7 +289,7 @@ function tickCrates(w: World): void {
     let best: Unit | null = null;
     let bestD = reach;
     for (const u of w.units.values()) {
-      if (u.kind === "harvester") continue;
+      if (behaves(u.kind, "harvester")) continue;
       const dx = u.x - c.x;
       if (dx > reach || dx < -reach) continue;
       const dy = u.y - c.y;
@@ -324,7 +325,7 @@ export function claimCrate(w: World, c: Crate, faction: Faction, collectorId: nu
       break;
     case "veterans":
       for (const u of near(D.veteranRadius)) {
-        if (u.kind === "harvester" || u.rank >= COMBAT.rankXp.length) continue;
+        if (behaves(u.kind, "harvester") || u.rank >= COMBAT.rankXp.length) continue;
         promote(u);
         unitIds.push(u.id);
         w.fx.push({ type: "rankUp", id: u.id });

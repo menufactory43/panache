@@ -1,4 +1,5 @@
 import { BUILDINGS, UNITS } from "./balance";
+import { behaves, nationKind } from "./nations";
 import { canPlaceBuilding, inBaseRange } from "./economy";
 import { anchoredGoliaths } from "./goliath";
 import { hash32, saltOf } from "./rand";
@@ -176,17 +177,18 @@ export function applyOpener(w: World, faction: Faction, id: OpenerId): AppliedOp
 
   // units wait on the enemy-facing side of their factory
   const unitsAt = toward(front, centre, 2.5);
-  for (const kind of o.units) {
+  for (const kind of o.units.map((k) => nationKind(w, faction, k))) {
     const p = freeSpot(w, fr, kind, unitsAt, front);
     if (p) out.unitIds.push(spawnFacing(w, faction, kind, fr, p, centre).id);
   }
 
   // extra harvesters line up between the HQ and its field
-  const have = [...w.units.values()].filter((u) => u.faction === faction && u.kind === "harvester").length;
+  const have = [...w.units.values()].filter((u) => u.faction === faction && behaves(u.kind, "harvester")).length;
+  const worker = nationKind(w, faction, "harvester");
   const harvestAt = field ? toward(hqC, { x: field.x + 0.5, y: field.y + 0.5 }, 2.6) : hqC;
   for (let i = have; i < o.harvesters; i++) {
-    const p = freeSpot(w, fr, "harvester", harvestAt, hqC);
-    if (p) out.unitIds.push(spawnFacing(w, faction, "harvester", fr, p, field ? { x: field.x + 0.5, y: field.y + 0.5 } : centre).id);
+    const p = freeSpot(w, fr, worker, harvestAt, hqC);
+    if (p) out.unitIds.push(spawnFacing(w, faction, worker, fr, p, field ? { x: field.x + 0.5, y: field.y + 0.5 } : centre).id);
   }
 
   w.factions[faction].scrap += o.scrap;
@@ -195,7 +197,7 @@ export function applyOpener(w: World, faction: Faction, id: OpenerId): AppliedOp
   if (field) {
     const [wx, wy] = fr.tile(field.x, field.y, 1);
     for (const u of w.units.values())
-      if (u.faction === faction && u.kind === "harvester" && u.order.type === "idle")
+      if (u.faction === faction && behaves(u.kind, "harvester") && u.order.type === "idle")
         u.order = { type: "harvest", fieldX: wx, fieldY: wy, phase: "toField" };
   }
   return out;

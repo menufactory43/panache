@@ -1,6 +1,7 @@
 import { BUILDINGS, TERRAIN, TICK_RATE, UNITS } from "./balance";
 import { canWalk, goliathReachAt, isLifted } from "./goliath";
 import { crushes, isInfantry, tickCrush } from "./infantry";
+import { speedMult } from "./nations";
 import { Terrain, type Faction, type Unit, type World } from "./types";
 import { domainOf, inBounds, moveClassOf, passable, regionAt, regionLabels, terrainMult, terrainSpeed, type LandClass, type MoveClass } from "./world";
 import { atan2, cos, hypot, sin } from "./fmath";
@@ -200,7 +201,9 @@ export function findPath(
 
 /** Tiles per tick this unit moves at its current position. */
 export function unitStepSpeed(w: World, u: Unit): number {
-  return (UNITS[u.kind].speed / TICK_RATE) * terrainSpeed(w, u.x, u.y, moveClassOf(u.kind));
+  const speed = (UNITS[u.kind].speed / TICK_RATE) * terrainSpeed(w, u.x, u.y, moveClassOf(u.kind));
+  // the nations' boosts (Réseau TSF, Pression des chaudières): never on a Classique unit
+  return u.tsf || u.overdrive !== undefined ? speed * speedMult(u) : speed;
 }
 
 /**

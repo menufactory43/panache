@@ -312,12 +312,21 @@ export function makeRules(ids: readonly MutatorId[]): Rules {
  * the first tick). Neither: no rules at all, Classique as it always was.
  */
 export function applyMutators(w: World, ids: readonly MutatorId[], nations?: Partial<Record<Faction, Nation>> | null): void {
-  const r = makeRules(ids.filter(isMutatorId));
   const n = matchNations(nations);
+  const r = makeRules(ids.filter((id) => isMutatorId(id) && !nationBansMutator(id, n)));
   if (n) r.nations = n;
   if (r.mutators.length === 0 && !n) return;
   w.rules = r;
   for (const f of Object.values(w.factions)) f.scrap = r.startScrap;
+}
+
+/**
+ * Does a match's nations rule out this mutator? Nomads and Goliath Armada
+ * stand on the Gargantua, so in v1 they are Classique or Empire only (§1.10):
+ * no République on either side.
+ */
+export function nationBansMutator(id: MutatorId, nations: Partial<Record<Faction, Nation>> | null | undefined): boolean {
+  return (id === "nomads" || id === "armada") && !!nations && (nations.blue === "republique" || nations.red === "republique");
 }
 
 export const rulesOf = (w: World): Readonly<Rules> => w.rules ?? DEFAULT_RULES;
