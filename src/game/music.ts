@@ -12,11 +12,19 @@
  *
  * Budget: 8 persistent pad oscillators plus at most 10 transient voices
  * (14 during a stinger); drums and ambience reuse shared noise buffers.
+ *
+ * With the Belle Époque theme (theme.ts BELLE_EPOQUE) the score is
+ * score-belle.ts's: a barrel-organ waltz on the menu, an accordion musette
+ * waltz while it is calm and a military march once a fight is on, with
+ * their own instruments below (accordion, organ pipes, fife, oom-pah
+ * stabs, field drum, bass drum and cymbals).
  */
 import type { Biome } from "../sim/types";
 import { Ambience } from "./ambience";
 import { onAnnounce, type Announcement } from "./announce";
 import { sfx } from "./audio";
+import { BelleComposer, belleLayerTargets } from "./score-belle";
+import { BELLE_EPOQUE } from "./three/theme";
 import {
   Composer,
   FLAVOURS,
@@ -41,7 +49,7 @@ const TICK_MS = 25;
 /** Mix level of each layer at full target. */
 const LEVEL: Record<MusicLayer, number> = { pad: 0.17, bell: 0.32, bass: 0.26, drums: 0.85, arp: 0.42 };
 /** Transient-voice budget by priority (stingers may use the top of it). */
-const CAP = { stinger: 14, bass: 10, drums: 10, bell: 9, arp: 8 } as const;
+const CAP = { stinger: 14, bass: 10, stab: 10, drums: 10, bell: 9, arp: 8 } as const;
 const NOISE_CAP = 8;
 /** Swing: odd 16ths of the hats and tabla land this fraction of a step late. */
 const SWING = 0.1;
@@ -72,6 +80,8 @@ interface Graph {
   snareFilter: BiquadFilterNode;
   crashFilter: BiquadFilterNode;
   takFilter: BiquadFilterNode;
+  /** The Belle Époque oom-pah's chord stabs (into the bass layer). */
+  stabFilter: BiquadFilterNode;
   sting: GainNode;
   reverbSend: GainNode;
   reverb: ConvolverNode;
@@ -79,6 +89,12 @@ interface Graph {
   delay: DelayNode;
   ambience: Ambience;
 }
+
+/** What the Music class needs from a composer (score.ts's, or score-belle.ts's). */
+type ScoreComposer = Pick<
+  Composer,
+  "flavour" | "bpm" | "step" | "voicing" | "root" | "gates" | "stepSeconds" | "setBiome" | "closeGates" | "holdTonic" | "next"
+>;
 
 interface PadVoice {
   a: OscillatorNode;
@@ -102,7 +118,7 @@ export class Music {
   private hidden = false;
   private running = false;
   private timer = 0;
-  private composer = new Composer(FLAVOURS.temperate, (Math.random() * 1e9) | 0);
+  private composer: ScoreComposer;
   private nextTime = 0;
   private pad: PadVoice[] = [];
   private padFlavour: Flavour | null = null;
@@ -118,11 +134,20 @@ export class Music {
   private finished = false;
   /** A sound duel's link mode: the reverb send is cut (its convolver idles, and nothing smears into the guard). */
   private dry = false;
+  /** The next start() comes in at full level (play's `downbeat`). */
+  private downbeat = false;
 
   /**
    * `manual`: no internal timer; the caller drives pump() (offline renders).
    */
-  constructor(private manual = false) {}
+  constructor(
+    private manual = false,
+    /** The Belle Époque score and instruments (default: the theme's switch). */
+    private belle: boolean = BELLE_EPOQUE
+  ) {
+    const seed = (Math.random() * 1e9) | 0;
+    this.composer = belle ? new BelleComposer("temperate", seed) : new Composer(FLAVOURS.temperate, seed);
+  }
 
   /** Hook up to an audio engine (once audio is unlocked). */
   attach(e: MusicEngine): void {
@@ -153,12 +178,17 @@ export class Music {
     else this.startTimer();
   }
 
-  /** Play the menu or battle score for a biome (switches on the next bar line). */
-  play(mode: "menu" | "battle", biome: Biome): void {
+  /**
+   * Play the menu or battle score for a biome (switches on the next bar line).
+   * `downbeat`: when this starts the music, it comes in at full level on its
+   * first beat instead of fading in (the title screen's logo slam).
+   */
+  play(mode: "menu" | "battle", biome: Biome, downbeat = false): void {
+    this.downbeat = downbeat;
     this.mode = mode;
     this.biome = biome;
     this.finished = false;
-    this.composer.setFlavour(FLAVOURS[biome]);
+    this.composer.setBiome(biome);
     if (this.running && this.g && this.e) {
       if (mode === "battle") this.g.ambience.start(biome, this.e.ctx.currentTime + 0.5);
       else this.g.ambience.stop(this.e.ctx.currentTime);
@@ -263,7 +293,8 @@ export class Music {
     this.running = true;
     g.fade.gain.cancelScheduledValues(now);
     g.fade.gain.setValueAtTime(g.fade.gain.value, now);
-    g.fade.gain.setTargetAtTime(1, now, 0.6);
+    g.fade.gain.setTargetAtTime(1, now, this.downbeat ? 0.015 : 0.6);
+    this.downbeat = false;
     this.startPad(now);
     if (this.mode === "battle") g.ambience.start(this.biome, now + 0.3);
     this.nextTime = now + 0.08;
@@ -345,7 +376,7 @@ export class Music {
     const g = this.g!;
     const mode = this.mode === "off" ? "battle" : this.mode;
     const I = this.effectiveIntensity();
-    const tg = layerTargets(mode, I, this.input.alarm && mode === "battle");
+    const tg = (this.belle ? belleLayerTargets : layerTargets)(mode, I, this.input.alarm && mode === "battle");
     for (const l of LAYERS) {
       const v = tg[l] * LEVEL[l];
       const last = this.lastLevel[l];
@@ -411,9 +442,9 @@ export class Music {
     }
     gate.pad.connect(gain(0.45, reverbSend));
     gate.bell.connect(gain(0.5, reverbSend));
-    gate.bell.connect(gain(0.35, delaySend));
+    gate.bell.connect(gain(this.belle ? 0.1 : 0.35, delaySend));
     gate.arp.connect(gain(0.3, reverbSend));
-    gate.arp.connect(gain(0.4, delaySend));
+    gate.arp.connect(gain(this.belle ? 0.12 : 0.4, delaySend));
     gate.drums.connect(gain(0.08, reverbSend));
 
     const padArtic = gain(1, level.pad);
@@ -423,13 +454,15 @@ export class Music {
     const bassFilter = filter("lowpass", 380, 2, bassShaper);
     const arpFilter = filter("lowpass", 2200, 1.5, level.arp);
     const hatFilter = filter("highpass", 7000, 0.7, level.drums);
-    const snareFilter = filter("bandpass", 1700, 0.55, level.drums);
+    // (the field drum's snares are brighter and tighter than a kit snare)
+    const snareFilter = this.belle ? filter("bandpass", 2600, 0.9, level.drums) : filter("bandpass", 1700, 0.55, level.drums);
     const crashFilter = filter("highpass", 4200, 0.5, level.drums);
     const takFilter = filter("bandpass", 2600, 2.5, level.drums);
-    const ambience = new Ambience(c, gain(1, muffle));
+    const stabFilter = filter("lowpass", 1500, 0.7, level.bass);
+    const ambience = new Ambience(c, gain(1, muffle), this.belle);
     return {
       fade, muffle, bed, level, gate, padFilter, padArtic, bassFilter, bassShaper, arpFilter,
-      hatFilter, snareFilter, crashFilter, takFilter, sting, reverbSend, reverb, delaySend, delay, ambience
+      hatFilter, snareFilter, crashFilter, takFilter, stabFilter, sting, reverbSend, reverb, delaySend, delay, ambience
     };
   }
 
@@ -515,6 +548,9 @@ export class Music {
           break;
         case "drum":
           this.drum(x.voice === "hat" || x.voice === "open" || x.voice === "tak" ? swung : t, x.voice, x.vel);
+          break;
+        case "stab":
+          this.stab(t, x.notes, x.len * sec, x.vel);
           break;
       }
     }
@@ -663,6 +699,51 @@ export class Music {
         o3?.connect(this.env(t, 0.08 * vel, 0.002, t + 0.11, out));
         break;
       }
+      case "accordion": {
+        // two reeds tuned apart (the musette's beating), a slow swell of the bellows
+        const end = t + dur * 0.95 + 0.12;
+        const lp = this.e!.ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = Math.min(4200, fr * 5);
+        lp.Q.value = 0.7;
+        lp.connect(this.env(t, 0.26 * vel, 0.025, end, out, Math.max(0, dur * 0.95 - 0.05)));
+        const a = this.osc("bell", "square", fr, t, end);
+        if (!a) return;
+        a.detune.value = -8;
+        a.connect(lp);
+        const b = this.osc("bell", "sawtooth", fr, t, end);
+        if (b) {
+          b.detune.value = 13;
+          b.connect(lp);
+        }
+        break;
+      }
+      case "organ": {
+        // a flute pipe and its octave; the accents ring a glockenspiel too
+        const end = t + dur * 0.9 + 0.08;
+        const o = this.osc("bell", "triangle", fr, t, end);
+        if (!o) return;
+        o.connect(this.env(t, 0.42 * vel, 0.018, end, out, Math.max(0, dur * 0.9 - 0.04)));
+        const o2 = this.osc("bell", "sine", fr * 2, t, end);
+        o2?.connect(this.env(t, 0.12 * vel, 0.02, end, out, Math.max(0, dur * 0.9 - 0.04)));
+        if (vel >= 0.95) {
+          const gl = this.osc("bell", "sine", fr * 4, t, t + 0.5);
+          gl?.connect(this.env(t, 0.06, 0.002, t + 0.48, out));
+        }
+        break;
+      }
+      case "fife": {
+        // a fife an octave up: a breathy triangle with a little vibrato's worth of detune
+        const end = t + dur * 0.85 + 0.06;
+        const o = this.osc("bell", "triangle", fr * 2, t, end);
+        if (!o) return;
+        o.detune.setValueAtTime(-15, t);
+        o.detune.setTargetAtTime(0, t, 0.03);
+        o.connect(this.env(t, 0.2 * vel, 0.02, end, out, Math.max(0, dur * 0.85 - 0.04)));
+        const o2 = this.osc("bell", "sine", fr * 4, t, end);
+        o2?.connect(this.env(t, 0.03 * vel, 0.02, end, out));
+        break;
+      }
       case "marimba": {
         // wooden: a sine with a short 4th-harmonic knock
         const end = t + Math.min(1.1, dur + 0.4);
@@ -673,6 +754,22 @@ export class Music {
         k?.connect(this.env(t, 0.2 * vel, 0.002, t + 0.08, out));
         break;
       }
+    }
+  }
+
+  /** The "pah" of the Belle Époque oom-pah: a short chord in the style's instrument. */
+  private stab(t: number, notes: readonly number[], dur: number, vel: number): void {
+    const f = this.composer.flavour;
+    const end = t + Math.max(0.08, dur);
+    const peak = (f.bell === "fife" ? 0.3 : f.bell === "organ" ? 0.3 : 0.22) * vel;
+    const wave: OscillatorType = f.bell === "fife" ? "sawtooth" : f.bell === "organ" ? "triangle" : "square";
+    let env: GainNode | null = null;
+    for (const m of notes) {
+      const o = this.osc("stab", wave, mtof(m), t, end + 0.01);
+      if (!o) break;
+      env ??= this.env(t, peak / Math.sqrt(notes.length), 0.008, end, this.g!.stabFilter, Math.max(0, dur * 0.5));
+      if (f.bell === "accordion") o.detune.value = 9;
+      o.connect(env);
     }
   }
 
@@ -689,6 +786,7 @@ export class Music {
     const g = this.g!;
     const vel = vel0 * (0.9 + Math.random() * 0.18);
     const dest = out ?? g.level.drums;
+    if (this.belle && this.belleDrum(t, voice, vel, dest, out)) return;
     switch (voice) {
       case "kick": {
         const o = this.osc("drums", "sine", 210, t, t + 0.34);
@@ -748,6 +846,60 @@ export class Music {
         break;
       }
     }
+  }
+
+  /** The march's band percussion; false for voices it leaves to drum(). */
+  private belleDrum(t: number, voice: DrumVoice, vel: number, dest: AudioNode, out?: AudioNode): boolean {
+    const g = this.g!;
+    switch (voice) {
+      case "kick": {
+        // the bass drum (grosse caisse): a soft felt beater, a long low boom
+        const o = this.osc("drums", "sine", 120, t, t + 0.5);
+        if (!o) return true;
+        o.frequency.exponentialRampToValueAtTime(52, t + 0.16);
+        o.connect(this.env(t, 1.1 * vel, 0.004, t + 0.46, dest));
+        const n = this.noiseSrc(t, t + 0.04);
+        n?.connect(this.env(t, 0.18 * vel, 0.002, t + 0.03, g.takFilter));
+        return true;
+      }
+      case "snare": {
+        // the field drum: a crisp head and long rattling snares
+        const n = this.noiseSrc(t, t + 0.16);
+        n?.connect(this.env(t, 1.0 * vel, 0.001, t + 0.15, g.snareFilter));
+        const o = this.osc("drums", "triangle", 220, t, t + 0.06);
+        if (o) {
+          o.frequency.exponentialRampToValueAtTime(160, t + 0.05);
+          o.connect(this.env(t, 0.35 * vel, 0.001, t + 0.05, dest));
+        }
+        return true;
+      }
+      case "roll": {
+        // a buzz roll over a beat and a half, swelling into the next downbeat
+        const len = this.composer.stepSeconds * 6;
+        const n = this.noiseSrc(t, t + len + 0.05);
+        if (!n) return true;
+        const gn = this.e!.ctx.createGain();
+        const p = gn.gain;
+        p.setValueAtTime(0, t);
+        const stroke = 1 / 26;
+        for (let k = 0, at = t; at < t + len; k++, at += stroke) {
+          p.setValueAtTime((0.22 + 0.45 * ((at - t) / len)) * vel * (k % 2 ? 0.8 : 1), at);
+          p.setTargetAtTime(0.04 * vel, at + 0.004, 0.01);
+        }
+        p.setValueAtTime(0, t + len);
+        n.connect(gn).connect(g.snareFilter);
+        return true;
+      }
+      case "cym":
+      case "crash": {
+        // clash cymbals: a bright splash that dies quickly (a stinger's crash rings longer)
+        const len = voice === "crash" ? (out ? 1.4 : 0.9) : 0.45;
+        const n = this.noiseSrc(t, t + len + 0.05, 1.1);
+        n?.connect(this.env(t, (voice === "crash" ? 0.22 : 0.16) * vel, 0.002, t + len, out ? this.highpass(out) : g.crashFilter));
+        return true;
+      }
+    }
+    return false;
   }
 
   private highpass(to: AudioNode): BiquadFilterNode {

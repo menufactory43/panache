@@ -13,10 +13,15 @@
  * words; radio-only lines also get a small caption so nothing is lost with
  * the sound off. Speech must be unlocked from a user gesture on iOS; the
  * module primes it on the first tap.
+ *
+ * With the Belle Époque theme the radio is a telegraph line: the squelch is
+ * a sounder's click-clack over a carbon microphone's hiss, and the code is
+ * keyed on a TSF buzzer (same pitches and timing as the radio code).
  */
 import type { Faction, FxEvent, World } from "../sim/types";
 import { onAnnounce, announce, type Announcement, type AnnounceTone } from "./announce";
 import { sfx } from "./audio";
+import { BELLE_EPOQUE } from "./three/theme";
 import { BattleCallouts, RadioQueue, isEndLine, speakable, type RadioCueKey, type RadioLine } from "./callouts";
 
 /** Speech voice settings. */
@@ -80,12 +85,12 @@ class Speech {
   private pick(): void {
     const all = this.synth?.getVoices() ?? [];
     if (all.length === 0) return;
-    const en = all.filter((v) => /^en([-_]|$)/i.test(v.lang));
-    const pool = en.length ? en : all;
+    const fr = all.filter((v) => /^fr([-_]|$)/i.test(v.lang));
+    const pool = fr.length ? fr : all;
     const score = (v: SpeechSynthesisVoice) =>
       (v.localService ? 2 : 0) +
-      (/male|daniel|alex|fred|david|george|guy|mark|ryan|arthur|james|thomas|rishi|oliver/i.test(v.name) && !/female/i.test(v.name) ? 3 : 0) +
-      (/en[-_](gb|us)/i.test(v.lang) ? 1 : 0) +
+      (/male|thomas|nicolas|daniel|henri|paul|jacques|antoine|mathieu|guillaume|olivier|denis|claude/i.test(v.name) && !/female/i.test(v.name) ? 3 : 0) +
+      (/^fr[-_]fr/i.test(v.lang) ? 1 : 0) +
       (v.default ? 0.5 : 0);
     this.voice = [...pool].sort((a, b) => score(b) - score(a))[0] ?? null;
     this.state = "ok";
@@ -107,7 +112,7 @@ class Speech {
     try {
       const u = new SpeechSynthesisUtterance(text);
       if (this.voice) u.voice = this.voice;
-      u.lang = this.voice?.lang ?? "en-US";
+      u.lang = this.voice?.lang ?? "fr-FR";
       // hype lines are a touch slower and lower, warnings a touch quicker
       u.rate = tone === "epic" ? SPEECH.rate * 0.94 : tone === "bad" ? SPEECH.rate * 1.04 : SPEECH.rate;
       u.pitch = tone === "epic" ? SPEECH.pitch * 0.9 : SPEECH.pitch;
@@ -189,7 +194,29 @@ function squelch(open: boolean): void {
   g.gain.exponentialRampToValueAtTime(0.002, t + dur);
   src.connect(bp).connect(g).connect(out);
   src.start(t, Math.random() * 1.5, dur + 0.02);
-  if (open) {
+  if (BELLE_EPOQUE) {
+    // the telegraph sounder: the armature's click (and its clack back, opening a line)
+    bp.frequency.value = 1100;
+    bp.Q.value = 0.7;
+    g.gain.cancelScheduledValues(t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.07, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.002, t + dur);
+    for (const [d, f] of open ? ([[0, 1900], [0.045, 1500]] as const) : ([[0, 1700]] as const)) {
+      const k = ctx.createBufferSource();
+      k.buffer = noise;
+      const kf = ctx.createBiquadFilter();
+      kf.type = "bandpass";
+      kf.frequency.value = f;
+      kf.Q.value = 4;
+      const kg = ctx.createGain();
+      kg.gain.setValueAtTime(0, t + d);
+      kg.gain.linearRampToValueAtTime(0.5, t + d + 0.001);
+      kg.gain.exponentialRampToValueAtTime(0.002, t + d + 0.025);
+      k.connect(kf).connect(kg).connect(out);
+      k.start(t + d, Math.random() * 1.5, 0.04);
+    }
+  } else if (open) {
     const o = ctx.createOscillator();
     o.type = "sine";
     o.frequency.value = 1200;
@@ -230,8 +257,10 @@ function code(tone: AnnounceTone, priority: number): number {
     o.type = "square";
     o.frequency.value = f;
     const lp = ctx.createBiquadFilter();
-    lp.type = "lowpass";
-    lp.frequency.value = 2400;
+    // the TSF buzzer: a nasal band around the note (the radio: a plain lowpass)
+    lp.type = BELLE_EPOQUE ? "bandpass" : "lowpass";
+    lp.frequency.value = BELLE_EPOQUE ? f * 2 : 2400;
+    if (BELLE_EPOQUE) lp.Q.value = 1.2;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(0.09, t + 0.005);
@@ -257,7 +286,7 @@ export function radioCheck(): void {
   const fallback = () => code("info", 2);
   // link mode (a sound duel) speaks no words: the code stands in
   if (sfx.settings.speech && !sfx.linkMode && speech.usable) {
-    if (!speech.speak("Radio check", "info", () => squelch(false), fallback)) fallback();
+    if (!speech.speak("Essai radio", "info", () => squelch(false), fallback)) fallback();
   } else fallback();
 }
 

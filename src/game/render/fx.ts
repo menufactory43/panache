@@ -6,7 +6,10 @@ import { fowUniforms, glowMat, modelMat } from "../three/materials";
 import { GM_D, modelMesh, rubbleGeometry } from "../three/models";
 import { TEX, type EmitCfg } from "../three/particles";
 import { WATER_LEVEL } from "../three/terrain";
+import { BELLE_EPOQUE } from "../three/theme";
 import { AIR_H, type P3, type View } from "../three/view";
+import { Arcs, type BoltOpts } from "../three/arcs";
+import * as BE from "./belle-fx";
 
 type ShotEvent = Extract<FxEvent, { type: "shot" }>;
 
@@ -33,6 +36,8 @@ interface Flier {
   t: number;
   dur: number;
   trail: boolean;
+  /** A Belle Époque Congreve rocket: sputtering sparks and powder smoke instead of a clean contrail. */
+  rocket: boolean;
   /** Distance flown since the last trail puff (tiles). */
   acc: number;
   onHit?: () => void;
@@ -63,7 +68,7 @@ const DAMAGE_SMOKE: EmitCfg = {
   tints: [0x6e6962, 0x7a756d], end: 0xa8a39b, wind: [0.4, 0.2]
 };
 /** Black smoke billowing off a burning one. Both lean well downwind, so the plume shows against the ground, not just the dark roof. */
-const BURN_SMOKE: EmitCfg = {
+const BURN_SMOKE: EmitCfg = BELLE_EPOQUE ? BE.COAL_BURN : {
   ...SMOKE, life: [1800, 2800], up: [0.6, 1.0], size: [0.5, 0.65], grow: [2.8, 3.6], alpha: [0.82, 0],
   tints: [0x3a3633, 0x45403b, 0x4f4a44], end: 0x8a857e, wind: [0.4, 0.2]
 };
@@ -88,7 +93,7 @@ const EMBERS: EmitCfg = {
 };
 const DEBRIS: EmitCfg = {
   tex: TEX.chunk, tex2: TEX.debris, life: [600, 950], speed: [0.8, 2.6], up: [2, 3.6], size: [0.12, 0.2], grow: [0.8, 1],
-  alpha: [1, 0.5], tints: [0x5d6168, 0x4c4741, 0x6e655a, 0x3c3f44], gravity: -9.5, spin: 14
+  alpha: [1, 0.5], tints: BELLE_EPOQUE ? BE.DEBRIS_TINTS : [0x5d6168, 0x4c4741, 0x6e655a, 0x3c3f44], gravity: -9.5, spin: 14
 };
 const TRAIL: EmitCfg = {
   tex: TEX.smoke, life: [320, 600], speed: [0, 0.06], up: [0.04, 0.14], size: [0.16, 0.21], grow: [2.4, 3.2],
@@ -132,6 +137,10 @@ const WELD: EmitCfg = {
   tex: TEX.spark, additive: true, life: [180, 420], speed: [0.6, 2.2], up: [0.2, 1.6], size: [0.1, 0.16], grow: [0.2, 0.3],
   alpha: [1, 0], tints: [0xffffff, 0xfff4d0], end: 0xffa040, gravity: -7
 };
+
+/** Bigger black-powder clouds for the cannon and the big guns. */
+const POWDER_MID: EmitCfg = { ...BE.POWDER, size: [0.16, 0.22] };
+const POWDER_BIG: EmitCfg = { ...BE.POWDER, size: [0.24, 0.32], life: [2200, 3400] };
 
 const tracerGeo = new THREE.BoxGeometry(0.035, 0.035, 1);
 let tracerMat: THREE.MeshBasicMaterial | null = null;
@@ -183,6 +192,10 @@ export class Fx {
    * entity renderer): read once, as the shell appears.
    */
   shellFrom: ((sourceId: number) => P3 | null) | null = null;
+  /** What fired (a unit or building kind, set by GameScene): the Belle Époque look tells the Blériot's guns from the Batterie Ruggieri's rockets. */
+  sourceKind: ((sourceId: number) => string | null) | null = null;
+  /** Electric arcs (Belle Époque only). */
+  readonly arcs: Arcs | null;
   private fliers: Flier[] = [];
   private shells = new Map<number, THREE.Mesh>();
   private rubbles: THREE.Object3D[] = [];
@@ -211,10 +224,14 @@ export class Fx {
       alpha: [0.6, 0], tints: [dust], drag: 0.06, rot: 0.5, fadeIn: 0.05, easeOut: true
     };
     const ash = biome === "volcanic";
-    this.smoke = ash ? { ...SMOKE, tints: [0x6a645d, 0x5d5852, 0x77716a], end: 0xaaa49c } : SMOKE;
-    this.plumeTints = ash ? [0x57524c, 0x625c56, 0x6d6760] : [0x2c2a28, 0x353230, 0x403b37];
+    // (Belle Époque: coal-black smoke, except over the dark volcanic ground, where it would vanish)
+    this.smoke = ash ? { ...SMOKE, tints: [0x6a645d, 0x5d5852, 0x77716a], end: 0xaaa49c } : BELLE_EPOQUE ? BE.COAL_SMOKE : SMOKE;
+    this.plumeTints = ash ? [0x57524c, 0x625c56, 0x6d6760] : BELLE_EPOQUE ? [0x1c1a18, 0x24211f, 0x2b2825] : [0x2c2a28, 0x353230, 0x403b37];
     this.lava = biome === "volcanic";
-    tracerMat ??= glowMat(0xffe2a0, 1);
+    // (Belle Époque: a short brass-orange shell streak)
+    tracerMat ??= glowMat(BELLE_EPOQUE ? 0xffa646 : 0xffe2a0, 1);
+    this.arcs = BELLE_EPOQUE ? new Arcs(v.rig) : null;
+    if (this.arcs) v.scene.add(this.arcs.mesh);
   }
 
   /** A sound at tile point (x, y): as loud as it is close to the view. */
@@ -235,6 +252,10 @@ export class Fx {
     const squad = this.squads?.shooters(ev.sourceId, fx);
     if (squad) {
       this.volley(ev, squad, from, to);
+      return;
+    }
+    if (BELLE_EPOQUE) {
+      this.belleShot(ev, from, to);
       return;
     }
     switch (fx) {
@@ -322,7 +343,8 @@ export class Fx {
         const m = this.squads?.fire(id, i) ?? (k === 0 ? from : null);
         if (!m) return;
         const t = { x: to.x + (Math.random() - 0.5) * spread, y: to.y + (Math.random() - 0.5) * spread, h: to.h + (Math.random() - 0.4) * spread * 0.5 };
-        if (ev.fx === "rifle") {
+        if (BELLE_EPOQUE) this.belleVolley(ev, k, m, t);
+        else if (ev.fx === "rifle") {
           this.muzzle(m, 0.2, 0xffd27a);
           this.tracer(m, t, 0.42, k < 2 ? () => this.emit({ ...SPARKS, size: [0.12, 0.18] }, t, 2) : undefined);
           if (k === 0) this.sound("rifle", m.x, m.y, 0.55);
@@ -354,6 +376,217 @@ export class Fx {
       this.emit(RAIL_WAKE, { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, h: from.h + (to.h - from.h) * k }, 1);
     }
     this.sound("snipe", from.x, from.y, 0.8);
+  }
+
+  // ------------------------------------------------- Belle Époque shots ---
+
+  /**
+   * A weapon fired, Belle Époque style: black powder and brass. Guns bark a
+   * bright flash and a big white-grey cloud that drifts off; shells streak
+   * brass-orange; machine guns chatter in quick little flashes and spit
+   * casings; flak bursts black in the sky; rockets are sputtering Congreves;
+   * the lance and the Gargantua's eye throw crackling electric arcs.
+   * (Every hit still lands when the original's does.)
+   */
+  private belleShot(ev: ShotEvent, from: P3, to: P3): void {
+    switch (ev.fx) {
+      case "cannon":
+        this.muzzle(from, 0.55, 0xfff0c8);
+        this.flash(from, 0.45, 0xffa040, 0.6);
+        this.powder(from, to, 2, POWDER_MID);
+        this.tracer(from, to, 1, () => this.impact(to, 0.35, ev.air));
+        this.sound("cannon", from.x, from.y, 0.8);
+        break;
+      case "heavy-cannon":
+        this.muzzle(from, 1.05, 0xfff0c8);
+        this.flash(from, 0.9, 0xffa040, 0.7);
+        this.powder(from, to, 4, POWDER_BIG);
+        this.tracer(from, to, 1.8, () => this.impact(to, 0.7, ev.air));
+        this.sound("heavy", from.x, from.y);
+        break;
+      case "mg":
+        this.burst(from, to, 3, 0.3, 70);
+        this.sound("mg", from.x, from.y, 0.6);
+        break;
+      case "flak": {
+        // the Faucheux's Gatling: a quick ripple of rounds, and a black "Archie" burst up there
+        this.burst(from, to, 2, 0.36, 60);
+        this.tracer(from, to, 0.7, () => this.archie(to));
+        this.sound("flak", from.x, from.y, 0.7);
+        break;
+      }
+      case "rockets":
+        for (const side of [-1, 1]) {
+          const nx = -(to.y - from.y);
+          const ny = to.x - from.x;
+          const len = Math.hypot(nx, ny) || 1;
+          const o = { x: from.x + (nx / len) * 0.11 * side, y: from.y + (ny / len) * 0.11 * side, h: from.h };
+          this.missile(o, to, 240 + side * 30, false, () => this.rocketBurst(to, 0.45, ev.air));
+        }
+        this.flash(from, 0.35, 0xffc070, 0.7);
+        this.emit(BE.POWDER_SMALL, from, 2);
+        this.sound("rocket", from.x, from.y, 0.7);
+        break;
+      case "missile":
+        if (this.sourceKind?.(ev.sourceId) === "raptor") {
+          // the Blériot has no rockets: a burst from its machine gun
+          this.burst(from, to, 3, 0.3, 60, () => this.impact(to, 0.3, ev.air));
+          this.sound("mg", from.x, from.y, 0.7);
+          break;
+        }
+        // a Batterie Ruggieri: a big Congreve, weaving up at its prey
+        this.missile(from, to, 420, true, () => this.rocketBurst(to, 0.5, ev.air));
+        this.flash(from, 0.4, 0xffc070, 0.8);
+        this.emit(BE.POWDER, from, 2);
+        this.sound("missile", from.x, from.y, 0.7);
+        break;
+      case "laser":
+        this.zap(from, to);
+        this.sound("laser", from.x, from.y, 0.7);
+        break;
+      case "shell":
+        this.muzzle(from, 0.95, 0xfff0c8);
+        this.flash(from, 0.8, 0xffa040, 0.7);
+        this.powder(from, to, 5, POWDER_BIG);
+        this.sound("shell", from.x, from.y);
+        break;
+      case "bomb":
+        this.sound("bomb", from.x, from.y, 0.6);
+        break;
+      case "rifle":
+        this.muzzle(from, 0.24, 0xfff0c8);
+        this.emit(BE.POWDER_SMALL, from, 1);
+        this.tracer(from, to, 0.45);
+        this.sound("rifle", from.x, from.y, 0.55);
+        break;
+      case "snipe":
+        this.crack(from, to);
+        break;
+    }
+  }
+
+  /** One robot of a squad fires, Belle Époque style (see volley()). */
+  private belleVolley(ev: ShotEvent, k: number, m: P3, t: P3): void {
+    if (ev.fx === "rifle") {
+      this.muzzle(m, 0.2, 0xfff0c8);
+      if (k < 3) this.emit(BE.POWDER_SMALL, m, 1);
+      this.tracer(m, t, 0.42, k < 2 ? () => this.emit({ ...SPARKS, size: [0.12, 0.18] }, t, 2) : undefined);
+      if (k === 0) this.sound("rifle", m.x, m.y, 0.55);
+    } else if (ev.fx === "rockets") {
+      // an artificier's rocket: a puff of powder at the trough, a Congreve away
+      this.emit(BE.POWDER_SMALL, m, 2);
+      this.flash(m, 0.3, 0xffc070, 0.75);
+      this.missile(m, t, 280, false, () => this.rocketBurst(t, 0.42, ev.air));
+      this.sound("rocket", m.x, m.y, 0.55);
+    } else this.crack(m, t);
+  }
+
+  /**
+   * Black-powder smoke out of a muzzle: `n` puffs blown out along the line of
+   * fire, the first ones biggest, then left to drift downwind.
+   */
+  private powder(from: P3, to: P3, n: number, cfg: EmitCfg): void {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const pt = this.v.particles;
+    for (let i = 0; i < n; i++) {
+      const s = 0.04 + i * 0.1;
+      pt.emit(cfg, from.x + (dx / d) * s, from.y + (dy / d) * s, from.h + 0.02, 1);
+    }
+  }
+
+  /** A machine gun's chatter: `n` rounds `gap` ms apart, each a small flash, a puff, a casing and a brass streak. */
+  private burst(from: P3, to: P3, n: number, scale: number, gap: number, onHit?: () => void): void {
+    for (let i = 0; i < n; i++) {
+      const go = () => {
+        this.muzzle(from, scale * (0.8 + Math.random() * 0.4), 0xfff0c8);
+        if (i === 0 || Math.random() < 0.5) this.emit(BE.POWDER_SMALL, from, 1);
+        this.emit(BE.CASINGS, from, 1);
+        const t = i === n - 1 ? to : { x: to.x + (Math.random() - 0.5) * 0.2, y: to.y + (Math.random() - 0.5) * 0.2, h: to.h + (Math.random() - 0.5) * 0.1 };
+        this.tracer(from, t, scale * 1.6, i === n - 1 ? onHit : undefined);
+      };
+      if (i === 0) go();
+      else this.v.tweens.after(i * gap, go);
+    }
+  }
+
+  /** A flak shell bursting in the sky: a brief orange flash in a hanging cloud of black smoke. */
+  private archie(to: P3): void {
+    const p = { x: to.x + (Math.random() - 0.5) * 0.45, y: to.y + (Math.random() - 0.5) * 0.45, h: to.h + (Math.random() - 0.3) * 0.4 };
+    this.flash(p, 0.5, 0xff9a40);
+    this.emit(BE.ARCHIE, p, 2);
+    this.emit(SPARKS, p, 2);
+  }
+
+  /** A powder rocket bursting: the blast and a few firework stars. */
+  private rocketBurst(p: P3, size: number, air: boolean): void {
+    this.impact(p, size, air);
+    this.emit(BE.FIREWORK, p, 4);
+  }
+
+  /** A rifle shot (the chasseurs alpins): a crack, a small flash and puff, a faint brass streak. */
+  private crack(from: P3, to: P3): void {
+    this.muzzle(from, 0.3, 0xfff0c8);
+    this.emit(BE.POWDER_SMALL, from, 2);
+    this.tracer(from, to, 0.5, () => {
+      this.flash(to, 0.35, 0xffe2a0);
+      this.emit(SPARKS, to, 4);
+    });
+    this.sound("snipe", from.x, from.y, 0.8);
+  }
+
+  /**
+   * An electric arc from `from` to `to` (the Hydroglisseur's lance, the
+   * Gargantua's eye): two crackling bolts, a glow at both ends and a spray
+   * of blue-white sparks where it strikes.
+   */
+  private zap(from: P3, to: P3): void {
+    this.bolt(from, to, { life: 280, width: 0.12, minPx: 7, tint: BE.ARC_BLUE, jag: 0.1, reroll: 45, fork: 0.5 });
+    this.bolt(from, to, { life: 200, width: 0.07, minPx: 4.5, tint: 0x9fb8ff, jag: 0.16, reroll: 35, fork: 0.25, alpha: 0.8 });
+    this.flash(from, 0.45, 0xbfd4ff, 0.9);
+    this.flash(to, 0.65, 0xbfd4ff, 0.9);
+    // the arc lights the air along its path
+    const pt = this.v.particles;
+    tmpC.setHex(0x6f8fff);
+    for (let i = 1; i <= 3; i++) {
+      const k = i / 4;
+      pt.spawn(
+        { x: from.x + (to.x - from.x) * k, y: from.h + (to.h - from.h) * k, z: from.y + (to.y - from.y) * k, life: 220, tex: TEX.glow, size0: 0.7, size1: 0.8, alpha0: 0.45, alpha1: 0, r: tmpC.r, g: tmpC.g, b: tmpC.b },
+        true
+      );
+    }
+    this.v.tweens.after(110, () => this.flash(to, 0.5, 0xe0ecff, 0.8));
+    this.emit(BE.ARC_SPARKS, to, 5);
+  }
+
+  /** A crackling electric bolt between two points (tiles + height). */
+  bolt(from: P3, to: P3, o: BoltOpts): void {
+    this.arcs?.bolt(from.x, from.h, from.y, to.x, to.h, to.y, o);
+  }
+
+  /** A Pasteur's repair: brass sparks flying over, a spray of them and a puff of steam where they land. */
+  private belleHeal(from: P3, to: P3): void {
+    const pt = this.v.particles;
+    for (let i = 0; i < 5; i++) {
+      const life = 300 + Math.random() * 120;
+      const k = 1000 / life;
+      tmpC.setHex(i % 2 ? 0xffd27a : 0xfff0c0);
+      pt.spawn(
+        {
+          x: from.x, y: from.h, z: from.y, vx: (to.x - from.x) * k, vy: (to.h - from.h) * k, vz: (to.y - from.y) * k,
+          life, tex: TEX.glint, size0: 0.2, size1: 0.12, alpha0: 1, alpha1: 0.6, spin: 4, r: tmpC.r, g: tmpC.g, b: tmpC.b
+        },
+        true
+      );
+    }
+    this.emit(BE.REPAIR_STEAM, from, 1);
+    this.v.tweens.after(320, () => {
+      this.emit(BE.BRASS_SPARKS, to, 4);
+      this.emit(BE.REPAIR_STEAM, to, 2);
+      this.flash(to, 0.35, 0xffd27a, 0.6);
+    });
+    this.sound("heal", to.x, to.y, 0.35);
   }
 
   /** A robot goes down: a spray of sparks and a clank where it lands. */
@@ -411,15 +644,16 @@ export class Fx {
     // zoomed out, a true-to-scale tracer is thinner than a pixel: keep it legible
     const wpp = this.v.rig.worldPerPx(from.x, from.y, from.h);
     const w = Math.max(0.035 * scale, TRACER_MIN_W * wpp) / 0.035;
-    m.scale.set(w, w, Math.max(0.32 * scale, TRACER_MIN_L * wpp));
+    // (a Belle Époque shell streak is shorter: a glowing slug, not a laser-straight line)
+    m.scale.set(w, w, Math.max((BELLE_EPOQUE ? 0.2 : 0.32) * scale, (BELLE_EPOQUE ? 0.75 : 1) * TRACER_MIN_L * wpp));
     m.renderOrder = 7;
     this.v.scene.add(m);
-    this.fliers.push({ obj: m, a: from, b: to, c: null, t: 0, dur: Math.min(180, Math.max(50, d * 22)), trail: false, acc: 0, onHit });
+    this.fliers.push({ obj: m, a: from, b: to, c: null, t: 0, dur: Math.min(180, Math.max(50, d * 22)), trail: false, rocket: false, acc: 0, onHit });
     this.place(m, from, to);
   }
 
   private missile(from: P3, to: P3, dur: number, curve: boolean, onHit?: () => void): void {
-    const m = new THREE.Mesh(missile(), modelMat("normal"));
+    const m = new THREE.Mesh(BELLE_EPOQUE ? BE.congreveGeometry() : missile(), modelMat("normal"));
     m.userData.model = true;
     this.v.scene.add(m);
     let c: P3 | null = null;
@@ -431,7 +665,13 @@ export class Fx {
         h: Math.max(from.h, to.h) + 0.6
       };
     } else c = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2, h: Math.max(from.h, to.h) + 0.25 };
-    this.fliers.push({ obj: m, a: from, b: to, c, t: 0, dur, trail: true, acc: 0, onHit });
+    if (BELLE_EPOQUE) {
+      // a powder rocket never flies quite true
+      const w = (Math.random() - 0.5) * 0.35;
+      c.x -= (to.y - from.y) * w;
+      c.y += (to.x - from.x) * w;
+    }
+    this.fliers.push({ obj: m, a: from, b: to, c, t: 0, dur, trail: true, rocket: BELLE_EPOQUE, acc: 0, onHit });
     this.place(m, from, to);
   }
 
@@ -483,6 +723,10 @@ export class Fx {
   }
 
   heal(from: P3, to: P3): void {
+    if (BELLE_EPOQUE) {
+      this.belleHeal(from, to);
+      return;
+    }
     this.beam(from, to, 0x7dff9a, 3.5, 420);
     this.emit(HEAL, to, 2);
     this.sound("heal", to.x, to.y, 0.35);
@@ -495,6 +739,11 @@ export class Fx {
   // --------------------------------------------------------- explosions ---
 
   private impact(p: P3, size: number, air: boolean): void {
+    if (BELLE_EPOQUE) {
+      // a shell bursting: a puff of dirty powder smoke hangs where it struck
+      this.v.particles.emit(BE.POWDER_SMALL, p.x, p.y, p.h + 0.05, size > 0.4 ? 2 : 1);
+      if (!air && this.liquid(p.x, p.y)) this.splash(p.x, p.y, 2);
+    }
     this.emit(SPARKS, p, Math.round(3 + size * 4));
     if (size > 0.4) this.boom(p, size * 0.6, air, false, 1, 0.7);
     else {
@@ -547,6 +796,12 @@ export class Fx {
       p.x, p.y, p.h + 0.1, n(1, 2)
     );
     if (size >= 0.9) this.emit(EMBERS, p, n(-1, 3));
+    // Belle Époque: thick coal smoke rolls up after the fire and hangs there
+    if (BELLE_EPOQUE && size >= 0.8)
+      pt.emit(
+        { ...this.smoke, size: [0.36 * size + 0.2, 0.5 * size + 0.24], life: [2200 + size * 400, 3200 + size * 600], up: [0.3, 0.55 + size * 0.15], speed: [0.05, 0.2], fadeIn: 0.25 },
+        p.x, p.y, p.h + 0.3, n(0.5, 1)
+      );
     if (!air && size >= 0.5) {
       this.shock(p.x, p.y, size, 0xffd9a0, 0.32);
       if (size >= 0.6) this.kick(p.x, p.y, n(1, 3));
@@ -720,6 +975,11 @@ export class Fx {
     );
   }
 
+  /** A puff from a Belle Époque machine's smokestack: coal smoke, or steam off a flying machine. */
+  stackPuff(p: P3, steam: boolean): void {
+    this.v.particles.emit(steam ? BE.STACK_STEAM : BE.STACK_SMOKE, p.x, p.y, p.h, 1);
+  }
+
   /** Steam venting at `p` (a Goliath's hydraulics). */
   steam(p: P3, n = 1): void {
     this.emit(STEAM, p, n);
@@ -811,6 +1071,7 @@ export class Fx {
   }
 
   update(dtMs: number): void {
+    this.arcs?.update(dtMs);
     let n = 0;
     const pos = tmpV;
     const pt = this.v.particles;
@@ -836,7 +1097,20 @@ export class Fx {
       pos.set(x, h, y);
       const moved = pos.distanceTo(f.obj.position);
       if (moved > 1e-4) f.obj.lookAt(pos.x + (pos.x - f.obj.position.x), pos.y + (pos.y - f.obj.position.y), pos.z + (pos.z - f.obj.position.z));
-      if (f.trail && dtMs > 0) {
+      if (f.rocket && dtMs > 0) {
+        // a Congreve rocket: powder smoke laid along its path, its tail sputtering sparks
+        const ox = f.obj.position.x;
+        const oy = f.obj.position.y;
+        const oz = f.obj.position.z;
+        f.acc += moved;
+        while (f.acc >= step) {
+          f.acc -= step;
+          const s = moved > 0 ? 1 - f.acc / moved : 1;
+          pt.emit(BE.ROCKET_SMOKE, ox + (pos.x - ox) * s, oz + (pos.z - oz) * s, oy + (pos.y - oy) * s, 1);
+        }
+        pt.emit(BE.ROCKET_FLAME, x, y, h, 1);
+        if (Math.random() < Math.min(1, dtMs / 22)) pt.emit(BE.ROCKET_SPARKS, x, y, h, 1 + (Math.random() < 0.4 ? 1 : 0));
+      } else if (f.trail && dtMs > 0) {
         // a puff per stretch flown, laid back along the path, so the trail is as dense at 30 fps as at 60
         const ox = f.obj.position.x;
         const oy = f.obj.position.y;
@@ -866,7 +1140,7 @@ export class Fx {
     for (const p of list) {
       let m = this.shells.get(p.id);
       if (!m) {
-        m = modelMesh(shell());
+        m = modelMesh(BELLE_EPOQUE ? BE.shellGeometry() : shell());
         m.userData.acc = 0;
         m.userData.fresh = true;
         // (a Goliath's mortar shell leaves its shoulder pod: high up and off to one side)
@@ -901,7 +1175,7 @@ export class Fx {
         while (acc >= step) {
           acc -= step;
           const s = 1 - acc / moved;
-          this.v.particles.emit(TRAIL, tmpV.x + (x - tmpV.x) * s, tmpV.z + (y - tmpV.z) * s, tmpV.y + (h - tmpV.y) * s, 1);
+          this.v.particles.emit(BELLE_EPOQUE ? BE.SHELL_TRAIL : TRAIL, tmpV.x + (x - tmpV.x) * s, tmpV.z + (y - tmpV.z) * s, tmpV.y + (h - tmpV.y) * s, 1);
         }
         m.userData.acc = acc;
       }
@@ -914,6 +1188,10 @@ export class Fx {
   }
 
   destroy(): void {
+    if (this.arcs) {
+      this.v.scene.remove(this.arcs.mesh);
+      this.arcs.dispose();
+    }
     for (const f of this.fliers) this.v.scene.remove(f.obj);
     for (const m of this.shells.values()) this.v.scene.remove(m);
     for (const r of this.rubbles) this.v.scene.remove(r);

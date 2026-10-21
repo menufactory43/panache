@@ -194,7 +194,7 @@ export class ObjectiveRenderer {
         this.opts.ping(ev.x, ev.y);
         if (!this.onScreen(ev.x, ev.y)) {
           sfx.play("alert", 0.7);
-          this.opts.alert("Uplink under attack!", ev.x, ev.y);
+          this.opts.alert("Relais attaqué !", ev.x, ev.y);
         }
         break;
       }
@@ -243,8 +243,8 @@ export class ObjectiveRenderer {
       if (ev.owner) {
         this.sound("capture", x, y, 0.8);
         announce({
-          key: "uplink-spectate", text: `${ev.owner === "blue" ? "Blue" : "Red"} takes an Uplink`,
-          sub: "Scrap, vision and command charge while they hold it", tone: "info", priority: 3, x: ev.x, y: ev.y
+          key: "uplink-spectate", text: `${ev.owner === "blue" ? "Bleu" : "Rouge"} prend un Relais`,
+          sub: "Charbon, vision et charge ⚡ tant qu'il le tient", tone: "info", priority: 3, x: ev.x, y: ev.y
         });
       }
       return;
@@ -253,24 +253,24 @@ export class ObjectiveRenderer {
       this.sound("capture", x, y, 1, 0.55);
       const l = v?.l;
       announce({
-        key: "uplink-captured", text: "Uplink captured",
+        key: "uplink-captured", text: "Relais capturé",
         sub: l?.infantryOnly
-          ? `+${uplinkPay(l)} scrap/s while your troops hold it · vision · ⚡`
-          : `+${l ? uplinkPay(l) : OBJECTIVES.uplink.income} scrap/s · vision · ⚡ charge`,
+          ? `+${uplinkPay(l)} charbon/s tant que tes troupes le tiennent · vision · ⚡`
+          : `+${l ? uplinkPay(l) : OBJECTIVES.uplink.income} charbon/s · vision · charge ⚡`,
         tone: "good", priority: 2, x: ev.x, y: ev.y
       });
     } else if (ev.prev === me) {
       this.sound("uplinkLost", x, y, 1, 0.55);
       this.opts.ping(ev.x, ev.y);
       announce({
-        key: "uplink-lost", text: "Uplink lost",
-        sub: v?.l.infantryOnly ? "Fly troops back in by Condor to retake it" : "Get units back on it before they take it",
+        key: "uplink-lost", text: "Relais perdu",
+        sub: v?.l.infantryOnly ? "Ramène des troupes en Montgolfière pour le reprendre" : "Renvoie des unités dessus avant qu'ils le prennent",
         tone: "bad", priority: 1, x: ev.x, y: ev.y
       });
     } else if (ev.owner) {
       this.sound("uplinkLost", x, y, 0.6, 0.2);
       this.opts.ping(ev.x, ev.y);
-      this.opts.notify("📡 The enemy took an Uplink", "bad");
+      this.opts.notify("📡 L'ennemi a pris un Relais", "bad");
     }
   }
 
@@ -305,9 +305,9 @@ export class ObjectiveRenderer {
     sfx.play("drop", 0.75);
     announce({
       key: "supply-drop",
-      text: ev.reward === "unit" ? "Rare supply drop!" : "Supply drop inbound",
+      text: ev.reward === "unit" ? "Largage rare !" : "Largage de ravitaillement en approche",
       // the first drop spells out the rule; later ones just say what's in it
-      sub: ev.drop === 0 ? `${CRATE_NAMES[ev.reward]} · first unit to a crate takes it` : `${CRATE_NAMES[ev.reward]} · lands in ${Math.round(OBJECTIVES.drops.warning)} s`,
+      sub: ev.drop === 0 ? `${CRATE_NAMES[ev.reward]} · à la première unité sur une caisse` : `${CRATE_NAMES[ev.reward]} · arrive dans ${Math.round(OBJECTIVES.drops.warning)} s`,
       tone: "epic",
       priority: 1,
       x: at.x,
@@ -376,10 +376,10 @@ export class ObjectiveRenderer {
       if (u && this.opts.seesUnit(u)) this.fx.pulse(u.x, u.y, ev.reward === "repair" ? 0x7ef29b : GOLD, 0.9);
     }
     if (this.opts.spectator) return;
-    const what = ev.scrap > 0 && ev.reward !== "scrap" ? `${CRATE_NAMES[ev.reward]} (+${Math.round(ev.scrap)} scrap)` : CRATE_NAMES[ev.reward];
+    const what = ev.scrap > 0 && ev.reward !== "scrap" ? `${CRATE_NAMES[ev.reward]} (+${Math.round(ev.scrap)} charbon)` : CRATE_NAMES[ev.reward];
     if (mine) {
-      if (!this.onScreen(x, y)) this.opts.notify(`📦 Crate secured: ${what}`, "good");
-    } else this.opts.notify(`📦 Enemy grabbed a crate: ${CRATE_NAMES[ev.reward]}`, "bad");
+      if (!this.onScreen(x, y)) this.opts.notify(`📦 Caisse récupérée : ${what}`, "good");
+    } else this.opts.notify(`📦 L'ennemi a pris une caisse : ${CRATE_NAMES[ev.reward]}`, "bad");
   }
 
   private destroyCrate(v: CrateView): void {
@@ -521,7 +521,7 @@ export class ObjectiveRenderer {
     if (v.crewed && !crewed && l.owner === this.opts.player && !this.opts.spectator && this.time - v.lastAlert > 20000) {
       v.lastAlert = this.time;
       this.opts.ping(l.x, l.y);
-      this.opts.alert("📡 Uplink unmanned: it pays nothing until troops land", l.x, l.y);
+      this.opts.alert("📡 Relais sans troupes : rien ne rentre tant qu'elles n'ont pas atterri", l.x, l.y);
     }
     v.crewed = crewed;
   }
@@ -620,7 +620,7 @@ export class ObjectiveRenderer {
     if (islands) {
       const c = [...this.world.units.values()].find((u) => u.faction === this.opts.player && u.kind === "condor");
       this.opts.hint(
-        "Island 📡 Uplinks: only troops can take them, and they pay while troops hold them. Tap your Condor, then tap an island.",
+        "📡 Relais insulaires : seules les troupes les prennent, et ils rapportent tant qu'elles les tiennent. Touche ta Montgolfière, puis une île.",
         c?.x, c?.y
       );
       return;
@@ -631,8 +631,8 @@ export class ObjectiveRenderer {
     )[0]!;
     // (Uncharted: no pointing at one nobody has scouted)
     if (this.opts.charted && !this.opts.charted(near.l.x, near.l.y))
-      return this.opts.hint("Park units on a 📡 Uplink to take it: scrap, vision, ⚡ charge. Scout to find them.");
-    this.opts.hint("Park units on a 📡 Uplink to take it: scrap, vision, ⚡ charge. Tap to look.", near.l.x, near.l.y);
+      return this.opts.hint("Gare des unités sur un 📡 Relais pour le prendre : charbon, vision, charge ⚡. Explore pour les trouver.");
+    this.opts.hint("Gare des unités sur un 📡 Relais pour le prendre : charbon, vision, charge ⚡. Touche pour voir.", near.l.x, near.l.y);
   }
 
   // ------------------------------------------------------------ minimap ---
@@ -696,12 +696,12 @@ export function rewardLabel(reward: CrateReward, amount: number, scrap: number):
     case "scrap":
       return `+${Math.round(scrap)}`;
     case "veterans":
-      return amount > 0 ? `VETERANS ×${amount}` : `+${Math.round(scrap)}`;
+      return amount > 0 ? `VÉTÉRANS ×${amount}` : `+${Math.round(scrap)}`;
     case "repair":
-      return amount > 0 ? "REPAIRED" : `+${Math.round(scrap)}`;
+      return amount > 0 ? "RÉPARÉ" : `+${Math.round(scrap)}`;
     case "charge":
       return amount > 0 ? `+${amount} ⚡${extra}` : `+${Math.round(scrap)}`;
     case "unit":
-      return "FREE LANCER!";
+      return "HYDROGLISSEUR OFFERT !";
   }
 }

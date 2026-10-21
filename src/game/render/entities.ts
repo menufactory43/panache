@@ -6,6 +6,7 @@ import type { Building, BuildingKind, Faction, FxEvent, Unit, UnitKind, WeaponFx
 import { baySeats, RIDER_SCALE, SquadRig, type BotKind, type Footprint } from "../three/infantry";
 import { discMat, eliteUniform, setVariant, type Variant } from "../three/materials";
 import { CRAWLER_LEGS, buildingDef, instance, unitDef, unitScale, type ModelDef, type ModelInstance } from "../three/models";
+import { BELLE_EPOQUE } from "../three/theme";
 import { AIR_H, HOVER_H, type P3, type View } from "../three/view";
 import { Ease } from "../three/tween";
 import type { Fx } from "./fx";
@@ -24,6 +25,8 @@ interface UnitView {
   lastFired: number;
   phase: number;
   dustT: number;
+  /** Next smokestack puff, ms (Belle Époque steam machines). */
+  stackT?: number;
   /** Rendered ground position (tiles) and body position/height. */
   gx: number;
   gy: number;
@@ -118,6 +121,12 @@ function angleDelta(a: number, b: number): number {
 
 const tmp = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
+/** The smokestacks' tops on the Belle Époque steam machines (model space): the Fardier's, the Creusot's pair, the Éole's little boiler. */
+const STACKS: Partial<Record<UnitKind, [number, number, number][]>> = {
+  harvester: [[0, 0.84, -0.3]],
+  mastodon: [[0.12, 0.7, 0.39], [-0.12, 0.7, 0.39]],
+  wasp: [[0, 0.16, -0.03]]
+};
 /** The Condor's ramp light on the ground (a soft disc). */
 const poolGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 
@@ -867,6 +876,19 @@ export class EntityRenderer {
     }
     // hover tanks stir a faint spray over water
     if (v.hover && moved > 0.006 && t.heightAt(gx, gy) < -0.1 && Math.random() < 0.3) this.fx.dust(gx, gy);
+    // Belle Époque steam machines puff coal smoke (or steam, aloft) from their stacks: faster on the move
+    const stacks = BELLE_EPOQUE ? STACKS[u.kind] : undefined;
+    if (stacks && dtMs > 0) {
+      v.stackT = (v.stackT ?? Math.random() * 400) - dtMs;
+      if (v.stackT <= 0) {
+        const going = moved > 0.004;
+        v.stackT = (going ? 200 : 700) + Math.random() * 150;
+        const s = stacks[Math.floor(Math.random() * stacks.length)]!;
+        root.updateMatrixWorld(true);
+        body.localToWorld(tmp.set(s[0], s[1], s[2]));
+        this.fx.stackPuff({ x: tmp.x, y: tmp.z, h: tmp.y }, !!v.air);
+      }
+    }
   }
 
   /** Veterancy: a promotion pops the new chevron in. */

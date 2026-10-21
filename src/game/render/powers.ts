@@ -6,8 +6,10 @@ import { announce } from "../announce";
 import { calldownThreatens } from "../awareness";
 import { sfx, type SfxName } from "../audio";
 import { glowMat } from "../three/materials";
+import { BELLE_EPOQUE } from "../three/theme";
+import * as BE from "./belle-fx";
 import { TEX, type EmitCfg } from "../three/particles";
-import { instance, podDef, type ModelInstance } from "../three/models";
+import { instance, modelMesh, podDef, type ModelInstance } from "../three/models";
 import { Ease } from "../three/tween";
 import type { View } from "../three/view";
 import type { Fx } from "./fx";
@@ -64,6 +66,8 @@ const TRAIL: EmitCfg = {
   tex: TEX.fire, additive: true, life: [220, 420], speed: [0, 0.3], up: [0, 0.2], size: [0.42, 0.6], grow: [0.55, 0.85],
   alpha: [0.85, 0], tints: [0xffc257, 0xff9a2e, 0xffe39a], end: 0xc2380e, spin: 3
 };
+/** Belle Époque: a lick of flame at a falling capsule-shell's tail. */
+const TRAIL_BELLE: EmitCfg = { ...BE.SKY_FLAME, size: [0.3, 0.42] };
 const SMOKE: EmitCfg = {
   tex: TEX.puff, tex2: TEX.puff2, life: [700, 1200], speed: [0, 0.1], up: [0.05, 0.2], size: [0.25, 0.35], grow: [2, 2.6],
   alpha: [0.45, 0], tints: [0x8a847c, 0x77716a], end: 0xb8b2aa, rot: 0.4, fadeIn: 0.15, easeOut: true
@@ -74,6 +78,15 @@ const LANCE_LAYERS: [number, number, number][] = [[0.3, 1, 0xffffff], [0.72, 0.4
 const STREAK_STEP = 0.3;
 /** …and Barrage shells, which leave no smoke, closer together, so the shrinking puffs still join up. */
 const SHELL_STEP = 0.18;
+
+/** Belle Époque: where the Obus Méliès falls from (offset in tiles, height), how big it is drawn, and when in the countdown it shows. */
+const MELIES_FROM = { dx: -4.2, dy: 1.6, h: 8 };
+const MELIES_SCALE = 8;
+const MELIES_SHOW = 0.35;
+/** The Fée Électricité's arcs: violet-blue. */
+const FEE_RING = 0x7a4dff;
+/** Feu roulant: each shell's burst rolls on with this many lighter bursts (cosmetic: the damage is the sim's). */
+const ROLL_ON = 2;
 
 /** The EMP crackle's scratch arc (5 points), refilled per arc: no per-frame garbage. */
 const ARC = Array.from({ length: 5 }, () => ({ x: 0, y: 0 }));
@@ -86,6 +99,8 @@ export class PowerRenderer {
   private pods = new Map<number, ModelInstance>();
   private landed: ModelInstance[] = [];
   private lances = new Map<number, { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial }>();
+  /** Belle Époque: the Obus Méliès on its way down, by calldown id, and the distance since its last trail puff. */
+  private melies = new Map<number, { mesh: THREE.Mesh; acc: number }>();
   private incoming = new Set<string>();
   /** Barrage shells in the air, positioned from sim time (pauses and speeds with the game). */
   private streaks: { mesh: THREE.Mesh; x: number; y: number; h: number; tick: number; lead: number; acc: number }[] = [];
@@ -161,7 +176,7 @@ export class PowerRenderer {
       case "stun":
         for (const id of ev.ids) {
           const p = this.seenNow(id) ? this.opts.pos(id) : null;
-          if (p) this.v.particles.emit(SPARKS, p.x, p.y, p.h + 0.2, 6);
+          if (p) this.v.particles.emit(BELLE_EPOQUE ? BE.FEE_SPARKS : SPARKS, p.x, p.y, p.h + 0.2, 6);
         }
         break;
       case "powerOnline":
@@ -170,12 +185,12 @@ export class PowerRenderer {
           this.hammerAnnounced = true;
           announce({
             key: "sky-hammer-online",
-            text: "Sky Hammer online",
+            text: "Obus Méliès opérationnel",
             sub: !this.opts.spectator
-              ? "Orbital strike ready. Tap its button, then the map"
+              ? "Obus Méliès prêt. Touche son bouton, puis la carte"
               : this.world.survival
-                ? "The defender can call orbital strikes" // (the waves have no commander)
-                : "Both commanders can call orbital strikes",
+                ? "Le défenseur peut tirer l'Obus Méliès" // (the waves have no commander)
+                : "Les deux commandants peuvent tirer l'Obus Méliès",
             tone: "epic",
             priority: 1
           });
@@ -205,15 +220,15 @@ export class PowerRenderer {
     if (this.friendly(ev.faction)) return;
     if (this.opts.spectator) {
       if (ev.power === "hammer")
-        announce({ key: "sky-hammer-inbound", text: "Sky Hammer inbound!", sub: `${ev.faction === "blue" ? "Blue" : "Red"} calls an orbital strike`, tone: "info", priority: 1, x: ev.x, y: ev.y });
+        announce({ key: "sky-hammer-inbound", text: "Obus Méliès en approche !", sub: `${ev.faction === "blue" ? "Bleu" : "Rouge"} tire un obus depuis la Lune`, tone: "info", priority: 1, x: ev.x, y: ev.y });
       return;
     }
     // the enemy's: warn, loudly if it threatens anything of ours
     if (ev.power === "hammer") {
       announce({
         key: "enemy-sky-hammer",
-        text: "Enemy Sky Hammer inbound!",
-        sub: "Get clear of the red circle",
+        text: "Obus Méliès ennemi en approche !",
+        sub: "Sors du cercle rouge",
         tone: "bad",
         priority: 0,
         x: ev.x,
@@ -224,7 +239,7 @@ export class PowerRenderer {
     }
     if (!threatened) return;
     this.opts.ping(ev.x, ev.y);
-    if (!this.onScreen(x, y, 0)) this.opts.alert(`Enemy ${name} inbound!`, ev.x, ev.y);
+    if (!this.onScreen(x, y, 0)) this.opts.alert(`Frappe ennemie en approche : ${name} !`, ev.x, ev.y);
   }
 
   /** An expanding ring of light on the ground (`additive` false: a painted ring that keeps a saturated colour on bright ground). */
@@ -250,6 +265,10 @@ export class PowerRenderer {
     const g = this.ground(x, y);
     switch (ev.power) {
       case "barrage": {
+        if (BELLE_EPOQUE) {
+          this.feuRoulant(x, y, g);
+          break;
+        }
         this.fx.explosion({ type: "explosion", x, y, size: 1.5, air: false, kind: "impact" }, { x, y, h: g + 0.1 });
         this.fx.pulse(x, y, 0xffb35a, 2.2);
         this.fx.sparks({ x, y, h: g + 0.2 }, 6);
@@ -258,6 +277,10 @@ export class PowerRenderer {
         break;
       }
       case "emp": {
+        if (BELLE_EPOQUE) {
+          this.feeElectricite(x, y, g);
+          break;
+        }
         const R = POWERS.emp.radius;
         // electric blue whatever the ground: a painted ring under a ring of light
         this.ring(x, y, 0x2f8fff, 0.2, R, 420, 0, false);
@@ -301,6 +324,7 @@ export class PowerRenderer {
           this.fx.dust(x + Math.cos(a) * 0.53, y + Math.sin(a) * 0.4);
         }
         this.v.particles.emit(SMOKE, x, y, g + 0.6, 3);
+        if (BELLE_EPOQUE) this.v.particles.emit(BE.COAL_SMOKE, x, y, g + 0.4, 2);
         for (const id of ev.unitIds) {
           const u = this.world.units.get(id);
           if (u && this.friendly(u.faction)) this.fx.pulse(u.x, u.y, 0x7ec1ff, 0.8);
@@ -310,6 +334,10 @@ export class PowerRenderer {
         break;
       }
       case "hammer": {
+        if (BELLE_EPOQUE) {
+          this.obusMelies(ev.id, x, y, g);
+          break;
+        }
         const R = POWERS.hammer.radius;
         // the strike itself: a blinding column from orbit (a white-hot core in a soft cyan
         // sheath) that narrows away, over molten ground
@@ -359,6 +387,135 @@ export class PowerRenderer {
     }
   }
 
+  // -------------------------------------------------- Belle Époque powers ---
+
+  /**
+   * Feu roulant (Barrage), Belle Époque: each shell bursts in fire, earth and
+   * coal smoke, and the burst rolls on away from the guns in lighter bursts.
+   */
+  private feuRoulant(x: number, y: number, g: number): void {
+    const at = (px: number, py: number, size: number) =>
+      this.fx.explosion({ type: "explosion", x: px, y: py, size, air: false, kind: "impact" }, { x: px, y: py, h: this.ground(px, py) + 0.1 });
+    at(x, y, 1.5);
+    this.fx.kick(x, y, 5);
+    this.fx.debris({ x, y, h: g + 0.2 }, 5);
+    this.fx.sparks({ x, y, h: g + 0.2 }, 6);
+    const len = Math.hypot(STREAK.dx, STREAK.dy);
+    for (let j = 1; j <= ROLL_ON; j++) {
+      const d = 0.5 * j + Math.random() * 0.2;
+      const px = x - (STREAK.dx / len) * d + (Math.random() - 0.5) * 0.3;
+      const py = y - (STREAK.dy / len) * d + (Math.random() - 0.5) * 0.3;
+      this.v.tweens.after(j * 140, () => at(px, py, 0.9 - j * 0.15));
+    }
+    this.sound("shell", x, y, 0.9);
+    this.shake(x, y, 150, 0.004);
+  }
+
+  /**
+   * La Fée Électricité (EMP), Belle Époque: a dome of violet-blue lightning
+   * over the circle (bolts from a crackling ball overhead down to its rim,
+   * and arcs leaping round the rim), sparkles everywhere and a violet ring.
+   */
+  private feeElectricite(x: number, y: number, g: number): void {
+    const R = POWERS.emp.radius;
+    const top = { x, y, h: g + R * 0.7 };
+    this.ring(x, y, FEE_RING, 0.2, R, 520, 0, false);
+    this.ring(x, y, 0xd9c4ff, 0.2, R * 0.97, 520);
+    this.glow(x, y, top.h, 0xd9c4ff, 2.2, 3.6, 480, 0.9);
+    this.glow(x, y, g + 0.08, 0x7a4dff, R * 1.2, R * 1.7, 620, 0.45, true);
+    const N = 12;
+    const rim: { x: number; y: number; h: number }[] = [];
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+      const r = R * (0.88 + Math.random() * 0.12);
+      const px = x + Math.cos(a) * r;
+      const py = y + Math.sin(a) * r;
+      rim.push({ x: px, y: py, h: this.ground(px, py) + 0.06 });
+    }
+    rim.forEach((p, i) => {
+      this.v.tweens.after(Math.random() * 240, () =>
+        this.fx.bolt(top, p, { life: 380 + Math.random() * 220, width: 0.12, minPx: 4.5, tint: BE.ARC_VIOLET, jag: 0.08, reroll: 50, fork: 0.5 })
+      );
+      const q = rim[(i + 1) % N]!;
+      this.v.tweens.after(80 + Math.random() * 300, () =>
+        this.fx.bolt({ ...p, h: p.h + 0.05 }, { ...q, h: q.h + 0.05 }, { life: 300 + Math.random() * 200, width: 0.08, minPx: 3.2, tint: 0x8fb0ff, jag: 0.12, reroll: 40, fork: 0.2 })
+      );
+    });
+    this.v.particles.emit({ ...BE.FEE_SPARKS, spread: R * 0.3 }, x, y, top.h, 14);
+    this.v.particles.emit({ ...BE.FEE_SPARKS, spread: R * 0.9, up: [0.6, 1.8] }, x, y, g + 0.15, 18);
+    this.sound("emp", x, y, 1, 0.15);
+    this.shake(x, y, 120, 0.003);
+  }
+
+  /** The Obus Méliès on its way (Belle Époque): a huge brass shell streaking down out of the sky, trailing smoke. */
+  private drawMelies(c: Calldown, k: number): void {
+    let m = this.melies.get(c.id);
+    if (k < MELIES_SHOW) {
+      if (m) m.mesh.visible = false;
+      return;
+    }
+    const g = this.ground(c.x, c.y);
+    const d = 1 - (k - MELIES_SHOW) / (1 - MELIES_SHOW); // 1 → 0 as it comes down
+    const px = c.x + MELIES_FROM.dx * d;
+    const py = c.y + MELIES_FROM.dy * d;
+    const ph = g + 0.4 + MELIES_FROM.h * d;
+    if (!m) {
+      const mesh = modelMesh(BE.shellGeometry(), false);
+      mesh.scale.setScalar(MELIES_SCALE);
+      mesh.position.set(px, ph, py);
+      this.group.add(mesh);
+      m = { mesh, acc: 0 };
+      this.melies.set(c.id, m);
+    }
+    const was = m.mesh.position;
+    const moved = Math.hypot(px - was.x, ph - was.y, py - was.z);
+    m.mesh.visible = true;
+    m.mesh.position.set(px, ph, py);
+    m.mesh.lookAt(c.x, g, c.y);
+    // thick smoke laid back along its path, a flame at its base
+    const len = Math.hypot(MELIES_FROM.dx, MELIES_FROM.dy, MELIES_FROM.h);
+    const back = 0.09 * MELIES_SCALE; // (the shell's base, behind its centre)
+    m.acc += moved;
+    const n = Math.floor(m.acc / 0.4);
+    m.acc -= n * 0.4;
+    for (let i = 0; i < Math.min(n, 12); i++) {
+      const s = back + moved * ((i + 1) / (n + 1));
+      this.v.particles.emit(BE.MELIES_TRAIL, px + (MELIES_FROM.dx / len) * s, py + (MELIES_FROM.dy / len) * s, ph + (MELIES_FROM.h / len) * s, 1);
+    }
+    if (moved > 0) this.v.particles.emit(BE.SKY_FLAME, px + (MELIES_FROM.dx / len) * back, py + (MELIES_FROM.dy / len) * back, ph + (MELIES_FROM.h / len) * back, 1);
+  }
+
+  /** The Obus Méliès lands (Belle Époque): a blinding flash, a ring of fire, a storm of blasts, earth thrown out and a black column of smoke. */
+  private obusMelies(id: number, x: number, y: number, g: number): void {
+    const R = POWERS.hammer.radius;
+    const m = this.melies.get(id);
+    if (m) {
+      this.group.remove(m.mesh);
+      this.melies.delete(id);
+    }
+    this.glow(x, y, g + 0.8, 0xfff4d8, 6.5, 9.5, 520, 0.95);
+    this.glow(x, y, g + 0.06, 0xffa040, R * 1.3, R * 1.9, 1300, 0.75, true);
+    this.fx.shock(x, y, R * 0.95, 0xffe2b0, 0.9, 560);
+    for (const [delay, k, tint] of [[0, 1.15, 0xffe6b0], [120, 0.85, 0xffc060], [260, 1.4, 0xff9a3a]] as const)
+      this.ring(x, y, tint, 0.3, R * k, 650, delay);
+    this.v.tweens.after(300, () => this.fx.plume(x, y, g + 0.4, 2, 10));
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.random();
+      const d = i === 0 ? 0 : R * (0.3 + Math.random() * 0.5);
+      const px = x + Math.cos(a) * d;
+      const py = y + Math.sin(a) * d;
+      this.v.tweens.after(i * 65, () =>
+        this.fx.explosion({ type: "explosion", x, y, size: i === 0 ? 2.4 : 1, air: false, kind: "unit" }, { x: px, y: py, h: this.ground(px, py) + 0.1 })
+      );
+    }
+    this.fx.kick(x, y, 10);
+    this.fx.debris({ x, y, h: g + 0.3 }, 14);
+    // (and, for Méliès, a shower of stars)
+    this.v.particles.emit({ ...BE.FIREWORK, speed: [1.5, 3.5], up: [2, 4], life: [700, 1200] }, x, y, g + 0.8, 14);
+    this.sound("hammer", x, y, 1, 0.45);
+    if (this.onScreen(x, y, 4)) this.v.rig.shake(560, 0.013);
+  }
+
   // ---------------------------------------------------------- per frame ---
 
   /** Draw reticles, falling pods and shells, stun crackle and the aim preview. */
@@ -376,6 +533,11 @@ export class PowerRenderer {
         this.group.remove(l.mesh);
         l.mat.dispose();
         this.lances.delete(id);
+      }
+    for (const [id, m] of this.melies)
+      if (!live.has(id)) {
+        this.group.remove(m.mesh);
+        this.melies.delete(id);
       }
     this.flyStreaks(now);
     this.drawStuns(dtMs);
@@ -408,7 +570,10 @@ export class PowerRenderer {
     const cc = Math.min(R * 0.22, px(10));
     g.lineStyle(1.5, col, 0.9).lineBetween(x - cc, y, x + cc, y).lineBetween(x, y - cc, x, y + cc);
 
-    if (c.power === "hammer") {
+    if (c.power === "hammer" && BELLE_EPOQUE) {
+      this.drawMelies(c, k);
+      g.fillStyle(0xffe2a0, 0.15 + 0.5 * k * blink).fillCircle(x, y, px(4 + 10 * k));
+    } else if (c.power === "hammer") {
       // a targeting lance from orbit, thickening as the strike charges
       let l = this.lances.get(c.id);
       if (!l) {
@@ -472,6 +637,12 @@ export class PowerRenderer {
       const d = (moved * (i + 1)) / (n + 1) / len;
       const tx = px + POD_FROM.dx * (0.05 + d);
       const ty = py + POD_FROM.dy * (0.05 + d);
+      if (BELLE_EPOQUE) {
+        // the capsule-shell leaves a thick smoke trail, a lick of flame at its tail
+        this.v.particles.emit(BE.SKY_TRAIL, tx, ty, ph + 0.9 + POD_FROM.h * d, 1);
+        if (i % 3 === 0) this.v.particles.emit(TRAIL_BELLE, tx, ty, ph + 0.8 + POD_FROM.h * d, 1);
+        continue;
+      }
       this.v.particles.emit(TRAIL, tx, ty, ph + 0.8 + POD_FROM.h * d, 1);
       if (i % 2 === 0) this.v.particles.emit(SMOKE, tx, ty, ph + 0.9 + POD_FROM.h * d, 1);
     }
@@ -479,8 +650,10 @@ export class PowerRenderer {
 
   /** An incoming barrage shell: a bright streak that drops onto (x, y) at sim tick `tick`. */
   private shellStreak(x: number, y: number, tick: number): void {
-    const mesh = new THREE.Mesh(streakGeo, this.streakMat);
-    mesh.scale.set(1, 1, 0.9);
+    // (Belle Époque: a brass shell you can see, not a streak of light)
+    const mesh = BELLE_EPOQUE ? modelMesh(BE.shellGeometry(), false) : new THREE.Mesh(streakGeo, this.streakMat);
+    if (BELLE_EPOQUE) mesh.scale.setScalar(2.6);
+    else mesh.scale.set(1, 1, 0.9);
     mesh.renderOrder = 8;
     this.group.add(mesh);
     this.streaks.push({ mesh, x, y, h: this.ground(x, y), tick, lead: SHELL_LEAD, acc: 0 });
@@ -504,15 +677,15 @@ export class PowerRenderer {
       s.mesh.position.set(px, ph, py);
       s.mesh.lookAt(s.x, s.h, s.y);
       // a hot head, and a flame trail laid along the path flown since last frame
-      tmpC.setHex(0xfff0c8);
-      this.v.particles.spawn({ x: px, y: ph, z: py, life: 45, tex: TEX.glow, size0: 0.55, size1: 0.5, alpha0: 0.9, alpha1: 0.6, r: tmpC.r, g: tmpC.g, b: tmpC.b }, true);
+      tmpC.setHex(BELLE_EPOQUE ? 0xffb050 : 0xfff0c8);
+      this.v.particles.spawn({ x: px, y: ph, z: py, life: 45, tex: TEX.glow, size0: BELLE_EPOQUE ? 0.35 : 0.55, size1: BELLE_EPOQUE ? 0.3 : 0.5, alpha0: 0.9, alpha1: 0.6, r: tmpC.r, g: tmpC.g, b: tmpC.b }, true);
       s.acc += moved;
       const n = Math.floor(s.acc / SHELL_STEP);
       s.acc -= n * SHELL_STEP;
       const len = Math.hypot(STREAK.dx, STREAK.dy, STREAK.h);
       for (let i = 0; i < n; i++) {
         const d = moved * ((i + 1) / (n + 1));
-        this.v.particles.emit(TRAIL, px + (STREAK.dx / len) * d, py + (STREAK.dy / len) * d, ph + (STREAK.h / len) * d, 1);
+        this.v.particles.emit(BELLE_EPOQUE ? BE.SHELL_TRAIL_THICK : TRAIL, px + (STREAK.dx / len) * d, py + (STREAK.dy / len) * d, ph + (STREAK.h / len) * d, 1);
       }
       return true;
     });
@@ -534,8 +707,8 @@ export class PowerRenderer {
       const r = b ? 0.42 : giant ? 0.85 : 0.26;
       const h = p.h + (b ? 0.3 : giant ? 1.3 : 0.12);
       // a flickering blue haze says "frozen" at a glance
-      a.fillStyle(0x7fd4ff, 0.12 + 0.12 * Math.random()).fillCircle(p.x, p.y, r * 1.35, h);
-      if (Math.random() < dtMs / 90) this.v.particles.emit(SPARKS, p.x + (Math.random() - 0.5) * r, p.y + (Math.random() - 0.5) * r, h, 1);
+      a.fillStyle(BELLE_EPOQUE ? 0xa98bff : 0x7fd4ff, 0.12 + 0.12 * Math.random()).fillCircle(p.x, p.y, r * 1.35, h);
+      if (Math.random() < dtMs / 90) this.v.particles.emit(BELLE_EPOQUE ? BE.FEE_SPARKS : SPARKS, p.x + (Math.random() - 0.5) * r, p.y + (Math.random() - 0.5) * r, h, 1);
       // a jagged arc or two, redrawn every frame: unhaloed, so they glow rather than read as outlined lines
       for (let n = 0; n < 2; n++) {
         if (Math.random() < 0.35) continue;
@@ -546,7 +719,8 @@ export class PowerRenderer {
           ARC[i]!.x = p.x + Math.cos(ang) * rr;
           ARC[i]!.y = p.y + Math.sin(ang) * rr;
         }
-        a.lineStyle(1.6, Math.random() < 0.5 ? 0xbfeaff : 0x7fd4ff, 0.9, 0).strokePoints(ARC, false, h + (Math.random() - 0.5) * 0.1);
+        const tint = BELLE_EPOQUE ? (Math.random() < 0.5 ? 0xe2d4ff : 0xa98bff) : Math.random() < 0.5 ? 0xbfeaff : 0x7fd4ff;
+        a.lineStyle(1.6, tint, 0.9, 0).strokePoints(ARC, false, h + (Math.random() - 0.5) * 0.1);
       }
     }
   }
@@ -582,6 +756,7 @@ export class PowerRenderer {
 
   destroy(): void {
     this.v.scene.remove(this.group);
+    this.melies.clear();
     this.pods.clear();
     this.lances.clear();
   }

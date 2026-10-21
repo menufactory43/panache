@@ -10,7 +10,9 @@ import { instance, pileDef, unitDef, unitScale, type ModelInstance } from "../th
 import { TEX, type EmitCfg } from "../three/particles";
 import type { Label } from "../three/screen";
 import { Ease } from "../three/tween";
+import { BELLE_EPOQUE } from "../three/theme";
 import type { View } from "../three/view";
+import { WRECK_SMOKE } from "./belle-fx";
 import type { Fx } from "./fx";
 import { TOPPLE_SLAM_MS } from "./goliath";
 
@@ -86,8 +88,8 @@ const HAUL_WINDOW = 9000;
 const HAUL_AT = 400;
 const HINT_KEY = "battledrones.hint.salvage";
 
-/** Oily black smoke off a burning hull, greying as it climbs and leaning downwind. */
-const SMOKE: EmitCfg = {
+/** Oily black smoke off a burning hull, greying as it climbs and leaning downwind (Belle Époque: coal-black, and thicker). */
+const SMOKE: EmitCfg = BELLE_EPOQUE ? WRECK_SMOKE : {
   tex: TEX.puff, tex2: TEX.puff2, life: [1300, 2100], speed: [0.04, 0.14], up: [0.3, 0.55], size: [0.2, 0.27], grow: [3, 4],
   alpha: [0.62, 0], tints: [0x3a3633, 0x45403b, 0x2f2c2a], end: 0x8a857e, spin: 0.4, rot: 0.4, wind: [0.16, 0.08], fadeIn: 0.12, easeOut: true
 };
@@ -181,7 +183,7 @@ export class WreckRenderer {
     if (sum >= HAUL_AT && now - this.lastHaul > 30000) {
       this.lastHaul = now;
       this.haul = [];
-      announce({ key: "salvage-haul", text: "SALVAGE HAUL", sub: `+${sum} scrap from the wreckage`, tone: "good", priority: 3, x, y });
+      announce({ key: "salvage-haul", text: "BUTIN DE RÉCUPÉRATION", sub: `+${sum} charbon tiré des épaves`, tone: "good", priority: 3, x, y });
     }
   }
 
@@ -431,7 +433,7 @@ export class WreckRenderer {
     v.aura.visible = shown;
     if (!shown) return;
     if (!this.hinted && visibleNow && !v.gone && w.tick >= v.coolTick)
-      this.opts.hint("Glinting wrecks hold scrap: roll any ground unit over them.", v.x, v.y, () => {
+      this.opts.hint("Les épaves scintillantes contiennent du charbon : passe dessus avec une unité terrestre.", v.x, v.y, () => {
         this.hinted = true;
         try {
           localStorage.setItem(HINT_KEY, "1");
@@ -452,7 +454,8 @@ export class WreckRenderer {
     // smoulder: fire and thick smoke while hot, a thin wisp for a few seconds after
     const age = (w.tick - (v.coolTick - Math.round(SALVAGE.hot * TICK_RATE))) / TICK_RATE;
     const h = v.ground + 0.36; // (above the hull, or it hides the base of each puff)
-    if (age < 7) {
+    // (Belle Époque: the coal keeps smouldering a while longer)
+    if (age < (BELLE_EPOQUE ? 11 : 7)) {
       v.smokeT -= dtMs;
       if (v.smokeT <= 0) {
         v.smokeT = hot ? 200 + rnd(v.id, w.tick) * 120 : 600 + age * 110;

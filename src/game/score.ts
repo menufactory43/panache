@@ -79,7 +79,8 @@ export const MODES = {
   mixolydian: [0, 2, 4, 5, 7, 9, 10]
 } as const;
 
-export type BellKind = "pluck" | "oud" | "glass" | "marimba" | "pan";
+/** (accordion, organ and fife: the Belle Époque score, score-belle.ts) */
+export type BellKind = "pluck" | "oud" | "glass" | "marimba" | "pan" | "accordion" | "organ" | "fife";
 export type Groove = "pulse" | "tresillo" | "chug" | "glide" | "calypso";
 
 export interface Flavour {
@@ -305,7 +306,7 @@ function nearest(list: readonly number[], m: number, bias = 0): number {
  * walked through the scale, strong beats landing on chord tones. Odd
  * phrases answer the even ones and resolve to the chord's root or fifth.
  */
-export function phrase(f: Flavour, d: number, index: number, prev: number | null, rand: () => number): MelodyNote[] {
+export function phrase(f: Flavour, d: number, index: number, prev: number | null, rand: () => number, strongEvery = 8): MelodyNote[] {
   const [lo, hi] = bellRange(f);
   const scale = scaleNotes(f, lo, hi);
   const pcs = chordPcs(f, d);
@@ -327,7 +328,7 @@ export function phrase(f: Flavour, d: number, index: number, prev: number | null
       if (idx + mv < 0 || idx + mv >= scale.length) mv = -mv;
       const prevNote = cur;
       cur = scale[Math.max(0, Math.min(scale.length - 1, idx + mv))]!;
-      const strong = step % 8 === 0;
+      const strong = step % strongEvery === 0;
       const last = i === f.motif.length - 1;
       const target = last && index % 2 === 1 ? cadence : strong ? chordTones : null;
       if (target) {
@@ -336,7 +337,7 @@ export function phrase(f: Flavour, d: number, index: number, prev: number | null
         cur = nearest(ahead.length ? ahead : target, cur, mv);
       }
     }
-    out.push({ step, len, midi: cur, vel: step % 8 === 0 ? 1 : 0.72 });
+    out.push({ step, len, midi: cur, vel: step % strongEvery === 0 ? 1 : 0.72 });
   });
   return out;
 }
@@ -349,7 +350,8 @@ export const melodyPlays = (phraseIndex: number): boolean => phraseIndex % 4 < 2
 const pat = (s: string): number[] =>
   [...s].map((c) => (c === "X" ? 1 : c === "x" ? 0.65 : c === "o" ? 0.35 : 0));
 
-export type DrumVoice = "kick" | "snare" | "hat" | "open" | "tak" | "dhum" | "tom" | "crash";
+/** (roll and cym: the Belle Époque march, score-belle.ts) */
+export type DrumVoice = "kick" | "snare" | "hat" | "open" | "tak" | "dhum" | "tom" | "crash" | "roll" | "cym";
 
 /** One bar of drums: a velocity (0 = rest) per step for each voice. */
 export type DrumBar = Partial<Record<DrumVoice, number[]>>;
@@ -471,7 +473,9 @@ export type NoteEvent =
   | { kind: "bass"; midi: number; len: number; vel: number }
   | { kind: "bell"; midi: number; len: number; vel: number }
   | { kind: "arp"; midi: number; vel: number }
-  | { kind: "drum"; voice: DrumVoice; vel: number };
+  | { kind: "drum"; voice: DrumVoice; vel: number }
+  /** The "pah" of an oom-pah: a short chord (the Belle Époque score). */
+  | { kind: "stab"; notes: number[]; len: number; vel: number };
 
 export interface MixState {
   mode: MusicMode;
@@ -517,6 +521,11 @@ export class Composer {
   constructor(flavour: Flavour, seed = 1) {
     this.flavour = flavour;
     this.rand = rng(seed);
+  }
+
+  /** Switch to a biome's flavour at the next bar line. */
+  setBiome(b: Biome): void {
+    this.setFlavour(FLAVOURS[b]);
   }
 
   /** Switch biome at the next bar line. */

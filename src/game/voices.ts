@@ -12,6 +12,7 @@
  */
 import type { Faction, FxEvent, Unit, UnitKind, World } from "../sim/types";
 import { sfx, type AudioEngine } from "./audio";
+import { BELLE_EPOQUE } from "./three/theme";
 
 export type VoiceLine = "select" | "move" | "attack" | "ready" | "rank" | "death";
 
@@ -83,6 +84,44 @@ export const VOICES: Record<UnitKind, VoiceSpec> = {
   goliath: { f0: 58, wave: "sawtooth", formants: [380, 780], q: 6, syl: 165, dry: 0.08, fm: { hz: 22, depth: 0.06 }, gain: 1.3 }
 };
 
+/**
+ * Belle Époque voices (theme.ts BELLE_EPOQUE): no robot chirps but the
+ * machines' own sounds, phrased like the chirps (same plans, same gate).
+ * Steam machines answer with a chime whistle (a chuff for a bark, a hiss
+ * for a death); the Panhard honks its bulb horn; aeroplanes rev a
+ * propeller's buzz; the dirigible and the Montgolfière drone softly over a
+ * creak; the Hydroglisseur buzzes like its arc; the Pasteur rings; the
+ * clockwork automatons whir, tick their escapement and finish on a small
+ * brass "ding" (a death unwinds the spring).
+ */
+export type BelleFamily = "steam" | "horn" | "prop" | "balloon" | "arc" | "bell" | "clock";
+
+export interface BelleVoiceSpec extends VoiceSpec {
+  family: BelleFamily;
+}
+
+export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = {
+  harvester: { family: "steam", f0: 560, wave: "sine", formants: [600, 1400], q: 5, syl: 110, dry: 1, gain: 0.42 },
+  scout: { family: "balloon", f0: 150, wave: "triangle", formants: [700, 1500], q: 4, syl: 90, dry: 1, fm: { hz: 9, depth: 0.45 }, gain: 0.75 },
+  stinger: { family: "horn", f0: 330, wave: "sawtooth", formants: [900, 1800], q: 3, syl: 70, dry: 0.3, gain: 1.0 },
+  "flak-crawler": { family: "steam", f0: 640, wave: "sine", formants: [700, 1500], q: 6, syl: 75, dry: 1, gain: 0.4 },
+  mortar: { family: "steam", f0: 470, wave: "sine", formants: [560, 1100], q: 6, syl: 115, dry: 1, gain: 0.45 },
+  mastodon: { family: "steam", f0: 260, wave: "sine", formants: [500, 900], q: 6, syl: 140, dry: 1, gain: 0.4 },
+  lancer: { family: "arc", f0: 120, wave: "square", formants: [1400, 2400], q: 2, syl: 90, dry: 0.4, gain: 1.05 },
+  wasp: { family: "prop", f0: 150, wave: "sawtooth", formants: [900, 2000], q: 2, syl: 55, dry: 1, fm: { hz: 34, depth: 0.5 }, gain: 1.1 },
+  raptor: { family: "prop", f0: 190, wave: "sawtooth", formants: [1000, 2200], q: 2, syl: 60, dry: 1, fm: { hz: 42, depth: 0.5 }, gain: 1.0 },
+  hornet: { family: "prop", f0: 95, wave: "sawtooth", formants: [700, 1300], q: 2, syl: 125, dry: 1, fm: { hz: 22, depth: 0.5 }, gain: 1.25 },
+  mender: { family: "bell", f0: 880, wave: "sine", formants: [1300, 2600], q: 4, syl: 120, dry: 1, partial: 2.76, bell: true, gain: 0.9 },
+  trooper: { family: "clock", f0: 1320, wave: "triangle", formants: [3600, 5000], q: 4, syl: 55, dry: 1, partial: 2.76, gain: 0.58 },
+  "rocket-squad": { family: "clock", f0: 990, wave: "triangle", formants: [2600, 4000], q: 4, syl: 85, dry: 1, partial: 2.76, gain: 0.6 },
+  sniper: { family: "clock", f0: 740, wave: "triangle", formants: [2200, 3400], q: 4, syl: 135, dry: 1, partial: 2.76, gain: 0.78 },
+  condor: { family: "balloon", f0: 110, wave: "triangle", formants: [500, 1100], q: 4, syl: 120, dry: 1, fm: { hz: 7, depth: 0.45 }, gain: 1.0 },
+  goliath: { family: "steam", f0: 175, wave: "sine", formants: [380, 780], q: 6, syl: 165, dry: 1, gain: 0.4 }
+};
+
+/** The voices in play: the Belle Époque ones when that theme is on. */
+export const ACTIVE_VOICES: Record<UnitKind, VoiceSpec> = BELLE_EPOQUE ? BELLE_VOICES : VOICES;
+
 /** A syllable: a pitch glide `from` → `to` Hz with formants scaled by `vowel`. */
 export interface Syllable {
   at: number;
@@ -133,8 +172,8 @@ export function voicePitch(id: number): number {
 }
 
 /** Build one line for a unit (times in ms from the line start). Always ≤ CHIRP.maxMs. */
-export function chirpPlan(kind: UnitKind, line: VoiceLine, id: number): ChirpPlan {
-  const v = VOICES[kind];
+export function chirpPlan(kind: UnitKind, line: VoiceLine, id: number, voiceSet: Record<UnitKind, VoiceSpec> = ACTIVE_VOICES): ChirpPlan {
+  const v = voiceSet[kind];
   const shape = SHAPES[line];
   const pitch = voicePitch(id);
   const f0 = v.f0 * pitch;
@@ -365,115 +404,337 @@ export class UnitVoices {
 
   private render(plan: ChirpPlan, at: number, level: number): void {
     const { ctx, voiceIn, noise } = this.e!;
-    const v = VOICES[plan.kind];
-    const end = at + plan.length / 1000;
+    const v = ACTIVE_VOICES[plan.kind];
     const out = ctx.createGain();
     out.gain.value = CHIRP.level * v.gain * level;
     out.connect(voiceIn);
     this.live++;
-
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, at);
-    const car = ctx.createOscillator();
-    car.type = v.wave;
-    car.connect(env);
-    let part: OscillatorNode | null = null;
-    if (v.partial) {
-      part = ctx.createOscillator();
-      part.type = "sine";
-      const pg = ctx.createGain();
-      pg.gain.value = v.bell ? 0.45 : 0.3;
-      part.connect(pg).connect(env);
-    }
-    let mod: OscillatorNode | null = null;
-    let modGain: GainNode | null = null;
-    if (v.fm) {
-      mod = ctx.createOscillator();
-      mod.frequency.value = v.fm.hz;
-      modGain = ctx.createGain();
-      mod.connect(modGain).connect(car.frequency);
-    }
-    const dry = ctx.createGain();
-    dry.gain.value = v.dry;
-    env.connect(dry).connect(out);
-    // formants: band-passes lose most of the energy, so the wet path is boosted
-    const wet = ctx.createGain();
-    wet.gain.value = (1 - v.dry) * 2.6;
-    wet.connect(out);
-    const f1 = ctx.createBiquadFilter();
-    const f2 = ctx.createBiquadFilter();
-    for (const f of [f1, f2]) {
-      f.type = "bandpass";
-      f.Q.value = v.q;
-      env.connect(f).connect(wet);
-    }
-
-    for (const s of plan.syllables) {
-      const t0 = at + s.at / 1000;
-      const t1 = t0 + s.dur / 1000;
-      car.frequency.setValueAtTime(s.from, t0);
-      car.frequency.exponentialRampToValueAtTime(Math.max(20, s.to), t1);
-      if (part) {
-        part.frequency.setValueAtTime(s.from * v.partial!, t0);
-        part.frequency.exponentialRampToValueAtTime(Math.max(20, s.to * v.partial!), t1);
-      }
-      if (modGain) modGain.gain.setValueAtTime(s.from * v.fm!.depth, t0);
-      f1.frequency.setValueAtTime(v.formants[0] * s.vowel, t0);
-      f2.frequency.setValueAtTime(v.formants[1] / s.vowel, t0);
-      const atk = Math.min(0.012, (s.dur / 1000) * 0.2);
-      env.gain.setValueAtTime(0, t0);
-      env.gain.linearRampToValueAtTime(1, t0 + atk);
-      if (v.bell) env.gain.exponentialRampToValueAtTime(0.02, t1);
-      else env.gain.setValueAtTime(1, Math.max(t0 + atk, t1 - 0.02));
-      env.gain.linearRampToValueAtTime(0, t1);
-    }
-    const oscs = [car, part, mod].filter((o): o is OscillatorNode => !!o);
-    for (const o of oscs) {
-      o.start(at);
-      o.stop(end + 0.03);
-    }
-
-    const burst = (t: number, dur: number, type: BiquadFilterType, freq: number, gain: number, choppy: boolean) => {
-      const src = ctx.createBufferSource();
-      src.buffer = noise;
-      const f = ctx.createBiquadFilter();
-      f.type = type;
-      f.frequency.value = freq;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, t);
-      if (choppy) {
-        // radio-style crackle: random on/off steps
-        const steps = Math.max(3, Math.round(dur / 0.018));
-        for (let i = 0; i < steps; i++) g.gain.setValueAtTime(Math.random() < 0.55 ? gain * (1 - i / steps) : 0, t + (i * dur) / steps);
-      } else {
-        g.gain.linearRampToValueAtTime(gain, t + 0.006);
-        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      }
-      g.gain.setValueAtTime(0, t + dur);
-      src.connect(f).connect(g).connect(out);
-      src.start(t, Math.random() * 1.5, dur + 0.02);
-    };
-    if (plan.bark) burst(at + plan.bark.at / 1000, plan.bark.dur / 1000, "bandpass", v.formants[0] * 1.4, 0.9, false);
-    if (plan.crackle) burst(at + plan.crackle.at / 1000, plan.crackle.dur / 1000, "highpass", 2400, 0.35, true);
-    for (const sp of plan.sparkle ?? []) {
-      const t = at + sp.at / 1000;
-      const o = ctx.createOscillator();
-      o.type = "sine";
-      o.frequency.value = sp.freq;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.18, t + 0.004);
-      g.gain.exponentialRampToValueAtTime(0.001, t + sp.dur / 1000);
-      o.connect(g).connect(out);
-      o.start(t);
-      o.stop(t + sp.dur / 1000 + 0.02);
-    }
-
-    car.onended = () => {
+    const last = BELLE_EPOQUE ? renderBelleChirp(ctx, out, noise, plan, at) : renderChirp(ctx, out, noise, plan, at);
+    last.onended = () => {
       this.live--;
       out.disconnect();
     };
   }
 }
 
+/**
+ * Synthesise a robot chirp line into `out` (at unit level: the caller sets
+ * the line's gain). Returns the source that ends last.
+ */
+export function renderChirp(ctx: BaseAudioContext, out: AudioNode, noise: AudioBuffer, plan: ChirpPlan, at: number): AudioScheduledSourceNode {
+  const v = VOICES[plan.kind];
+  const end = at + plan.length / 1000;
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, at);
+  const car = ctx.createOscillator();
+  car.type = v.wave;
+  car.connect(env);
+  let part: OscillatorNode | null = null;
+  if (v.partial) {
+    part = ctx.createOscillator();
+    part.type = "sine";
+    const pg = ctx.createGain();
+    pg.gain.value = v.bell ? 0.45 : 0.3;
+    part.connect(pg).connect(env);
+  }
+  let mod: OscillatorNode | null = null;
+  let modGain: GainNode | null = null;
+  if (v.fm) {
+    mod = ctx.createOscillator();
+    mod.frequency.value = v.fm.hz;
+    modGain = ctx.createGain();
+    mod.connect(modGain).connect(car.frequency);
+  }
+  const dry = ctx.createGain();
+  dry.gain.value = v.dry;
+  env.connect(dry).connect(out);
+  // formants: band-passes lose most of the energy, so the wet path is boosted
+  const wet = ctx.createGain();
+  wet.gain.value = (1 - v.dry) * 2.6;
+  wet.connect(out);
+  const f1 = ctx.createBiquadFilter();
+  const f2 = ctx.createBiquadFilter();
+  for (const f of [f1, f2]) {
+    f.type = "bandpass";
+    f.Q.value = v.q;
+    env.connect(f).connect(wet);
+  }
+
+  for (const s of plan.syllables) {
+    const t0 = at + s.at / 1000;
+    const t1 = t0 + s.dur / 1000;
+    car.frequency.setValueAtTime(s.from, t0);
+    car.frequency.exponentialRampToValueAtTime(Math.max(20, s.to), t1);
+    if (part) {
+      part.frequency.setValueAtTime(s.from * v.partial!, t0);
+      part.frequency.exponentialRampToValueAtTime(Math.max(20, s.to * v.partial!), t1);
+    }
+    if (modGain) modGain.gain.setValueAtTime(s.from * v.fm!.depth, t0);
+    f1.frequency.setValueAtTime(v.formants[0] * s.vowel, t0);
+    f2.frequency.setValueAtTime(v.formants[1] / s.vowel, t0);
+    const atk = Math.min(0.012, (s.dur / 1000) * 0.2);
+    env.gain.setValueAtTime(0, t0);
+    env.gain.linearRampToValueAtTime(1, t0 + atk);
+    if (v.bell) env.gain.exponentialRampToValueAtTime(0.02, t1);
+    else env.gain.setValueAtTime(1, Math.max(t0 + atk, t1 - 0.02));
+    env.gain.linearRampToValueAtTime(0, t1);
+  }
+  const oscs = [car, part, mod].filter((o): o is OscillatorNode => !!o);
+  for (const o of oscs) {
+    o.start(at);
+    o.stop(end + 0.03);
+  }
+
+  const burst = (t: number, dur: number, type: BiquadFilterType, freq: number, gain: number, choppy: boolean) => {
+    const src = ctx.createBufferSource();
+    src.buffer = noise;
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    if (choppy) {
+      // radio-style crackle: random on/off steps
+      const steps = Math.max(3, Math.round(dur / 0.018));
+      for (let i = 0; i < steps; i++) g.gain.setValueAtTime(Math.random() < 0.55 ? gain * (1 - i / steps) : 0, t + (i * dur) / steps);
+    } else {
+      g.gain.linearRampToValueAtTime(gain, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    }
+    g.gain.setValueAtTime(0, t + dur);
+    src.connect(f).connect(g).connect(out);
+    src.start(t, Math.random() * 1.5, dur + 0.02);
+  };
+  if (plan.bark) burst(at + plan.bark.at / 1000, plan.bark.dur / 1000, "bandpass", v.formants[0] * 1.4, 0.9, false);
+  if (plan.crackle) burst(at + plan.crackle.at / 1000, plan.crackle.dur / 1000, "highpass", 2400, 0.35, true);
+  for (const sp of plan.sparkle ?? []) {
+    const t = at + sp.at / 1000;
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    o.frequency.value = sp.freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.18, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.001, t + sp.dur / 1000);
+    o.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + sp.dur / 1000 + 0.02);
+  }
+  return car;
+}
+
+/**
+ * Synthesise a Belle Époque voice line (BELLE_VOICES) into `out`, same
+ * contract as renderChirp: every source stops by the plan's end (+30 ms);
+ * returns the one that ends last.
+ */
+export function renderBelleChirp(ctx: BaseAudioContext, out: AudioNode, noise: AudioBuffer, plan: ChirpPlan, at: number): AudioScheduledSourceNode {
+  const v = BELLE_VOICES[plan.kind];
+  const end = at + plan.length / 1000;
+  const stopAt = end + 0.03;
+  const osc = (type: OscillatorType, to: AudioNode) => {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.connect(to);
+    o.start(at);
+    o.stop(stopAt);
+    return o;
+  };
+  const gain = (value: number, to: AudioNode | AudioParam) => {
+    const g = ctx.createGain();
+    g.gain.value = value;
+    if ("defaultValue" in to) g.connect(to);
+    else g.connect(to);
+    return g;
+  };
+  const filter = (type: BiquadFilterType, freq: number, q: number, to: AudioNode) => {
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = q;
+    f.connect(to);
+    return f;
+  };
+  /** A run of noise ticks (escapement, ratchet, creak, sparks): times in s from `at`, each with a level. */
+  const ticks = (hits: [number, number][], type: BiquadFilterType, freq: number, q: number, click = 0.004) => {
+    if (!hits.length) return;
+    const src = ctx.createBufferSource();
+    src.buffer = noise;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at);
+    for (const [d, lv] of hits) {
+      g.gain.setValueAtTime(lv, at + d);
+      g.gain.setTargetAtTime(0, at + d + 0.001, click / 3);
+    }
+    src.connect(filter(type, freq, q, g)).connect(g).connect(out);
+    src.start(at, Math.random() * 1.5, plan.length / 1000 + 0.03);
+  };
+  /** A noise swell (chuff, hiss, burner): one burst from `t0` lasting `dur` s. */
+  const burst = (t0: number, dur: number, type: BiquadFilterType, freq: number, peak: number) => {
+    const src = ctx.createBufferSource();
+    src.buffer = noise;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(peak, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    g.gain.setValueAtTime(0, t0 + dur);
+    src.connect(filter(type, freq, 0.8, g)).connect(g).connect(out);
+    src.start(t0, Math.random() * 1.5, dur + 0.02);
+  };
+
+  // the syllables' envelope, shared by the tonal parts
+  const env = gain(1, out);
+  env.gain.setValueAtTime(0, at);
+  for (const s of plan.syllables) {
+    const t0 = at + s.at / 1000;
+    const t1 = t0 + s.dur / 1000;
+    const atk = Math.min(v.family === "steam" ? 0.025 : 0.012, (s.dur / 1000) * 0.25);
+    env.gain.setValueAtTime(0, t0);
+    env.gain.linearRampToValueAtTime(1, t0 + atk);
+    if (v.bell) env.gain.exponentialRampToValueAtTime(0.02, t1);
+    else env.gain.setValueAtTime(1, Math.max(t0 + atk, t1 - 0.02));
+    env.gain.linearRampToValueAtTime(0, t1);
+  }
+  /** Glide an oscillator (or a filter) through the syllables at `ratio` × the pitch. */
+  const follow = (p: AudioParam, ratio: number) => {
+    for (const s of plan.syllables) {
+      const t0 = at + s.at / 1000;
+      p.setValueAtTime(s.from * ratio, t0);
+      p.exponentialRampToValueAtTime(Math.max(20, s.to * ratio), t0 + s.dur / 1000);
+    }
+  };
+  const syl = plan.syllables;
+  const lastSyl = syl[syl.length - 1]!;
+  let last: AudioScheduledSourceNode;
+
+  switch (v.family) {
+    case "steam": {
+      // a chime whistle: two sines a major third apart, and breath through a band-pass on the pitch
+      const a = osc("sine", env);
+      const b = osc("sine", gain(0.7, env));
+      follow(a.frequency, 1);
+      follow(b.frequency, 1.26);
+      const src = ctx.createBufferSource();
+      src.buffer = noise;
+      const bp = filter("bandpass", v.f0, 6, gain(1.4, env));
+      follow(bp.frequency, 1.1);
+      src.connect(bp);
+      src.start(at, Math.random() * 1.5, plan.length / 1000 + 0.03);
+      last = a;
+      break;
+    }
+    case "horn": {
+      // a bulb horn: a nasal reed through a resonant band
+      const car = osc("sawtooth", filter("bandpass", v.formants[0], v.q, gain(2.2, env)));
+      car.connect(gain(v.dry * 0.4, env));
+      follow(car.frequency, 1);
+      last = car;
+      break;
+    }
+    case "prop":
+    case "balloon": {
+      // an engine's note chopped by the propeller blades (a triangle LFO on the level)
+      const blades = gain(1 - v.fm!.depth, env);
+      const car = osc(v.wave, filter("lowpass", v.family === "prop" ? 1100 : 700, 0.8, blades));
+      follow(car.frequency, 1);
+      const lfo = osc("triangle", gain(v.fm!.depth, blades.gain));
+      lfo.frequency.value = v.fm!.hz;
+      if (v.family === "balloon") {
+        // the gondola's rigging creaks at the start of the line
+        const n = 6;
+        ticks(Array.from({ length: n }, (_, i) => [0.01 + i * 0.022 + Math.random() * 0.006, 0.25 * (1 - i / n)] as [number, number]), "bandpass", 900, 6, 0.006);
+      }
+      last = car;
+      break;
+    }
+    case "arc": {
+      // two detuned square hums through a band, and snapping sparks over each syllable
+      const bp = filter("bandpass", v.formants[0], v.q, gain(1.6, env));
+      const a = osc("square", bp);
+      const b = osc("square", bp);
+      follow(a.frequency, 1);
+      follow(b.frequency, 1.03);
+      const hits: [number, number][] = [];
+      for (const s of syl) for (let i = 0; i < 4; i++) hits.push([(s.at + Math.random() * s.dur) / 1000, 0.25 + Math.random() * 0.35]);
+      ticks(hits, "highpass", 3200, 0.7, 0.003);
+      last = a;
+      break;
+    }
+    case "bell": {
+      // the Pasteur rings: a sine with a bell partial
+      const a = osc("sine", env);
+      const p = osc("sine", gain(0.45, env));
+      follow(a.frequency, 1);
+      follow(p.frequency, v.partial ?? 2.76);
+      last = a;
+      break;
+    }
+    case "clock": {
+      // clockwork: a soft whir on the pitch, the escapement ticking through each syllable,
+      // and a small brass "ding" ringing out of the last one
+      const whir = osc("triangle", gain(0.22, env));
+      follow(whir.frequency, 0.5);
+      const hits: [number, number][] = [];
+      for (const s of syl) {
+        const step = 0.024;
+        for (let d = 0; d < s.dur / 1000 - 0.004; d += step) hits.push([s.at / 1000 + d, hits.length % 2 ? 0.35 : 0.55]);
+      }
+      ticks(hits, "bandpass", v.formants[0], v.q, 0.004);
+      const t0 = at + lastSyl.at / 1000;
+      const ding = ctx.createGain();
+      ding.gain.setValueAtTime(0.0001, t0);
+      ding.gain.exponentialRampToValueAtTime(0.5, t0 + 0.003);
+      ding.gain.exponentialRampToValueAtTime(0.0001, end);
+      ding.connect(out);
+      const d1 = osc("sine", ding);
+      const d2 = osc("sine", gain(0.3, ding));
+      d1.frequency.value = lastSyl.to;
+      d2.frequency.value = lastSyl.to * (v.partial ?? 2.76);
+      last = whir;
+      break;
+    }
+  }
+
+  // the attack's bark: a chuff of steam, a ratchet, a backfire or a snap
+  if (plan.bark) {
+    const t0 = at + plan.bark.at / 1000;
+    const dur = plan.bark.dur / 1000;
+    if (v.family === "clock") ticks([0, 0.012, 0.024, 0.036].map((d) => [plan.bark!.at / 1000 + d, 0.8] as [number, number]), "bandpass", 2600, 3, 0.006);
+    else if (v.family === "arc") burst(t0, dur, "highpass", 3000, 0.7);
+    else burst(t0, dur, "lowpass", v.family === "steam" ? 900 : 600, 1.1);
+  }
+  // the death: steam escaping, the mainspring unwinding, sparks, the engine coughing out
+  if (plan.crackle) {
+    const c0 = plan.crackle.at / 1000;
+    const cd = plan.crackle.dur / 1000;
+    if (v.family === "steam" || v.family === "balloon") burst(at + c0, cd, "highpass", 3400, 0.45);
+    else if (v.family === "clock") {
+      const hits: [number, number][] = [];
+      for (let d = 0, gap = 0.012; d < cd; d += gap, gap *= 1.25) hits.push([c0 + d, 0.6]);
+      ticks(hits, "bandpass", 3000, 3, 0.005);
+    } else {
+      const hits: [number, number][] = [];
+      for (let d = 0; d < cd; d += 0.02 + Math.random() * 0.03) hits.push([c0 + d, 0.2 + Math.random() * 0.3]);
+      ticks(hits, v.family === "prop" ? "lowpass" : "highpass", v.family === "prop" ? 700 : 2600, 0.7, 0.008);
+    }
+  }
+  // a promotion: two brass dings
+  for (const sp of plan.sparkle ?? []) {
+    const t = at + sp.at / 1000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.16, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.001, t + sp.dur / 1000);
+    g.connect(out);
+    for (const r of [1, 2.76]) {
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = (sp.freq / 1.4) * r;
+      o.connect(r === 1 ? g : gain(0.25, g));
+      o.start(t);
+      o.stop(t + sp.dur / 1000 + 0.02);
+    }
+  }
+  return last;
+}
 export const voices = new UnitVoices();

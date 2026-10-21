@@ -7,20 +7,26 @@
  */
 import { sfx, type AudioChannel } from "../game/audio";
 import { radioCheck } from "../game/announcer";
+import { BELLE_EPOQUE } from "../game/three/theme";
 import { voices } from "../game/voices";
 
+/** What the unit voices are called: robot "bips", or (Belle Époque) the machines' whistles and clockwork. */
+const CHIRPS = BELLE_EPOQUE
+  ? { label: "Machines", icon: "⚙️", title: "Sifflets et rouages des unités, et télégraphe, sans parole (touche pour couper)", both: "Annonceur, sifflets et rouages des unités (touche pour les machines seules)" }
+  : { label: "Bips", icon: "🤖", title: "Bips des unités et codes radio, sans parole (touche pour couper)", both: "Annonceur et bips des unités (touche pour les bips seuls)" };
+
 const TOGGLES: { id: "muted" | AudioChannel; icon: string; label: string }[] = [
-  { id: "muted", icon: "🔊", label: "Sound" },
-  { id: "music", icon: "🎵", label: "Music" },
-  { id: "sfx", icon: "💥", label: "Effects" },
-  { id: "voice", icon: "🗣", label: "Voice" }
+  { id: "muted", icon: "🔊", label: "Son" },
+  { id: "music", icon: "🎵", label: "Musique" },
+  { id: "sfx", icon: "💥", label: "Effets" },
+  { id: "voice", icon: "🗣", label: "Voix" }
 ];
 
 /** Render the toggles into `host`; returns a cleanup function. */
 export function mountAudioToggles(host: HTMLElement): () => void {
   host.classList.add("sound-row");
   host.setAttribute("role", "group");
-  host.setAttribute("aria-label", "Sound settings");
+  host.setAttribute("aria-label", "Réglages du son");
   host.innerHTML = TOGGLES.map(
     (t) =>
       `<button class="snd" data-k="${t.id}" aria-pressed="false"><span class="si">${t.icon}</span><span class="sl">${t.label}</span></button>`
@@ -37,9 +43,9 @@ export function mountAudioToggles(host: HTMLElement): () => void {
       if (k === "muted") b.querySelector(".si")!.textContent = on ? "🔊" : "🔇";
       if (k === "voice") {
         const chirps = on && !s.speech;
-        b.querySelector(".sl")!.textContent = chirps ? "Chirps" : "Voice";
-        b.querySelector(".si")!.textContent = chirps ? "🤖" : "🗣";
-        b.title = chirps ? "Unit chirps and radio codes, no speech (tap to turn off)" : on ? "Announcer speech and unit chirps (tap for chirps only)" : "Voice off (tap to turn on)";
+        b.querySelector(".sl")!.textContent = chirps ? CHIRPS.label : "Voix";
+        b.querySelector(".si")!.textContent = chirps ? CHIRPS.icon : "🗣";
+        b.title = chirps ? CHIRPS.title : on ? CHIRPS.both : "Voix coupée (touche pour activer)";
       }
     });
   };

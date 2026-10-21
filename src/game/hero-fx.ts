@@ -6,6 +6,7 @@ import { Ease } from "./three/tween";
 import type { View } from "./three/view";
 import { CalldownCredit, powerName } from "./calldown-credit";
 import { NAMED_RANK, RANK_TITLES, callsignOf, heroShort, killsLabel, stars } from "./heroes";
+import { BELLE_EPOQUE } from "./three/theme";
 
 /**
  * Veteran-hero presentation: floating promotion titles over the unit, and
@@ -76,7 +77,7 @@ export class HeroPresenter {
       };
       if (this.opts.spectator) {
         // both sides' real heroes, not every rank-2 grunt
-        if (ev.rank >= 3 || ev.kills >= 6) this.lost.push({ ...rec, line: `${ev.faction === "blue" ? "Blue" : "Red"}'s ${rec.line}` });
+        if (ev.rank >= 3 || ev.kills >= 6) this.lost.push({ ...rec, line: `${ev.faction === "blue" ? "Bleu" : "Rouge"} : ${rec.line}` });
       } else if (ev.faction === this.opts.player) this.lost.push(rec);
       // an enemy veteran that actually hurt you, seen going down (a Goliath is seen anywhere: it can't hide)
       else if ((ev.rank >= 3 || ev.kills >= 3) && (UNITS[ev.unitKind].alwaysVisible || this.opts.seesPoint(ev.x, ev.y))) this.aces.push(rec);
@@ -87,14 +88,15 @@ export class HeroPresenter {
   private strikeNote(list: Fallen[], prep: "by" | "to"): string {
     const s = list[0]!.strike;
     if (!s || list.some((x) => x.strike?.power !== s.power || x.strike.by !== s.by)) return "";
-    const whose = this.opts.spectator
-      ? `${s.by === "blue" ? "Blue" : "Red"}'s`
+    void prep; // (French says "par" for both)
+    const name = powerName(s.power);
+    return this.opts.spectator
+      ? ` par une frappe ${name} de ${s.by === "blue" ? "Bleu" : "Rouge"}`
       : s.by === this.opts.player
-        ? "your"
+        ? ` par ta frappe ${name}`
         : s.power === "hammer"
-          ? "the enemy"
-          : "an enemy";
-    return ` ${prep} ${whose} ${powerName(s.power)}`;
+          ? ` par la frappe ${name} ennemie`
+          : ` par une frappe ${name} ennemie`;
   }
 
   /** Emit this tick's batched notices. */
@@ -104,14 +106,14 @@ export class HeroPresenter {
       const by = this.strikeNote(l, "by");
       const msg =
         l.length === 1
-          ? `${l[0]!.line} destroyed${by}`
-          : `${listNames(l.map((x) => x.name))} destroyed${by} (${killsLabel(l.reduce((s, x) => s + x.kills, 0))} between them)`;
+          ? `${l[0]!.line} détruit${by}`
+          : `${listNames(l.map((x) => x.name))} détruits${by} (${killsLabel(l.reduce((s, x) => s + x.kills, 0))} à eux tous)`;
       this.opts.notify(`✝ ${msg}`, this.opts.spectator ? "info" : "bad", l[0]!.x, l[0]!.y);
     }
     if (this.aces.length > 0) {
       const a = this.aces;
       const to = this.strikeNote(a, "to");
-      const msg = a.length === 1 ? `Enemy ace ${a[0]!.line} down${to}` : `Enemy aces ${listNames(a.map((x) => x.name))} down${to}`;
+      const msg = a.length === 1 ? `As ennemi ${a[0]!.line} abattu${to}` : `As ennemis ${listNames(a.map((x) => x.name))} abattus${to}`;
       this.opts.notify(`🎯 ${msg}`, "good", a[0]!.x, a[0]!.y);
     }
     this.lost = [];
@@ -125,7 +127,8 @@ export class HeroPresenter {
     // titles over your own units; an enemy's only once it's dangerous
     const p = this.opts.unitPos(id) ?? { x: u.x, y: u.y, top: UNITS[u.kind].radius };
     const onScreen = this.v?.rig.onScreen(p.x, p.y) ?? false;
-    if (onScreen && this.opts.seesUnit(u) && (mine || u.rank >= NAMED_RANK))
+    // (Panache: no floating title, the rank pips over the health bar pop instead)
+    if (!BELLE_EPOQUE && onScreen && this.opts.seesUnit(u) && (mine || u.rank >= NAMED_RANK))
       this.floatTitle(id, p.x, p.y, p.top + 0.15, u.rank, mine);
     if (u.rank < NAMED_RANK || this.opts.spectator || u.faction !== this.opts.player) return;
     const name = callsignOf(this.w, u);
@@ -133,15 +136,15 @@ export class HeroPresenter {
     if (u.rank >= 3)
       announce({
         key: "unit-elite",
-        text: `${name} is Elite`,
+        text: `${name} passe Élite`,
         // (elites patch themselves up; a Goliath doesn't: only Menders repair it, GOLIATH.md)
-        sub: `${stars(3)} ${kind} · ${killsLabel(u.kills)}${u.goliath ? "" : " · self-repairing"}`,
+        sub: `${stars(3)} ${kind} · ${killsLabel(u.kills)}${u.goliath ? "" : " · auto-réparation"}`,
         tone: "epic",
         x: u.x,
         y: u.y,
         priority: 3
       });
-    else this.opts.notify(`${stars(u.rank)} Your ${kind} earned a callsign: ${name}`, "good", u.x, u.y);
+    else this.opts.notify(`${stars(u.rank)} ${kind} : indicatif ${name} obtenu`, "good", u.x, u.y);
   }
 
   /** "VETERAN" / "HARDENED" / "ELITE" rising over the unit. */
@@ -182,5 +185,5 @@ function listNames(names: string[]): string {
   const shown = names.slice(0, 3);
   const extra = names.length - shown.length;
   if (extra > 0) return `${shown.join(", ")} +${extra}`;
-  return `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`;
+  return `${shown.slice(0, -1).join(", ")} et ${shown[shown.length - 1]}`;
 }

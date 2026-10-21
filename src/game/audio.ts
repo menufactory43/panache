@@ -52,7 +52,9 @@
  *    Bluetooth headset's call route, for the high plan) gets the identity
  *    for its FIR (guard-fir.ts): its own Nyquist is the guard.
  */
+import { BELLE_RECIPES } from "./audio-belle";
 import { guardFir, type GuardPlan } from "./guard-fir";
+import { BELLE_EPOQUE } from "./three/theme";
 
 export type SfxName =
   | "cannon" | "heavy" | "mg" | "flak" | "rocket" | "missile" | "laser" | "shell" | "bomb"
@@ -261,6 +263,15 @@ export class Sfx {
   get engine(): AudioEngine | null {
     if (!this.ctx || !this.buses || !this.duckNode || !this.noise) return null;
     return { ctx: this.ctx, musicIn: this.duckNode, voiceIn: this.buses.voice, noise: this.noise };
+  }
+
+  /**
+   * A bus's input, for sounds built outside the recipes (the title screen's
+   * projector and fanfare, audio-title.ts): its level follows the player's
+   * switches and the master mute. Null until audio is unlocked.
+   */
+  bus(ch: AudioChannel): AudioNode | null {
+    return this.buses?.[ch] ?? null;
   }
 
   /** Is this bus audible right now (not muted and switched on)? */
@@ -528,7 +539,7 @@ export class Sfx {
     out.gain.value = vol;
     out.connect(this.buses.sfx);
     this.voices++;
-    const dur = RECIPES[name](ctx, out, now, this.noise!, pitch);
+    const dur = sfxRecipe(name)(ctx, out, now, this.noise!, pitch);
     setTimeout(() => {
       this.voices--;
       out.disconnect();
@@ -579,10 +590,18 @@ const BATTLE = new Set<SfxName>(["cannon", "heavy", "mg", "flak", "rocket", "mis
 /** Short feedback cues that may use the reserved voices above the battle cap. */
 const PRIORITY = new Set<SfxName>(["kill", "lost", "coin", "alert", "inbound"]);
 
-type Recipe = (ctx: AudioContext, out: AudioNode, t: number, noise: AudioBuffer, pitch: number) => number;
+type Recipe = (ctx: BaseAudioContext, out: AudioNode, t: number, noise: AudioBuffer, pitch: number) => number;
+
+/**
+ * The recipe for a sound: the Belle Époque one (audio-belle.ts) when that
+ * theme is on and has one, else the original. Exported for offline renders.
+ */
+export function sfxRecipe(name: SfxName, belle: boolean = BELLE_EPOQUE): Recipe {
+  return (belle && BELLE_RECIPES[name]) || RECIPES[name];
+}
 
 function noiseBurst(
-  ctx: AudioContext, out: AudioNode, t: number, noise: AudioBuffer,
+  ctx: BaseAudioContext, out: AudioNode, t: number, noise: AudioBuffer,
   dur: number, filter: BiquadFilterType, freq: number, gain: number, freqEnd?: number
 ): void {
   const src = ctx.createBufferSource();
@@ -600,7 +619,7 @@ function noiseBurst(
 }
 
 function tone(
-  ctx: AudioContext, out: AudioNode, t: number, type: OscillatorType,
+  ctx: BaseAudioContext, out: AudioNode, t: number, type: OscillatorType,
   f0: number, f1: number, dur: number, gain: number, delay = 0
 ): void {
   const o = ctx.createOscillator();
