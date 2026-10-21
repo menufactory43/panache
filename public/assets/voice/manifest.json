@@ -1,0 +1,3292 @@
+{
+ "lines": [
+  {
+   "key": "alerte notre gqg est attaqué",
+   "text": "Alerte : notre GQG est attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "alerte-notre-gqg-est-attaque.mp3"
+  },
+  {
+   "key": "notre base est attaquée",
+   "text": "Notre base est attaquée",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-base-est-attaquee.mp3"
+  },
+  {
+   "key": "nos unités sont sous le feu",
+   "text": "Nos unités sont sous le feu",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "nos-unites-sont-sous-le-feu.mp3"
+  },
+  {
+   "key": "notre gargantua est attaqué",
+   "text": "Notre Gargantua est attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-gargantua-est-attaque.mp3"
+  },
+  {
+   "key": "escouade perdue",
+   "text": "Escouade perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "escouade-perdue.mp3"
+  },
+  {
+   "key": "fardier perdu",
+   "text": "Fardier perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "fardier-perdu.mp3"
+  },
+  {
+   "key": "charbon insuffisant",
+   "text": "Charbon insuffisant",
+   "tone": "info",
+   "part": "line",
+   "core": true,
+   "file": "charbon-insuffisant.mp3"
+  },
+  {
+   "key": "construction impossible ici",
+   "text": "Construction impossible ici",
+   "tone": "info",
+   "part": "line",
+   "core": true,
+   "file": "construction-impossible-ici.mp3"
+  },
+  {
+   "key": "construction terminée",
+   "text": "Construction terminée",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "construction-terminee.mp3"
+  },
+  {
+   "key": "aviation ennemie détectée",
+   "text": "Aviation ennemie détectée",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "aviation-ennemie-detectee.mp3"
+  },
+  {
+   "key": "troupes déployées",
+   "text": "Troupes déployées",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "troupes-deployees.mp3"
+  },
+  {
+   "key": "débarquement ennemi",
+   "text": "Débarquement ennemi !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "debarquement-ennemi.mp3"
+  },
+  {
+   "key": "montgolfière abattue les troupes sautent",
+   "text": "Montgolfière abattue ! Les troupes sautent",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-abattue-les-troupes-sautent.mp3"
+  },
+  {
+   "key": "montgolfière abattue avec une escouade à bord",
+   "text": "Montgolfière abattue avec une escouade à bord",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-abattue-avec-une-escouade-a-bord.mp3"
+  },
+  {
+   "key": "montgolfière abattue avec 2 escouades à bord",
+   "text": "Montgolfière abattue avec 2 escouades à bord",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-abattue-avec-2-escouades-a-bord.mp3"
+  },
+  {
+   "key": "montgolfière abattue avec 3 escouades à bord",
+   "text": "Montgolfière abattue avec 3 escouades à bord",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-abattue-avec-3-escouades-a-bord.mp3"
+  },
+  {
+   "key": "montgolfière abattue avec 4 escouades à bord",
+   "text": "Montgolfière abattue avec 4 escouades à bord",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-abattue-avec-4-escouades-a-bord.mp3"
+  },
+  {
+   "key": "montgolfière de remplacement en approche une escouade à bord",
+   "text": "Montgolfière de remplacement en approche, une escouade à bord",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-de-remplacement-en-approche-une-escouade-a-bord.mp3"
+  },
+  {
+   "key": "montgolfière de remplacement en approche",
+   "text": "Montgolfière de remplacement en approche",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-de-remplacement-en-approche.mp3"
+  },
+  {
+   "key": "artillerie en approche",
+   "text": "Artillerie en approche !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "artillerie-en-approche.mp3"
+  },
+  {
+   "key": "fée électricité en approche",
+   "text": "Fée Électricité en approche !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "fee-electricite-en-approche.mp3"
+  },
+  {
+   "key": "obus capsule ennemi",
+   "text": "Obus-capsule ennemi !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "obus-capsule-ennemi.mp3"
+  },
+  {
+   "key": "carnage",
+   "text": "Carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "carnage.mp3"
+  },
+  {
+   "key": "feu roulant carnage",
+   "text": "Feu roulant : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "feu-roulant-carnage.mp3"
+  },
+  {
+   "key": "fée électricité carnage",
+   "text": "Fée Électricité : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "fee-electricite-carnage.mp3"
+  },
+  {
+   "key": "obus capsule carnage",
+   "text": "Obus-capsule : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "obus-capsule-carnage.mp3"
+  },
+  {
+   "key": "obus méliès carnage",
+   "text": "Obus Méliès : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "obus-melies-carnage.mp3"
+  },
+  {
+   "key": "triplé",
+   "text": "Triplé",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "triple.mp3"
+  },
+  {
+   "key": "feu roulant triplé",
+   "text": "Feu roulant : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "feu-roulant-triple.mp3"
+  },
+  {
+   "key": "fée électricité triplé",
+   "text": "Fée Électricité : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "fee-electricite-triple.mp3"
+  },
+  {
+   "key": "obus capsule triplé",
+   "text": "Obus-capsule : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "obus-capsule-triple.mp3"
+  },
+  {
+   "key": "obus méliès triplé",
+   "text": "Obus Méliès : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "obus-melies-triple.mp3"
+  },
+  {
+   "key": "doublé",
+   "text": "Doublé",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "double.mp3"
+  },
+  {
+   "key": "feu roulant doublé",
+   "text": "Feu roulant : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "feu-roulant-double.mp3"
+  },
+  {
+   "key": "fée électricité doublé",
+   "text": "Fée Électricité : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "fee-electricite-double.mp3"
+  },
+  {
+   "key": "obus capsule doublé",
+   "text": "Obus-capsule : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "obus-capsule-double.mp3"
+  },
+  {
+   "key": "obus méliès doublé",
+   "text": "Obus Méliès : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "obus-melies-double.mp3"
+  },
+  {
+   "key": "premier sang",
+   "text": "Premier sang",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "premier-sang.mp3"
+  },
+  {
+   "key": "coup en plein au but",
+   "text": "Coup en plein au but !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "coup-en-plein-au-but.mp3"
+  },
+  {
+   "key": "bâtiment perdu forges",
+   "text": "Bâtiment perdu : Forges",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-forges.mp3"
+  },
+  {
+   "key": "forges ennemies détruites",
+   "text": "Forges ennemies détruites",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "forges-ennemies-detruites.mp3"
+  },
+  {
+   "key": "bâtiment perdu parc de chalais meudon",
+   "text": "Bâtiment perdu : Parc de Chalais-Meudon",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-parc-de-chalais-meudon.mp3"
+  },
+  {
+   "key": "parc de chalais meudon ennemi détruit",
+   "text": "Parc de Chalais-Meudon ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "parc-de-chalais-meudon-ennemi-detruit.mp3"
+  },
+  {
+   "key": "bâtiment perdu polytechnique",
+   "text": "Bâtiment perdu : Polytechnique",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-polytechnique.mp3"
+  },
+  {
+   "key": "polytechnique ennemie détruite",
+   "text": "Polytechnique ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "polytechnique-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu halles",
+   "text": "Bâtiment perdu : Halles",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-halles.mp3"
+  },
+  {
+   "key": "halles ennemies détruites",
+   "text": "Halles ennemies détruites",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "halles-ennemies-detruites.mp3"
+  },
+  {
+   "key": "bâtiment perdu hotchkiss",
+   "text": "Bâtiment perdu : Hotchkiss",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-hotchkiss.mp3"
+  },
+  {
+   "key": "hotchkiss ennemie détruite",
+   "text": "Hotchkiss ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "hotchkiss-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu batterie ruggieri",
+   "text": "Bâtiment perdu : Batterie Ruggieri",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-batterie-ruggieri.mp3"
+  },
+  {
+   "key": "batterie ruggieri ennemie détruite",
+   "text": "Batterie Ruggieri ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "batterie-ruggieri-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu tour tsf",
+   "text": "Bâtiment perdu : Tour TSF",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-tour-tsf.mp3"
+  },
+  {
+   "key": "tour tsf ennemie détruite",
+   "text": "Tour TSF ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "tour-tsf-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu manufacture",
+   "text": "Bâtiment perdu : Manufacture",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-manufacture.mp3"
+  },
+  {
+   "key": "manufacture ennemie détruite",
+   "text": "Manufacture ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "manufacture-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu galerie des machines",
+   "text": "Bâtiment perdu : Galerie des Machines",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-galerie-des-machines.mp3"
+  },
+  {
+   "key": "galerie des machines ennemie détruite",
+   "text": "Galerie des Machines ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "galerie-des-machines-ennemie-detruite.mp3"
+  },
+  {
+   "key": "fardier ennemi détruit",
+   "text": "Fardier ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "fardier-ennemi-detruit.mp3"
+  },
+  {
+   "key": "fardier d élite ennemi détruit",
+   "text": "Fardier d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "fardier-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "patrie ennemie détruite",
+   "text": "Patrie ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "patrie-ennemie-detruite.mp3"
+  },
+  {
+   "key": "patrie d élite ennemie détruite",
+   "text": "Patrie d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "patrie-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "patrie perdue",
+   "text": "Patrie perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "patrie-perdue.mp3"
+  },
+  {
+   "key": "patrie vétérane perdue",
+   "text": "Patrie vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "patrie-veterane-perdue.mp3"
+  },
+  {
+   "key": "panhard ennemi détruit",
+   "text": "Panhard ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "panhard-ennemi-detruit.mp3"
+  },
+  {
+   "key": "panhard d élite ennemi détruit",
+   "text": "Panhard d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "panhard-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "panhard perdu",
+   "text": "Panhard perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "panhard-perdu.mp3"
+  },
+  {
+   "key": "panhard vétéran perdu",
+   "text": "Panhard vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "panhard-veteran-perdu.mp3"
+  },
+  {
+   "key": "faucheux ennemi détruit",
+   "text": "Faucheux ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "faucheux-ennemi-detruit.mp3"
+  },
+  {
+   "key": "faucheux d élite ennemi détruit",
+   "text": "Faucheux d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "faucheux-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "faucheux perdu",
+   "text": "Faucheux perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "faucheux-perdu.mp3"
+  },
+  {
+   "key": "faucheux vétéran perdu",
+   "text": "Faucheux vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "faucheux-veteran-perdu.mp3"
+  },
+  {
+   "key": "canon de 75 ennemi détruit",
+   "text": "Canon de 75 ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "canon-de-75-ennemi-detruit.mp3"
+  },
+  {
+   "key": "canon de 75 d élite ennemi détruit",
+   "text": "Canon de 75 d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "canon-de-75-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "canon de 75 perdu",
+   "text": "Canon de 75 perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "canon-de-75-perdu.mp3"
+  },
+  {
+   "key": "canon de 75 vétéran perdu",
+   "text": "Canon de 75 vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "canon-de-75-veteran-perdu.mp3"
+  },
+  {
+   "key": "creusot ennemi détruit",
+   "text": "Creusot ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "creusot-ennemi-detruit.mp3"
+  },
+  {
+   "key": "creusot d élite ennemi détruit",
+   "text": "Creusot d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "creusot-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "creusot perdu",
+   "text": "Creusot perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "creusot-perdu.mp3"
+  },
+  {
+   "key": "creusot vétéran perdu",
+   "text": "Creusot vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "creusot-veteran-perdu.mp3"
+  },
+  {
+   "key": "hydroglisseur ennemi détruit",
+   "text": "Hydroglisseur ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "hydroglisseur-ennemi-detruit.mp3"
+  },
+  {
+   "key": "hydroglisseur d élite ennemi détruit",
+   "text": "Hydroglisseur d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "hydroglisseur-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "hydroglisseur perdu",
+   "text": "Hydroglisseur perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "hydroglisseur-perdu.mp3"
+  },
+  {
+   "key": "hydroglisseur vétéran perdu",
+   "text": "Hydroglisseur vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "hydroglisseur-veteran-perdu.mp3"
+  },
+  {
+   "key": "éole ennemi détruit",
+   "text": "Éole ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "eole-ennemi-detruit.mp3"
+  },
+  {
+   "key": "éole d élite ennemi détruit",
+   "text": "Éole d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "eole-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "éole perdu",
+   "text": "Éole perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "eole-perdu.mp3"
+  },
+  {
+   "key": "éole vétéran perdu",
+   "text": "Éole vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "eole-veteran-perdu.mp3"
+  },
+  {
+   "key": "blériot ennemi détruit",
+   "text": "Blériot ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "bleriot-ennemi-detruit.mp3"
+  },
+  {
+   "key": "blériot d élite ennemi détruit",
+   "text": "Blériot d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "bleriot-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "blériot perdu",
+   "text": "Blériot perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "bleriot-perdu.mp3"
+  },
+  {
+   "key": "blériot vétéran perdu",
+   "text": "Blériot vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "bleriot-veteran-perdu.mp3"
+  },
+  {
+   "key": "albatros ennemi détruit",
+   "text": "Albatros ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "albatros-ennemi-detruit.mp3"
+  },
+  {
+   "key": "albatros d élite ennemi détruit",
+   "text": "Albatros d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "albatros-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "albatros perdu",
+   "text": "Albatros perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "albatros-perdu.mp3"
+  },
+  {
+   "key": "albatros vétéran perdu",
+   "text": "Albatros vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "albatros-veteran-perdu.mp3"
+  },
+  {
+   "key": "pasteur ennemi détruit",
+   "text": "Pasteur ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "pasteur-ennemi-detruit.mp3"
+  },
+  {
+   "key": "pasteur d élite ennemi détruit",
+   "text": "Pasteur d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "pasteur-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "pasteur perdu",
+   "text": "Pasteur perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "pasteur-perdu.mp3"
+  },
+  {
+   "key": "pasteur vétéran perdu",
+   "text": "Pasteur vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "pasteur-veteran-perdu.mp3"
+  },
+  {
+   "key": "escouade de pioupious ennemie détruite",
+   "text": "Escouade de pioupious ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "escouade-de-pioupious-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de pioupious d élite ennemie détruite",
+   "text": "Escouade de pioupious d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-pioupious-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de pioupious perdue",
+   "text": "Escouade de pioupious perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-pioupious-perdue.mp3"
+  },
+  {
+   "key": "escouade de pioupious vétérane perdue",
+   "text": "Escouade de pioupious vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-pioupious-veterane-perdue.mp3"
+  },
+  {
+   "key": "escouade d artificiers ennemie détruite",
+   "text": "Escouade d'artificiers ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "escouade-d-artificiers-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade d artificiers d élite ennemie détruite",
+   "text": "Escouade d'artificiers d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-d-artificiers-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade d artificiers perdue",
+   "text": "Escouade d'artificiers perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-d-artificiers-perdue.mp3"
+  },
+  {
+   "key": "escouade d artificiers vétérane perdue",
+   "text": "Escouade d'artificiers vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-d-artificiers-veterane-perdue.mp3"
+  },
+  {
+   "key": "section alpine ennemie détruite",
+   "text": "Section alpine ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "section-alpine-ennemie-detruite.mp3"
+  },
+  {
+   "key": "section alpine d élite ennemie détruite",
+   "text": "Section alpine d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "section-alpine-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "section de chasseurs alpins perdue",
+   "text": "Section de chasseurs alpins perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "section-de-chasseurs-alpins-perdue.mp3"
+  },
+  {
+   "key": "section de chasseurs alpins vétérane perdue",
+   "text": "Section de chasseurs alpins vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "section-de-chasseurs-alpins-veterane-perdue.mp3"
+  },
+  {
+   "key": "montgolfière ennemie détruite",
+   "text": "Montgolfière ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "montgolfiere-ennemie-detruite.mp3"
+  },
+  {
+   "key": "montgolfière d élite ennemie détruite",
+   "text": "Montgolfière d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "montgolfière perdue",
+   "text": "Montgolfière perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-perdue.mp3"
+  },
+  {
+   "key": "montgolfière vétérane perdue",
+   "text": "Montgolfière vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "montgolfiere-veterane-perdue.mp3"
+  },
+  {
+   "key": "notre gqg est tombé",
+   "text": "Notre GQG est tombé",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-gqg-est-tombe.mp3"
+  },
+  {
+   "key": "gqg ennemi détruit",
+   "text": "GQG ennemi détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "gqg-ennemi-detruit.mp3"
+  },
+  {
+   "key": "gargantua ennemi détruit",
+   "text": "Gargantua ennemi détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-ennemi-detruit.mp3"
+  },
+  {
+   "key": "gargantua d élite ennemi détruit",
+   "text": "Gargantua d'élite ennemi détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "gargantua perdu",
+   "text": "Gargantua perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-perdu.mp3"
+  },
+  {
+   "key": "gargantua perdu dans la chute",
+   "text": "Gargantua perdu dans la chute",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-perdu-dans-la-chute.mp3"
+  },
+  {
+   "key": "gargantua ennemi en production",
+   "text": "Gargantua ennemi en production",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-ennemi-en-production.mp3"
+  },
+  {
+   "key": "gargantua ennemi presque terminé",
+   "text": "Gargantua ennemi presque terminé",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-ennemi-presque-termine.mp3"
+  },
+  {
+   "key": "gargantua prêt",
+   "text": "Gargantua prêt",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-pret.mp3"
+  },
+  {
+   "key": "gargantua ennemi sur le terrain",
+   "text": "Gargantua ennemi sur le terrain",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-ennemi-sur-le-terrain.mp3"
+  },
+  {
+   "key": "gargantua ancré",
+   "text": "Gargantua ancré",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ancre.mp3"
+  },
+  {
+   "key": "gargantua ennemi en ancrage",
+   "text": "Gargantua ennemi en ancrage",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-en-ancrage.mp3"
+  },
+  {
+   "key": "gargantua ennemi lève l ancre",
+   "text": "Gargantua ennemi lève l'ancre",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-leve-l-ancre.mp3"
+  },
+  {
+   "key": "gargantua en vol",
+   "text": "Gargantua en vol",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-en-vol.mp3"
+  },
+  {
+   "key": "gargantua lâché",
+   "text": "Gargantua lâché !",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-lache.mp3"
+  },
+  {
+   "key": "gargantua ennemi en vol",
+   "text": "Gargantua ennemi en vol",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-en-vol.mp3"
+  },
+  {
+   "key": "gargantua ennemi lâché",
+   "text": "Gargantua ennemi lâché !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-lache.mp3"
+  },
+  {
+   "key": "gargantua mortiers hors ligne",
+   "text": "Gargantua : mortiers hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-mortiers-hors-ligne.mp3"
+  },
+  {
+   "key": "gargantua mortiers de nouveau en ligne",
+   "text": "Gargantua : mortiers de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-mortiers-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua ennemi mortiers hors service",
+   "text": "Gargantua ennemi : mortiers hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-mortiers-hors-service.mp3"
+  },
+  {
+   "key": "gargantua ennemi mortiers de nouveau en ligne",
+   "text": "Gargantua ennemi : mortiers de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-mortiers-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua bleu mortiers hors service",
+   "text": "Gargantua Bleu : mortiers hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-mortiers-hors-service.mp3"
+  },
+  {
+   "key": "gargantua rouge mortiers hors service",
+   "text": "Gargantua Rouge : mortiers hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-mortiers-hors-service.mp3"
+  },
+  {
+   "key": "gargantua arc électrique hors ligne",
+   "text": "Gargantua : arc électrique hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-arc-electrique-hors-ligne.mp3"
+  },
+  {
+   "key": "gargantua arc électrique de nouveau en ligne",
+   "text": "Gargantua : arc électrique de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-arc-electrique-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua ennemi arc électrique hors service",
+   "text": "Gargantua ennemi : arc électrique hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-arc-electrique-hors-service.mp3"
+  },
+  {
+   "key": "gargantua ennemi arc électrique de nouveau en ligne",
+   "text": "Gargantua ennemi : arc électrique de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-arc-electrique-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua bleu arc électrique hors service",
+   "text": "Gargantua Bleu : arc électrique hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-arc-electrique-hors-service.mp3"
+  },
+  {
+   "key": "gargantua rouge arc électrique hors service",
+   "text": "Gargantua Rouge : arc électrique hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-arc-electrique-hors-service.mp3"
+  },
+  {
+   "key": "gargantua canons hors ligne",
+   "text": "Gargantua : canons hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-canons-hors-ligne.mp3"
+  },
+  {
+   "key": "gargantua canons de nouveau en ligne",
+   "text": "Gargantua : canons de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-canons-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua ennemi canons hors service",
+   "text": "Gargantua ennemi : canons hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-canons-hors-service.mp3"
+  },
+  {
+   "key": "gargantua ennemi canons de nouveau en ligne",
+   "text": "Gargantua ennemi : canons de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-ennemi-canons-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gargantua bleu canons hors service",
+   "text": "Gargantua Bleu : canons hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-canons-hors-service.mp3"
+  },
+  {
+   "key": "gargantua rouge canons hors service",
+   "text": "Gargantua Rouge : canons hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-canons-hors-service.mp3"
+  },
+  {
+   "key": "mortiers et arc électrique",
+   "text": "mortiers et arc électrique",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "mortiers-et-arc-electrique.mp3"
+  },
+  {
+   "key": "mortiers arc électrique et canons",
+   "text": "mortiers, arc électrique et canons",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "mortiers-arc-electrique-et-canons.mp3"
+  },
+  {
+   "key": "mortiers et canons",
+   "text": "mortiers et canons",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "mortiers-et-canons.mp3"
+  },
+  {
+   "key": "mortiers canons et arc électrique",
+   "text": "mortiers, canons et arc électrique",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "mortiers-canons-et-arc-electrique.mp3"
+  },
+  {
+   "key": "arc électrique et mortiers",
+   "text": "arc électrique et mortiers",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-electrique-et-mortiers.mp3"
+  },
+  {
+   "key": "arc électrique mortiers et canons",
+   "text": "arc électrique, mortiers et canons",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-electrique-mortiers-et-canons.mp3"
+  },
+  {
+   "key": "arc électrique et canons",
+   "text": "arc électrique et canons",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-electrique-et-canons.mp3"
+  },
+  {
+   "key": "arc électrique canons et mortiers",
+   "text": "arc électrique, canons et mortiers",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-electrique-canons-et-mortiers.mp3"
+  },
+  {
+   "key": "canons et mortiers",
+   "text": "canons et mortiers",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-et-mortiers.mp3"
+  },
+  {
+   "key": "canons mortiers et arc électrique",
+   "text": "canons, mortiers et arc électrique",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-mortiers-et-arc-electrique.mp3"
+  },
+  {
+   "key": "canons et arc électrique",
+   "text": "canons et arc électrique",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-et-arc-electrique.mp3"
+  },
+  {
+   "key": "canons arc électrique et mortiers",
+   "text": "canons, arc électrique et mortiers",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-arc-electrique-et-mortiers.mp3"
+  },
+  {
+   "key": "gargantua",
+   "text": "Gargantua :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gargantua.mp3"
+  },
+  {
+   "key": "gargantua ennemi",
+   "text": "Gargantua ennemi :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gargantua-ennemi.mp3"
+  },
+  {
+   "key": "gargantua bleu",
+   "text": "Gargantua Bleu :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gargantua-bleu.mp3"
+  },
+  {
+   "key": "gargantua rouge",
+   "text": "Gargantua Rouge :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gargantua-rouge.mp3"
+  },
+  {
+   "key": "hors ligne",
+   "text": "hors ligne",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "hors-ligne.mp3"
+  },
+  {
+   "key": "hors service",
+   "text": "hors service",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "hors-service.mp3"
+  },
+  {
+   "key": "de nouveau en ligne",
+   "text": "de nouveau en ligne",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "gqg ennemi détruit victoire",
+   "text": "GQG ennemi détruit. Victoire !",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "gqg-ennemi-detruit-victoire.mp3"
+  },
+  {
+   "key": "dernier gargantua ennemi détruit victoire",
+   "text": "Dernier Gargantua ennemi détruit. Victoire !",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "dernier-gargantua-ennemi-detruit-victoire.mp3"
+  },
+  {
+   "key": "notre gqg est tombé mission échouée",
+   "text": "Notre GQG est tombé. Mission échouée.",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-gqg-est-tombe-mission-echouee.mp3"
+  },
+  {
+   "key": "notre dernier gargantua est tombé mission échouée",
+   "text": "Notre dernier Gargantua est tombé. Mission échouée.",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-dernier-gargantua-est-tombe-mission-echouee.mp3"
+  },
+  {
+   "key": "ils sont tombés amoureux match nul",
+   "text": "Ils sont tombés amoureux. Match nul.",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ils-sont-tombes-amoureux-match-nul.mp3"
+  },
+  {
+   "key": "match nul",
+   "text": "Match nul.",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "match-nul.mp3"
+  },
+  {
+   "key": "base submergée le dernier gargantua est tombé",
+   "text": "Base submergée. Le dernier Gargantua est tombé.",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "base-submergee-le-dernier-gargantua-est-tombe.mp3"
+  },
+  {
+   "key": "base submergée le gqg est tombé",
+   "text": "Base submergée. Le GQG est tombé.",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "base-submergee-le-gqg-est-tombe.mp3"
+  },
+  {
+   "key": "par un feu roulant",
+   "text": "par un Feu roulant",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-un-feu-roulant.mp3"
+  },
+  {
+   "key": "par la fée électricité",
+   "text": "par la Fée Électricité",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-la-fee-electricite.mp3"
+  },
+  {
+   "key": "par un obus capsule",
+   "text": "par un Obus-capsule",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-un-obus-capsule.mp3"
+  },
+  {
+   "key": "par l obus méliès",
+   "text": "par l'Obus Méliès",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-l-obus-melies.mp3"
+  },
+  {
+   "key": "gqg bleu attaqué",
+   "text": "GQG Bleu attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gqg-bleu-attaque.mp3"
+  },
+  {
+   "key": "gargantua bleu attaqué",
+   "text": "Gargantua Bleu attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-attaque.mp3"
+  },
+  {
+   "key": "gqg bleu détruit",
+   "text": "GQG Bleu détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gqg-bleu-detruit.mp3"
+  },
+  {
+   "key": "premier sang pour bleu",
+   "text": "Premier sang pour Bleu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "premier-sang-pour-bleu.mp3"
+  },
+  {
+   "key": "pour bleu",
+   "text": "pour Bleu",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "pour-bleu.mp3"
+  },
+  {
+   "key": "débarquement bleu",
+   "text": "Débarquement Bleu",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "debarquement-bleu.mp3"
+  },
+  {
+   "key": "gargantua bleu en production",
+   "text": "Gargantua Bleu en production",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-en-production.mp3"
+  },
+  {
+   "key": "gargantua bleu presque terminé",
+   "text": "Gargantua Bleu presque terminé",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-presque-termine.mp3"
+  },
+  {
+   "key": "gargantua bleu sur le terrain",
+   "text": "Gargantua Bleu sur le terrain",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-sur-le-terrain.mp3"
+  },
+  {
+   "key": "gargantua bleu en ancrage",
+   "text": "Gargantua Bleu en ancrage",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-en-ancrage.mp3"
+  },
+  {
+   "key": "gargantua bleu en vol",
+   "text": "Gargantua Bleu en vol",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-en-vol.mp3"
+  },
+  {
+   "key": "gargantua bleu lâché",
+   "text": "Gargantua Bleu lâché !",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-lache.mp3"
+  },
+  {
+   "key": "aviation bleu en approche",
+   "text": "Aviation Bleu en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "aviation-bleu-en-approche.mp3"
+  },
+  {
+   "key": "bleu remporte la bataille",
+   "text": "Bleu remporte la bataille",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "bleu-remporte-la-bataille.mp3"
+  },
+  {
+   "key": "dernier gargantua bleu détruit",
+   "text": "Dernier Gargantua Bleu détruit.",
+   "tone": "epic",
+   "part": "head",
+   "core": false,
+   "file": "dernier-gargantua-bleu-detruit.mp3"
+  },
+  {
+   "key": "gargantua bleu abattu",
+   "text": "Gargantua Bleu abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-bleu-abattu.mp3"
+  },
+  {
+   "key": "gargantua d élite bleu abattu",
+   "text": "Gargantua d'élite Bleu abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-d-elite-bleu-abattu.mp3"
+  },
+  {
+   "key": "bleu prend un relais",
+   "text": "Bleu prend un Relais",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "bleu-prend-un-relais.mp3"
+  },
+  {
+   "key": "bleu abandonne",
+   "text": "Bleu abandonne",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "bleu-abandonne.mp3"
+  },
+  {
+   "key": "bleu détruit",
+   "text": "Bleu détruit",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "bleu-detruit.mp3"
+  },
+  {
+   "key": "bleu détruite",
+   "text": "Bleu détruite",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "bleu-detruite.mp3"
+  },
+  {
+   "key": "bleu détruites",
+   "text": "Bleu détruites",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "bleu-detruites.mp3"
+  },
+  {
+   "key": "bleu abattu",
+   "text": "Bleu abattu",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "bleu-abattu.mp3"
+  },
+  {
+   "key": "bleu abattue",
+   "text": "Bleu abattue",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "bleu-abattue.mp3"
+  },
+  {
+   "key": "gqg rouge attaqué",
+   "text": "GQG Rouge attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gqg-rouge-attaque.mp3"
+  },
+  {
+   "key": "gargantua rouge attaqué",
+   "text": "Gargantua Rouge attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-attaque.mp3"
+  },
+  {
+   "key": "gqg rouge détruit",
+   "text": "GQG Rouge détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gqg-rouge-detruit.mp3"
+  },
+  {
+   "key": "premier sang pour rouge",
+   "text": "Premier sang pour Rouge",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "premier-sang-pour-rouge.mp3"
+  },
+  {
+   "key": "pour rouge",
+   "text": "pour Rouge",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "pour-rouge.mp3"
+  },
+  {
+   "key": "débarquement rouge",
+   "text": "Débarquement Rouge",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "debarquement-rouge.mp3"
+  },
+  {
+   "key": "gargantua rouge en production",
+   "text": "Gargantua Rouge en production",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-en-production.mp3"
+  },
+  {
+   "key": "gargantua rouge presque terminé",
+   "text": "Gargantua Rouge presque terminé",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-presque-termine.mp3"
+  },
+  {
+   "key": "gargantua rouge sur le terrain",
+   "text": "Gargantua Rouge sur le terrain",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-sur-le-terrain.mp3"
+  },
+  {
+   "key": "gargantua rouge en ancrage",
+   "text": "Gargantua Rouge en ancrage",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-en-ancrage.mp3"
+  },
+  {
+   "key": "gargantua rouge en vol",
+   "text": "Gargantua Rouge en vol",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-en-vol.mp3"
+  },
+  {
+   "key": "gargantua rouge lâché",
+   "text": "Gargantua Rouge lâché !",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-lache.mp3"
+  },
+  {
+   "key": "aviation rouge en approche",
+   "text": "Aviation Rouge en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "aviation-rouge-en-approche.mp3"
+  },
+  {
+   "key": "rouge remporte la bataille",
+   "text": "Rouge remporte la bataille",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rouge-remporte-la-bataille.mp3"
+  },
+  {
+   "key": "dernier gargantua rouge détruit",
+   "text": "Dernier Gargantua Rouge détruit.",
+   "tone": "epic",
+   "part": "head",
+   "core": false,
+   "file": "dernier-gargantua-rouge-detruit.mp3"
+  },
+  {
+   "key": "gargantua rouge abattu",
+   "text": "Gargantua Rouge abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-rouge-abattu.mp3"
+  },
+  {
+   "key": "gargantua d élite rouge abattu",
+   "text": "Gargantua d'élite Rouge abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gargantua-d-elite-rouge-abattu.mp3"
+  },
+  {
+   "key": "rouge prend un relais",
+   "text": "Rouge prend un Relais",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "rouge-prend-un-relais.mp3"
+  },
+  {
+   "key": "rouge abandonne",
+   "text": "Rouge abandonne",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rouge-abandonne.mp3"
+  },
+  {
+   "key": "rouge détruit",
+   "text": "Rouge détruit",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "rouge-detruit.mp3"
+  },
+  {
+   "key": "rouge détruite",
+   "text": "Rouge détruite",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "rouge-detruite.mp3"
+  },
+  {
+   "key": "rouge détruites",
+   "text": "Rouge détruites",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "rouge-detruites.mp3"
+  },
+  {
+   "key": "rouge abattu",
+   "text": "Rouge abattu",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "rouge-abattu.mp3"
+  },
+  {
+   "key": "rouge abattue",
+   "text": "Rouge abattue",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "rouge-abattue.mp3"
+  },
+  {
+   "key": "fardier",
+   "text": "Fardier",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "fardier.mp3"
+  },
+  {
+   "key": "fardier d élite",
+   "text": "Fardier d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "fardier-d-elite.mp3"
+  },
+  {
+   "key": "patrie",
+   "text": "Patrie",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "patrie.mp3"
+  },
+  {
+   "key": "patrie d élite",
+   "text": "Patrie d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "patrie-d-elite.mp3"
+  },
+  {
+   "key": "panhard",
+   "text": "Panhard",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "panhard.mp3"
+  },
+  {
+   "key": "panhard d élite",
+   "text": "Panhard d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "panhard-d-elite.mp3"
+  },
+  {
+   "key": "faucheux",
+   "text": "Faucheux",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "faucheux.mp3"
+  },
+  {
+   "key": "faucheux d élite",
+   "text": "Faucheux d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "faucheux-d-elite.mp3"
+  },
+  {
+   "key": "canon de 75",
+   "text": "Canon de 75",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "canon-de-75.mp3"
+  },
+  {
+   "key": "canon de 75 d élite",
+   "text": "Canon de 75 d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "canon-de-75-d-elite.mp3"
+  },
+  {
+   "key": "creusot",
+   "text": "Creusot",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "creusot.mp3"
+  },
+  {
+   "key": "creusot d élite",
+   "text": "Creusot d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "creusot-d-elite.mp3"
+  },
+  {
+   "key": "hydroglisseur",
+   "text": "Hydroglisseur",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "hydroglisseur.mp3"
+  },
+  {
+   "key": "hydroglisseur d élite",
+   "text": "Hydroglisseur d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "hydroglisseur-d-elite.mp3"
+  },
+  {
+   "key": "éole",
+   "text": "Éole",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "eole.mp3"
+  },
+  {
+   "key": "éole d élite",
+   "text": "Éole d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "eole-d-elite.mp3"
+  },
+  {
+   "key": "blériot",
+   "text": "Blériot",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "bleriot.mp3"
+  },
+  {
+   "key": "blériot d élite",
+   "text": "Blériot d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "bleriot-d-elite.mp3"
+  },
+  {
+   "key": "albatros",
+   "text": "Albatros",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "albatros.mp3"
+  },
+  {
+   "key": "albatros d élite",
+   "text": "Albatros d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "albatros-d-elite.mp3"
+  },
+  {
+   "key": "pasteur",
+   "text": "Pasteur",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "pasteur.mp3"
+  },
+  {
+   "key": "pasteur d élite",
+   "text": "Pasteur d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "pasteur-d-elite.mp3"
+  },
+  {
+   "key": "escouade de pioupious",
+   "text": "Escouade de pioupious",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-pioupious.mp3"
+  },
+  {
+   "key": "escouade de pioupious d élite",
+   "text": "Escouade de pioupious d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-pioupious-d-elite.mp3"
+  },
+  {
+   "key": "escouade d artificiers",
+   "text": "Escouade d'artificiers",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-d-artificiers.mp3"
+  },
+  {
+   "key": "escouade d artificiers d élite",
+   "text": "Escouade d'artificiers d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-d-artificiers-d-elite.mp3"
+  },
+  {
+   "key": "section de chasseurs alpins",
+   "text": "Section de chasseurs alpins",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "section-de-chasseurs-alpins.mp3"
+  },
+  {
+   "key": "section alpine",
+   "text": "Section alpine",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "section-alpine.mp3"
+  },
+  {
+   "key": "section alpine d élite",
+   "text": "Section alpine d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "section-alpine-d-elite.mp3"
+  },
+  {
+   "key": "montgolfière",
+   "text": "Montgolfière",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "montgolfiere.mp3"
+  },
+  {
+   "key": "montgolfière d élite",
+   "text": "Montgolfière d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "montgolfiere-d-elite.mp3"
+  },
+  {
+   "key": "forges",
+   "text": "Forges",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "forges.mp3"
+  },
+  {
+   "key": "parc de chalais meudon",
+   "text": "Parc de Chalais-Meudon",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "parc-de-chalais-meudon.mp3"
+  },
+  {
+   "key": "polytechnique",
+   "text": "Polytechnique",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "polytechnique.mp3"
+  },
+  {
+   "key": "halles",
+   "text": "Halles",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "halles.mp3"
+  },
+  {
+   "key": "hotchkiss",
+   "text": "Hotchkiss",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "hotchkiss.mp3"
+  },
+  {
+   "key": "batterie ruggieri",
+   "text": "Batterie Ruggieri",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "batterie-ruggieri.mp3"
+  },
+  {
+   "key": "tour tsf",
+   "text": "Tour TSF",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "tour-tsf.mp3"
+  },
+  {
+   "key": "manufacture",
+   "text": "Manufacture",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "manufacture.mp3"
+  },
+  {
+   "key": "galerie des machines",
+   "text": "Galerie des Machines",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "galerie-des-machines.mp3"
+  },
+  {
+   "key": "détruit",
+   "text": "détruit",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "detruit.mp3"
+  },
+  {
+   "key": "détruite",
+   "text": "détruite",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "detruite.mp3"
+  },
+  {
+   "key": "détruites",
+   "text": "détruites",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "detruites.mp3"
+  },
+  {
+   "key": "abattu",
+   "text": "abattu",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "abattu.mp3"
+  },
+  {
+   "key": "abattue",
+   "text": "abattue",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "abattue.mp3"
+  },
+  {
+   "key": "abattues",
+   "text": "abattues",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "abattues.mp3"
+  },
+  {
+   "key": "promu",
+   "text": "promu",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "promu.mp3"
+  },
+  {
+   "key": "promue",
+   "text": "promue",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "promue.mp3"
+  },
+  {
+   "key": "promu élite",
+   "text": "promu élite",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "promu-elite.mp3"
+  },
+  {
+   "key": "promue élite",
+   "text": "promue élite",
+   "tone": "info",
+   "part": "tail",
+   "core": false,
+   "file": "promue-elite.mp3"
+  },
+  {
+   "key": "essai radio",
+   "text": "Essai radio",
+   "tone": "info",
+   "part": "line",
+   "core": true,
+   "file": "essai-radio.mp3"
+  },
+  {
+   "key": "relais capturé",
+   "text": "Relais capturé",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "relais-capture.mp3"
+  },
+  {
+   "key": "relais perdu",
+   "text": "Relais perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "relais-perdu.mp3"
+  },
+  {
+   "key": "largage rare",
+   "text": "Largage rare !",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "largage-rare.mp3"
+  },
+  {
+   "key": "largage de ravitaillement en approche",
+   "text": "Largage de ravitaillement en approche",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "largage-de-ravitaillement-en-approche.mp3"
+  },
+  {
+   "key": "obus méliès opérationnel",
+   "text": "Obus Méliès opérationnel",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "obus-melies-operationnel.mp3"
+  },
+  {
+   "key": "obus méliès en approche",
+   "text": "Obus Méliès en approche !",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "obus-melies-en-approche.mp3"
+  },
+  {
+   "key": "obus méliès ennemi en approche",
+   "text": "Obus Méliès ennemi en approche !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "obus-melies-ennemi-en-approche.mp3"
+  },
+  {
+   "key": "butin de récupération",
+   "text": "Butin de récupération",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "butin-de-recuperation.mp3"
+  },
+  {
+   "key": "mutateurs actifs",
+   "text": "Mutateurs actifs",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "mutateurs-actifs.mp3"
+  },
+  {
+   "key": "blitz",
+   "text": "Blitz !",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "blitz.mp3"
+  },
+  {
+   "key": "industrie",
+   "text": "Industrie !",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "industrie.mp3"
+  },
+  {
+   "key": "escadrille",
+   "text": "Escadrille !",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "escadrille.mp3"
+  },
+  {
+   "key": "tête de pont",
+   "text": "Tête de pont",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "tete-de-pont.mp3"
+  },
+  {
+   "key": "lune des moissons",
+   "text": "Lune des moissons",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "lune-des-moissons.mp3"
+  },
+  {
+   "key": "décapitation",
+   "text": "Décapitation",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "decapitation.mp3"
+  },
+  {
+   "key": "avoirs gelés",
+   "text": "Avoirs gelés",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "avoirs-geles.mp3"
+  },
+  {
+   "key": "pirates du ciel",
+   "text": "Pirates du ciel",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "pirates-du-ciel.mp3"
+  },
+  {
+   "key": "mâchoire de verre",
+   "text": "Mâchoire de verre",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "machoire-de-verre.mp3"
+  },
+  {
+   "key": "marée d acier",
+   "text": "Marée d'acier",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "maree-d-acier.mp3"
+  },
+  {
+   "key": "dernière lueur",
+   "text": "Dernière lueur",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "derniere-lueur.mp3"
+  },
+  {
+   "key": "tiens encore une minute",
+   "text": "Tiens encore une minute",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "tiens-encore-une-minute.mp3"
+  },
+  {
+   "key": "plus qu une minute",
+   "text": "Plus qu'une minute",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "plus-qu-une-minute.mp3"
+  },
+  {
+   "key": "op réussie",
+   "text": "Op réussie",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "op-reussie.mp3"
+  },
+  {
+   "key": "op échouée",
+   "text": "Op échouée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "op-echouee.mp3"
+  },
+  {
+   "key": "raid aérien",
+   "text": "Raid aérien",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "raid-aerien.mp3"
+  },
+  {
+   "key": "colonne blindée",
+   "text": "Colonne blindée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "colonne-blindee.mp3"
+  },
+  {
+   "key": "artillerie",
+   "text": "Artillerie",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "artillerie.mp3"
+  },
+  {
+   "key": "assaut mixte",
+   "text": "Assaut mixte",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "assaut-mixte.mp3"
+  },
+  {
+   "key": "essaim d automates",
+   "text": "Essaim d'automates",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "essaim-d-automates.mp3"
+  },
+  {
+   "key": "boss",
+   "text": "Boss",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "boss.mp3"
+  },
+  {
+   "key": "fer de lance creusot",
+   "text": "Fer de lance Creusot",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "fer-de-lance-creusot.mp3"
+  },
+  {
+   "key": "escadre de bombardiers",
+   "text": "Escadre de bombardiers",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "escadre-de-bombardiers.mp3"
+  },
+  {
+   "key": "force d élite",
+   "text": "Force d'élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "force-d-elite.mp3"
+  },
+  {
+   "key": "vague 1 repoussée",
+   "text": "Vague 1 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-1-repoussee.mp3"
+  },
+  {
+   "key": "vague 2 repoussée",
+   "text": "Vague 2 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-2-repoussee.mp3"
+  },
+  {
+   "key": "vague 3 repoussée",
+   "text": "Vague 3 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-3-repoussee.mp3"
+  },
+  {
+   "key": "vague 4 repoussée",
+   "text": "Vague 4 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-4-repoussee.mp3"
+  },
+  {
+   "key": "vague 5 repoussée",
+   "text": "Vague 5 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-5-repoussee.mp3"
+  },
+  {
+   "key": "vague 6 repoussée",
+   "text": "Vague 6 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-6-repoussee.mp3"
+  },
+  {
+   "key": "vague 7 repoussée",
+   "text": "Vague 7 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-7-repoussee.mp3"
+  },
+  {
+   "key": "vague 8 repoussée",
+   "text": "Vague 8 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-8-repoussee.mp3"
+  },
+  {
+   "key": "vague 9 repoussée",
+   "text": "Vague 9 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-9-repoussee.mp3"
+  },
+  {
+   "key": "vague 10 repoussée",
+   "text": "Vague 10 repoussée !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "vague-10-repoussee.mp3"
+  },
+  {
+   "key": "vague 11 repoussée",
+   "text": "Vague 11 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-11-repoussee.mp3"
+  },
+  {
+   "key": "vague 12 repoussée",
+   "text": "Vague 12 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-12-repoussee.mp3"
+  },
+  {
+   "key": "vague 13 repoussée",
+   "text": "Vague 13 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-13-repoussee.mp3"
+  },
+  {
+   "key": "vague 14 repoussée",
+   "text": "Vague 14 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-14-repoussee.mp3"
+  },
+  {
+   "key": "vague 15 repoussée",
+   "text": "Vague 15 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-15-repoussee.mp3"
+  },
+  {
+   "key": "vague 16 repoussée",
+   "text": "Vague 16 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-16-repoussee.mp3"
+  },
+  {
+   "key": "vague 17 repoussée",
+   "text": "Vague 17 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-17-repoussee.mp3"
+  },
+  {
+   "key": "vague 18 repoussée",
+   "text": "Vague 18 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-18-repoussee.mp3"
+  },
+  {
+   "key": "vague 19 repoussée",
+   "text": "Vague 19 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-19-repoussee.mp3"
+  },
+  {
+   "key": "vague 20 repoussée",
+   "text": "Vague 20 repoussée !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "vague-20-repoussee.mp3"
+  },
+  {
+   "key": "vague 21 repoussée",
+   "text": "Vague 21 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-21-repoussee.mp3"
+  },
+  {
+   "key": "vague 22 repoussée",
+   "text": "Vague 22 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-22-repoussee.mp3"
+  },
+  {
+   "key": "vague 23 repoussée",
+   "text": "Vague 23 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-23-repoussee.mp3"
+  },
+  {
+   "key": "vague 24 repoussée",
+   "text": "Vague 24 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-24-repoussee.mp3"
+  },
+  {
+   "key": "vague 25 repoussée",
+   "text": "Vague 25 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-25-repoussee.mp3"
+  },
+  {
+   "key": "vague 26 repoussée",
+   "text": "Vague 26 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-26-repoussee.mp3"
+  },
+  {
+   "key": "vague 27 repoussée",
+   "text": "Vague 27 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-27-repoussee.mp3"
+  },
+  {
+   "key": "vague 28 repoussée",
+   "text": "Vague 28 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-28-repoussee.mp3"
+  },
+  {
+   "key": "vague 29 repoussée",
+   "text": "Vague 29 repoussée",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vague-29-repoussee.mp3"
+  },
+  {
+   "key": "vague 30 repoussée",
+   "text": "Vague 30 repoussée !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "vague-30-repoussee.mp3"
+  },
+  {
+   "key": "nouveau record",
+   "text": "Nouveau record !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "nouveau-record.mp3"
+  },
+  {
+   "key": "base submergée",
+   "text": "Base submergée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "base-submergee.mp3"
+  },
+  {
+   "key": "aéronefs ennemis en approche",
+   "text": "Aéronefs ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "aeronefs-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "bombardiers ennemis en approche",
+   "text": "Bombardiers ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "bombardiers-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "montgolfières ennemies en approche",
+   "text": "Montgolfières ennemies en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "montgolfieres-ennemies-en-approche.mp3"
+  },
+  {
+   "key": "blindés ennemis en approche",
+   "text": "Blindés ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "blindes-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "artillerie ennemie en approche",
+   "text": "Artillerie ennemie en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "artillerie-ennemie-en-approche.mp3"
+  },
+  {
+   "key": "creusot ennemis en approche",
+   "text": "Creusot ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "creusot-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "hydroglisseurs ennemis en approche",
+   "text": "Hydroglisseurs ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "hydroglisseurs-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "pioupious ennemis en approche",
+   "text": "Pioupious ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "pioupious-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "artificiers ennemis en approche",
+   "text": "Artificiers ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "artificiers-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "chasseurs alpins ennemis en approche",
+   "text": "Chasseurs alpins ennemis en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "chasseurs-alpins-ennemis-en-approche.mp3"
+  },
+  {
+   "key": "gargantua ennemi en approche",
+   "text": "Gargantua ennemi en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-ennemi-en-approche.mp3"
+  },
+  {
+   "key": "force de frappe ennemie en approche",
+   "text": "Force de frappe ennemie en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "force-de-frappe-ennemie-en-approche.mp3"
+  },
+  {
+   "key": "viper passe élite",
+   "text": "Viper passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "viper-passe-elite.mp3"
+  },
+  {
+   "key": "ironhide passe élite",
+   "text": "Ironhide passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "ironhide-passe-elite.mp3"
+  },
+  {
+   "key": "bulldog passe élite",
+   "text": "Bulldog passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "bulldog-passe-elite.mp3"
+  },
+  {
+   "key": "sable passe élite",
+   "text": "Sable passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "sable-passe-elite.mp3"
+  },
+  {
+   "key": "havoc passe élite",
+   "text": "Havoc passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "havoc-passe-elite.mp3"
+  },
+  {
+   "key": "rook passe élite",
+   "text": "Rook passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rook-passe-elite.mp3"
+  },
+  {
+   "key": "jinx passe élite",
+   "text": "Jinx passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "jinx-passe-elite.mp3"
+  },
+  {
+   "key": "talon passe élite",
+   "text": "Talon passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "talon-passe-elite.mp3"
+  },
+  {
+   "key": "brick passe élite",
+   "text": "Brick passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "brick-passe-elite.mp3"
+  },
+  {
+   "key": "nova passe élite",
+   "text": "Nova passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "nova-passe-elite.mp3"
+  },
+  {
+   "key": "vandal passe élite",
+   "text": "Vandal passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "vandal-passe-elite.mp3"
+  },
+  {
+   "key": "grit passe élite",
+   "text": "Grit passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "grit-passe-elite.mp3"
+  },
+  {
+   "key": "onyx passe élite",
+   "text": "Onyx passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "onyx-passe-elite.mp3"
+  },
+  {
+   "key": "ghost passe élite",
+   "text": "Ghost passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "ghost-passe-elite.mp3"
+  },
+  {
+   "key": "hammer passe élite",
+   "text": "Hammer passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "hammer-passe-elite.mp3"
+  },
+  {
+   "key": "kestrel passe élite",
+   "text": "Kestrel passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "kestrel-passe-elite.mp3"
+  },
+  {
+   "key": "rampart passe élite",
+   "text": "Rampart passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rampart-passe-elite.mp3"
+  },
+  {
+   "key": "mako passe élite",
+   "text": "Mako passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "mako-passe-elite.mp3"
+  },
+  {
+   "key": "ember passe élite",
+   "text": "Ember passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "ember-passe-elite.mp3"
+  },
+  {
+   "key": "banshee passe élite",
+   "text": "Banshee passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "banshee-passe-elite.mp3"
+  },
+  {
+   "key": "diesel passe élite",
+   "text": "Diesel passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "diesel-passe-elite.mp3"
+  },
+  {
+   "key": "sparrow passe élite",
+   "text": "Sparrow passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "sparrow-passe-elite.mp3"
+  },
+  {
+   "key": "tusk passe élite",
+   "text": "Tusk passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "tusk-passe-elite.mp3"
+  },
+  {
+   "key": "cobalt passe élite",
+   "text": "Cobalt passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "cobalt-passe-elite.mp3"
+  },
+  {
+   "key": "wraith passe élite",
+   "text": "Wraith passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "wraith-passe-elite.mp3"
+  },
+  {
+   "key": "maverick passe élite",
+   "text": "Maverick passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "maverick-passe-elite.mp3"
+  },
+  {
+   "key": "anvil passe élite",
+   "text": "Anvil passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "anvil-passe-elite.mp3"
+  },
+  {
+   "key": "rascal passe élite",
+   "text": "Rascal passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rascal-passe-elite.mp3"
+  },
+  {
+   "key": "hex passe élite",
+   "text": "Hex passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "hex-passe-elite.mp3"
+  },
+  {
+   "key": "lynx passe élite",
+   "text": "Lynx passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "lynx-passe-elite.mp3"
+  },
+  {
+   "key": "bastion passe élite",
+   "text": "Bastion passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "bastion-passe-elite.mp3"
+  },
+  {
+   "key": "zephyr passe élite",
+   "text": "Zephyr passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zephyr-passe-elite.mp3"
+  },
+  {
+   "key": "torque passe élite",
+   "text": "Torque passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "torque-passe-elite.mp3"
+  },
+  {
+   "key": "vixen passe élite",
+   "text": "Vixen passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "vixen-passe-elite.mp3"
+  },
+  {
+   "key": "grizzly passe élite",
+   "text": "Grizzly passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "grizzly-passe-elite.mp3"
+  },
+  {
+   "key": "comet passe élite",
+   "text": "Comet passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "comet-passe-elite.mp3"
+  },
+  {
+   "key": "ratchet passe élite",
+   "text": "Ratchet passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "ratchet-passe-elite.mp3"
+  },
+  {
+   "key": "spectre passe élite",
+   "text": "Spectre passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "spectre-passe-elite.mp3"
+  },
+  {
+   "key": "blitz passe élite",
+   "text": "Blitz passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "blitz-passe-elite.mp3"
+  },
+  {
+   "key": "flint passe élite",
+   "text": "Flint passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "flint-passe-elite.mp3"
+  },
+  {
+   "key": "mantis passe élite",
+   "text": "Mantis passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "mantis-passe-elite.mp3"
+  },
+  {
+   "key": "juggernaut passe élite",
+   "text": "Juggernaut passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "juggernaut-passe-elite.mp3"
+  },
+  {
+   "key": "echo passe élite",
+   "text": "Echo passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "echo-passe-elite.mp3"
+  },
+  {
+   "key": "scorch passe élite",
+   "text": "Scorch passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "scorch-passe-elite.mp3"
+  },
+  {
+   "key": "bruiser passe élite",
+   "text": "Bruiser passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "bruiser-passe-elite.mp3"
+  },
+  {
+   "key": "valkyrie passe élite",
+   "text": "Valkyrie passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "valkyrie-passe-elite.mp3"
+  },
+  {
+   "key": "patch passe élite",
+   "text": "Patch passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "patch-passe-elite.mp3"
+  },
+  {
+   "key": "thunder passe élite",
+   "text": "Thunder passe Élite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "thunder-passe-elite.mp3"
+  },
+  {
+   "key": "gargantua rouge détruit",
+   "text": "Gargantua Rouge détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-rouge-detruit.mp3"
+  },
+  {
+   "key": "notre dernier gargantua est tombé",
+   "text": "Notre dernier Gargantua est tombé",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "notre-dernier-gargantua-est-tombe.mp3"
+  },
+  {
+   "key": "gargantua bleu détruit",
+   "text": "Gargantua Bleu détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "gargantua-bleu-detruit.mp3"
+  },
+  {
+   "key": "ton ami abandonne",
+   "text": "Ton ami abandonne",
+   "tone": "epic",
+   "part": "line",
+   "core": true,
+   "file": "ton-ami-abandonne.mp3"
+  },
+  {
+   "key": "tu as abandonné",
+   "text": "Tu as abandonné",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "tu-as-abandonne.mp3"
+  },
+  {
+   "key": "double abandon",
+   "text": "Double abandon",
+   "tone": "info",
+   "part": "line",
+   "core": true,
+   "file": "double-abandon.mp3"
+  }
+ ]
+}

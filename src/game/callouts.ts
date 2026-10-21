@@ -146,9 +146,9 @@ export interface CalloutHooks {
   announce(a: Announcement): void;
 }
 
-const SIDE: Record<Faction, string> = { blue: "Bleu", red: "Rouge" };
+export const SIDE: Record<Faction, string> = { blue: "Bleu", red: "Rouge" };
 /** Shorter names where a banner must fit a phone ("ELITE FLAK DOWN"). */
-const SHORT: Partial<Record<UnitKind, string>> = { sniper: "Section alpine" };
+export const SHORT: Partial<Record<UnitKind, string>> = { sniper: "Section alpine" };
 const enemyOf = (f: Faction): Faction => (f === "blue" ? "red" : "blue");
 /** Gender and number come from sim/lexicon.ts: agree("turret", "détruit") = "détruite", agree("fab-plant", "détruit") = "détruites". */
 /** "ennemi" / "ennemie" / "ennemies". */
@@ -157,9 +157,9 @@ const hostile = (kind: UnitKind | BuildingKind | null | undefined): string => ag
 /** The Goliath's counters, as its rollout banner names them (GOLIATH.md tunes it against these). */
 export const GOLIATH_COUNTERS = "Artificiers, Éole, Hydroglisseurs, Albatros";
 /** Spoken names of the weapon systems a Goliath can lose (the machine guns never go offline). */
-const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "mortiers", laser: "arc électrique", cannons: "canons" };
+export const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "mortiers", laser: "arc électrique", cannons: "canons" };
 /** "mortars", "mortars and laser", "mortars, laser and cannons". */
-const listWords = (xs: readonly string[]): string =>
+export const listWords = (xs: readonly string[]): string =>
   xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`;
 /** "Gargantua continue le combat" / "Gargantuas continuent le combat" (after "son"/"ses", "notre"/"nos"). */
 const fightsOn = (n: number): string => (n > 1 ? "Gargantuas continuent le combat" : "Gargantua continue le combat");
@@ -387,7 +387,7 @@ export class BattleCallouts {
         if (t - this.lastKillBanner >= CALLOUTS.killBannerGapS) {
           this.last.set("structure-killed", t);
           this.banner(
-            { key: "calldown-hit", text: "Coup au but !", sub: `${powerName(by.power)} : ${name} ${hostile(ev.buildingKind)} ${agree(ev.buildingKind, "détruit")}`, tone: "good", priority: 3, x: ev.x, y: ev.y },
+            { key: "calldown-hit", text: "Coup au but !", say: "Coup en plein au but !", sub: `${powerName(by.power)} : ${name} ${hostile(ev.buildingKind)} ${agree(ev.buildingKind, "détruit")}`, tone: "good", priority: 3, x: ev.x, y: ev.y },
             t
           );
           return;

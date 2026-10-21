@@ -103,6 +103,13 @@ export default defineConfig({
             urlPattern: /\/assets\/textures\/.*\.webp$/,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "battledrones-textures", expiration: { maxEntries: 16 } }
+          },
+          {
+            // the recorded announcer (Panache, src/game/voice-pack.ts): ~400 small clips, 2–3 MB in all,
+            // fetched as lines are first said; kept, and refreshed behind the cache after a re-recording
+            urlPattern: /\/assets\/voice\/.*\.mp3$/,
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "panache-voice", expiration: { maxEntries: 600 } }
           }
         ]
       },

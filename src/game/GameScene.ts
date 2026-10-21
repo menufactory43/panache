@@ -19,6 +19,7 @@ import { music } from "./music";
 import { BattleMood } from "./score";
 import { voices, type VoiceHooks } from "./voices";
 import { Announcer } from "./announcer";
+import { voicePack } from "./voice-pack";
 import { Awareness } from "./awareness-view";
 import { baseGoliath, calldownThreatens, planTicks } from "./awareness";
 import { HINTS } from "./hints";
@@ -480,6 +481,8 @@ export class GameScene {
       announce,
       music,
       radio: this.radio,
+      /** The recorded announcer's clips (Panache): fetch and play counts. */
+      voice: voicePack,
       voices,
       aware: this.aware,
       place: this.place,

@@ -16,13 +16,18 @@
  *
  * With the Belle Époque theme the radio is a telegraph line: the squelch is
  * a sounder's click-clack over a carbon microphone's hiss, and the code is
- * keyed on a TSF buzzer (same pitches and timing as the radio code).
+ * keyed on a TSF buzzer (same pitches and timing as the radio code), and
+ * the words are recorded: clips of a French officer on a field telephone
+ * (voice-pack.ts, voice-lines.ts), pieced together for the templated lines.
+ * Lines the recordings can't say, or whose clips arrive too late, still go
+ * to speechSynthesis.
  */
 import type { Faction, FxEvent, World } from "../sim/types";
 import { onAnnounce, announce, type Announcement, type AnnounceTone } from "./announce";
 import { sfx } from "./audio";
 import { BELLE_EPOQUE } from "./three/theme";
 import { BattleCallouts, RadioQueue, isEndLine, speakable, type RadioCueKey, type RadioLine } from "./callouts";
+import { VOICE, voicePack, type VoicePack } from "./voice-pack";
 
 /** Speech voice settings. */
 export const SPEECH = {
@@ -283,11 +288,22 @@ function code(tone: AnnounceTone, priority: number): number {
 export function radioCheck(): void {
   if (!sfx.enabled("voice")) return;
   squelch(true);
-  const fallback = () => code("info", 2);
+  const fallback = (): void => void code("info", 2);
   // link mode (a sound duel) speaks no words: the code stands in
-  if (sfx.settings.speech && !sfx.linkMode && speech.usable) {
-    if (!speech.speak("Essai radio", "info", () => squelch(false), fallback)) fallback();
-  } else fallback();
+  if (!sfx.settings.speech || sfx.linkMode) return fallback();
+  const spoken = () => {
+    if (!speech.usable || !speech.speak("Essai radio", "info", () => squelch(false), fallback)) fallback();
+  };
+  // (Panache: the recorded voice; the tap still primes speech for the lines it can't say)
+  const plan = BELLE_EPOQUE ? voicePack.plan("Essai radio") : null;
+  const e = sfx.engine;
+  if (!plan || !e) return spoken();
+  void voicePack.load(e.ctx, plan).then((bufs) => {
+    if (!bufs || !sfx.enabled("voice")) return bufs ? undefined : spoken();
+    const at = e.ctx.currentTime + SPEECH.leadMs / 1000;
+    const { len } = voicePack.play(e.ctx, e.voiceIn, bufs, at, e.noise, plan.map((l) => l.file));
+    setTimeout(() => sfx.enabled("voice") && squelch(false), (SPEECH.leadMs / 1000 + len) * 1000);
+  });
 }
 
 // ------------------------------------------------------------ announcer --
@@ -307,7 +323,7 @@ export interface RadioLogEntry {
   t: number;
   key: string;
   text: string;
-  how: "speech" | "code" | "silent";
+  how: "clip" | "speech" | "code" | "silent";
 }
 
 let active: Announcer | null = null;
@@ -329,8 +345,16 @@ export class Announcer {
   private offAnnounce: () => void;
   private offChange: () => void;
   readonly log: RadioLogEntry[] = [];
+  /** Recorded clips (Panache only; null: every line goes to speech synthesis). */
+  private pack: VoicePack | null;
+  /** The recorded line playing, to cut it short. */
+  private playing: { stop(): void } | null = null;
+  /** Bumped with each delivered line: a late clip load for an older line is dropped. */
+  private serial = 0;
+  private destroyed = false;
 
-  constructor(private h: AnnouncerHooks) {
+  constructor(private h: AnnouncerHooks, pack: VoicePack | null = BELLE_EPOQUE ? voicePack : null) {
+    this.pack = pack;
     this.callouts = new BattleCallouts({
       world: h.world, player: h.player, spectator: h.spectator, onScreen: h.onScreen,
       radio: (l) => this.push(l),
@@ -340,9 +364,31 @@ export class Announcer {
     this.offAnnounce = onAnnounce((a) => this.announced(a));
     // the Voice switch (or master mute, or link mode) cuts a line mid-word
     this.offChange = sfx.onChange(() => {
-      if (!this.speechOn) speech.cancel();
+      if (!this.speechOn) this.hush();
     });
     active = this;
+    this.prefetch();
+  }
+
+  /** Fetch the common clips once the audio context exists (never during a sound duel's link). */
+  private prefetch(): void {
+    const pack = this.pack;
+    if (!pack || typeof window === "undefined") return;
+    const tryNow = () => {
+      if (this.destroyed) return;
+      const e = sfx.engine;
+      if (!e || sfx.linkMode) return void window.setTimeout(tryNow, 1500);
+      void pack.prefetchCore(e.ctx, () => this.destroyed || sfx.linkMode);
+    };
+    tryNow();
+  }
+
+  /** Cut the line being said, recorded or synthesized. */
+  private hush(): void {
+    speech.cancel();
+    this.playing?.stop();
+    this.playing = null;
+    this.serial++;
   }
 
   /** May lines be spoken (not just coded)? Never in a sound duel's link mode. */
@@ -374,7 +420,7 @@ export class Announcer {
       // the last word: nothing else waits or talks over it
       this.ended = true;
       this.queue.clear();
-      speech.cancel();
+      this.hush();
       this.busyUntil = 0;
       this.queue.push(line, this.clock);
       return;
@@ -395,33 +441,47 @@ export class Announcer {
   private deliver(line: RadioLine): void {
     if (line.caption) this.h.caption(line);
     const voiceOn = sfx.enabled("voice") && !!sfx.engine;
+    const entry: RadioLogEntry = { t: Math.round(this.simT * 10) / 10, key: line.key, text: line.text, how: "silent" };
     let how: RadioLogEntry["how"] = "silent";
     let len = lineSeconds(line.text);
     if (voiceOn) {
       squelch(true);
-      const words = this.speechOn && speech.usable;
-      if (words) {
+      const serial = ++this.serial;
+      const plan = this.speechOn ? (this.pack?.plan(line.text) ?? null) : null;
+      if (this.pack && this.speechOn && !plan) this.pack.stats.uncovered++;
+      const ready = plan && this.pack!.cached(plan);
+      if (plan && ready) {
+        how = "clip";
+        len = this.playClips(ready, plan.map((l) => l.file));
+      } else if (plan && this.pack) {
+        // the clips are on their way: play them if they come in time, else say it with speech synthesis
+        how = "clip";
+        const pack = this.pack;
+        const asked = performance.now();
+        this.busyUntil = this.clock + len + SPEECH.overrunS;
+        let settled = false;
+        const fallback = () => {
+          pack.stats.late++;
+          entry.how = "speech";
+          if (serial === this.serial && !this.destroyed && this.speechOn) this.synthesize(line, len, 0);
+        };
+        const giveUp = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          fallback();
+        }, VOICE.waitMs);
+        void pack.load(sfx.engine!.ctx, plan).then((bufs) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(giveUp);
+          if (!bufs) return fallback();
+          if (serial !== this.serial || this.destroyed || !this.speechOn) return;
+          const l = this.playClips(bufs, plan.map((x) => x.file), Math.max(0, SPEECH.leadMs - (performance.now() - asked)));
+          sfx.duck(SPEECH.duckDb, l);
+        });
+      } else if (this.speechOn && speech.usable) {
         how = "speech";
-        const startAt = this.clock;
-        const release = () => (this.busyUntil = Math.min(this.busyUntil, this.clock + 0.25));
-        window.setTimeout(() => {
-          const ok = speech.speak(
-            line.text,
-            line.tone,
-            () => {
-              // done: an "over" click, and the queue may move on shortly
-              if (sfx.enabled("voice")) squelch(false);
-              release();
-            },
-            () => {
-              // no words came out: the code still tells the line apart
-              if (sfx.enabled("voice") && !this.ended) code(line.tone, line.priority);
-              release();
-            }
-          );
-          if (!ok) code(line.tone, line.priority);
-        }, SPEECH.leadMs);
-        this.busyUntil = startAt + len + SPEECH.overrunS;
+        this.synthesize(line, len, SPEECH.leadMs);
       } else {
         how = "code";
         len = code(line.tone, line.priority);
@@ -429,14 +489,66 @@ export class Announcer {
       }
       sfx.duck(SPEECH.duckDb, len);
     }
-    this.log.push({ t: Math.round(this.simT * 10) / 10, key: line.key, text: line.text, how });
+    entry.how = how;
+    this.log.push(entry);
     if (this.log.length > 400) this.log.splice(0, 100);
   }
 
+  /** The page went to the background: cut the recorded line too. */
+  hidden(): void {
+    this.playing?.stop();
+    this.playing = null;
+  }
+
+  /** Play a line's clips after the squelch; returns its length (s) and holds the queue for it. */
+  private playClips(bufs: AudioBuffer[], files: string[], leadMs: number = SPEECH.leadMs): number {
+    const e = sfx.engine!;
+    this.playing?.stop();
+    const at = e.ctx.currentTime + leadMs / 1000;
+    const p = this.pack!.play(e.ctx, e.voiceIn, bufs, at, e.noise, files);
+    this.playing = p;
+    const serial = this.serial;
+    const total = leadMs / 1000 + p.len;
+    window.setTimeout(() => {
+      if (serial !== this.serial || this.destroyed) return;
+      this.playing = null;
+      // done: an "over" click, and the queue may move on shortly
+      if (sfx.enabled("voice")) squelch(false);
+    }, total * 1000);
+    this.busyUntil = this.clock + total + 0.2;
+    return p.len;
+  }
+
+  /** Say the line with speechSynthesis after `leadMs` (the radio code if no words come out). */
+  private synthesize(line: RadioLine, len: number, leadMs: number): void {
+    const release = () => (this.busyUntil = Math.min(this.busyUntil, this.clock + 0.25));
+    const go = () => {
+      const ok = speech.speak(
+        line.text,
+        line.tone,
+        () => {
+          // done: an "over" click, and the queue may move on shortly
+          if (sfx.enabled("voice")) squelch(false);
+          release();
+        },
+        () => {
+          // no words came out: the code still tells the line apart
+          if (sfx.enabled("voice") && !this.ended) code(line.tone, line.priority);
+          release();
+        }
+      );
+      if (!ok) code(line.tone, line.priority);
+    };
+    if (leadMs > 0) window.setTimeout(go, leadMs);
+    else go();
+    this.busyUntil = this.clock + len + SPEECH.overrunS;
+  }
+
   destroy(): void {
+    this.destroyed = true;
     this.offAnnounce();
     this.offChange();
-    speech.cancel();
+    this.hush();
     this.queue.clear();
     if (active === this) active = null;
   }
@@ -444,5 +556,8 @@ export class Announcer {
 
 if (typeof document !== "undefined")
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) speech.cancel();
+    if (document.hidden) {
+      speech.cancel();
+      active?.hidden();
+    }
   });
