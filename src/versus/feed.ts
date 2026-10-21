@@ -113,9 +113,10 @@ import type { DuelHud } from "../ui/hud";
 import { addReportSection } from "../ui/report";
 import { duelReportSection, mountDuelOverlay, type DuelOverlay, type DuelReportView, type OverlayState, type StallKind } from "./hud";
 import type { PairingResult } from "./pairing";
+import type { OnlineInfo } from "./online";
 import {
-  HASH_EVERY, addOutcome, battleRecord, downloadRecord, duelEnd, moveOutcome, readTally, tallyLine, withOutcome, writeRematch, type DuelOutcome,
-  type DuelTally
+  HASH_EVERY, ONLINE_RECORD_KEY, RECORD_KEY, addOutcome, battleRecord, downloadRecord, duelEnd, moveOutcome, readTally, tallyLine, withOutcome, writeRematch,
+  type DuelOutcome, type DuelTally
 } from "./records";
 import { PEER_HEARD_MS, type Session } from "./session";
 
@@ -127,6 +128,8 @@ const BUILD_SIM: string | null = typeof __SIM_HASH__ === "undefined" ? null : __
 export const WAIT_SHOW_MS = 500;
 /** … "Signal lost: bring the phones closer" after this long … */
 export const SIGNAL_LOST_MS = 5000;
+/** An online friend whose connection left the room is offered Leave after this long: the relay keeps its seat a minute. */
+export const LEAVE_GONE_MS = 60_000;
 /** … and Leave after this long of it, or LEAVE_ANY_MS of any stall (packets arriving: the friend paused or loading). */
 export const LEAVE_LOST_MS = 30_000;
 export const LEAVE_ANY_MS = 60_000;
@@ -219,6 +222,11 @@ export interface VersusFeedOptions {
   rig: DuelRig | null;
   /** A practice link (no sound): no win/loss record, and the report says so. */
   practice: boolean;
+  /**
+   * An online duel (src/versus/online.ts): its room's state for the stall pill (this phone's connection down, the
+   * friend's gone from the room), its own win/loss record, and the room the Rematch takes back. Null: over sound.
+   */
+  online?: { info(): OnlineInfo; code: string; key: string } | null;
   /** The other side's label (default "your friend"). */
   opponent?: string;
   /** Once, when the duel is over for this page (the session closable, or the page going): the lobby closes the rig and turns the guard off. */
@@ -289,6 +297,7 @@ export class VersusFeed implements MatchFeed {
   /** The match as the pairing agreed it. */
   readonly result: PairingResult;
   readonly practice: boolean;
+  readonly online: { info(): OnlineInfo; code: string; key: string } | null;
   /** The pause menu's and the report's duel parts (GameScene hands them to the HUD). */
   readonly duel: DuelHud;
 
@@ -347,7 +356,8 @@ export class VersusFeed implements MatchFeed {
     this.result = r;
     this.rig = o.rig;
     this.practice = o.practice;
-    this.trailLog = o.practice ? [] : null;
+    this.online = o.online ?? null;
+    this.trailLog = o.practice || this.online ? [] : null;
     this.onExit = o.onExit;
     this.onFrame = o.onFrame ?? null;
     this.env = { ...browserEnv(), ...o.env };
@@ -361,6 +371,7 @@ export class VersusFeed implements MatchFeed {
     this.duel = {
       opponent: this.opponent,
       practice: this.practice,
+      online: this.online !== null,
       delayMs: () => r.delay * 100,
       resign: (leave) => this.resign(leave),
       leave: () => this.leave(),
@@ -417,8 +428,8 @@ export class VersusFeed implements MatchFeed {
     const doc = this.env.document;
     const root = doc?.getElementById("hud");
     if (root) {
-      this.ui = mountDuelOverlay(root, { reconnect: () => this.reconnect(), leave: () => this.leave() });
-      this.teardown.push(addReportSection(duelReportSection(() => this.reportView(), { reconnect: () => this.reconnect() })));
+      this.ui = mountDuelOverlay(root, { reconnect: () => this.reconnect(), leave: () => this.leave() }, this.online !== null);
+      this.teardown.push(addReportSection(duelReportSection(() => this.reportView(), { reconnect: () => this.reconnect() }, this.online !== null)));
     }
     this.pump();
   }
@@ -544,9 +555,14 @@ export class VersusFeed implements MatchFeed {
     if (wt && !over) {
       // (the friend's frames arrive but it has no turn of its own yet: it hasn't stepped tick 0, its art is loading)
       const loading = wt.why === "load" || (!!ls && ls.ackThrough < ls.delay && st.link.sinceRx <= PEER_HEARD_MS);
-      const kind: StallKind = wt.why === "paused" ? "paused" : loading ? "load" : wt.ms >= SIGNAL_LOST_MS ? "lost" : "wait";
+      // (online: this phone's connection down, or the friend's gone from the room, say so rather than "lost")
+      const net = this.online?.info() ?? null;
+      const netKind: StallKind | null = !net ? null : net.state !== "open" ? "offline" : !net.peer && net.peerGoneMs !== null ? "gone" : null;
+      const kind: StallKind = netKind ?? (wt.why === "paused" ? "paused" : loading ? "load" : wt.ms >= SIGNAL_LOST_MS ? "lost" : "wait");
       this.lastStall = { kind, ms: wt.ms };
-      if (wt.ms >= WAIT_SHOW_MS) stall = { kind, leave: (kind === "lost" && wt.ms >= LEAVE_LOST_MS) || wt.ms >= LEAVE_ANY_MS };
+      const leave =
+        kind === "gone" ? (net?.peerGoneMs ?? 0) >= LEAVE_GONE_MS || wt.ms >= LEAVE_ANY_MS : ((kind === "lost" || kind === "offline") && wt.ms >= LEAVE_LOST_MS) || wt.ms >= LEAVE_ANY_MS;
+      if (wt.ms >= WAIT_SHOW_MS) stall = { kind, leave };
     } else if (!this.userPaused && !st.lockstep?.paused) this.lastStall = null;
     return {
       stall,
@@ -589,7 +605,7 @@ export class VersusFeed implements MatchFeed {
     const s = this.lastStall;
     return {
       resignAndLeave: link.sinceRx <= PEER_HEARD_MS,
-      leave: (s !== null && (s.kind === "lost" || s.ms >= LEAVE_ANY_MS)) || link.sinceRx > SIGNAL_LOST_MS
+      leave: (s !== null && (s.kind === "lost" || s.kind === "offline" || s.kind === "gone" || s.ms >= LEAVE_ANY_MS)) || link.sinceRx > SIGNAL_LOST_MS
     };
   }
 
@@ -645,19 +661,24 @@ export class VersusFeed implements MatchFeed {
   private settle(o: DuelOutcome): void {
     if (this.settled === null) {
       this.settled = o;
-      if (!this.practice) this.tally = addOutcome(o, this.env.local);
+      if (!this.practice) this.tally = addOutcome(o, this.env.local, this.recordKey);
       return;
     }
     if (this.standIn) {
       this.standIn = false;
-      if (o !== this.settled && !this.practice) this.tally = moveOutcome(this.settled, o, this.env.local);
+      if (o !== this.settled && !this.practice) this.tally = moveOutcome(this.settled, o, this.env.local, this.recordKey);
       this.settled = o;
       return;
     }
     const decided = this.settled === "win" || this.settled === "loss" || this.settled === "draw";
     if (o !== "noContest" || !decided) return;
-    if (!this.practice) this.tally = moveOutcome(this.settled, o, this.env.local);
+    if (!this.practice) this.tally = moveOutcome(this.settled, o, this.env.local, this.recordKey);
     this.settled = o;
+  }
+
+  /** Where the win/loss record lives: the sound duel's, or the online duel's own. */
+  private get recordKey(): string {
+    return this.online ? ONLINE_RECORD_KEY : RECORD_KEY;
   }
 
   /** The outcome as the lockstep has it: out of sync, else decided; null while neither. */
@@ -685,7 +706,10 @@ export class VersusFeed implements MatchFeed {
     if (to === "rematch") {
       const r = this.result;
       writeRematch(
-        { role: r.role, plan: r.plan, micMode: this.rig?.micMode ?? "raw", hostSide: OTHER[r.config.hostSide], mapId: r.mapId, mutators: r.config.mutators.slice() },
+        {
+          role: r.role, plan: r.plan, micMode: this.rig?.micMode ?? "raw", hostSide: OTHER[r.config.hostSide], mapId: r.mapId, mutators: r.config.mutators.slice(),
+          ...(this.online ? { online: { code: this.online.code, key: this.online.key } } : {})
+        },
         this.env.session
       );
     }
@@ -767,7 +791,7 @@ export class VersusFeed implements MatchFeed {
     const seats = { [r.local]: r.role, [OTHER[r.local]]: other } as Record<Faction, "host" | "guest">;
     // (the world's own resigned: null when both sides resigned, unset otherwise)
     const end = duelEnd(w.tick, w.winner ?? null, w.resigned);
-    return battleRecord({ setup: r.setup, seats, turns: this.turns, hashes: this.hashes, tick: w.tick, end, sim: BUILD_SIM, created: this.created });
+    return battleRecord({ setup: r.setup, seats, via: this.online ? "online-duel" : "sound-duel", turns: this.turns, hashes: this.hashes, tick: w.tick, end, sim: BUILD_SIM, created: this.created });
   }
 
   /** "Copy debug info" after a desync. */
@@ -799,7 +823,7 @@ export class VersusFeed implements MatchFeed {
       this.aborted ?? (ls?.desync || check === "mismatch" ? "desync" : check === "ok" || check === "unverified" ? check : "pending");
     // (not counted yet: the record as it will be)
     const now = this.currentOutcome();
-    const tally = this.tally ?? (now ? withOutcome(readTally(this.env.local), now) : readTally(this.env.local));
+    const tally = this.tally ?? (now ? withOutcome(readTally(this.env.local, this.recordKey), now) : readTally(this.env.local, this.recordKey));
     return {
       record: this.practice ? null : tallyLine(tally),
       sync,

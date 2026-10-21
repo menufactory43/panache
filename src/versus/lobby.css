@@ -172,3 +172,63 @@
 }
 .duel-go + .duel-status { text-align: center; }
 .duel-err { margin: 12px 0 4px; font-size: 17px; font-weight: 800; color: #ffb3a8; }
+
+/* the online duel (src/versus/online.ts): create a room, or join one by its code */
+.duel-roles:has(> .duel-role:only-child) { grid-template-columns: 1fr; }
+.duel-or {
+  margin: 6px 0;
+  text-align: center;
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.duel-join { margin: 8px 0 4px; }
+.duel-joinrow { display: flex; gap: 8px; align-items: stretch; }
+.duel-codein {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-hi);
+  background: #0c121c;
+  color: var(--text);
+  font: 800 28px/1.1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+.duel-codein::placeholder { color: rgba(255, 255, 255, 0.18); }
+.duel-joinrow .cta { margin: 0; flex: none; }
+.duel-codelbl { text-align: center; margin-top: 12px; }
+.duel-bigcode {
+  margin: 4px 0 10px;
+  text-align: center;
+  font: 800 64px/1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: 14px;
+  padding-left: 14px; /* (the last letter's spacing, so the code sits centred) */
+  color: var(--gold);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  user-select: all;
+  -webkit-user-select: all;
+}
+.duel-bigcode.small { font-size: 34px; letter-spacing: 8px; padding-left: 8px; }
+.duel-share { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
+.duel-share .cta { margin: 0; width: 100%; }
+.duel-copied { margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--green); word-break: break-all; }
+.duel-net { margin: 10px 0; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(12, 18, 28, 0.6); font-size: 13px; color: var(--dim); }
+
+/* the Belle Époque skin (src/ui/belle.css): walnut and brass in place of the original's navy */
+html.belle .duel-role {
+  background: linear-gradient(180deg, #3a2814, #22170b);
+  border: 1px solid var(--line-hi);
+  box-shadow: var(--lift);
+}
+html.belle .duel-role b { font-family: var(--serif); letter-spacing: 0.5px; color: #f6e2b0; }
+html.belle .duel-codein,
+html.belle .duel-net,
+html.belle .duel-meter { background: rgba(14, 9, 4, 0.75); }
+html.belle .duel-codein { border-color: var(--line-hi); color: #f6e2b0; }
+html.belle .duel-bigcode { font-family: var(--serif); letter-spacing: 16px; color: #f0c770; text-shadow: 0 1px 0 #6b4a17, 0 3px 6px rgba(0, 0, 0, 0.6); }
+html.belle .duel-or { font-family: var(--serif); }
