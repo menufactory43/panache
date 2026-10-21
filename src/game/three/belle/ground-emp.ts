@@ -1,7 +1,6 @@
 import type { UnitKind } from "../../../sim/types";
 import type { ModelBuilder, Section, Vec3 } from "../builder";
 import { barrel, barrelTip, hullB, partB, strut, type ModelDef, type Team } from "../models";
-import { inNation } from "./ground-rep";
 
 /**
  * The Empire de Carbonie's new ground vehicles (PANACHE-CONCEPTION.md §1.11,
@@ -166,7 +165,7 @@ function atelier(t: Team): ModelDef {
 }
 
 export const GROUND_EMP: Partial<Record<UnitKind, (t: Team) => ModelDef>> = {
-  estafette: inNation("empire", estafette),
-  "mortier-280": inNation("empire", mortier280),
-  atelier: inNation("empire", atelier)
+  estafette: estafette,
+  "mortier-280": mortier280,
+  atelier: atelier
 };

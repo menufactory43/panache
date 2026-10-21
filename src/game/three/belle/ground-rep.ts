@@ -1,7 +1,6 @@
-import type { Nation, UnitKind } from "../../../sim/types";
+import type { UnitKind } from "../../../sim/types";
 import type { ModelBuilder, Section, Vec3 } from "../builder";
-import { BRASS, TEAMS, barrel, barrelTip, hullB, partB, strut, type ModelDef, type Team } from "../models";
-import { NATION_TEAMS } from "./placeholders";
+import { BRASS, barrel, barrelTip, hullB, partB, strut, type ModelDef, type Team } from "../models";
 
 /**
  * The République's new ground vehicles (PANACHE-CONCEPTION.md §1.11, WP5a):
@@ -25,10 +24,6 @@ const SKIN = 0xe0b89a;
 const COAL = 0x1f1b18;
 const RADIUM = 0xd4ffd8;
 
-/** models.ts paints a unit with its side's colours (TEAMS): repaint it in its nation's (§1.1, placeholders.ts NATION_TEAMS). */
-export function inNation(n: Nation, make: (t: Team) => ModelDef): (t: Team) => ModelDef {
-  return (t) => make(t.main === TEAMS.red.main ? NATION_TEAMS[n].red : t.main === TEAMS.blue.main ? NATION_TEAMS[n].blue : t);
-}
 
 /** A light carriage wheel turning about X: a black rubber tyre and a nickel hub. */
 function wheel(b: ModelBuilder, at: Vec3, r: number, w: number, hub = NICKEL, seg = 8): void {
@@ -207,8 +202,8 @@ function branly(t: Team): ModelDef {
 }
 
 export const GROUND_REP: Partial<Record<UnitKind, (t: Team) => ModelDef>> = {
-  fourgon: inNation("republique", fourgon),
-  "jamais-contente": inNation("republique", jamaisContente),
-  "de-dion": inNation("republique", deDion),
-  branly: inNation("republique", branly)
+  fourgon: fourgon,
+  "jamais-contente": jamaisContente,
+  "de-dion": deDion,
+  branly: branly
 };

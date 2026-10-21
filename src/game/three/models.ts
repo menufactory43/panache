@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import type { BuildingKind, ClassicBuildingKind, ClassicUnitKind, Faction, UnitKind } from "../../sim/types";
+import type { BuildingKind, ClassicBuildingKind, ClassicUnitKind, Faction, Nation, NationOrClassic, UnitKind } from "../../sim/types";
 import { BUILDINGS, UNITS } from "../../sim/balance";
 import { ModelBuilder, type Section, type Vec3 } from "./builder";
 import { GANTRY_STAGES, GOLIATH_RIG, gantryStage, goliathStatic } from "./goliath";
 import { botStatic, botHeight, J, squadStatic, type BotKind } from "./infantry";
 import { modelMat } from "./materials";
 import { BELLE_EPOQUE } from "./theme";
-import { BE_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL } from "./belle";
+import { BE_BUILDING_MODELS, BE_LANDMARKS, BE_NATION_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, PLACEHOLDER_MODEL, STAND_IN_BUILDING, type LandmarkKind } from "./belle";
 
 /**
  * Every vehicle, aircraft, building and map objective as a procedural
@@ -1288,41 +1288,51 @@ function def(key: string, make: () => ModelDef): ModelDef {
 }
 
 /**
- * A nation's new kind with no model of its own yet (belle/placeholders.ts):
- * its stand-in's builder, painted in nation colours. Squads and the Goliath
- * rig pick their colours by side, so those keep the side's.
+ * The colours a model wears (§1.1): a nation's (the kind's own nation, else
+ * its owner's) in NATION_TEAMS, the side's in Classique. One rule for units
+ * and buildings: every model of a nation's army, new or shared, is painted
+ * the same way.
  */
-function placeholderUnit(kind: UnitKind, f: Faction): { make: UnitBuilder; team: Team } | null {
-  const base = (PLACEHOLDER_MODEL as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
-  if (!base) return null;
-  const make = (BELLE_EPOQUE && BE_UNIT_MODELS[base]) || UNIT_MODELS[base];
-  const nation = UNITS[kind].nation;
-  const bySide = MAP_SCALE.has(base) || base === "goliath" || !nation;
-  return { make, team: bySide ? TEAMS[f] : NATION_TEAMS[nation][f] };
+function nationFor(own: Nation | undefined, owner?: NationOrClassic): Nation | undefined {
+  return own ?? (owner && owner !== "classique" ? owner : undefined);
+}
+const teamFor = (f: Faction, n: Nation | undefined): Team => (n ? NATION_TEAMS[n][f] : TEAMS[f]);
+
+/**
+ * A unit's model. `owner` (nationOf the unit's side) paints a shared kind in
+ * its nation's colours too. A nation's own models exist only in the Belle
+ * Époque style: `?style=original` draws them too. A kind still in
+ * PLACEHOLDER_MODEL borrows its stand-in's builder. Squads (and a squad
+ * stand-in) pick their colours in their rig (infantry.ts, by side and the
+ * squad's own nation), so they get the side's here.
+ */
+export function unitDef(kind: UnitKind, f: Faction, owner?: NationOrClassic): ModelDef {
+  const mine = UNITS[kind].nation;
+  const own = BELLE_EPOQUE || mine ? BE_UNIT_MODELS[kind] : undefined;
+  const stand = own ? undefined : (PLACEHOLDER_MODEL as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
+  const make = own || (stand && ((BELLE_EPOQUE && BE_UNIT_MODELS[stand]) || UNIT_MODELS[stand])) || UNIT_MODELS[kind as ClassicUnitKind];
+  const n = MAP_SCALE.has(kind) || (stand && MAP_SCALE.has(stand)) ? undefined : nationFor(mine, owner);
+  return def(`u/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
 }
 
-export function unitDef(kind: UnitKind, f: Faction): ModelDef {
-  const nation = UNITS[kind].nation;
-  // (a nation's own models exist only in the Belle Époque style: ?style=original draws them too)
-  const own = BELLE_EPOQUE || nation ? BE_UNIT_MODELS[kind] : undefined;
-  const stand = own ? null : placeholderUnit(kind, f);
-  if (stand) return def(`u/${f}/${kind}`, () => stand.make(stand.team));
-  const make = own || UNIT_MODELS[kind as ClassicUnitKind];
-  // (a nation's unit wears its nation's colours, §1.1; squads pick theirs by side in their rig)
-  const team = nation && !MAP_SCALE.has(kind) ? NATION_TEAMS[nation][f] : TEAMS[f];
-  return def(`u/${f}/${kind}`, () => make(team));
+/**
+ * A building's model. `owner` (nationOf the building's side): a nation draws
+ * some shared kinds its own way (belle/index.ts BE_NATION_BUILDING_MODELS) and
+ * paints all of them in its colours; a nation-only kind always does.
+ */
+export function buildingDef(kind: BuildingKind, f: Faction, owner?: NationOrClassic): ModelDef {
+  const n = nationFor(BUILDINGS[kind].nation, owner);
+  const mine = BELLE_EPOQUE && n ? BE_NATION_BUILDING_MODELS[n][kind] : undefined;
+  const own = mine || (BELLE_EPOQUE ? BE_BUILDING_MODELS[kind] : undefined);
+  // (?style=original: a nation-only defence borrows its stand-in's original model)
+  const stand = own ? undefined : (STAND_IN_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
+  const make = own || BUILDING_MODELS[stand ?? (kind as ClassicBuildingKind)];
+  return def(`b/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
 }
 
-export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
-  const own = BELLE_EPOQUE ? BE_BUILDING_MODELS[kind] : undefined;
-  const base = own ? undefined : (PLACEHOLDER_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
-  if (base) {
-    const make = (BELLE_EPOQUE && BE_BUILDING_MODELS[base]) || BUILDING_MODELS[base];
-    const nation = BUILDINGS[kind].nation;
-    return def(`b/${f}/${kind}`, () => make(nation ? NATION_TEAMS[nation][f] : TEAMS[f]));
-  }
-  const make = own || BUILDING_MODELS[kind as ClassicBuildingKind];
-  return def(`b/${f}/${kind}`, () => make(TEAMS[f]));
+/** A campaign landmark (the Eiffel Tower), its flag in `f`'s colours, or neutral. */
+export function landmarkDef(kind: LandmarkKind, f?: Faction): ModelDef {
+  return def(`lm/${kind}/${f ?? "-"}`, () => BE_LANDMARKS[kind](f ? TEAMS[f] : undefined));
 }
 
 export function uplinkDef(): ModelDef {

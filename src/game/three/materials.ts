@@ -144,7 +144,7 @@ export function fogged<T extends THREE.Material>(
 
 // ---------------------------------------------------------------- models --
 
-export type Variant = "normal" | "flash" | "warm" | "burnt" | "damaged" | "elite" | "ghostOk" | "ghostBad";
+export type Variant = "normal" | "flash" | "warm" | "burnt" | "damaged" | "elite" | "ghostOk" | "ghostBad" | "unpowered";
 
 interface VariantSpec {
   tint: number;
@@ -172,6 +172,8 @@ const VARIANTS: Record<Variant, VariantSpec> = {
   warm: { tint: 0xffffff, flash: 0.03, flashColor: 0xffa860, glow: 1, bleach: 0, flashLit: 0.55 },
   burnt: { tint: 0x9a9088, flash: 0, flashColor: 0x000000, glow: 0, desat: 1, roughness: 0.92, metalness: 0.1 },
   damaged: { tint: 0xa8a098, flash: 0, flashColor: 0x000000, glow: 0.6, desat: 0.35 },
+  // a République building off the power network (WP1 Building.unpowered): dimmed, its lamps out
+  unpowered: { tint: 0x7a7e8c, flash: 0, flashColor: 0x000000, glow: 0, desat: 0.5 },
   elite: { tint: 0xffffff, flash: 0, flashColor: 0x000000, glow: 1.2, sheenColor: 0xffb428 },
   ghostOk: { tint: 0xb8ffc8, flash: 0.35, flashColor: 0x37d67a, glow: 1, sheen: 0.5, sheenColor: 0x9affc0, ghost: true },
   ghostBad: { tint: 0xff9090, flash: 0.45, flashColor: 0xe25555, glow: 1, sheen: 0.5, sheenColor: 0xff9a8a, ghost: true }

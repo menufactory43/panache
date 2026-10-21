@@ -15,7 +15,7 @@ import { setupWorld } from "../src/sim/setup";
 import { step } from "../src/sim/sim";
 import type { BuildingKind, Nation, PowerKind, Role, UnitKind } from "../src/sim/types";
 import { spawnBuilding, spawnUnit } from "../src/sim/world";
-import { PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL, STAND_IN, lookalike, portraitKind, withStandIns } from "../src/game/three/belle/placeholders";
+import { PLACEHOLDER_BUILDING, PLACEHOLDER_MODEL, STAND_IN, STAND_IN_BUILDING, lookalike, portraitKind, withStandIns } from "../src/game/three/belle/placeholders";
 import { BELLE_VOICES, VOICES } from "../src/game/voices";
 
 /** PANACHE-CONCEPTION.md §1 and §3.2 WP0: the nations' types and data, and Classique left alone. */
@@ -305,16 +305,18 @@ describe("the nations' names in French (lexicon)", () => {
 describe("placeholders until the models land (WP5)", () => {
   it("draws every new kind with a Classique stand-in of its domain", () => {
     expect(Object.keys(STAND_IN).sort()).toEqual([...NEW_UNITS].sort());
-    // (models still provisional: a stand-in's, as STAND_IN says)
-    for (const [k, base] of Object.entries(PLACEHOLDER_MODEL)) expect(STAND_IN[k as keyof typeof STAND_IN], k).toBe(base);
+    // (every new kind has its own model now: no placeholder left, the renderer draws each as itself)
+    expect(PLACEHOLDER_MODEL).toEqual({});
+    expect(PLACEHOLDER_BUILDING).toEqual({});
+    for (const k of NEW_UNITS) expect(lookalike(k as keyof typeof STAND_IN)).toBe(k);
     for (const k of NEW_UNITS) {
-      const base = lookalike(k);
+      const base = STAND_IN[k as keyof typeof STAND_IN];
       expect(UNITS[base].nation, k).toBeUndefined();
       expect(UNITS[base].domain, k).toBe(UNITS[k].domain);
       expect(!!UNITS[base].squad, k).toBe(!!UNITS[k].squad);
       expect(portraitKind(k)).toBe(base);
     }
-    expect(PLACEHOLDER_BUILDING).toEqual({ arsonval: "turret", "flak-battery": "sam-site" });
+    expect(STAND_IN_BUILDING).toEqual({ arsonval: "turret", "flak-battery": "sam-site" });
     expect(portraitKind("arsonval")).toBe("turret");
     expect(portraitKind("hq")).toBe("hq");
   });

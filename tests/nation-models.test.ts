@@ -85,7 +85,7 @@ describe("the nations' ground vehicles (WP5a, WP5b)", () => {
   it("each has a model of its own, not its stand-in's", () => {
     for (const k of KINDS) {
       expect(belle.BE_UNIT_MODELS[k], k).toBeTypeOf("function");
-      const stand = belle.lookalike(k);
+      const stand = belle.STAND_IN[k as keyof typeof belle.STAND_IN];
       expect(tris(m.unitDef(k, "blue").hull), k).not.toBe(tris(m.unitDef(stand, "blue").hull));
     }
   });
