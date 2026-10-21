@@ -1,7 +1,8 @@
-import { BUILDINGS, COMBAT, TICK_RATE, UNITS } from "../balance";
+import { BUILDINGS, COMBAT, ROLES, TICK_RATE, UNITS } from "../balance";
 import { isInfantry, unitSeenBy } from "../infantry";
 import { worldPick, worldRandom } from "../rand";
-import type { Building, Faction, Unit, UnitKind, World } from "../types";
+import { nationOf } from "../rules";
+import type { Building, Faction, NationOrClassic, Role, Unit, UnitKind, World } from "../types";
 import {
   buildingCenter,
   dist,
@@ -537,13 +538,47 @@ function fill(w: World, n: number, pool: Pool, budget: number, units: UnitKind[]
   return left;
 }
 
+/**
+ * Waves by role (PANACHE-CONCEPTION.md §1.9, M11): the pools above name
+ * Classique kinds; against a nation's waves each one stands for its role
+ * (a Stinger for the light tank, a Mortar for the artillery…) and the
+ * attacking nation's roster fills it — Gyroptères and Vulcains for the
+ * Empire's air, Creusots for its armour, Fusiliers for its swarm. Classique
+ * keeps its pools as they are.
+ */
+const CLASSIC_ROLE: Partial<Record<UnitKind, Role>> = (() => {
+  const out: Partial<Record<UnitKind, Role>> = {};
+  for (const [role, kind] of Object.entries(ROLES.classique) as [Role, UnitKind][]) if (!out[kind]) out[kind] = role;
+  return out;
+})();
+
+/** The attacking nation's kind for a Classique pool kind. */
+const waveKind = (nation: NationOrClassic, kind: UnitKind): UnitKind => {
+  const role = CLASSIC_ROLE[kind];
+  return nation === "classique" || !role ? kind : ROLES[nation][role];
+};
+
+/** A pool in the attacking nation's kinds (the same pool in Classique); a nation's artillery waves bring its siege guns from wave 6. */
+function nationPool(nation: NationOrClassic, pool: Pool, theme?: RegularTheme): Pool {
+  if (nation === "classique") return pool;
+  const out = pool.map((p) => ({ ...p, kind: waveKind(nation, p.kind) }));
+  const siege = ROLES[nation].siege;
+  if (theme === "artillery" && siege !== ROLES[nation].artillery) out.push({ kind: siege, weight: 1, from: 6, maxShare: 0.4 });
+  return out;
+}
+
+/** The side the waves fight for (the defender's enemy). */
+const waveNation = (w: World): NationOrClassic => nationOf(w, w.survival ? attacker(w.survival) : "red");
+
 /** Everything about wave n, as a pure function of the seed and difficulty. */
 export function planWave(w: World, n: number, difficulty: SurvivalDifficulty = w.survival?.difficulty ?? "normal"): WavePlan {
   const theme = waveTheme(w, n);
   const budget = waveBudget(difficulty, n);
   const units: UnitKind[] = [];
+  const nation = waveNation(w);
   if (theme === "boss") {
-    const boss = BOSS_POOLS[bossVariant(w, n)]!;
+    const raw = BOSS_POOLS[bossVariant(w, n)]!;
+    const boss = nation === "classique" ? raw : { ...raw, core: waveKind(nation, raw.core), escorts: nationPool(nation, raw.escorts) };
     let core = budget * boss.share;
     do {
       units.push(boss.core);
@@ -553,13 +588,14 @@ export function planWave(w: World, n: number, difficulty: SurvivalDifficulty = w
     fill(w, n, boss.escorts, left, units, "wave-boss");
   } else {
     // artillery always brings at least one gun
-    if (theme === "artillery") units.push("mortar");
+    const gun = waveKind(nation, "mortar");
+    if (theme === "artillery") units.push(gun);
     const cap = theme === "swarm" ? SURVIVAL.swarmMaxUnits : SURVIVAL.maxWaveUnits;
-    fill(w, n, POOLS[theme], budget - (theme === "artillery" ? UNITS.mortar.cost : 0), units, `wave-${theme}`, cap);
+    fill(w, n, nationPool(nation, POOLS[theme], theme), budget - (theme === "artillery" ? UNITS[gun].cost : 0), units, `wave-${theme}`, cap);
   }
   // front-liners enter first (rifle and rocket squads among them), support last (Sniper Teams too)
   const order = (k: UnitKind) =>
-    UNITS[k].armor === "heavy" ? 0 : k !== "sniper" && (UNITS[k].targets === "ground" || isInfantry(k)) ? 1 : 2;
+    UNITS[k].armor === "heavy" ? 0 : !isMarksman(k) && (UNITS[k].targets === "ground" || isInfantry(k)) ? 1 : 2;
   units.sort((a, b) => order(a) - order(b));
   return { wave: n, theme, name: waveName(w, n), site: waveSite(w, n), budget, rank: waveRank(n), units };
 }
@@ -774,7 +810,11 @@ interface Objective {
 }
 
 const PRODUCTION = new Set(["fab-plant", "airpad", "assembly-bay", "tech-lab", "depot"]);
-const DEFENCES = new Set(["turret", "sam-site"]);
+const DEFENCES = new Set(["turret", "sam-site", "arsonval", "flak-battery"]);
+/** A harvester of any roster (a Fardier, a Fourgon). */
+const isMiner = (k: UnitKind) => k === "harvester" || UNITS[k].base === "harvester";
+/** A marksman squad of any roster (Sniper Team, Carabiniers). */
+const isMarksman = (k: UnitKind) => k === "sniper" || UNITS[k].base === "sniper";
 
 /** Nearest defender building matching `filter` to (x, y). */
 function nearestBuilding(w: World, s: SurvivalState, x: number, y: number, filter?: (b: Building) => boolean): Objective | null {
@@ -796,7 +836,7 @@ function nearestHarvester(w: World, s: SurvivalState, x: number, y: number): Obj
   let best: Objective | null = null;
   let bestD = Infinity;
   for (const u of w.units.values()) {
-    if (u.faction !== s.defender || u.kind !== "harvester") continue;
+    if (u.faction !== s.defender || !isMiner(u.kind)) continue;
     const d = dist(u.x, u.y, x, y);
     if (d < bestD) {
       bestD = d;
@@ -872,7 +912,7 @@ function nearestBuddy(w: World, u: Unit, ground: boolean): { buddy: Unit | null;
   let buddy: Unit | null = null;
   let bestD = Infinity;
   for (const o of w.units.values()) {
-    if (o.faction !== u.faction || o.id === u.id || o.kind === "sniper") continue;
+    if (o.faction !== u.faction || o.id === u.id || isMarksman(o.kind)) continue;
     const ot = UNITS[o.kind].targets;
     if (ot !== "ground" && ot !== "both") continue;
     if (ground && UNITS[o.kind].domain !== "ground") continue;
@@ -894,7 +934,7 @@ function nearestBuddy(w: World, u: Unit, ground: boolean): { buddy: Unit | null;
 function retask(w: World, s: SurvivalState): void {
   for (const u of w.units.values()) {
     if (!isWaveUnit(s, u) || marching(s, u)) continue;
-    if (u.kind === "sniper") {
+    if (isMarksman(u.kind)) {
       const busy = (id: number | null) => id !== null && w.units.has(id);
       if (busy(u.order.type === "attack" ? u.order.targetId : null) || busy(u.autoTargetId)) continue;
       const prey = sniperPrey(w, s, u);
