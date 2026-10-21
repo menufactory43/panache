@@ -1032,7 +1032,7 @@ Où trouver quoi :
     revente), `awareness.ts`, `chronicle.ts`, textes d'ouverture (« Fardiers ») ; WP3 — `ai/*` (`ai/menders.ts` PV
     des bâtiments, placement sous réseau via `inPowerRange`/`powerSources`), `modes/survival.ts` ; WP4 — `arena/observe.ts`.
 
-### 3.6 WP2 — fait
+### 3.7 WP2 — fait
 
 Zénith livré **avec amarrage** (le repli « Zénith sans amarrage » n'a pas servi). Classique et Empire inchangés :
 `tests/classic-hash.test.ts` et les 7 fichiers de tests du Gargantua passent tels quels. Tests : `tests/zenith.test.ts` (13).
