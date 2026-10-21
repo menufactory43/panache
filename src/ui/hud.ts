@@ -21,6 +21,7 @@ import { addReportSection, showReport } from "./report";
 import { markBanned, pauseRulesHtml } from "./career";
 import { rematchToken } from "../game/mode";
 import { createOpsHud } from "./ops";
+import { opById } from "../sim/ops";
 import { mountHudLayout } from "./layout";
 import { HINTS, HintQueue, type HintOffer } from "../game/hints";
 import { fullscreen } from "./fullscreen";
@@ -354,6 +355,7 @@ export function createHud(api: HudApi): Hud {
   };
   // Ops: goal pill under the clock, objectives card, end-screen stars (ui/ops.ts)
   const ops = w.ops ? createOpsHud($("#opspill"), root, w, { rematch: relaunch }) : null;
+  const tutorialMatch = !!(w.ops && opById(w.ops.id)?.tutorial);
 
   // ---------------------------------------------------------- build bar ---
   let tab: Tab = "build";
@@ -1200,10 +1202,12 @@ export function createHud(api: HudApi): Hud {
     if (p?.ready && lastReady !== p.kind && !ctrl.spectator) {
       lastReady = p.kind;
       sfx.play("ready");
-      toast(`${BUILDINGS[p.kind].name} prêt — touche ici pour le placer`, () => {
-        // (not once it has been placed: in a sound duel the placement may still be on its way)
-        if (ctrl.view().pending?.ready) ctrl.placing = p.kind;
-      }, "good");
+      // (the Instruction's bubble says it already: one instruction at a time)
+      if (!tutorialMatch)
+        toast(`${BUILDINGS[p.kind].name} prêt — touche ici pour le placer`, () => {
+          // (not once it has been placed: in a sound duel the placement may still be on its way)
+          if (ctrl.view().pending?.ready) ctrl.placing = p.kind;
+        }, "good");
       if (tab !== "build") {
         tab = "build";
         renderGrid();
@@ -1482,7 +1486,8 @@ export function createHud(api: HudApi): Hud {
       toast(`💡 ${msg}`, x !== undefined && y !== undefined ? () => api.centerCamera(x, y) : undefined, "hint", ms);
     },
     offerHint(h) {
-      if (!api.ctrl.spectator) hints.offer(h);
+      // (the Instruction's lesson is the only tip on screen: the one-time hints keep for later matches)
+      if (!api.ctrl.spectator && !tutorialMatch) hints.offer(h);
     },
     bannerUp(prefix) {
       return !!bannerCur?.key.startsWith(prefix) || bannerQueue.some((a) => a.key.startsWith(prefix));

@@ -105,6 +105,12 @@ export interface OpDef {
   goals: Goal[];
   /** ★★ and ★★★ conditions, checked when the op is won (★ = completing it). */
   stars: [Goal, Goal];
+  /**
+   * The Instruction (src/game/tutorial.ts): a guided lesson, not a campaign
+   * op. Not in OPS (no menu card, no unlocks); its scene directs the
+   * battlefield beat by beat and the goals only close it.
+   */
+  tutorial?: boolean;
 }
 
 export interface OpResult {
@@ -368,7 +374,55 @@ export const OPS: OpDef[] = [
   }
 ];
 
-export const opById = (id: string): OpDef | null => OPS.find((o) => o.id === id) ?? null;
+/** Where the Instruction's scripted pieces stand (proving-grounds tiles; src/game/tutorial-view.ts spawns them). */
+export const TUTORIAL_SPOTS = {
+  /** The two Panhard the lesson starts with. */
+  starters: { x: 10.5, y: 44 },
+  /** The flag they are sent to. */
+  flag: { x: 16.5, y: 40.5 },
+  /** The enemy outpost (a Hotchkiss and Halles), top-left tiles. */
+  turret: { x: 27, y: 33 },
+  depot: { x: 29, y: 31 }
+} as const;
+
+/**
+ * L'Instruction — « Premier jour »: the guided first mission on the Proving
+ * Grounds. No enemy commander: the scene brings each enemy in when the lesson
+ * needs it (a patrol, a convoy for the Feu roulant, the outpost), and razing
+ * the outpost — a Hotchkiss and its Halles — completes it. Every star is
+ * given: the Instruction is learnt, not graded.
+ */
+export const TUTORIAL_OP: OpDef = {
+  id: "instruction",
+  title: "Premier jour",
+  icon: "🎓",
+  tagline: "L'instruction : un geste à la fois, 3 minutes",
+  brief: "Ton premier jour au commandement : caméra, ordres, construction, production, pouvoirs. Un geste à la fois.",
+  tip: "Suis la main gantée : elle montre toujours le prochain geste.",
+  map: "proving-grounds",
+  ai: null,
+  scrap: 450,
+  tutorial: true,
+  focus: { x: 9, y: 41 },
+  setup(w, o) {
+    // a quiet field: no squads, nobody on the enemy side until the lesson calls them
+    o.removeUnits("blue", "trooper");
+    o.removeUnits("red", "trooper");
+    o.removeUnits("red", "harvester");
+    o.units("blue", "stinger", 2, TUTORIAL_SPOTS.starters.x, TUTORIAL_SPOTS.starters.y, "starters");
+    w.factions.red.scrap = 0;
+  },
+  goals: [
+    { type: "destroy", kind: "turret", count: 1 },
+    { type: "destroy", kind: "depot", count: 1 }
+  ],
+  stars: [
+    { type: "maxLosses", n: 99 },
+    { type: "within", secs: 3600 }
+  ]
+};
+
+export const opById = (id: string): OpDef | null => (id === TUTORIAL_OP.id ? TUTORIAL_OP : OPS.find((o) => o.id === id) ?? null);
 export const opIndex = (id: string): number => OPS.findIndex((o) => o.id === id);
 /** The op after this one (null at the end of the campaign). */
 export const nextOp = (id: string): OpDef | null => OPS[opIndex(id) + 1] ?? null;
