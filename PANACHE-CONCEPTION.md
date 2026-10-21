@@ -982,3 +982,45 @@ construction ne montre que l'effectif de la nation du joueur.
 11. Pluriels choisis : « Jamais-Contente » invariable (nom propre de la voiture), « Vulcains », « Zéniths », « Titans ».
 12. `tests/goliath.test.ts` « le Gargantua voit plus loin que toute autre unité » restreint aux unités Classique
     (le Zénith voit à 11).
+
+### 3.6 WP2 — fait
+
+Zénith livré **avec amarrage** (le repli « Zénith sans amarrage » n'a pas servi). Classique et Empire inchangés :
+`tests/classic-hash.test.ts` et les 7 fichiers de tests du Gargantua passent tels quels. Tests : `tests/zenith.test.ts` (13).
+
+Où trouver quoi (`src/sim/goliath.ts`) :
+- `SUPER[kind]` (`goliath`, `zenith`) : `tune` (GOLIATH ou ZENITH, lus en direct, donc `--tune` les atteint),
+  `weapon(slot)`, `weaponId(slot)`, `trains(kind)`, `repairedBy`, `liftable`, `words` (libellés ancré/amarré).
+  `superOf`, `isSuperKind`, `superTune`, `superKindOf(w, camp)` (= `ROLES[nation].super`, Gargantua en Classique),
+  `weaponStats(u, slot)`, `ensureSuper`, `spawnSuper`, `canRepair(healer, cible)`, `trainableBy(w, g, kind)`,
+  `superView(u)` (champs simples pour le rendu : mode, progression d'amarrage, amarré, armes avec id/état/firedTick).
+- Les armes du Zénith occupent les 4 emplacements du Gargantua (`ZENITH_SLOTS` : mortars → branly, laser → arc,
+  cannons → bombs, mg → mg ; mêmes seuils 0,75 / 0,5 / 0,25 / jamais) : `GoliathState`, les fx `goliathWeapon`
+  et `types.ts` ne changent pas. Le rendu traduit l'emplacement par `SUPER.zenith.weaponId(slot)`.
+- Amarrage = le mode « anchored » du Gargantua, avec les temps de ZENITH (3 s / 4 s), sur un 2×2 constructible
+  libre (le mât est inscrit dans `World.occupancy`). Amarré : point de dépôt (`nearestDropSite`, sans changement),
+  anneau de construction, production d'Éole, Blériot, Pasteur et Patrie (`trainableAt` tient compte de la nation ;
+  le Classique garde l'ancienne expression mot pour mot). Jamais levé (`lift.ts liftBlocker` → « Il vole déjà »).
+- Coût +25 % par Zénith possédé (`goliathCost(w, camp, kind)`, compte par genre). Nomades / Armada avec nations :
+  le super de la nation (un Zénith d'Armada vole seul, sans Montgolfières).
+- IA (`ai/goliath.ts`) : même plan pour le Zénith — il vole (pas de levage, tout site accessible, relais
+  d'îles compris ; un champ coupé de la base par le sol vaut ×0,7), s'amarre comme le Gargantua s'ancre, et
+  amarré produit des aéronefs (`hangarPick` : Pasteur s'il est blessé sans Pasteur près de lui, Blériot face à
+  l'aviation, sinon Éole). `wantGantry` teste le bannissement du super de la nation.
+
+Crochets attendus des autres lots (non modifiés ici, propriété WP1/WP3) :
+1. `combat.ts goliathWeapons` : `const st = GOLIATH.weapons[k]` → `weaponStats(u, k)` (sinon le Zénith tire avec les
+   armes du Gargantua ; seuils, portées d'ordre, `goliathReachAt` et la menace IA sont déjà les bonnes).
+2. `combat.ts tickHealer` : ignorer une cible si `!canRepair(u.kind, o)` (Pasteur seul pour le Zénith ; l'Atelier,
+   `healTargets: "ground"`, l'exclut aussi une fois `healTargets` en place).
+3. `world.ts spawnUnit` : `isSuperKind(kind)` (ou `behaves(kind, "goliath")`) au lieu de `kind === "goliath"` pour créer
+   `unit.goliath` (en attendant, `tickGoliaths` le crée au tick même de la sortie du Hangar, et `spawnSuper` aussi).
+4. `economy.ts` : `trainBlocker` → `trainableBy(w, g, kind)` ; `queueCap` → `isSuperKind(kind) ? superTune(kind).queueMax` ;
+   `goliathBuildNews` / `GOLIATH.nearlyDone` → `isSuperKind(head.kind)` / `superTune` ; le bannissement du gantry
+   (« banni avec le Gargantua ») → `superKindOf(w, camp)` (aujourd'hui le Hangar du Zénith est banni pour la République) ;
+   message « Ancre-le pour produire » → `superOf(g.kind).words.trainHint`.
+5. `salvage.ts` : `UNITS.goliath.cost/buildTime` → `UNITS[kind]` ; `powers.ts` : le texte « GQG ou un Gargantua ».
+6. WP1 Réseau électrique / TSF : un Zénith amarré (`isAnchored(u) && u.kind === "zenith"`) est une source ; tout
+   Zénith pour le TSF.
+7. WP3 `ai/commander.ts` : produire `superKindOf(w, camp)` au Gantry (`unit: "goliath"` en dur l. 473), compter
+   `unitCost(w, f, superKindOf(...))`.

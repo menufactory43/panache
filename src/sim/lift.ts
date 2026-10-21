@@ -5,6 +5,7 @@ import { isStunned } from "./powers";
 import { applySpawnRank } from "./rules";
 import { wreckRestingSpot } from "./salvage";
 import type { Command, Unit, World } from "./types";
+import { spawnSuper, superKindOf, superOf } from "./goliath";
 import { buildingCenter, hqOf, inBounds, passable, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
 import { atan2, cos, hypot, sin } from "./fmath";
 
@@ -23,6 +24,9 @@ import { atan2, cos, hypot, sin } from "./fmath";
  * over water, sea, lava or rock it is destroyed — like squads in a downed
  * Condor. On the Archipelago, a Goliath set down on an island anchors and
  * trains there like anywhere else.
+ *
+ * Only a super-unit SUPER[kind].liftable is ever lifted: the Zénith flies
+ * (PANACHE-CONCEPTION.md §1.5, "pas de levage").
  */
 
 // ----------------------------------------------------------- helpers ---
@@ -41,6 +45,8 @@ export const canCarry = (c: Unit): boolean =>
 /** liftBlocker's reasons the controller rephrases (compare with these, not the text). */
 export const LIFT_NEEDS_TWO = "Il faut deux Montgolfières vides";
 export const LIFT_PACK_FIRST = "Lève l'ancre d'abord";
+/** A flying super-unit (the Zénith) is never lifted. */
+export const LIFT_FLIES = "Il vole déjà";
 
 /**
  * Why `condors` can't lift Goliath `g` (null: they can). Two empty Condors
@@ -48,6 +54,7 @@ export const LIFT_PACK_FIRST = "Lève l'ancre d'abord";
  */
 export function liftBlocker(condors: readonly Unit[], g: Unit): string | null {
   if (!g.goliath) return "Pas un Gargantua";
+  if (!superOf(g.kind)?.liftable) return LIFT_FLIES;
   const free = condors.filter((c) => c.faction === g.faction && canCarry(c));
   if (free.length < 2) return LIFT_NEEDS_TWO;
   if (g.goliath.lift) return "Déjà en levage";
@@ -347,7 +354,7 @@ export function dropLifts(w: World): void {
         g.y = spot.y;
       } else lands = false;
     }
-    const damage = lands ? UNITS.goliath.hp * GOLIATH.lift.dropDamage : g.hp;
+    const damage = lands ? UNITS[g.kind].hp * GOLIATH.lift.dropDamage : g.hp;
     if (g.hp > 0) strikeDamage(w, [{ id: g.id, damage }], killer); // (already shot down itself: its own killer keeps the credit)
     if (!lands) g.hp = Math.min(g.hp, 0); // (destroyed whatever its armour)
     g.order = { type: "idle" };
@@ -373,7 +380,8 @@ const ARMADA: readonly (readonly [number, number])[] = [
  * on the corners of a square round where the HQ stood, facing the map
  * centre, each already carried by two Condors. Placed in the side's own
  * frame, so red's armada is blue's mirror image. With no HQ, a side is
- * beaten when its last Goliath falls.
+ * beaten when its last Goliath falls. With nations, each side's own
+ * super-unit: Zéniths (which fly) hang there on their own, no Condors.
  */
 export function armadaStart(w: World): void {
   const centre = { x: w.width / 2, y: w.height / 2 };
@@ -390,9 +398,11 @@ export function armadaStart(w: World): void {
         x: Math.min(w.width - edge, Math.max(edge, home.x + dx * GOLIATH.armada.gap)),
         y: Math.min(w.height - edge, Math.max(edge, home.y + dy * GOLIATH.armada.gap))
       });
-      const g = spawnUnit(w, "goliath", f, at.x, at.y);
+      const kind = superKindOf(w, f);
+      const g = spawnSuper(w, kind, f, at.x, at.y);
       face(g, centre.x, centre.y);
       applySpawnRank(w, g); // (Veterans: rank 1, like every combat unit)
+      if (!superOf(kind)?.liftable) continue; // (a Zénith flies on its own)
       const carriers = [0, 1].map((i) => {
         const p = hookPoint(g.x, g.y, g.facing, i);
         const c = spawnUnit(w, "condor", f, p.x, p.y);
