@@ -817,6 +817,46 @@ html.belle #hud.bh .bh-sheet .tab .tl2 {
 html.belle #hud.bh .bh-sheet .tab::after {
   inset: 0;
 }
+/* The drawer scrolls, which clips anything poking out of it: the tab notes
+   (an idle factory, ⚔ counters elsewhere, queue counts) sit INSIDE the
+   icon-only tab — counters and count in the top corners, "inactif" as a
+   pill along the bottom edge, the icon lifted a little to make room. */
+html.belle #hud.bh .bh-sheet .tab {
+  position: relative;
+  min-height: 52px;
+}
+html.belle #hud.bh .bh-sheet .tab:has(.tidle:not([hidden])) .ti {
+  transform: translateY(-6px);
+}
+html.belle #hud.bh .bh-sheet .tab .tnotes {
+  inset: 0;
+  top: 0;
+  left: 0;
+}
+html.belle #hud.bh .bh-sheet .tab .tidle {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  height: 15px;
+  padding: 0 6px;
+  font-size: 9px;
+  line-height: 15px;
+  white-space: nowrap;
+}
+html.belle #hud.bh .bh-sheet .tab .tctr {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 17px;
+  height: 17px;
+  font-size: 11px;
+  line-height: 17px;
+}
+html.belle #hud.bh .bh-sheet .tab .tbadge {
+  top: 4px;
+  right: 4px;
+}
 html.belle #hud.bh .bh-sheet .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
@@ -950,7 +990,20 @@ html.belle #hud.bh .bh-sheet .bb.ready::after {
 }
 @media (orientation: landscape) and (max-height: 420px) {
   html.belle #hud.bh .bh-sheet .tab {
-    min-height: 40px;
+    min-height: 48px;
+  }
+  /* (the side panel's tabs are narrow: a smaller "inactif" pill that fits inside) */
+  html.belle #hud.bh .bh-sheet .tab .tidle {
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    transform: none;
+    height: 13px;
+    padding: 0;
+    font-size: 7.5px;
+    line-height: 13px;
+    letter-spacing: 0;
+    text-align: center;
   }
   html.belle #hud.bh .bh-sheet .bb {
     height: 62px;
