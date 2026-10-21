@@ -158,6 +158,23 @@ const hostile = (kind: UnitKind | BuildingKind | null | undefined): string => ag
 export const GOLIATH_COUNTERS = "Artificiers, Éole, Hydroglisseurs, Albatros";
 /** Spoken names of the weapon systems a Goliath can lose (the machine guns never go offline). */
 export const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "mortiers", laser: "arc électrique", cannons: "canons" };
+/** The Zénith's systems, in the Goliath's slots (sim/goliath.ts ZENITH_SLOTS), and what beats it. */
+const ZENITH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "canons Branly", laser: "arc de proue", cannons: "soute à bombes" };
+const ZENITH_COUNTERS = "Éperviers, Faucheux, Batteries de 47, Artificiers";
+/**
+ * A Goliath line reworded for the Zénith (the République's super-unit moors
+ * where the Goliath anchors). No recorded clip says these yet (WP5g): they
+ * show as captions and banners.
+ */
+function zenithLine(text: string): string {
+  return text
+    .split(GOLIATH_COUNTERS).join(ZENITH_COUNTERS)
+    .split("Galerie des Machines").join("Hangar du Zénith")
+    .split("lève l'ancre").join("largue les amarres")
+    .split("en ancrage").join("en amarrage")
+    .split("ancré").join("amarré")
+    .split("Gargantua").join("Zénith");
+}
 /** "mortars", "mortars and laser", "mortars, laser and cannons". */
 export const listWords = (xs: readonly string[]): string =>
   xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`;
@@ -233,13 +250,13 @@ export class BattleCallouts {
       else if (ev.type === "rankUp") this.rankUp(ev.id, t);
       else if (ev.type === "calldown") this.calldown(ev, t);
       // Goliaths and Gantries are always visible to the enemy: their news needs no fog check
-      else if (ev.type === "goliathBuild") this.goliathBuild(ev, t);
-      else if (ev.type === "goliathRollout") this.goliathRollout(ev, t);
-      else if (ev.type === "goliathMode") this.goliathMode(ev, t);
+      else if (ev.type === "goliathBuild") this.zenithAware(this.h.world.buildings.get(ev.buildingId)?.queue[0]?.kind, () => this.goliathBuild(ev, t));
+      else if (ev.type === "goliathRollout") this.zenithAware(this.h.world.units.get(ev.id)?.kind, () => this.goliathRollout(ev, t));
+      else if (ev.type === "goliathMode") this.zenithAware(this.h.world.units.get(ev.id)?.kind, () => this.goliathMode(ev, t));
       else if (ev.type === "goliathLift") this.goliathLift(ev, t);
       else if (ev.type === "goliathWeapon") (weapons ??= []).push(ev); // (one line for systems lost together)
     }
-    if (weapons) this.goliathWeapons(weapons, t);
+    if (weapons) this.zenithAware(undefined, () => this.goliathWeapons(weapons!, t));
     this.poll(t, fx);
   }
 
@@ -270,7 +287,19 @@ export class BattleCallouts {
     return t - (this.last.get(key) ?? -Infinity) >= cd;
   }
 
+  /** The news being told is a Zénith's: say() and raise() reword it (zenithLine). */
+  private zenithNews = false;
+  private zenithAware(kind: UnitKind | undefined, tell: () => void): void {
+    this.zenithNews = kind === "zenith";
+    try {
+      tell();
+    } finally {
+      this.zenithNews = false;
+    }
+  }
+
   private say(line: RadioLine, t: number, cdKey = line.key): void {
+    if (this.zenithNews) line = { ...line, text: zenithLine(line.text) };
     this.last.set(cdKey, t);
     this.counts.set(line.key, (this.counts.get(line.key) ?? 0) + 1);
     this.h.radio(line);
@@ -287,6 +316,7 @@ export class BattleCallouts {
 
   /** A banner that is news, not a kill: it starts its cooldown but doesn't hold back the next kill banner. */
   private raise(a: Announcement, t: number, cdKey = a.key): void {
+    if (this.zenithNews) a = { ...a, text: zenithLine(a.text), ...(a.sub ? { sub: zenithLine(a.sub) } : {}) };
     this.last.set(cdKey, t);
     this.counts.set(a.key, (this.counts.get(a.key) ?? 0) + 1);
     this.shown.push(t);
@@ -868,7 +898,8 @@ export class BattleCallouts {
       const fresh = weapons.filter((k) => this.ready(keyOf(k), t, cd));
       if (fresh.length === 0) continue;
       for (const k of fresh) this.last.set(keyOf(k), t);
-      const what = listWords(fresh.map((k) => GOLIATH_WORD[k]!));
+      this.zenithNews = h.world.units.get(ev.id)?.kind === "zenith";
+      const what = listWords(fresh.map((k) => (this.zenithNews ? ZENITH_WORD : GOLIATH_WORD)[k]!));
       const key = fresh.map(keyOf).join("+");
       const at = { x: ev.x, y: ev.y };
       if (h.spectator) this.say({ key, text: `Gargantua ${SIDE[f]} : ${what} hors service`, priority: 2, tone: "info", ...at, caption: true }, t);

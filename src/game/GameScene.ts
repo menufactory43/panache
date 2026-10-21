@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { behaves, nationKind } from "../sim/nations";
 import { nationOf } from "../sim/rules";
 import { DIFFICULTY, createAiState, tickAi, type AiState } from "../sim/ai/commander";
-import { BUILDINGS, ECONOMY, GOLIATH, TICK_RATE, UNITS } from "../sim/balance";
+import { BUILDINGS, ECONOMY, GOLIATH, ROLES, TICK_RATE, UNITS } from "../sim/balance";
 import { canPlaceBuilding, nearestReachableResource } from "../sim/economy";
 import { isExplored, isVisible, tickFog } from "../sim/fog";
 import { unitSeenBy } from "../sim/infantry";
@@ -41,7 +41,7 @@ import { ObjectiveRenderer } from "./render/objectives";
 import { createHud, type DuelHud, type EndOpts, type Hud } from "../ui/hud";
 import { PlacementView } from "./placement-view";
 import { CommandUi } from "../ui/command";
-import { nationText, showOpenerPicker } from "../ui/openers";
+import { nationText, showOpenerPicker, type Words } from "../ui/openers";
 import { createPowerPanel, type PowerPanel } from "../ui/powers";
 import { createObjectivePill, type ObjectivePill } from "../ui/objectives";
 import { mountCineToggle, type CineToggle } from "../ui/cinecam";
@@ -465,6 +465,7 @@ export class GameScene {
         // (a nation's cards name its own kinds: Fourgons, Jamais-Contente…)
         nation: nationOf(this.world, PLAYER),
         kindFor: (k) => nationKind(this.world, PLAYER, k),
+        enemyNation: nationOf(this.world, PLAYER === "blue" ? "red" : "blue"),
         // islands are taken by troops and defended from the air: the Airpad matters most there
         // (not on an Uncharted map: that would tell what it is)
         recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? "Idéal ici : Chalais-Meudon pour plus de Montgolfières" : null)
@@ -598,6 +599,16 @@ export class GameScene {
   }
 
   /** The player picked an opener: both sides get theirs (blue's first, as in a duel) and the clock starts. */
+  /** How opener lines name things for this match: our nation's kinds, the enemy's workers (ui/openers.ts nationText). */
+  private openerWords(): Words {
+    const foe = nationOf(this.world, PLAYER === "blue" ? "red" : "blue");
+    return {
+      nation: nationOf(this.world, PLAYER),
+      kindFor: (k) => nationKind(this.world, PLAYER, k),
+      ...(foe !== "classique" ? { enemyWorker: { nation: foe, kind: ROLES[foe].worker } } : {})
+    };
+  }
+
   private startWithOpener(id: OpenerId): void {
     if (!this.holdStart) return;
     const picks: Partial<Record<Faction, OpenerId>> = { [PLAYER]: id };
@@ -618,7 +629,7 @@ export class GameScene {
     }
     sfx.play("build");
     const o = OPENERS[id];
-    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: nationText(o.rollout, id, { nation: nationOf(this.world, PLAYER), kindFor: (k) => nationKind(this.world, PLAYER, k) }), tone: "good", priority: 1 });
+    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: nationText(o.rollout, id, this.openerWords()), tone: "good", priority: 1 });
     announceRules(this.world); // (queued behind the roll-out)
   }
 
@@ -1087,10 +1098,11 @@ export class GameScene {
             this.lastAlert = this.simSeconds;
             sfx.play("alert", 0.8);
             const hq = ev.building && w.buildings.get(ev.id)?.kind === "hq";
-            const goliath = !ev.building && !!w.units.get(ev.id)?.goliath;
+            const hitUnit = ev.building ? undefined : w.units.get(ev.id);
+            const goliath = !!hitUnit?.goliath;
             // (a drop to 1× for this attack already put "Speed 1× — HQ under attack" in the ticker)
             if (!(hq && this.aware.slowedFor("hq")) && !(goliath && this.aware.slowedFor("goliath")))
-              this.hud.alert(hq ? "GQG attaqué !" : goliath ? "Gargantua attaqué !" : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
+              this.hud.alert(hq ? "GQG attaqué !" : goliath ? `${UNITS[hitUnit!.kind].name} attaqué !` : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
           }
         }
         this.hud.ping(ev.x, ev.y);

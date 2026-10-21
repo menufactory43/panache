@@ -1122,3 +1122,50 @@ Mesures (sans les mécaniques de WP1, Fardiers de remplacement) : Rép contre Em
 chaque nation de chaque côté : Empire 18, République 1, nulle 1 (médiane 9,8 min) — non significatif tant que
 la Rép ne peut pas remplacer ses récolteurs ni profiter de ses multiplicateurs ; miroirs (12 parties chacun) :
 Emp-Emp bleu 6 / rouge 6 (médiane 12,9 min), Rép-Rép 5 / 7 (11,3 min), aucune nulle. À remesurer par WP4.
+
+### 3.9 Intégration — fait
+
+Sur `feat/camps` : fusion de `feat/camps-m-bat` (WP5f/WP5d) avec les branches de modèles déjà fusionnées, puis les
+crochets entre lots. Classique inchangé bit pour bit (`classic-hash.test.ts` vert) ; suite complète, build et
+`tools/smoke.mjs 390 844` verts.
+
+Fusion des modèles :
+- `belle/index.ts` enregistre tout : `GROUND_REP`, `GROUND_EMP`, `AIR_EMP`, `zenith`, les escouades (`nationSquadDef`),
+  `BE_NATION_BUILDING_MODELS` (bâtiments de nation) et `BE_LANDMARKS` (Tour Eiffel).
+- `placeholders.ts` : `STAND_IN` / `STAND_IN_BUILDING` complets (voix, portraits, tables `withStandIns`) ;
+  `PLACEHOLDER_MODEL` et `PLACEHOLDER_BUILDING` vides (liste `MODELLED` des 15 genres) ; `lookalike(k)` = ce que dessine
+  le rendu (le genre lui-même désormais).
+- Couleurs unifiées dans `models.ts` : `unitDef(kind, f, owner?)` et `buildingDef(kind, f, owner?)` peignent tout modèle
+  d'une armée de nation — genre propre **ou partagé** (GQG, Forges, Panhard d'un Empire…) — en `NATION_TEAMS[nation][camp]`
+  (le crochet `inNation` de `ground-rep.ts` est supprimé). `SquadRig(kind, f, seed, alive, nation)` fait de même pour les
+  escouades partagées. `?style=original` dessine aussi les modèles et escouades des nations (ils n'existent qu'en Belle Époque).
+
+Crochets câblés : les 7 de WP2 (§3.7 : `weaponStats`, `canRepair`, `spawnUnit`, `trainableBy`/`queueCap`/annonces/
+bannissement du Hangar par `superKindOf`/`trainHint`, `salvage.ts`, texte de `powers.ts` ; le Zénith amarré était déjà
+source chez WP1 ; `ai/commander.ts` produisait déjà `K.super` au prix `unitCost`). IA : la sonde « récolteur inerte » de
+WP3 ne marque plus aucun récolteur (le Fourgon récolte), menace antiaérienne du Zénith par ses armes, `behaves()` dans
+`ai/salvage`, `veterans`, `objectives`, `goliath`, `powers`. Ouvertures : `openerBlocked` traduit les genres par rôle
+(`nationKind`) : l'IA et le joueur ont leurs cartes d'ouverture en nation. Interface (handoffs WP1 §3.6 n° 11) : récolteur
+de départ, ordres de récolte, revente, PV par `behaves`/`buildingMaxHp`/`buildingCostFor` ; textes au nom du récolteur
+de la nation (« leurs Fardiers » = ceux de l'ennemi) ; libellés d'amarrage ; annonces du Zénith reformulées
+(`callouts.ts zenithLine` : « Zénith ennemi en amarrage »…, sans clip enregistré, sous-titrées).
+Rendu : `ZenithView` branché avant le Gargantua et nourri par `superView` ; Hangar par `isSuperKind` ; sacs de sable
+(`entrenched`) ; variante de matériau `unpowered` + éclair barré clignotant ; arc de la Bobine éteint hors réseau ;
+vapeur de la Pression ; visuels du Ballon-sonde, Gaz de houille, Rayon Curie et Pression (`render/powers.ts`).
+Correctif : `MUSIC.strikeBoost` manquait les quatre pouvoirs de nation (NaN dans la musique, erreurs console).
+
+Escarmouche : contrôle « Nation » (Classique / République / Empire) dans le menu Belle Époque, réglage `nation` de
+`battledrones.settings` ; l'IA prend la nation adverse ; `?nations=` reste prioritaire ; ni Survie, ni Opération, ni
+Défi du jour, ni duel.
+
+Mesure rapide (avant WP4, aucun nombre retouché) : Rép contre Emp, IA Normal, 6 cartes × 2 sièges × 4 couples de
+personnalités (balanced/balanced, volta/siege, skyforce/ironclad, airswarm/boom) = 48 parties, plafond 25 min :
+**Empire 42, République 5, nulle 1** ; médiane 11,1 min. Par carte (Rép–Emp) : Terrain d'essai 2–6, Terres fluviales 1–7,
+Mer de dunes 2–5 (+1 nulle), Engelure 0–8, Cendres 0–8, Archipel 0–8. Siège bleu/rouge de la Rép : 2–21 / 3–21. Le Hangar
+du Zénith est bâti dans 28 parties, un Zénith ne sort que dans 5 (le fonds de l'IA n'atteint pas 1 500), contre un
+Gargantua dans 38. Pas de bogue trouvé derrière : récolte par travailleur comparable (5 min, un seul : Fourgon 2 880,
+Fardier 3 100), aucun blocage de production. C'est le chantier de WP4.
+
+Restes : portraits et voix des nouveaux genres (WP5g ; toujours ceux des doublures), art des cartes d'ouverture,
+« GQG attaqué » pour la Citadelle, `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne
+reconnaît que la Patrie comme éclaireur, aucun repère visuel du Réseau TSF.

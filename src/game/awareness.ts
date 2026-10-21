@@ -662,8 +662,9 @@ export class TempoGuard {
         if (ev.faction !== player) continue;
         if (!ev.building) {
           // the last life: a Goliath with no HQ behind it (with the HQ standing, it's one more thing under fire)
-          if (!w.units.get(ev.id)?.goliath || hqOf(w, player)) continue;
-          if (t - this.lastGoliathHit > TEMPO.hqQuietS) hq ??= { cause: "goliath", note: "Gargantua attaqué", x: ev.x, y: ev.y };
+          const sup = w.units.get(ev.id);
+          if (!sup?.goliath || hqOf(w, player)) continue;
+          if (t - this.lastGoliathHit > TEMPO.hqQuietS) hq ??= { cause: "goliath", note: `${UNITS[sup.kind].name} attaqué`, x: ev.x, y: ev.y };
           this.lastGoliathHit = t;
           continue;
         }

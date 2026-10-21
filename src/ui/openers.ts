@@ -1,4 +1,4 @@
-import { UNITS } from "../sim/balance";
+import { ROLES, UNITS } from "../sim/balance";
 import { displayName, pluralName } from "../sim/lexicon";
 import { OPENERS, OPENER_IDS, type OpenerId } from "../sim/openers";
 import type { Faction, NationOrClassic, UnitKind } from "../sim/types";
@@ -25,12 +25,16 @@ export interface OpenerPickerOptions {
   /** The player's nation (names of its buildings), and the kind it gets for each Classique one (sim/nations.ts nationKind). */
   nation?: NationOrClassic;
   kindFor?(kind: UnitKind): UnitKind;
+  /** The enemy's nation: "leurs Fardiers" are its workers (default: the player's). */
+  enemyNation?: NationOrClassic;
 }
 
 /** How the cards name things for the player's nation: its own kinds for the openers' Classique ones. */
-interface Words {
+export interface Words {
   nation: NationOrClassic;
   kindFor(kind: UnitKind): UnitKind;
+  /** The enemy's worker ("leurs Fardiers", "chars et Fardiers"), when its nation differs. */
+  enemyWorker?: { nation: NationOrClassic; kind: UnitKind };
 }
 const CLASSIC_WORDS: Words = { nation: "classique", kindFor: (k) => k };
 
@@ -42,6 +46,11 @@ export function nationText(text: string, id: OpenerId, words: Words = CLASSIC_WO
   const o = OPENERS[id];
   const kinds = new Set<UnitKind>(["harvester", ...o.units]);
   let out = text;
+  // (the workers the line sends us after are the enemy's)
+  const foe = words.enemyWorker;
+  if (foe)
+    for (const lead of ["leurs ", "et "])
+      out = out.split(lead + pluralName("harvester")).join(lead + pluralName(foe.kind, foe.nation));
   for (const k of kinds) {
     const mine = words.kindFor(k);
     if (mine === k) continue;
@@ -87,6 +96,8 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
   const root = document.getElementById("hud")!;
   const side = opts.side ?? PLAYER;
   const words: Words = { nation: opts.nation ?? "classique", kindFor: opts.kindFor ?? ((k) => k) };
+  if (opts.enemyNation && opts.enemyNation !== "classique")
+    words.enemyWorker = { nation: opts.enemyNation, kind: ROLES[opts.enemyNation].worker };
   const el = document.createElement("div");
   el.className = "openers";
   el.innerHTML = `
