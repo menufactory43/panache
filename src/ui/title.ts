@@ -19,7 +19,7 @@
  * at once), prefers-reduced-motion and a Rematch get the menu at once.
  */
 import { sfx } from "../game/audio";
-import { leaderBeep, projectorStart, slamFanfare } from "../game/audio-title";
+import { leaderBeep, panacheCry, preloadPanacheCry, projectorStart, slamFanfare } from "../game/audio-title";
 
 export const INTRO_SEEN_KEY = "panache.intro.seen";
 const ART = "assets/ui/title/";
@@ -263,6 +263,7 @@ export function mountTitle(menu: HTMLElement, hooks: TitleHooks, skip: boolean):
     logo.getAnimations().forEach((a) => a.cancel());
     kick(logo, "slam");
     slamFanfare();
+    panacheCry();
     hooks.slam();
     at(1150, glide);
   };
@@ -304,6 +305,7 @@ export function mountTitle(menu: HTMLElement, hooks: TitleHooks, skip: boolean):
   // ----------------------------------------------------------- the press ---
   const start = () => {
     sfx.unlock();
+    preloadPanacheCry();
     if (seen) roll();
     else playFilm();
   };

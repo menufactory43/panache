@@ -205,3 +205,38 @@ export function slamFanfare(vol = 0.9): number {
   setTimeout(() => bus.disconnect(), (end - c.currentTime + 0.3) * 1000);
   return end - t;
 }
+
+/**
+ * The announcer's « PANACHE ! » on the logo slam (public/assets/voice/panache.mp3,
+ * the radio's onyx voice proclaiming, a little room on it). It goes through the
+ * voice bus, so the Voice switch and mute apply; fetched when the player taps in.
+ */
+let cryBuf: AudioBuffer | null = null;
+let cryLoading = false;
+export function preloadPanacheCry(): void {
+  const e = sfx.engine;
+  if (!e || cryBuf || cryLoading) return;
+  cryLoading = true;
+  fetch("assets/voice/panache.mp3")
+    .then((r) => r.arrayBuffer())
+    .then((b) => e.ctx.decodeAudioData(b))
+    .then((b) => {
+      cryBuf = b;
+    })
+    .catch(() => {
+      cryLoading = false;
+    });
+}
+
+/** Shout it, just behind the timpani hit (no-op until it has loaded). */
+export function panacheCry(delay = 0.08): void {
+  const e = sfx.engine;
+  const out = sfx.bus("voice");
+  if (!e || !out || !cryBuf) return;
+  const src = e.ctx.createBufferSource();
+  src.buffer = cryBuf;
+  const g = e.ctx.createGain();
+  g.gain.value = 0.95;
+  src.connect(g).connect(out);
+  src.start(e.ctx.currentTime + delay);
+}
