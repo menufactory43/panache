@@ -646,3 +646,38 @@ A["intro-feu"] = dict(
     quality="high",
     transparent=False,
 )
+
+# Nation crests (PANACHE-CONCEPTION.md §1.1; menu picker, HUD pill, end screens):
+# fictional heraldry only, no real coat of arms, no text.
+CREST_STYLE = (
+    "Belle Époque heraldic emblem in the style of an 1900 enamelled brass badge and engraved "
+    "Art Nouveau poster ornament: crisp clean silhouette that stays readable when shrunk to "
+    "32 pixels, rich enamel colours, polished brass and gold rims, soft painterly shading. "
+    "Centered, upright, symmetric. Isolated on a fully transparent background with a small "
+    "empty margin, no ground, no shadow outside the badge. No text, no letters, no numbers, "
+    "no banners with writing, no flags of real countries, no real coat of arms."
+)
+A["crest-republique"] = dict(
+    prompt=(
+        "A fictional republican crest: a rounded shield of deep navy-blue enamel framed by a "
+        "golden laurel wreath; on the shield the profile head of a serene allegorical young woman "
+        "wearing a Phrygian-like cap with a star, in polished brass relief, crossed behind her by "
+        "a stylised golden lightning bolt; small electric sparks; a thin cream and brass rim; a small five-pointed star at the top of the wreath and a knot of ribbon at its base (no fleur-de-lis, no crown). "
+        + CREST_STYLE
+    ),
+    size="1024x1024",
+    quality="high",
+    transparent=True,
+)
+A["crest-empire"] = dict(
+    prompt=(
+        "A fictional industrial empire crest: a squared heater shield of deep burgundy-crimson "
+        "enamel with a riveted blackened iron rim; on the shield a heavy blacksmith anvil over a "
+        "large brass cog wheel, two factory smokestacks rising behind them puffing small grey "
+        "smoke curls; above the shield a crenellated mural crown of dark iron and brass. "
+        "Stern, heavy, steam-and-coal mood. " + CREST_STYLE
+    ),
+    size="1024x1024",
+    quality="high",
+    transparent=True,
+)

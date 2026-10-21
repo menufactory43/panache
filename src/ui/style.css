@@ -5732,3 +5732,250 @@ button {
     opacity: 1;
   }
 }
+
+/* ------------------------------------------------ nation picker (menu) --- */
+/* two crest cards (PANACHE-CONCEPTION.md §1.1), a small Classique option and the AI's nation */
+.natpick {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.natpick[hidden] { display: none; }
+.np-head {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.np-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.npcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(12, 18, 28, 0.85);
+  color: var(--text);
+  text-align: center;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.18s, border-color 0.18s, filter 0.18s;
+  filter: saturate(0.7) brightness(0.86);
+}
+.npcard:active { transform: scale(0.98); }
+.npcard.on { filter: none; }
+.npcard.nat-republique.on {
+  background: linear-gradient(170deg, rgba(42, 74, 150, 0.96), rgba(18, 38, 79, 0.96) 70%);
+  border-color: #9cb6ec;
+  box-shadow: 0 6px 22px rgba(31, 63, 138, 0.55), inset 0 0 0 1px rgba(233, 187, 94, 0.55);
+}
+.npcard.nat-empire.on {
+  background: linear-gradient(170deg, rgba(140, 36, 50, 0.96), rgba(67, 16, 24, 0.96) 70%);
+  border-color: #dc8a92;
+  box-shadow: 0 6px 22px rgba(122, 31, 43, 0.55), inset 0 0 0 1px rgba(233, 187, 94, 0.55);
+}
+.npcard.on::after {
+  content: "✓";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-weight: 900;
+  color: var(--gold);
+}
+.np-crest {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+}
+.np-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.np-name {
+  font-size: 15px;
+  line-height: 1.1;
+}
+.np-line {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: #e6d6b2;
+}
+.np-mech {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--dim);
+}
+.npcard.on .np-mech { color: #f0dfb8; }
+.np-mech span::before { content: "◆ "; color: var(--gold); font-size: 8px; vertical-align: 1px; }
+.np-units {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.np-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 33%;
+  min-width: 0;
+}
+.np-unit img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(233, 187, 94, 0.3);
+}
+.np-unit small {
+  max-width: 100%;
+  font-size: 9.5px;
+  line-height: 1.1;
+  margin-top: 2px;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+.npcard.on .np-unit small { color: #f2e8d0; }
+.np-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: stretch;
+}
+.npclassic {
+  flex: 1 1 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(12, 18, 28, 0.85);
+  color: var(--dim);
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.15;
+  cursor: pointer;
+}
+.npclassic small {
+  font-weight: 600;
+  font-size: 10px;
+  opacity: 0.85;
+}
+.npclassic.on {
+  color: #fff;
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(80, 60, 34, 0.95), rgba(44, 31, 16, 0.95));
+}
+/* (Classique alone: the button takes the row) */
+.np-foot:has(.np-rival[hidden]) .npclassic { flex: 1; }
+.np-rival {
+  flex: 1 1 300px;
+  align-items: center;
+  min-width: 0;
+}
+.np-rival[hidden] { display: none; }
+.np-rival .np-rl {
+  padding: 0 4px 0 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dim);
+  writing-mode: horizontal-tb;
+}
+.np-rival button {
+  min-height: 34px;
+  font-size: 12px;
+  padding: 0 4px;
+  line-height: 1.1;
+}
+/* short portrait phones: the cards drop their mechanics */
+@media (orientation: portrait) and (max-height: 760px) {
+  .np-mech { display: none; }
+  .np-crest { width: 52px; height: 52px; }
+}
+/* short landscape phones: the cards go compact, crest beside the text */
+@media (orientation: landscape) and (max-height: 500px) {
+  .np-mech, .np-line { display: none; }
+  .npcard { flex-direction: row; padding: 6px 8px; text-align: left; }
+  .np-crest { width: 44px; height: 44px; }
+  .np-units { margin: 0 0 0 auto; }
+  .np-unit { width: auto; }
+  .np-unit img { width: 28px; height: 28px; }
+  .np-unit small { display: none; }
+  .np-head, .npcard.on::after { display: none; }
+  .np-txt { min-width: 0; }
+  .np-name { font-size: 14px !important; }
+  .np-unit:nth-child(3) { display: none; }
+  .np-foot { flex-wrap: nowrap; }
+  .npclassic { flex: 0 0 auto; }
+  .npclassic small, .np-rival .np-rl { display: none; }
+  .np-rival { flex: 1 1 auto; }
+}
+
+/* ------------------------------------------- end screen: nations' crests --- */
+.aar-crests {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.aar-crest {
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+.aar-crest.mine { width: 84px; height: 84px; animation: crestIn 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.aar-crest.foe { width: 40px; height: 40px; opacity: 0.8; }
+.aar-crests.both .aar-crest { width: 64px; height: 64px; opacity: 1; }
+.aar-crest.crest-classique { display: grid; place-items: center; font-size: 30px; color: var(--gold); }
+.aar-vs {
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+.aar-natline {
+  margin: 4px auto 2px;
+  max-width: 34em;
+  font-style: italic;
+  font-size: 14px;
+  color: #e6d6b2;
+  text-align: center;
+}
+html.belle .aar-natline { font-family: var(--serif); font-size: 15px; }
+@keyframes crestIn {
+  from { transform: scale(1.5) rotate(-6deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+/* landscape: the crests sit inline before the verdict, the nation's line under the row */
+@media (orientation: landscape) and (min-width: 640px) {
+  .aar .aar-head { flex-wrap: wrap; align-items: center; }
+  .aar-crests { margin: 0; gap: 6px; }
+  .aar-crest.mine { width: 56px; height: 56px; }
+  .aar-crest.foe { width: 30px; height: 30px; }
+  .aar-crests.both .aar-crest { width: 44px; height: 44px; }
+  .aar-natline { flex-basis: 100%; margin: -2px 0 0; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .aar-crest.mine { width: 40px; height: 40px; }
+  .aar-crest.foe { width: 24px; height: 24px; }
+  .aar-natline { font-size: 13px !important; }
+}

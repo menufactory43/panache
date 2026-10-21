@@ -625,11 +625,12 @@ export class Controller {
   }
 
   // ----------------------------------------------------------- placement --
+  // (explainPlacement: the sim's reason, said so the player knows what to do)
 
   /** Why the ghost can't be built where it sits, or null when it can. */
   placementProblem(): string | null {
     if (!this.placing || !this.placeAt) return null;
-    return placementBlocker(this.world, PLAYER, this.placing, this.placeAt.tx, this.placeAt.ty);
+    return explainPlacement(placementBlocker(this.world, PLAYER, this.placing, this.placeAt.tx, this.placeAt.ty));
   }
 
   /** Move the ghost to (tx, ty), nudged onto a valid spot a tile away if that's all it takes. */
@@ -643,7 +644,7 @@ export class Controller {
     const kind = this.placing;
     const at = this.placeAt;
     if (!kind || !at || this.spectator) return false;
-    const why = placementBlocker(this.world, PLAYER, kind, at.tx, at.ty);
+    const why = explainPlacement(placementBlocker(this.world, PLAYER, kind, at.tx, at.ty));
     if (why) {
       this.denied = { reason: why, tx: at.tx, ty: at.ty };
       return false;
@@ -1226,4 +1227,10 @@ export function hitTest(
     if (canSee(b.id)) return { kind: "enemy", id: b.id, targetsAir: false };
   }
   return best;
+}
+
+/** The sim's placement refusal in the player's words: off the République's network, where the power comes from. */
+export function explainPlacement(why: string | null): string | null {
+  if (why === "Hors du réseau électrique") return "Hors du réseau : près du GQG ou d'une Tour TSF";
+  return why;
 }

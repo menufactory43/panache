@@ -139,3 +139,40 @@ html.belle .panel h2 {
   font-family: var(--serif);
   letter-spacing: 1px;
 }
+
+/* ------------------------------------------------------- nation picker --- */
+html.belle .np-head {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: none;
+  font-size: 15px;
+  color: #e6d6b2;
+}
+html.belle .npcard,
+html.belle .npclassic {
+  background: linear-gradient(180deg, rgba(58, 40, 22, 0.94), rgba(30, 21, 12, 0.94));
+  border-color: var(--line-hi);
+}
+html.belle .npcard.nat-republique.on {
+  background: linear-gradient(170deg, rgba(42, 74, 150, 0.97), rgba(18, 38, 79, 0.97) 70%);
+}
+html.belle .npcard.nat-empire.on {
+  background: linear-gradient(170deg, rgba(140, 36, 50, 0.97), rgba(67, 16, 24, 0.97) 70%);
+}
+html.belle .npclassic.on {
+  background: linear-gradient(180deg, #6b4c22, #3d2a12);
+  color: #fff1c8;
+}
+html.belle .np-name,
+html.belle .npclassic {
+  font-family: var(--serif);
+}
+html.belle .np-name {
+  font-size: 16px;
+  letter-spacing: 0.3px;
+}
+html.belle .np-line {
+  font-family: var(--serif);
+}

@@ -1,6 +1,7 @@
 import { UNITS } from "../sim/balance";
 import { mapById } from "../sim/maps";
 import { nationOf } from "../sim/rules";
+import { crestImg, endLine } from "./nations-ui";
 import { POWER_KINDS, POWER_NAMES } from "../sim/powers";
 import type { Faction, FactionStats, World } from "../sim/types";
 import {
@@ -246,7 +247,35 @@ export function headline(o: { winner: Faction | "draw" | null; pov: Faction; spe
   return { title: won ? "VICTOIRE" : "DÉFAITE", cls: won ? "win" : "lose", note: null };
 }
 
+/**
+ * A nations match's crests over the verdict (the player's large, the foe's
+ * small; a spectator: both alike). Empty in Classique.
+ */
+export function nationHeadHtml(w: World, pov: Faction, spectator: boolean): string {
+  const blue = nationOf(w, "blue");
+  const red = nationOf(w, "red");
+  if (blue === "classique" && red === "classique") return "";
+  const me = spectator ? "blue" : pov;
+  const them: Faction = me === "blue" ? "red" : "blue";
+  const mine = nationOf(w, me);
+  const foe = nationOf(w, them);
+  const crests = `<div class="aar-crests${spectator ? " both" : ""}">${crestImg(mine, `aar-crest mine nat-${mine}`)}<span class="aar-vs">contre</span>${crestImg(foe, `aar-crest foe nat-${foe}`)}</div>`;
+  return crests;
+}
+
+/** The line under the verdict in the player's nation's voice (none in Classique, for a spectator, or without a winner). */
+export function nationLineHtml(w: World, winner: Faction | "draw" | null, pov: Faction, spectator: boolean): string {
+  if (spectator || winner === null || winner === "draw") return "";
+  const them: Faction = pov === "blue" ? "red" : "blue";
+  const line = endLine(nationOf(w, pov), winner === pov, nationOf(w, them));
+  return line ? `<p class="aar-natline">${escapeHtml(line)}</p>` : "";
+}
+
 function headHtml(ctx: ReportContext): string {
+  return nationHeadHtml(ctx.world, ctx.pov, ctx.spectator) + headCore(ctx) + nationLineHtml(ctx.world, ctx.winner, ctx.pov, ctx.spectator);
+}
+
+function headCore(ctx: ReportContext): string {
   if (ctx.head) return `<h1 class="${ctx.head.cls}">${escapeHtml(ctx.head.title)}</h1><p class="time">${escapeHtml(ctx.head.sub)}</p>`;
   const spec = ctx.spectator;
   const h = headline({ winner: ctx.winner, pov: ctx.pov, spectator: spec, love: !!ctx.world.love });

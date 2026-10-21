@@ -12,8 +12,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GantryView, type GoliathHost } from "./game/render/goliath";
 import {
-  buildingDef, chuteGeometry, CRAWLER_LEGS, crateDef, instance, modelMesh, rubbleGeometry, unitDef, unitScale, uplinkDef
+  buildingDef, chuteGeometry, CRAWLER_LEGS, crateDef, instance, landmarkDef, modelMesh, rubbleGeometry, unitDef, unitScale, uplinkDef
 } from "./game/three/models";
+import { MOOR_POINTS, ZENITH_REST, ZenithRig, zenithTeam, type ZenithGun, type ZenithPose } from "./game/three/zenith";
+import { portraitKind } from "./game/three/belle/placeholders";
 import { GoliathRig, type GoliathGun, type GoliathPose } from "./game/three/goliath";
 import { baySeats, SquadRig, type BotKind } from "./game/three/infantry";
 import { discMat, fowUniforms, glowMat, setVariant } from "./game/three/materials";
@@ -21,9 +23,10 @@ import { SUN_DIR } from "./game/three/stage";
 import { discTexture } from "./game/three/textures";
 import { Ease } from "./game/three/tween";
 import { HOVER_H } from "./game/three/view";
-import { BUILDINGS, GOLIATH, TICK_RATE, UNITS } from "./sim/balance";
-import type { Building, BuildingKind, Faction, UnitKind } from "./sim/types";
-import { BUILDING_GROUPS, GROUPS, card, siteCard, siteName, type SiteKind } from "./unit-info";
+import { BUILDINGS, GOLIATH, TICK_RATE, UNITS, ZENITH } from "./sim/balance";
+import { behaves } from "./sim/nations";
+import type { Building, BuildingKind, Faction, Nation, NationOrClassic, UnitKind } from "./sim/types";
+import { buildingGroups, card, rowId, siteCard, siteName, unitGroups, type SiteKind } from "./unit-info";
 
 /**
  * A model on its pad, and how it plays each of its animations. `step` poses
@@ -41,7 +44,10 @@ interface Model {
   neutral?: boolean;
 }
 
-const BOTS: BotKind[] = ["trooper", "rocket-squad", "sniper"];
+const BOTS: BotKind[] = ["trooper", "rocket-squad", "sniper", "sapeurs", "fusiliers", "carabiniers"];
+/** The army a model is shown for: a nation paints shared kinds in its colours (three/models.ts unitDef `owner`). */
+type Army = NationOrClassic;
+const owned = (n: Army): Nation | undefined => (n === "classique" ? undefined : n);
 const LASER_TINT: Record<Faction, number> = { blue: 0x7fd4ff, red: 0xff6a4a }; // (render/fx.ts)
 const FLASH = 0xffd27a;
 // the Flak Crawler's gait (render/entities.ts): stride length (tiles), swing (rad), foot lift
@@ -141,9 +147,9 @@ function shots(): (t: number, every: number) => boolean {
 }
 
 /** Any unit but the squads, the Condor and the Goliath: hulls, turrets, rotors, legs. */
-function vehicle(kind: UnitKind, f: Faction, glows: Glows): Model {
+function vehicle(kind: UnitKind, f: Faction, glows: Glows, nation: Army = "classique"): Model {
   const u = UNITS[kind];
-  const m = instance(unitDef(kind, f));
+  const m = instance(unitDef(kind, f, nation));
   m.root.scale.setScalar(unitScale(kind));
   const air = u.domain === "air";
   const armed = u.targets !== "none" && !u.heal;
@@ -153,7 +159,7 @@ function vehicle(kind: UnitKind, f: Faction, glows: Glows): Model {
     : [
         legs ? "Walk" : "Drive",
         "Idle",
-        ...(kind === "harvester" ? ["Haul"] : []),
+        ...(behaves(kind, "harvester") ? ["Haul"] : []),
         ...(m.turret ? ["Aim"] : []),
         ...(armed ? ["Fire"] : []),
         "Wreck"
@@ -254,15 +260,16 @@ function vehicle(kind: UnitKind, f: Faction, glows: Glows): Model {
 }
 
 /** The Condor: two squads seated in its bay, coming down low to drop its ramp. */
-function condor(f: Faction): Model {
-  const c = instance(unitDef("condor", f));
-  const s = unitScale("condor");
+function condor(f: Faction, kind: UnitKind = "condor", nation: Army = "classique"): Model {
+  const c = instance(unitDef(kind, f, nation));
+  const s = unitScale(kind);
   c.root.scale.setScalar(s);
   const bay = new THREE.Group();
   bay.scale.setScalar(1 / s);
   c.body.add(bay);
-  const riders = (["trooper", "rocket-squad"] as BotKind[]).map((k, side) => {
-    const r = new SquadRig(k, f, 30 + side);
+  const crew: BotKind[] = kind === "titan" ? ["fusiliers", "rocket-squad"] : nation === "republique" ? ["trooper", "sapeurs"] : ["trooper", "rocket-squad"];
+  const riders = crew.map((k, side) => {
+    const r = new SquadRig(k, f, 30 + side, undefined, owned(nation));
     r.seat(baySeats(k, side, s));
     bay.add(r.root);
     return r;
@@ -281,7 +288,7 @@ function condor(f: Faction): Model {
       const d = anim === "Drop" ? t % 8 : 0;
       const low = anim === "Drop" ? smooth(d / 1.5) * (1 - smooth((d - 6.5) / 1.5)) : 0;
       const ramp = anim === "Drop" ? smooth((d - 1.3) / 1.2) * (1 - smooth((d - 5.2) / 1.2)) : 0;
-      const speed = anim === "Fly" ? UNITS.condor.speed : anim === "Bank" ? UNITS.condor.speed * 0.7 : 0;
+      const speed = anim === "Fly" ? UNITS[kind].speed : anim === "Bank" ? UNITS[kind].speed * 0.7 : 0;
       const turn = anim === "Bank" ? Math.sin(t * 0.9) * 1.2 : 0;
       face += turn * dt;
       bank += (Math.max(-0.6, Math.min(0.6, -turn * 0.35)) - bank) * (1 - Math.pow(0.002, dt));
@@ -298,8 +305,8 @@ function condor(f: Faction): Model {
 }
 
 /** A squad of robots: marching, weapons up, firing, falling (and standing back up). */
-function squad(kind: BotKind, f: Faction, glows: Glows): Model {
-  const rig = new SquadRig(kind, f, 3);
+function squad(kind: BotKind, f: Faction, glows: Glows, nation: Army = "classique"): Model {
+  const rig = new SquadRig(kind, f, 3, undefined, owned(nation));
   const u = UNITS[kind];
   const n = u.squad ?? 1;
   const fire = shots();
@@ -316,7 +323,7 @@ function squad(kind: BotKind, f: Faction, glows: Glows): Model {
         const standing = rig.standing();
         const i = standing[Math.floor(Math.random() * standing.length)];
         const at = i === undefined ? null : rig.fire(i, v3);
-        if (at) glows.flash(at, kind === "trooper" ? 0.16 : 0.28, kind === "sniper" ? 0xfff4d8 : FLASH);
+        if (at) glows.flash(at, kind === "trooper" || kind === "fusiliers" ? 0.16 : 0.28, kind === "sniper" || kind === "carabiniers" ? 0xfff4d8 : kind === "sapeurs" ? LASER_TINT[f] : FLASH);
       }
       return [0, -speed];
     },
@@ -405,18 +412,20 @@ const G_CYCLE = G_BUILD + G_ROLL + 1.5;
 const CRADLE_H = 0.285;
 
 /** A building: idle, going up, damaged and smoking, rubble; turrets aiming and firing; the Radar sweeping; the Gantry at work. */
-function building(kind: BuildingKind, f: Faction, glows: Glows): Model {
+function building(kind: BuildingKind, f: Faction, glows: Glows, nation: Army = "classique"): Model {
   const st = BUILDINGS[kind];
   const root = new THREE.Group();
-  const m = instance(buildingDef(kind, f));
+  const m = instance(buildingDef(kind, f, nation));
+  // (the République's gantry is the Zénith's hangar: no Gargantua on its cradle)
+  const builds = kind === "gantry" && nation !== "republique";
   root.add(m.root);
   const rubble = modelMesh(rubbleGeometry(st.size, 1));
   rubble.visible = false;
   root.add(rubble);
   const armed = st.targets !== "none";
   const anims = [
-    ...(kind === "radar" ? ["Sweep"] : []),
-    ...(kind === "gantry" ? ["Build Goliath"] : []),
+    ...(kind === "radar" && m.turret ? ["Sweep"] : []),
+    ...(builds ? ["Build Goliath"] : []),
     ...(armed && m.turret ? ["Aim"] : []),
     ...(armed ? ["Fire"] : []),
     "Idle",
@@ -433,7 +442,7 @@ function building(kind: BuildingKind, f: Faction, glows: Glows): Model {
 
   // the Gantry plays its build through the game's own GantryView, fed a stand-in for the sim's side of it
   let gantry: { view: GantryView; b: { id: number; faction: Faction; queue: { kind: string; remaining: number }[] }; head: { kind: string; remaining: number } | null; rig: GoliathRig; rolled: boolean } | null = null;
-  if (kind === "gantry") {
+  if (builds) {
     const at = (p: { x: number; y: number; h: number }) => v3.set(p.x, p.h, p.y);
     const host = {
       world: { tick: 0, powers: { stunned: new Map() } },
@@ -493,8 +502,10 @@ function building(kind: BuildingKind, f: Faction, glows: Glows): Model {
         recoil = 1;
         const from = m.turret ?? m.body;
         from.updateWorldMatrix(true, false);
-        glows.flash(from.localToWorld(v3.set(...m.def.muzzle)), kind === "sam-site" ? 0.6 : 0.4);
-        if (kind === "sam-site") glows.smoke(v3.clone(), 0.3, 0xdedad3, 0.5, 1);
+        const at = from.localToWorld(v3.set(...m.def.muzzle));
+        if (kind === "arsonval") glows.flash(at, 0.5, LASER_TINT[f], 0.14);
+        else glows.flash(at, kind === "sam-site" || kind === "flak-battery" ? 0.6 : 0.4);
+        if (kind === "sam-site" || kind === "flak-battery") glows.smoke(v3.clone(), 0.3, 0xdedad3, 0.5, 1);
       }
       recoil = Math.max(0, recoil - dt * 6);
       if (m.turret) {
@@ -631,14 +642,79 @@ function crate(): Model {
   };
 }
 
-function makeModel(kind: UnitKind | SiteKind, f: Faction, glows: Glows): Model {
+/** The Zénith: cruising, mooring (cables paid out, hangar doors open), every weapon firing, and crippled. */
+function zenith(f: Faction, glows: Glows): Model {
+  const rig = new ZenithRig(zenithTeam(f));
+  rig.root.scale.setScalar(unitScale("zenith"));
+  const W = ZENITH.weapons;
+  const guns: { every: number; guns: ZenithGun[]; i: number; fire: ReturnType<typeof shots> }[] = [
+    { every: W.branly.shotInterval!, guns: ["branlyL", "branlyR"], i: 0, fire: shots() },
+    { every: W.arc.shotInterval!, guns: ["arc"], i: 0, fire: shots() },
+    { every: W.bombs.shotInterval!, guns: ["bombs"], i: 0, fire: shots() },
+    { every: W.mg.shotInterval!, guns: ["mgL", "mgR"], i: 0, fire: shots() }
+  ];
+  const A = ZENITH.anchorTime;
+  const P = ZENITH.packTime;
+  const HOLD = 5;
+  const H = AIR_Y + 0.9;
+  let face = 0;
+  return {
+    root: rig.root,
+    anims: ["Fly", "Hover", "Anchor", "Fire", "Damaged"],
+    step(anim, t, dt) {
+      const p: ZenithPose = { ...ZENITH_REST, dt: dt * 1000, props: anim === "Fly" ? 1 : 0.4, weapons: { ...ZENITH_REST.weapons } };
+      let speed = 0;
+      if (anim === "Fly") speed = UNITS.zenith.speed;
+      if (anim === "Anchor") {
+        const c = t % (A + HOLD + P + 2);
+        const k = c < A ? c / A : c < A + HOLD ? 1 : Math.max(0, 1 - (c - A - HOLD) / P);
+        p.moor = smooth(k);
+        p.bay = smooth((k - 0.4) / 0.6);
+        p.props = 0.2;
+      }
+      // the cables reach the pad: the axis' height over it, in model units
+      p.drop = H / unitScale("zenith") + MOOR_POINTS[0]![1];
+      if (anim === "Damaged")
+        p.weapons = { branly: { lit: false, dead: 1 }, arc: { lit: false, dead: 1 }, bombs: { lit: true, dead: 0 }, mg: { lit: true, dead: 0 } };
+      if (anim === "Fire") p.aim = Math.sin(t * 0.45) * 0.45;
+      rig.root.position.y = H + Math.sin(t / 0.9) * 0.04;
+      rig.j.body.rotation.set(-speed * 0.03, -face, Math.sin(t * 0.6) * 0.02);
+      rig.update(p);
+      if (anim === "Fire")
+        for (const g of guns) {
+          if (!g.fire(t, g.every)) continue;
+          const gun = g.guns[g.i++ % g.guns.length]!;
+          rig.kick(gun);
+          const at = rig.muzzle(gun, v3);
+          if (gun === "arc") glows.beam(at, fwd.set(0, -0.35, -1).normalize(), 2.5, LASER_TINT[f], 0.035);
+          else glows.flash(at, gun.startsWith("mg") ? 0.3 : 0.6);
+        }
+      if (anim === "Damaged" && Math.random() < dt * 6) glows.smoke(rig.muzzle("branlyL", v3), 0.4, 0x2c2a28, 0.6, 1.6);
+      return [0, -speed];
+    }
+  };
+}
+
+/** The Tour Eiffel (a campaign landmark): it just stands there, the pride of Paris. */
+function landmark(): Model {
+  const m = instance(landmarkDef("eiffel"));
+  return { root: m.root, neutral: true, anims: ["Idle"], step: () => [0, 0] };
+}
+
+/** Kinds the page shows beyond units and sites. */
+type Extra = "eiffel";
+type Shown = UnitKind | SiteKind | Extra;
+
+function makeModel(kind: Shown, f: Faction, glows: Glows, nation: Army = "classique"): Model {
+  if (kind === "eiffel") return landmark();
   if (kind === "uplink") return uplink(f);
   if (kind === "supply-crate") return crate();
-  if (kind in BUILDINGS) return building(kind as BuildingKind, f, glows);
-  if ((BOTS as string[]).includes(kind)) return squad(kind as BotKind, f, glows);
-  if (kind === "condor") return condor(f);
+  if (kind in BUILDINGS) return building(kind as BuildingKind, f, glows, nation);
+  if ((BOTS as string[]).includes(kind)) return squad(kind as BotKind, f, glows, nation);
+  if (kind === "condor" || kind === "titan") return condor(f, kind, nation);
   if (kind === "goliath") return goliath(f, glows);
-  return vehicle(kind as UnitKind, f, glows);
+  if (kind === "zenith") return zenith(f, glows);
+  return vehicle(kind as UnitKind, f, glows, nation);
 }
 
 // ------------------------------------------------------------ the stage ---
@@ -716,7 +792,7 @@ class Viewer {
   private padR = 1.5;
   visible = false;
 
-  constructor(readonly kind: UnitKind | SiteKind, readonly canvas: HTMLCanvasElement, private ui: HTMLElement, private faction: Faction = "blue") {
+  constructor(readonly kind: Shown, readonly canvas: HTMLCanvasElement, private ui: HTMLElement, private faction: Faction = "blue", private nation: Army = "classique") {
     this.ctx = canvas.getContext("2d")!;
     this.group.add(this.glows.group);
     this.controls = new OrbitControls(this.camera, canvas);
@@ -734,7 +810,7 @@ class Viewer {
       this.model.dispose?.();
       this.glows.clear();
     }
-    this.model = makeModel(this.kind, this.faction, this.glows);
+    this.model = makeModel(this.kind, this.faction, this.glows, this.nation);
     this.group.add(this.model.root);
     if (!this.model.anims.includes(this.anim)) this.play(this.model.anims[0]!);
   }
@@ -850,38 +926,87 @@ class Viewer {
 
 // ------------------------------------------------------------- the page ---
 
-/** The page's two tabs: units and buildings, each its nav, groups and rows of card and viewer. */
+/** The armies the page shows, each in its own section of both tabs (the nation filter picks which). */
+const ARMIES: Army[] = ["classique", "republique", "empire"];
+type Filter = Army | "all";
+const ARMY_TITLE: Record<Army, string> = { classique: "Classique", republique: "La République", empire: "L'Empire de Carbonie" };
+const ARMY_LINE: Record<Army, string> = {
+  classique: "Les règles symétriques : les seize unités et dix bâtiments d'origine, aux couleurs bleue et rouge des camps.",
+  republique: "Ingénieurs, aviateurs et savants : rapide, aérien, nombreux, électrique, fragile. Ses bâtiments doivent être alimentés par le GQG ou une Tour TSF.",
+  empire: "Charbon, vapeur et acier : lent, blindé, l'artillerie la plus longue, des positions qu'on ne déloge pas. Chaque usine fabrique deux unités à la fois."
+};
+const icon = (k: string): string => `./assets/icons/${portraitKind(k)}.webp`;
+const crest = (n: Army): string => (n === "classique" ? "" : `<img class="crest" src="./assets/ui/crest-${n}.webp" alt="" />`);
+
+/** The page's two tabs: units and buildings, each its groups and rows of card and viewer, per army. */
 const TABS = {
-  units: { groups: GROUPS, name: (k: string) => UNITS[k as UnitKind].name, card: (k: string) => card(k as UnitKind, { portrait: false, id: false }) },
-  buildings: { groups: BUILDING_GROUPS, name: (k: string) => siteName(k as SiteKind), card: (k: string) => siteCard(k as SiteKind, { id: false }) }
+  units: {
+    groups: (n: Army): { title: string; kinds: Shown[] }[] => unitGroups(n),
+    name: (k: string) => (k === "eiffel" ? "Tour Eiffel" : UNITS[k as UnitKind].name),
+    card: (k: string, n: Army) => card(k as UnitKind, { portrait: false, id: false, nation: n })
+  },
+  buildings: {
+    groups: (n: Army): { title: string; kinds: Shown[] }[] => [
+      ...buildingGroups(n),
+      // the campaign's landmark stands in Paris: the République's
+      ...(n === "republique" ? [{ title: "Monument de campagne", kinds: ["eiffel" as Shown] }] : [])
+    ],
+    name: (k: string, n: Army = "classique") => (k === "eiffel" ? "Tour Eiffel" : siteName(k as SiteKind, n)),
+    card: (k: string, n: Army) =>
+      k === "eiffel"
+        ? `<article><div class="head"><div><h3>Tour Eiffel</h3><div class="role">Le clou de l'Exposition de 1889, décor des missions parisiennes de la Campagne de 1900.</div><div class="tags"><span class="tag">Décor</span><span class="tag">Campagne</span></div></div></div><ul class="features"><li>Un monument, pas un bâtiment : on ne le construit pas et on ne le détruit pas.</li><li>Sa silhouette se voit de loin sur la carte de Paris : un repère pour tes colonnes.</li></ul></article>`
+        : siteCard(k as SiteKind, { id: false, nation: n })
+  }
 };
 type Tab = keyof typeof TABS;
 
 for (const [tab, t] of Object.entries(TABS) as [Tab, (typeof TABS)[Tab]][]) {
-  const kinds = t.groups.flatMap((g) => g.kinds as string[]);
-  document.querySelector(`#tab-${tab} nav`)!.innerHTML = kinds
-    .map((k) => `<a href="#${k}"><img src="./assets/icons/${k}.webp" alt="" />${t.name(k)}</a>`)
-    .join("");
-  document.querySelector(`#tab-${tab} .rows`)!.innerHTML = t.groups
-    .map(
-      (g) =>
-        `<h2 class="group">${g.title}</h2>` +
-        (g.kinds as string[])
-          .map(
-            (k) => `<section class="row" id="${k}">
-              ${t.card(k)}
-              <div class="viewer" data-kind="${k}">
-                ${renderer ? `<canvas aria-label="Modèle 3D ${t.name(k)}"></canvas><div class="hint">Glisse pour tourner · pince ou ⌃-molette pour zoomer</div>` : `<p class="nogl">Ce navigateur ne peut pas afficher les modèles 3D (WebGL désactivé ou indisponible).</p>`}
+  document.querySelector(`#tab-${tab} .rows`)!.innerHTML = ARMIES.map((n) => {
+    const groups = t.groups(n);
+    const kinds = groups.flatMap((g) => g.kinds as string[]);
+    return `<section class="army ${n}" data-army="${n}">
+      <div class="armyhead">${crest(n)}<div><h2>${ARMY_TITLE[n]}</h2><p>${ARMY_LINE[n]}</p></div></div>
+      <nav>${kinds.map((k) => `<a href="#${rowId(k, n)}"><img src="${k === "eiffel" ? icon("radar") : icon(k)}" alt="" />${t.name(k, n)}</a>`).join("")}</nav>
+      ${groups
+        .map(
+          (g) =>
+            `<h2 class="group">${g.title}</h2>` +
+            (g.kinds as string[])
+              .map(
+                (k) => `<section class="row" id="${rowId(k, n)}">
+              ${t.card(k, n)}
+              <div class="viewer" data-kind="${k}" data-army="${n}">
+                ${renderer ? `<canvas aria-label="Modèle 3D ${t.name(k, n)}"></canvas><div class="hint">Glisse pour tourner · pince ou ⌃-molette pour zoomer</div>` : `<p class="nogl">Ce navigateur ne peut pas afficher les modèles 3D (WebGL désactivé ou indisponible).</p>`}
                 <div class="controls"></div>
               </div>
             </section>`
-          )
-          .join("")
-    )
-    .join("");
+              )
+              .join("")
+        )
+        .join("")}
+    </section>`;
+  }).join("");
 }
 
-/** Show a tab: the one the link's anchor is on (#buildings, #turret…), scrolled to it. */
+/** The nation filter: Tout, or one army (?nation= keeps it across reloads and links). */
+let filter: Filter = ((): Filter => {
+  const q = new URLSearchParams(location.search).get("nation");
+  return q === "classique" || q === "republique" || q === "empire" ? q : "all";
+})();
+function applyFilter(f: Filter): void {
+  filter = f;
+  for (const sec of document.querySelectorAll<HTMLElement>("section.army")) sec.hidden = f !== "all" && sec.dataset.army !== f;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#nfilter button")) b.setAttribute("aria-pressed", String(b.dataset.f === f));
+  const url = new URL(location.href);
+  if (f === "all") url.searchParams.delete("nation");
+  else url.searchParams.set("nation", f);
+  history.replaceState(null, "", url);
+}
+for (const b of document.querySelectorAll<HTMLButtonElement>("#nfilter button"))
+  b.addEventListener("click", () => applyFilter(b.dataset.f as Filter));
+applyFilter(filter);
+
+/** Show a tab: the one the link's anchor is on (#buildings, #turret, #empire-hq…), scrolled to it. */
 function showTab(hash: string): void {
   const id = hash.replace(/^#/, "");
   const target = id ? document.getElementById(id) : null;
@@ -890,11 +1015,14 @@ function showTab(hash: string): void {
     (document.getElementById(`tab-${t}`) as HTMLElement).hidden = t !== tab;
     document.querySelector(`[data-tab="${t}"]`)!.setAttribute("aria-selected", String(t === tab));
   }
+  // a row in an army the filter hides: show that army
+  const army = target?.closest<HTMLElement>("section.army")?.dataset.army as Army | undefined;
+  if (army && filter !== "all" && filter !== army) applyFilter(army);
   if (target?.classList.contains("row")) target.scrollIntoView();
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>("[data-tab]"))
   b.addEventListener("click", () => {
-    history.replaceState(null, "", `#${b.dataset.tab}`);
+    history.replaceState(null, "", `${location.search}#${b.dataset.tab}`);
     showTab(`#${b.dataset.tab}`);
   });
 addEventListener("hashchange", () => showTab(location.hash));
@@ -902,24 +1030,28 @@ showTab(location.hash);
 
 if (renderer) {
   const r = renderer;
+  // each viewer builds its model the first time it comes near the screen (a hundred rows: no up-front cost)
   const viewers = new Map<Element, Viewer>();
+  const make = (el: HTMLElement): Viewer => {
+    const v = new Viewer(el.dataset.kind as Shown, el.querySelector("canvas")!, el.querySelector(".controls")!, "blue", el.dataset.army as Army);
+    viewers.set(el, v);
+    el.querySelector(".controls")!.addEventListener("click", (e) => {
+      const act = (e.target as HTMLElement).closest("button")?.dataset.act;
+      if (act) v.click(act);
+    });
+    return v;
+  };
   const seen = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
-        const v = viewers.get(e.target);
+        const v = viewers.get(e.target) ?? (e.isIntersecting ? make(e.target as HTMLElement) : undefined);
         if (v) v.visible = e.isIntersecting;
       }
     },
     { rootMargin: "100px" }
   );
   for (const el of document.querySelectorAll<HTMLElement>(".viewer")) {
-    const v = new Viewer(el.dataset.kind as UnitKind | SiteKind, el.querySelector("canvas")!, el.querySelector(".controls")!);
-    viewers.set(el, v);
     seen.observe(el);
-    el.querySelector(".controls")!.addEventListener("click", (e) => {
-      const act = (e.target as HTMLElement).closest("button")?.dataset.act;
-      if (act) v.click(act);
-    });
     // a plain scroll wheel scrolls the page past the model; ⌃/⌘-scroll (and a trackpad pinch) zooms
     el.addEventListener("wheel", (e) => !e.ctrlKey && !e.metaKey && e.stopPropagation(), { capture: true });
   }
