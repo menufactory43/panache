@@ -92,7 +92,7 @@ export function addReportSection(s: ReportSection): () => void {
 const icon = (kind: string, f: Faction) => `assets/icons/${f === "red" ? "red/" : ""}${kind}.webp`;
 const short = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)));
 const sideName = (f: Faction, ctx: ReportOpts) =>
-  ctx.spectator ? (f === "blue" ? "Blue" : "Red") : f === ctx.pov ? "You" : ctx.opponent ? "Friend" : "Enemy";
+  ctx.spectator ? (f === "blue" ? "Bleu" : "Rouge") : f === ctx.pov ? "Toi" : ctx.opponent ? "Ami" : "Ennemi";
 
 // ---------------------------------------------------------------- chart ---
 
@@ -136,10 +136,10 @@ function chartHtml(ctx: ReportContext): string | null {
     <div class="aar-legend">
       <span class="lk blue"><i></i>${label("blue")}</span>
       <span class="lk red"><i></i>${label("red")}</span>
-      <span class="cap">Army strength</span>
+      <span class="cap">Puissance des armées</span>
     </div>
     <svg class="aar-svg" viewBox="0 0 ${VB_W} ${VB_H}" role="img"
-      aria-label="Army strength over time for both sides, with ${ctx.moments.length} key moments marked">
+      aria-label="Puissance des deux armées au fil du temps, avec ${ctx.moments.length} moments clés marqués">
       <defs>
         <linearGradient id="aar-gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4c9dff" stop-opacity="0.32"/><stop offset="1" stop-color="#4c9dff" stop-opacity="0"/></linearGradient>
         <linearGradient id="aar-gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a6a" stop-opacity="0.28"/><stop offset="1" stop-color="#ff7a6a" stop-opacity="0"/></linearGradient>
@@ -153,7 +153,7 @@ function chartHtml(ctx: ReportContext): string | null {
       ${marks}
     </svg>
     <div class="aar-axis"><span>0:00</span><span>${mid}</span><span>${fmtTime(T)}</span></div>
-    <p class="aar-readout">Tap or drag across the chart</p>`;
+    <p class="aar-readout">Touche ou glisse sur le graphique</p>`;
 }
 
 function mountChart(el: HTMLElement, ctx: ReportContext, select: (i: number | null) => void): void {
@@ -237,11 +237,11 @@ export function headline(o: { winner: Faction | "draw" | null; pov: Faction; spe
   cls: "win" | "lose" | "draw";
   note: string | null;
 } {
-  if (o.winner === null) return { title: "NO RESULT", cls: "draw", note: null };
-  if (o.winner === "draw") return { title: "DRAW", cls: "draw", note: o.love ? "💘 They fell in love" : null };
-  if (o.spectator) return { title: `${o.winner.toUpperCase()} WINS`, cls: o.winner === "blue" ? "win" : "lose", note: null };
+  if (o.winner === null) return { title: "SANS RÉSULTAT", cls: "draw", note: null };
+  if (o.winner === "draw") return { title: "MATCH NUL", cls: "draw", note: o.love ? "💘 Ils sont tombés amoureux" : null };
+  if (o.spectator) return { title: `VICTOIRE ${o.winner === "blue" ? "BLEUE" : "ROUGE"}`, cls: o.winner === "blue" ? "win" : "lose", note: null };
   const won = o.winner === o.pov;
-  return { title: won ? "VICTORY" : "DEFEAT", cls: won ? "win" : "lose", note: null };
+  return { title: won ? "VICTOIRE" : "DÉFAITE", cls: won ? "win" : "lose", note: null };
 }
 
 function headHtml(ctx: ReportContext): string {
@@ -250,12 +250,12 @@ function headHtml(ctx: ReportContext): string {
   const h = headline({ winner: ctx.winner, pov: ctx.pov, spectator: spec, love: !!ctx.world.love });
   if (ctx.opponent && !spec) {
     // (a sound duel: "vs your friend · Riverlands · 7:42 · over sound")
-    const line = `vs ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "over sound"}`;
+    const line = `contre ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "par le son"}`;
     return `<h1 class="${h.cls}">${h.title}</h1><p class="time">${h.note ? `${h.note} · ` : ""}${escapeHtml(line)}</p>`;
   }
   const vs = spec
-    ? escapeHtml(`${ctx.strategies?.blue ?? "Blue"} vs ${ctx.strategies?.red ?? "Red"}`)
-    : `vs ${ctx.enemy.strategy} AI (${ctx.enemy.difficulty})`;
+    ? escapeHtml(`${ctx.strategies?.blue ?? "Bleu"} contre ${ctx.strategies?.red ?? "Rouge"}`)
+    : `contre IA ${ctx.enemy.strategy} (${ctx.enemy.difficulty})`;
   return `<h1 class="${h.cls}">${h.title}</h1><p class="time">${h.note ? `${h.note} · ` : ""}${vs} · ${fmtTime(ctx.secs)}</p>`;
 }
 
@@ -271,7 +271,7 @@ function momentsHtml(ctx: ReportContext): string | null {
 /** One unit card: icon, callsign, rank, kills, fate. */
 export function mvpCard(w: World, h: HeroRec, tag: string, cls: string): string {
   const name = callsignOf(w, h);
-  const fate = h.alive ? `<span class="fate alive">Survived</span>` : `<span class="fate fell">✝ Fell at ${fmtTime(h.diedAt ?? 0)}</span>`;
+  const fate = h.alive ? `<span class="fate alive">A survécu</span>` : `<span class="fate fell">✝ Tombé à ${fmtTime(h.diedAt ?? 0)}</span>`;
   return `<div class="mvp ${h.faction} ${cls}">
     <span class="mvp-tag">${tag}</span>
     <img src="${icon(h.kind, h.faction)}" alt="" draggable="false"/>
@@ -287,27 +287,27 @@ export function mvpRowHtml(w: World, mvp: Record<Faction, HeroRec | null>, pov: 
   const cards: string[] = [];
   const mine = mvp[me];
   const theirs = mvp[them];
-  if (mine) cards.push(mvpCard(w, mine, spectator ? "Blue MVP" : "Your MVP", "main"));
-  if (theirs) cards.push(mvpCard(w, theirs, spectator ? "Red MVP" : "Their ace", spectator ? "main" : "minor"));
+  if (mine) cards.push(mvpCard(w, mine, spectator ? "MVP Bleu" : "Ton MVP", "main"));
+  if (theirs) cards.push(mvpCard(w, theirs, spectator ? "MVP Rouge" : "Leur as", spectator ? "main" : "minor"));
   return cards.length ? `<div class="aar-mvps">${cards.join("")}</div>` : null;
 }
 
 const KNOWN_STATS = new Set(["unitsBuilt", "unitsLost", "unitsKilled", "buildingsLost", "buildingsKilled", "scrapHarvested", "scrapSalvaged"]);
 /** Friendly labels for stats other features may add to FactionStats. */
 const EXTRA_LABELS: Record<string, string> = {
-  scrapSalvaged: "Scrap salvaged",
-  salvaged: "Scrap salvaged",
-  salvage: "Salvage",
-  bounty: "Bounty earned",
-  bountyEarned: "Bounty earned",
-  calldowns: "Calldowns used",
-  calldownsUsed: "Calldowns used",
-  drops: "Supply drops taken",
-  dropsCaptured: "Supply drops taken",
-  uplinkSeconds: "Uplink time (s)",
-  aircraftKilled: "Aircraft downed",
-  mastodonsKilled: "Mastodons destroyed",
-  killsByBuildings: "Kills by defences"
+  scrapSalvaged: "Charbon récupéré",
+  salvaged: "Charbon récupéré",
+  salvage: "Récupération",
+  bounty: "Primes gagnées",
+  bountyEarned: "Primes gagnées",
+  calldowns: "Appuis utilisés",
+  calldownsUsed: "Appuis utilisés",
+  drops: "Ravitaillements pris",
+  dropsCaptured: "Ravitaillements pris",
+  uplinkSeconds: "Temps de liaison (s)",
+  aircraftKilled: "Aéronefs abattus",
+  mastodonsKilled: "Creusot détruits",
+  killsByBuildings: "Victimes des défenses"
 };
 const humanize = (k: string) => {
   const s = k.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
@@ -350,32 +350,32 @@ function statsHtml(ctx: ReportContext): string {
     return `<tr><td>${label}</td><td>${A}</td><td>${B}</td></tr>`;
   };
   const rows = [
-    row("Units destroyed", st(p).unitsKilled, st(q).unitsKilled),
-    row("Buildings destroyed", st(p).buildingsKilled ?? 0, st(q).buildingsKilled ?? 0),
-    row("Units built", st(p).unitsBuilt, st(q).unitsBuilt),
-    row("Units lost", st(p).unitsLost, st(q).unitsLost),
-    row("Scrap harvested", st(p).scrapHarvested, st(q).scrapHarvested)
+    row("Unités détruites", st(p).unitsKilled, st(q).unitsKilled),
+    row("Bâtiments détruits", st(p).buildingsKilled ?? 0, st(q).buildingsKilled ?? 0),
+    row("Unités construites", st(p).unitsBuilt, st(q).unitsBuilt),
+    row("Unités perdues", st(p).unitsLost, st(q).unitsLost),
+    row("Charbon extrait", st(p).scrapHarvested, st(q).scrapHarvested)
   ];
   // Goliaths (only when someone fielded one: most matches never get that far)
   const gol = goliathsFielded(ctx.chronicle);
-  if (gol.blue + gol.red > 0) rows.splice(3, 0, row("Goliaths fielded", gol[p], gol[q]));
+  if (gol.blue + gol.red > 0) rows.splice(3, 0, row("Gargantuas déployés", gol[p], gol[q]));
   // battlefield salvage and calldowns (not every mode has them: rows only when something happened)
   const salv = (f: Faction) => st(f).scrapSalvaged ?? 0;
-  if (salv(p) + salv(q) > 0) rows.push(row("Scrap salvaged", salv(p), salv(q)));
+  if (salv(p) + salv(q) > 0) rows.push(row("Charbon récupéré", salv(p), salv(q)));
   const calls = calldownCounts(ctx.world);
   if (calls.blue.total + calls.red.total > 0)
     rows.push(
-      `<tr title="${escapeHtml(`${calldownBreakdown(calls[p].by)} · ${calldownBreakdown(calls[q].by)}`)}"><td>Calldowns</td><td>${calls[p].total}</td><td>${calls[q].total}</td></tr>`
+      `<tr title="${escapeHtml(`${calldownBreakdown(calls[p].by)} · ${calldownBreakdown(calls[q].by)}`)}"><td>Appuis</td><td>${calls[p].total}</td><td>${calls[q].total}</td></tr>`
     );
   // map objectives (skirmish only): Uplinks captured, crates claimed, scrap they paid
   const obj = ctx.world.objectives;
   if (obj && obj.uplinks.length > 0) {
     const os = (f: Faction) => obj.stats[f];
-    rows.push(row("Uplinks captured", os(p).captures, os(q).captures));
-    rows.push(row("Crates claimed", os(p).crates, os(q).crates));
-    rows.push(row("Objective scrap", os(p).uplinkScrap + os(p).crateScrap, os(q).uplinkScrap + os(q).crateScrap));
+    rows.push(row("Relais capturés", os(p).captures, os(q).captures));
+    rows.push(row("Caisses récupérées", os(p).crates, os(q).crates));
+    rows.push(row("Charbon d'objectifs", os(p).uplinkScrap + os(p).crateScrap, os(q).uplinkScrap + os(q).crateScrap));
   }
-  rows.push(row("Peak army", peakArmy(ctx.chronicle.samples, p), peakArmy(ctx.chronicle.samples, q)));
+  rows.push(row("Armée maximale", peakArmy(ctx.chronicle.samples, p), peakArmy(ctx.chronicle.samples, q)));
   const ex = extraStatRows(st("blue"), st("red"));
   for (const r of ex) rows.push(row(r.label, p === "blue" ? r.a : r.b, p === "blue" ? r.b : r.a));
   return `<table class="aar-stats">
@@ -399,14 +399,14 @@ export function calldownCounts(w: World): Record<Faction, { total: number; by: [
   return { blue: one("blue"), red: one("red") };
 }
 
-const calldownBreakdown = (by: [string, number][]) => (by.length ? by.map(([k, n]) => `${n} ${k}`).join(", ") : "none");
+const calldownBreakdown = (by: [string, number][]) => (by.length ? by.map(([k, n]) => `${n} ${k}`).join(", ") : "aucun");
 
 function tipHtml(ctx: ReportContext): string | null {
   if (ctx.spectator) {
     // both commanders' story instead of a tip
     const line = (f: Faction) =>
       `<p><i class="${f}"></i><span>${escapeHtml(
-        commanderStory(ctx.chronicle, ctx.world, f, `${f === "blue" ? "Blue" : "Red"} · ${ctx.strategies?.[f] ?? ""}`)
+        commanderStory(ctx.chronicle, ctx.world, f, `${f === "blue" ? "Bleu" : "Rouge"} · ${ctx.strategies?.[f] ?? ""}`)
       )}</span></p>`;
     return `<div class="aar-story">${line("blue")}${line("red")}</div>`;
   }
@@ -420,9 +420,9 @@ function tipHtml(ctx: ReportContext): string | null {
     startGoliaths: c.startGoliaths
   });
   // (a duel's congratulations: there is no harder AI to try)
-  if (duel && /\bAI\b/.test(tip))
-    tip = ctx.won ? "A clean win. Swap sides and see if you can do it again." : "Scout early and build counters: long-press any build button to see what beats what.";
-  return `<p class="aar-tip"><b>Next time</b><span>${escapeHtml(tip)}</span></p>`;
+  if (duel && /\b(AI|IA)\b/.test(tip))
+    tip = ctx.won ? "Victoire nette. Change de camp et tente de refaire pareil." : "Explore tôt et construis des contres : appui long sur un bouton de construction pour voir qui bat qui.";
+  return `<p class="aar-tip"><b>La prochaine fois</b><span>${escapeHtml(tip)}</span></p>`;
 }
 
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
@@ -473,9 +473,9 @@ export function showReport(endEl: HTMLElement, o: ReportOpts): void {
       <div class="aar-cols"><div class="aar-col l">${left}</div><div class="aar-col r">${right}</div></div>
       <div class="aar-actions${o.actions?.length || o.after?.length ? " more" : ""}">
         ${(o.actions ?? []).map(button).join("")}
-        <button id="again" class="cta${o.actions?.length ? " alt" : ""}">${escapeHtml(o.rematchLabel ?? "↻ Rematch")}</button>
+        <button id="again" class="cta${o.actions?.length ? " alt" : ""}">${escapeHtml(o.rematchLabel ?? "↻ Revanche")}</button>
         ${(o.after ?? []).map(button).join("")}
-        <button id="menu" class="cta alt">Main menu</button>
+        <button id="menu" class="cta alt">Menu principal</button>
       </div>
     </div>`;
   // moment texts may carry callsigns or names: set as text, not markup

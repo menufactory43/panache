@@ -1,0 +1,970 @@
+/*
+ * Panache's in-game HUD layout (src/ui/belle-hud.ts puts `bh` on #hud under
+ * the Belle Époque theme only; ?style=original never gets it). At rest: the
+ * pill (top left), the minimap with its pause button (top right), ⚔ Armée
+ * (bottom left), ⚡ and 🔨 Construire (bottom right). Everything here is
+ * scoped to `html.belle #hud.bh` so it outranks style.css without touching it.
+ */
+html.belle #hud.bh {
+  --bh-m: 12px;
+  --bh-t: max(8px, env(safe-area-inset-top));
+  --bh-b: max(10px, env(safe-area-inset-bottom));
+  --bh-l: max(var(--bh-m), env(safe-area-inset-left));
+  --bh-r: max(var(--bh-m), env(safe-area-inset-right));
+  --bh-army: 66px;
+  --bh-build: 72px;
+  --bh-pow: 52px;
+  --bh-mini: 100px;
+  --bh-walnut: linear-gradient(180deg, rgba(62, 43, 24, 0.95), rgba(34, 23, 12, 0.95));
+  --bh-brass: linear-gradient(180deg, #f6dc92 0%, #e0b25a 48%, #b7863a 100%);
+}
+@media (orientation: landscape) {
+  html.belle #hud.bh {
+    --bh-army: 62px;
+    --bh-build: 68px;
+    --bh-pow: 50px;
+    --bh-mini: 88px;
+  }
+}
+@media (orientation: landscape) and (min-height: 600px) {
+  html.belle #hud.bh {
+    --bh-mini: 112px;
+  }
+}
+
+/* --------------------------------------------- top-left: pill + column --- */
+html.belle #hud.bh .bh-col {
+  position: absolute;
+  top: var(--bh-t);
+  left: var(--bh-l);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  /* never under the minimap */
+  width: calc(100vw - var(--bh-l) - var(--bh-r) - var(--bh-mini) - 44px);
+  pointer-events: none;
+}
+@media (orientation: landscape) {
+  html.belle #hud.bh .bh-col {
+    width: min(44vw, 400px);
+  }
+}
+html.belle #hud.bh .tl {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: block;
+  max-width: 100%;
+  pointer-events: none;
+}
+html.belle #hud.bh .bh-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  max-width: 100%;
+  padding: 0 12px 0 12px;
+  border-radius: 22px;
+  background: var(--bh-walnut);
+  border: 1px solid var(--line-hi);
+  box-shadow: var(--lift);
+  color: var(--text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+html.belle #hud.bh .bh-pill.open {
+  border-color: var(--gold);
+}
+html.belle #hud.bh .bh-pill .res {
+  height: auto;
+  max-width: none;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 18px;
+  overflow: visible;
+}
+html.belle #hud.bh .bh-pill .res .rate {
+  font-size: 12px;
+  color: #c9b27a;
+}
+html.belle #hud.bh .bh-clock {
+  font-size: 14px;
+  color: var(--dim);
+}
+html.belle #hud.bh .bh-pill .res + .bh-clock::before {
+  content: "·";
+  margin-right: 7px;
+  color: var(--line-hi);
+}
+html.belle #hud.bh .bh-speed {
+  font-size: 13px;
+  color: var(--gold);
+}
+html.belle #hud.bh .bh-caret {
+  font-size: 10px;
+  color: var(--dim);
+  margin-left: -2px;
+}
+html.belle #hud.bh .bh-pill.open .bh-caret {
+  transform: rotate(180deg);
+}
+
+/* the pill's panel: what left the screen */
+html.belle #hud.bh .bh-drop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  min-width: 240px;
+  max-width: calc(100vw - var(--bh-l) - var(--bh-r));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(46, 32, 18, 0.98), rgba(28, 19, 10, 0.98));
+  border: 1px solid var(--line-hi);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 228, 170, 0.1);
+  pointer-events: auto;
+  animation: bhDrop 0.16s ease-out;
+}
+@keyframes bhDrop {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+html.belle #hud.bh .bh-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+html.belle #hud.bh .bh-lb {
+  flex: 0 0 100%;
+  font-family: var(--serif);
+  font-size: 11px;
+  font-style: italic;
+  letter-spacing: 0.6px;
+  color: var(--dim);
+}
+html.belle #hud.bh .bh-note {
+  font-size: 11px;
+  color: var(--dim);
+}
+html.belle #hud.bh .bh-row .objpill,
+html.belle #hud.bh .bh-row .bmeter {
+  position: static;
+  transform: none;
+  inset: auto;
+  height: 32px;
+  box-shadow: none;
+}
+html.belle #hud.bh .bh-row .bmeter {
+  font-size: 10px;
+}
+html.belle #hud.bh .bh-row .bm-bar {
+  width: 120px;
+}
+html.belle #hud.bh .bh-nometer {
+  display: none;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--dim);
+}
+html.belle #hud.bh .bmeter[hidden] + .bh-nometer {
+  display: inline;
+}
+html.belle #hud.bh .bh-row .tempo .clock,
+html.belle #hud.bh .bh-row .speed {
+  height: 36px;
+  line-height: 34px;
+  font-size: 15px;
+}
+html.belle #hud.bh .bh-row .tempo .clock {
+  min-width: 64px;
+}
+html.belle #hud.bh .bh-r-btns .round {
+  width: auto;
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border-radius: 22px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+html.belle #hud.bh .bh-r-btns #btn-mute::after {
+  content: " Son";
+}
+html.belle #hud.bh .bh-r-btns .bh-dpause::after {
+  content: "  Pause et réglages";
+}
+html.belle #hud.bh .bh-drop {
+  max-width: min(320px, calc(100vw - var(--bh-l) - var(--bh-r)));
+}
+
+/* a mode's pills (Last Stand's wave, an op's goal, the spectator's versus) under the pill */
+html.belle #hud.bh .topbar {
+  position: static;
+  transform: none;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+html.belle #hud.bh .topbar:not(:has(> :not([hidden]))) {
+  display: none;
+}
+html.belle #hud.bh .opspill,
+html.belle #hud.bh .wavepill,
+html.belle #hud.bh .versus {
+  position: static;
+  max-width: 100%;
+}
+
+/* the announcements: one line (two at most) under the pill instead of a big banner */
+html.belle #hud.bh .banner {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: auto;
+  max-width: 100%;
+  padding: 6px 12px 6px 10px;
+  border-radius: 12px;
+  border-left-width: 3px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.3;
+  background:
+    linear-gradient(90deg, rgba(var(--tone), 0.16), rgba(var(--tone), 0) 70%),
+    linear-gradient(180deg, rgba(40, 28, 15, 0.95), rgba(24, 16, 8, 0.95));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+html.belle #hud.bh .banner b,
+html.belle #hud.bh .banner span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.belle #hud.bh .banner b {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  text-shadow: none;
+}
+html.belle #hud.bh .banner span {
+  margin: 0;
+  font-size: 12.5px;
+  color: #d8c9a6;
+}
+html.belle #hud.bh .banner.bad b::before {
+  content: "⚠ ";
+}
+html.belle #hud.bh .banner.epic {
+  box-shadow: 0 0 14px rgba(233, 187, 94, 0.35), 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+html.belle #hud.bh .banner.in {
+  animation: bhLineIn 0.24s ease-out forwards;
+}
+html.belle #hud.bh .banner.out {
+  opacity: 1;
+  animation: bhLineOut 0.26s ease-in forwards;
+}
+@keyframes bhLineIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bhLineOut {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+/* the ticker flows under it; while an alert shows, only its newest line */
+html.belle #hud.bh .toasts {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: auto;
+  max-width: 100%;
+}
+html.belle #hud.bh .bh-col:has(> .banner.in) .toasts > .toast:not(:last-child) {
+  display: none;
+}
+html.belle #hud.bh .toast {
+  background: rgba(30, 21, 12, 0.94);
+}
+
+/* ------------------------------------------------- top-right: minimap --- */
+html.belle #hud.bh .minimap-wrap {
+  top: var(--bh-t);
+  right: var(--bh-r);
+  left: auto;
+  border-radius: 12px;
+}
+html.belle #hud.bh #minimap {
+  width: var(--bh-mini);
+  height: var(--bh-mini);
+}
+html.belle #hud.bh .bh-pause {
+  position: absolute;
+  left: -14px;
+  bottom: -14px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  font-size: 13px;
+  background: var(--bh-walnut);
+}
+
+/* zoom buttons: only with the "Boutons de zoom" setting (pinch zooms either way) */
+html.belle #hud.bh .zoombtns {
+  display: none;
+}
+html.belle #hud.bh.bh-zoom .zoombtns {
+  display: flex;
+  top: 40%;
+  bottom: auto;
+  left: var(--bh-l);
+  right: auto;
+  transform: translateY(-50%);
+}
+html.belle #hud.bh.bh-zoom.bh-lefty .zoombtns {
+  left: auto;
+  right: var(--bh-r);
+}
+
+/* ------------------------------------------------ the corner buttons --- */
+html.belle #hud.bh .bh-fab {
+  position: absolute;
+  bottom: var(--bh-b);
+  z-index: 6;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.1s;
+}
+html.belle #hud.bh .bh-fab:active {
+  transform: scale(0.94);
+}
+html.belle #hud.bh .bh-fab .bh-ic {
+  font-size: 24px;
+  line-height: 1;
+}
+html.belle #hud.bh .bh-fab .bh-cap {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.2px;
+}
+html.belle #hud.bh .bh-army {
+  left: var(--bh-l);
+  width: var(--bh-army);
+  height: var(--bh-army);
+  color: var(--text);
+  background: radial-gradient(circle at 50% 35%, #4a3420 0%, #24180c 75%);
+  border: 2px solid #c79a4e;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 228, 170, 0.18);
+}
+html.belle #hud.bh .bh-army.empty {
+  opacity: 0.6;
+}
+html.belle #hud.bh .bh-build {
+  right: var(--bh-r);
+  width: var(--bh-build);
+  height: var(--bh-build);
+  color: #2a1906;
+  background: var(--bh-brass);
+  border: 1px solid #6e4b1c;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 246, 214, 0.75), inset 0 -3px 0 rgba(90, 58, 18, 0.45);
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.6);
+}
+html.belle #hud.bh .bh-build .bh-ic {
+  font-size: 27px;
+}
+html.belle #hud.bh .bh-build.ready {
+  animation: bhReady 1s ease-in-out infinite alternate;
+}
+@keyframes bhReady {
+  to { box-shadow: 0 0 0 3px rgba(55, 214, 122, 0.8), 0 0 22px rgba(55, 214, 122, 0.6), inset 0 1px 0 rgba(255, 246, 214, 0.75); }
+}
+html.belle #hud.bh .bh-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  border: 2px solid #1e150c;
+  font-family: system-ui, sans-serif;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 20px;
+  color: #fff;
+  text-shadow: none;
+}
+html.belle #hud.bh .bh-army .bh-badge {
+  background: #c0392b;
+}
+html.belle #hud.bh .bh-build .bh-badge {
+  background: #2f5fb8;
+}
+html.belle #hud.bh .bh-build.ready .bh-badge {
+  background: #37d67a;
+  color: #0d1a12;
+}
+
+/* ⚡: the Command meter as a ring; tap fans out the four calldowns */
+html.belle #hud.bh .bh-pow {
+  --k: 0;
+  position: absolute;
+  z-index: 17;
+  right: calc(var(--bh-r) + (var(--bh-build) - var(--bh-pow)) / 2);
+  bottom: calc(var(--bh-b) + var(--bh-build) + 14px);
+  width: var(--bh-pow);
+  height: var(--bh-pow);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 13, 6, 0.92);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+html.belle #hud.bh .bh-pow .bh-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(#ffd23f calc(var(--k) * 1turn), rgba(255, 255, 255, 0.12) 0);
+  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(circle closest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+}
+html.belle #hud.bh .bh-pow .bh-face {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 35%, #4a3420 0%, #24180c 75%);
+  border: 1px solid var(--line-hi);
+}
+html.belle #hud.bh .bh-pow .bh-ic {
+  font-size: 20px;
+  line-height: 1;
+  filter: saturate(0.6);
+  opacity: 0.75;
+}
+html.belle #hud.bh .bh-pow .bh-n {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  min-width: 26px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 15px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+html.belle #hud.bh .bh-pow.ready .bh-ic {
+  filter: none;
+  opacity: 1;
+}
+html.belle #hud.bh .bh-pow.ready .bh-n {
+  color: #ffd23f;
+  border-color: rgba(255, 210, 63, 0.7);
+}
+html.belle #hud.bh .bh-pow.ready {
+  animation: bhPow 2s ease-in-out infinite;
+}
+@keyframes bhPow {
+  50% { box-shadow: 0 0 16px rgba(255, 210, 63, 0.75), 0 3px 12px rgba(0, 0, 0, 0.5); }
+}
+html.belle #hud.bh .bh-pow.armed,
+html.belle #hud.bh.bh-fan-open .bh-pow {
+  animation: none;
+  box-shadow: 0 0 0 2px #f2e8d0, 0 0 18px rgba(255, 210, 63, 0.7);
+}
+
+/* the fan: the existing calldown buttons on a quarter circle around ⚡ */
+html.belle #hud.bh .powers.bh-fan {
+  display: none;
+  position: fixed;
+  left: var(--fx, 80%);
+  top: var(--fy, 80%);
+  right: auto;
+  width: 0;
+  height: 0;
+  transform: none;
+  z-index: 16;
+}
+html.belle #hud.bh.bh-fan-open .powers.bh-fan:not([hidden]) {
+  display: block;
+}
+html.belle #hud.bh .powers.bh-fan::before {
+  content: "";
+  position: absolute;
+  left: -170px;
+  top: -170px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(18, 10, 3, 0.6) 0%, rgba(18, 10, 3, 0.35) 45%, transparent 70%);
+  pointer-events: none;
+}
+html.belle #hud.bh .powers.bh-fan .pw-meter {
+  display: none;
+}
+html.belle #hud.bh .powers.bh-fan .pw-grid {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  animation: bhFan 0.18s ease-out;
+}
+@keyframes bhFan {
+  from { opacity: 0; transform: scale(0.5); }
+}
+html.belle #hud.bh .powers.bh-fan .pw {
+  position: absolute;
+  left: -26px;
+  top: -26px;
+  width: 52px;
+  height: 52px;
+  translate: var(--dx) var(--dy);
+}
+html.belle #hud.bh .powers.bh-fan .pw-face {
+  inset: 6px;
+}
+html.belle #hud.bh .powers.bh-fan .pw:nth-child(1) { --dx: -112px; --dy: 0px; }
+html.belle #hud.bh .powers.bh-fan .pw:nth-child(2) { --dx: -97px; --dy: -56px; }
+html.belle #hud.bh .powers.bh-fan .pw:nth-child(3) { --dx: -56px; --dy: -97px; }
+html.belle #hud.bh .powers.bh-fan .pw:nth-child(4) { --dx: 0px; --dy: -112px; }
+html.belle #hud.bh.bh-lefty .powers.bh-fan .pw:nth-child(1) { --dx: 112px; }
+html.belle #hud.bh.bh-lefty .powers.bh-fan .pw:nth-child(2) { --dx: 97px; }
+html.belle #hud.bh.bh-lefty .powers.bh-fan .pw:nth-child(3) { --dx: 56px; }
+
+/* squads 1–3 above ⚔ Armée */
+html.belle #hud.bh .bh-squads {
+  position: absolute;
+  z-index: 6;
+  left: var(--bh-l);
+  bottom: calc(var(--bh-b) + var(--bh-army) + 10px);
+  display: none;
+  pointer-events: none;
+}
+html.belle #hud.bh .bh-squads.on {
+  display: flex;
+}
+html.belle #hud.bh .bh-squads .squads {
+  gap: 6px;
+}
+html.belle #hud.bh .bh-squads .sq {
+  width: 46px;
+  height: 46px;
+  background: rgba(30, 21, 12, 0.9);
+}
+html.belle #hud.bh .bh-squads .sq.empty {
+  background: rgba(24, 16, 8, 0.75);
+}
+
+/* left-handed: Construire and ⚡ on the left, Armée (and the squads) on the right */
+html.belle #hud.bh.bh-lefty .bh-army {
+  left: auto;
+  right: var(--bh-r);
+}
+html.belle #hud.bh.bh-lefty .bh-build {
+  right: auto;
+  left: var(--bh-l);
+}
+html.belle #hud.bh.bh-lefty .bh-pow {
+  right: auto;
+  left: calc(var(--bh-l) + (var(--bh-build) - var(--bh-pow)) / 2);
+}
+html.belle #hud.bh.bh-lefty .bh-squads {
+  left: auto;
+  right: var(--bh-r);
+}
+
+/* ------------------------------------------- the command bar (dock) --- */
+html.belle #hud.bh .dock {
+  position: absolute;
+  top: auto;
+  left: calc(var(--bh-l) + var(--bh-army) + 10px);
+  right: calc(var(--bh-r) + var(--bh-build) + 10px);
+  bottom: var(--bh-b);
+  z-index: 5;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+html.belle #hud.bh.bh-lefty .dock {
+  left: calc(var(--bh-l) + var(--bh-build) + 10px);
+  right: calc(var(--bh-r) + var(--bh-army) + 10px);
+}
+html.belle #hud.bh .dock::before {
+  display: none;
+}
+html.belle #hud.bh[data-bh="rest"] .dock {
+  display: none;
+}
+html.belle #hud.bh .ctx {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 8px;
+  max-width: 100%;
+  padding: 7px 8px;
+  border-radius: 20px;
+  background: var(--bh-walnut);
+  border: 1px solid var(--line-hi);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 228, 170, 0.1);
+  pointer-events: auto;
+}
+html.belle #hud.bh[data-bh="chips"] .ctx {
+  padding: 4px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+html.belle #hud.bh .chiprow {
+  flex-direction: row;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+}
+html.belle #hud.bh .chips {
+  justify-content: center;
+}
+html.belle #hud.bh .chip {
+  min-height: 44px;
+  border-radius: 14px;
+}
+html.belle #hud.bh .chip[data-id="army"],
+html.belle #hud.bh .chip[data-id="idle"] {
+  display: none;
+}
+html.belle #hud.bh .selpanel {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 4px 0 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.belle #hud.bh .selpanel .pi {
+  width: 42px;
+  height: 42px;
+}
+/* a group: the portraits stacked, each with its count */
+html.belle #hud.bh .selpanel .group {
+  flex-wrap: nowrap;
+  gap: 0;
+  padding-left: 2px;
+}
+html.belle #hud.bh .selpanel .gi {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 35%, #4a3420 0%, #24180c 80%);
+  border: 1px solid var(--line-hi);
+}
+html.belle #hud.bh .selpanel .gi + .gi {
+  margin-left: -9px;
+}
+html.belle #hud.bh .selpanel .gi img {
+  width: 30px;
+  height: 30px;
+}
+html.belle #hud.bh .selpanel .gi b {
+  position: absolute;
+  right: -3px;
+  bottom: -4px;
+  min-width: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #1e150c;
+  border: 1px solid var(--line);
+  font-size: 10.5px;
+  line-height: 14px;
+  text-align: center;
+}
+html.belle #hud.bh .bh-count {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--gold);
+  margin-right: 2px;
+}
+/* portrait: a selection's bar spans the bottom; Construire and Armée step aside, ⚡ and the squads sit above it */
+@media (orientation: portrait) {
+  html.belle #hud.bh[data-bh="busy"] .dock,
+  html.belle #hud.bh.bh-lefty[data-bh="busy"] .dock {
+    left: var(--bh-l);
+    right: var(--bh-r);
+  }
+  html.belle #hud.bh[data-bh="busy"] .ctx:has(> .selpanel:not([hidden])) {
+    width: 100%;
+  }
+  html.belle #hud.bh[data-bh="busy"] .bh-army,
+  html.belle #hud.bh[data-bh="busy"] .bh-build {
+    display: none;
+  }
+  html.belle #hud.bh[data-bh="busy"] .bh-pow {
+    bottom: calc(var(--bh-dock-h, 80px) + 12px);
+  }
+  html.belle #hud.bh[data-bh="busy"] .bh-squads {
+    bottom: calc(var(--bh-dock-h, 80px) + 8px);
+  }
+}
+
+/* --------------------------------------------------------- the drawer --- */
+html.belle #hud.bh .bh-sheet {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(48, 33, 18, 0.98), rgba(26, 17, 9, 0.98));
+  border: 1px solid var(--line-hi);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.55);
+  visibility: hidden;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), visibility 0s linear 0.22s;
+}
+html.belle #hud.bh.bh-sheet-open .bh-sheet {
+  visibility: visible;
+  transform: none;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), visibility 0s;
+}
+html.belle #hud.bh .bh-handle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  touch-action: none;
+}
+html.belle #hud.bh .bh-handle i {
+  display: block;
+  border-radius: 3px;
+  background: rgba(232, 190, 110, 0.6);
+}
+html.belle #hud.bh .bh-sheet .buildbar {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  width: auto;
+  padding: 0 10px 10px;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+html.belle #hud.bh .bh-sheet .tabs {
+  gap: 8px;
+  flex: none;
+}
+html.belle #hud.bh .bh-sheet .tab {
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 20px;
+  background: rgba(255, 228, 170, 0.06);
+}
+html.belle #hud.bh .bh-sheet .tab.on {
+  background: linear-gradient(180deg, #3d63ad, #24427e);
+  border-color: rgba(233, 187, 94, 0.6);
+}
+html.belle #hud.bh .bh-sheet .tab .tl2 {
+  display: none;
+}
+html.belle #hud.bh .bh-sheet .tab::after {
+  inset: 0;
+}
+html.belle #hud.bh .bh-sheet .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  align-content: start;
+  gap: 10px 8px;
+  overflow: visible;
+  padding-top: 4px;
+}
+html.belle #hud.bh .bh-sheet .bb {
+  background: radial-gradient(circle at 50% 35%, #4a3622 0%, #23170b 75%);
+  flex: none;
+  max-width: none;
+  height: 72px;
+  border-radius: 14px;
+}
+html.belle #hud.bh .bh-sheet .bb:not(.counter):not(.ready) {
+  border-color: rgba(214, 170, 90, 0.35);
+}
+html.belle #hud.bh .bh-sheet .bb.placing {
+  background: #2c3a22;
+}
+html.belle #hud.bh .bh-sheet .bb .nm {
+  display: none;
+}
+html.belle #hud.bh .bh-sheet .bb .ic {
+  top: 4px;
+  width: 50px;
+  height: 50px;
+}
+html.belle #hud.bh .bh-sheet .bb .cost {
+  font-size: 12.5px;
+}
+html.belle #hud.bh .bh-sheet .bb.ready::after {
+  top: auto;
+  bottom: 18px;
+  font-size: 9.5px;
+}
+/* portrait: a bottom sheet */
+@media (orientation: portrait) {
+  html.belle #hud.bh .bh-sheet {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 56vh;
+    flex-direction: column;
+    border-width: 1px 0 0;
+    border-radius: 22px 22px 0 0;
+    padding: 0 max(0px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(0px, env(safe-area-inset-left));
+    transform: translateY(105%);
+  }
+  html.belle #hud.bh .bh-handle {
+    height: 26px;
+    width: 100%;
+  }
+  html.belle #hud.bh .bh-handle i {
+    width: 46px;
+    height: 5px;
+  }
+  html.belle #hud.bh.bh-sheet-open .bh-army,
+  html.belle #hud.bh.bh-sheet-open .bh-build,
+  html.belle #hud.bh.bh-sheet-open .bh-pow,
+  html.belle #hud.bh.bh-sheet-open .bh-squads,
+  html.belle #hud.bh.bh-sheet-open .dock {
+    visibility: hidden;
+  }
+  html.belle #hud.bh .card {
+    bottom: var(--bh-card-b, calc(150px + env(safe-area-inset-bottom)));
+    max-height: calc(100% - var(--bh-card-b, 150px) - var(--bh-t));
+  }
+}
+/* landscape: a side panel, on Construire's side */
+@media (orientation: landscape) {
+  html.belle #hud.bh .bh-sheet {
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: calc(244px + env(safe-area-inset-right));
+    flex-direction: row;
+    border-width: 0 0 0 1px;
+    border-radius: 22px 0 0 22px;
+    padding: var(--bh-t) env(safe-area-inset-right) 0 0;
+    transform: translateX(105%);
+  }
+  html.belle #hud.bh.bh-lefty .bh-sheet {
+    right: auto;
+    left: 0;
+    flex-direction: row-reverse;
+    border-width: 0 1px 0 0;
+    border-radius: 0 22px 22px 0;
+    padding: var(--bh-t) 0 0 env(safe-area-inset-left);
+    transform: translateX(-105%);
+  }
+  html.belle #hud.bh.bh-sheet-open .bh-sheet {
+    transform: none;
+  }
+  html.belle #hud.bh .bh-handle {
+    width: 22px;
+    align-self: stretch;
+  }
+  html.belle #hud.bh .bh-handle i {
+    width: 5px;
+    height: 46px;
+  }
+  html.belle #hud.bh .bh-sheet .buildbar {
+    padding: 6px 10px 10px 0;
+  }
+  html.belle #hud.bh.bh-lefty .bh-sheet .buildbar {
+    padding: 6px 0 10px 10px;
+  }
+  html.belle #hud.bh .bh-sheet .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  html.belle #hud.bh .bh-sheet .bb {
+    height: 68px;
+  }
+  html.belle #hud.bh.bh-sheet-open .bh-build,
+  html.belle #hud.bh.bh-sheet-open .bh-pow {
+    visibility: hidden;
+  }
+  /* the minimap steps out of the panel's way */
+  html.belle #hud.bh.bh-sheet-open:not(.bh-lefty) .minimap-wrap {
+    right: calc(254px + env(safe-area-inset-right));
+  }
+  html.belle #hud.bh .card {
+    right: var(--bh-card-s, calc(254px + env(safe-area-inset-right)));
+  }
+  html.belle #hud.bh.bh-lefty .card {
+    right: auto;
+    left: var(--bh-card-s, calc(254px + env(safe-area-inset-left)));
+  }
+}
+@media (orientation: landscape) and (max-height: 420px) {
+  html.belle #hud.bh .bh-sheet .tab {
+    min-height: 40px;
+  }
+  html.belle #hud.bh .bh-sheet .bb {
+    height: 62px;
+  }
+  html.belle #hud.bh .bh-sheet .bb .ic {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* the pause menu's interface toggles */
+html.belle .hud-row {
+  grid-template-columns: repeat(2, 1fr);
+}
+html.belle .hud-row .snd .sl {
+  text-decoration: none;
+}

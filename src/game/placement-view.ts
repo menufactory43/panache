@@ -118,7 +118,7 @@ export class PlacementView {
     if (s && !this.h.inView(s.tx + size / 2, s.ty + size / 2)) this.h.glideTo(s.tx + size / 2, s.ty + size / 2);
     this.pulse = 0;
     if (this.lastType !== "mouse")
-      this.h.hint("place", "Tap the map (or drag) to move the ghost, then tap it or ✓ Place to build.");
+      this.h.hint("place", "Touche la carte (ou glisse) pour déplacer le fantôme, puis touche-le ou ✓ Placer pour bâtir.");
   }
 
   /** Every frame, before drawing. */

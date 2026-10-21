@@ -2,6 +2,7 @@ import { BUILDINGS, TICK_RATE, UNITS } from "./balance";
 import { createAiState, type AiState, type Difficulty, type Strategy, type StrategyName } from "./ai/commander";
 import { nearestReachableResource } from "./economy";
 import { setupSurvival, wavesSurvived, type SurvivalOptions } from "./modes/survival";
+import { PLURALS, isFeminine } from "./lexicon";
 import { NO_GROUND_COMBAT, makeRules, type MutatorId } from "./rules";
 import type { BuildingKind, Faction, FxEvent, UnitKind, World } from "./types";
 import { carrierOf } from "./transport";
@@ -36,7 +37,7 @@ export type Goal =
   /** Harvest (deliver to a drop-off) this much scrap. */
   | { type: "deliver"; scrap: number }
   /** Keep at least `min` of a tagged group (from setup) or of an own kind alive. */
-  | { type: "protect"; tag?: string; kind?: UnitKind | BuildingKind; min: number; label: string; short?: string }
+  | { type: "protect"; tag?: string; kind?: UnitKind | BuildingKind; min: number; label: string; short?: string; lost?: string }
   /** Finish before the clock reaches `secs`. */
   | { type: "within"; secs: number }
   /** Lose at most `n` units (of `kind`, or buildings when `buildings`). */
@@ -153,12 +154,12 @@ const DEFENSIVE: Partial<Strategy> = { assaultValue: Infinity, harassGroup: Infi
 export const OPS: OpDef[] = [
   {
     id: "bridgehead",
-    title: "Bridgehead",
+    title: "Tête de pont",
     icon: "🌉",
-    tagline: "Hold the river crossing against a Rush",
+    tagline: "Tiens le passage du fleuve face à un Rush",
     brief:
-      "We hold the west end of the Riverlands bridge: two turrets, a Depot on the crystal field and a Stinger squad. Red's Rush commander wants that crossing. Hold it for 4:00.",
-    tip: "Stingers and Turrets shred Rush's light tanks. Build a Fab Plant early and send reinforcements up the road to the bridge.",
+      "Nous tenons l'extrémité ouest du pont des Terres fluviales : deux Hotchkiss, des Halles sur le gisement de radium et une escouade de Panhard. Le commandant Rush de Rouge veut ce passage. Tiens-le 4:00.",
+    tip: "Panhard et Hotchkiss déchiquettent les chars légers du Rush. Bâtis vite des Forges et envoie des renforts par la route jusqu'au pont.",
     map: "riverlands",
     // bigger waves than a stock Rush: it masses ~1,200 scrap of tanks before each push
     // (and the four harvesters this op was tuned against: skirmish Rush now keeps five)
@@ -178,21 +179,21 @@ export const OPS: OpDef[] = [
     },
     goals: [
       { type: "survive", secs: 240 },
-      { type: "protect", tag: "bridge", min: 1, label: "Keep a bridge turret standing", short: "Turrets" }
+      { type: "protect", tag: "bridge", min: 1, label: "Garde une Hotchkiss du pont debout", short: "Hotchkiss", lost: "Hotchkiss du pont perdues" }
     ],
     stars: [
       { type: "maxLosses", n: 6 },
-      { type: "protect", tag: "bridge", min: 2, label: "Both bridge turrets standing", short: "Turrets" }
+      { type: "protect", tag: "bridge", min: 2, label: "Les deux Hotchkiss du pont debout", short: "Hotchkiss", lost: "Hotchkiss du pont perdues" }
     ]
   },
   {
     id: "harvest-moon",
-    title: "Harvest Moon",
+    title: "Lune des moissons",
     icon: "🌙",
-    tagline: "Deliver 10,000 scrap under Air Swarm raids",
+    tagline: "Livre 10 000 de charbon sous les raids de l'Essaim aérien",
     brief:
-      "The refinery needs 10,000 scrap before the convoy leaves at 5:00. Red's Air Swarm hunts harvesters with Wasps from the first minute. Keep the haul coming.",
-    tip: "Flak Crawlers and Turrets by the field keep Wasps off your harvesters. More harvesters, more scrap — but only if they live.",
+      "La cokerie exige 10 000 de charbon avant le départ du convoi à 5:00. L'Essaim aérien de Rouge chasse les Fardiers avec des Éole dès la première minute. Maintiens les livraisons.",
+    tip: "Faucheux et Hotchkiss près du gisement éloignent les Éole de tes Fardiers. Plus de Fardiers, plus de charbon — s'ils survivent.",
     map: "dune-sea",
     ai: { strategy: "airswarm", difficulty: "hard" },
     setup(_w, o) {
@@ -211,12 +212,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "decapitation",
-    title: "Decapitation",
+    title: "Décapitation",
     icon: "🎯",
-    tagline: "A strike group, no factories, 3:00",
+    tagline: "Un groupe d'assaut, aucune forge, 3:00",
     brief:
-      "No base, no reinforcements: two Mastodons, three Stingers, two Hornets, two Raptors and a Mender, with a Trooper Squad guarding the HQ. Red's HQ sits behind two SAM sites, three turrets, Flak and a fighter screen. Take it down within 3:00.",
-    tip: "Move as one group — whatever arrives alone dies alone. Stingers kill the Flak, Raptors the fighters, Hornets flatten SAM sites; then everything on the HQ.",
+      "Ni base ni renforts : deux Creusot, trois Panhard, deux Albatros, deux Blériot et un Pasteur, plus une Escouade de pioupious qui garde le GQG. Le GQG de Rouge s'abrite derrière deux Batteries Ruggieri, trois Hotchkiss, de la DCA et un écran de chasseurs. Abats-le en moins de 3:00.",
+    tip: "Avance en un seul groupe — qui arrive seul meurt seul. Les Panhard tuent la DCA, les Blériot les chasseurs, les Albatros rasent les Batteries Ruggieri ; puis tout sur le GQG.",
     map: "proving-grounds",
     ai: { strategy: "balanced", difficulty: "easy", tweak: DEFENSIVE },
     focus: { x: 10, y: 39 },
@@ -249,12 +250,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "frozen-assets",
-    title: "Frozen Assets",
+    title: "Avoirs gelés",
     icon: "❄",
-    tagline: "3,000 scrap, no income: spend it wisely",
+    tagline: "3 000 de charbon, aucun revenu : dépense avec sagesse",
     brief:
-      "Our harvesters are frozen solid: the factories stand, but there's 3,000 scrap in the bank and not a crate more — no mining, no HQ salvage. Red's Boom commander is building an economy. Strike before it pays off: destroy their HQ within 6:00.",
-    tip: "Every unit counts. Hit their harvesters to stall the Boom, keep your army together, and don't waste scrap on defences you won't need.",
+      "Nos Fardiers sont pris dans la glace : les Forges tiennent, mais il n'y a que 3 000 de charbon en caisse et pas un de plus — ni extraction, ni récupération au GQG. Le commandant Boom de Rouge bâtit son économie. Frappe avant qu'elle ne rapporte : détruis son GQG en moins de 6:00.",
+    tip: "Chaque unité compte. Frappe leurs Fardiers pour freiner le Boom, garde ton armée groupée et ne gaspille pas de charbon en défenses inutiles.",
     map: "frostbite",
     ai: { strategy: "boom", difficulty: "normal" },
     // (no calldowns: free Drop Pod crews would break the fixed budget)
@@ -274,12 +275,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "sky-pirates",
-    title: "Sky Pirates",
+    title: "Pirates du ciel",
     icon: "🏴‍☠️",
-    tagline: "Air only: sink their HQ before 7:00",
+    tagline: "Air seulement : coule leur GQG avant 7:00",
     brief:
-      "Fab Plants and the Condor are off-limits: this is an air raid. Red is digging in behind SAM sites you haven't seen yet, and every Wasp you show it teaches it to build more Flak. Scout first, then sink their HQ before 7:00.",
-    tip: "A Scout finds the SAM sites. Raptors beat their fighters, Hornets flatten SAMs and the HQ. Don't feed bombers into anti-air one at a time.",
+      "Forges et Montgolfière interdites : c'est un raid aérien. Rouge se retranche derrière des Batteries Ruggieri que tu n'as pas encore vues, et chaque Éole montré l'incite à bâtir plus de DCA. Reconnais d'abord, puis coule son GQG avant 7:00.",
+    tip: "Une Patrie repère les Batteries Ruggieri. Les Blériot battent leurs chasseurs, les Albatros rasent Ruggieri et GQG. N'envoie pas tes bombardiers un par un dans la DCA.",
     map: "ashlands",
     // a commander that digs in (never attacks) on half income: the clock is the enemy
     ai: { strategy: "balanced", difficulty: "easy", tweak: DEFENSIVE },
@@ -303,12 +304,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "glass-jaw",
-    title: "Glass Jaw",
+    title: "Mâchoire de verre",
     icon: "💥",
-    tagline: "Double damage, double speed, 6:00",
+    tagline: "Double dégâts, double vitesse, 6:00",
     brief:
-      "Glass Cannons and Rapid Fab for both sides: every weapon hits twice as hard and everything builds in half the time. Red's Rush commander loves it. Destroy their HQ within 6:00.",
-    tip: "Fights end in seconds: never trade one at a time. Turrets hit twice as hard too — a couple buy you time to mass an army.",
+      "Canons de verre et Production éclair pour les deux camps : chaque arme frappe deux fois plus fort et tout se construit deux fois plus vite. Le commandant Rush de Rouge adore ça. Détruis son GQG en moins de 6:00.",
+    tip: "Les combats durent quelques secondes : n'échange jamais au compte-gouttes. Les Hotchkiss frappent aussi deux fois plus fort — deux ou trois te laissent le temps de masser une armée.",
     map: "dune-sea",
     // (the four harvesters this op was tuned against: skirmish Rush now keeps five)
     ai: { strategy: "rush", difficulty: "normal", tweak: { harvesters: 4 } },
@@ -321,12 +322,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "iron-tide",
-    title: "Iron Tide",
+    title: "Marée d'acier",
     icon: "🛡",
-    tagline: "Survive Ironclad on Hard for 6:00",
+    tagline: "Survis 6:00 face au Cuirassé en Difficile",
     brief:
-      "Ironclad on Hard: Mastodons, Lancers and Mortars rolling around the frozen sea, with a bigger economy than yours. You have a Fab Plant and a Tech Lab. Hold out for 6:00.",
-    tip: "Lancers burn through Mastodons and Wasps strike them from the air. Mortars outrange your Turrets — hunt them with Stingers.",
+      "Cuirassé en Difficile : Creusot, Hydroglisseurs et Canons de 75 contournent la mer gelée, avec une économie plus grosse que la tienne. Tu as des Forges et Polytechnique. Tiens 6:00.",
+    tip: "Les Hydroglisseurs percent les Creusot et les Éole les frappent depuis le ciel. Les Canons de 75 portent plus loin que tes Hotchkiss — traque-les avec des Panhard.",
     map: "frostbite",
     ai: { strategy: "ironclad", difficulty: "hard" },
     setup(_w, o) {
@@ -342,12 +343,12 @@ export const OPS: OpDef[] = [
   },
   {
     id: "last-light",
-    title: "Last Light",
+    title: "Dernière lueur",
     icon: "🕯",
-    tagline: "Last Stand: survive 10 fast waves",
+    tagline: "Survie : tiens 10 vagues rapides",
     brief:
-      "The last base on the river. Waves come every 40 seconds from the map edges, growing every time, with a boss every fifth. You start dug in. Survive 10 waves.",
-    tip: "The top bar names the next wave's theme: build its counter before it lands. Calling a wave early on a clear field pays scrap — and saves time.",
+      "La dernière base sur le fleuve. Des vagues arrivent des bords de la carte toutes les 40 secondes, chaque fois plus fortes, avec un boss toutes les cinq. Tu commences retranché. Survis à 10 vagues.",
+    tip: "La barre du haut annonce le thème de la prochaine vague : prépare la riposte avant qu'elle n'arrive. Appeler une vague en avance sur un terrain dégagé rapporte du charbon — et fait gagner du temps.",
     map: "riverlands",
     ai: "survival",
     survival: { difficulty: "easy", firstWave: 45, interval: 40 },
@@ -418,7 +419,7 @@ export function setupOp(w: World, id: string): void {
   if (op.rules?.playerBans) r.sideBans = { [player]: { units: op.rules.playerBans.units ?? [], buildings: op.rules.playerBans.buildings ?? [] } };
   if (op.rules?.playerIncome !== undefined || op.rules?.enemyIncome !== undefined)
     r.sideIncome = { [player]: op.rules.playerIncome ?? 1, [enemy]: op.rules.enemyIncome ?? 1 };
-  r.banLabel = "Disabled in this op";
+  r.banLabel = "Désactivé dans cette op";
   if (op.rules?.calldowns === false) r.noCalldowns = true;
   w.rules = r;
   if (op.ai === "survival") setupSurvival(w, op.survival ?? {}, player);
@@ -463,10 +464,11 @@ export function fmtClock(secs: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-const fmtNum = (n: number): string => Math.floor(n).toLocaleString("en-US");
+const fmtNum = (n: number): string => Math.floor(n).toLocaleString("fr-FR");
 
 const kindName = (k: UnitKind | BuildingKind): string => (k in UNITS ? UNITS[k as UnitKind].name : BUILDINGS[k as BuildingKind].name);
-const plural = (k: UnitKind | BuildingKind, n: number): string => (n === 1 ? kindName(k) : `${kindName(k)}s`);
+/** "Fardier" / "Fardiers", "Panhard" / "Panhard", "Escouade de pioupious" / "Escouades de pioupious" (sim/lexicon.ts). */
+const plural = (k: UnitKind | BuildingKind, n: number): string => (n <= 1 ? kindName(k) : PLURALS[k]);
 
 /** Living members of a protect goal's group, and how many there were (squads aboard a Condor count). */
 function protectCount(w: World, st: OpsState, g: Extract<Goal, { type: "protect" }>): { alive: number; total: number } {
@@ -489,31 +491,31 @@ export function evalGoal(w: World, st: OpsState, g: Goal): GoalEval {
   switch (g.type) {
     case "destroyHq": {
       const hq = hqOf(w, st.enemy);
-      return { state: hq ? "pending" : "done", label: "Enemy HQ", value: hq ? `${Math.ceil((hq.hp / BUILDINGS.hq.hp) * 100)}%` : "down", progress: hq ? 1 - hq.hp / BUILDINGS.hq.hp : 1 };
+      return { state: hq ? "pending" : "done", label: "GQG ennemi", value: hq ? `${Math.ceil((hq.hp / BUILDINGS.hq.hp) * 100)}\u00a0%` : "détruit", progress: hq ? 1 - hq.hp / BUILDINGS.hq.hp : 1 };
     }
     case "destroy": {
       const n = st.killed[g.kind] ?? 0;
       return { state: n >= g.count ? "done" : "pending", label: plural(g.kind, 2), value: `${Math.min(n, g.count)}/${g.count}`, progress: Math.min(1, n / g.count) };
     }
     case "survive":
-      return { state: t >= g.secs ? "done" : "pending", label: "Hold", value: fmtClock(g.secs - t), progress: Math.min(1, t / g.secs) };
+      return { state: t >= g.secs ? "done" : "pending", label: "Tenir", value: fmtClock(g.secs - t), progress: Math.min(1, t / g.secs) };
     case "waves": {
       const n = wavesSurvived(w);
-      return { state: n >= g.count ? "done" : "pending", label: "Waves", value: `${Math.min(n, g.count)}/${g.count}`, progress: Math.min(1, n / g.count) };
+      return { state: n >= g.count ? "done" : "pending", label: "Vagues", value: `${Math.min(n, g.count)}/${g.count}`, progress: Math.min(1, n / g.count) };
     }
     case "deliver": {
       const n = stats.scrapHarvested;
-      return { state: n >= g.scrap ? "done" : "pending", label: "Scrap", value: `${fmtNum(Math.min(n, g.scrap))}/${fmtNum(g.scrap)}`, progress: Math.min(1, n / g.scrap) };
+      return { state: n >= g.scrap ? "done" : "pending", label: "Charbon", value: `${fmtNum(Math.min(n, g.scrap))}/${fmtNum(g.scrap)}`, progress: Math.min(1, n / g.scrap) };
     }
     case "protect": {
       const { alive, total } = protectCount(w, st, g);
       return { state: alive >= g.min ? "ok" : "failed", label: g.short ?? plural(g.kind ?? "turret", 2), value: `${alive}/${total}`, progress: total ? alive / total : 0 };
     }
     case "within":
-      return { state: t > g.secs ? "failed" : "ok", label: "Time", value: fmtClock(g.secs - t), progress: Math.max(0, 1 - t / g.secs) };
+      return { state: t > g.secs ? "failed" : "ok", label: "Temps", value: fmtClock(g.secs - t), progress: Math.max(0, 1 - t / g.secs) };
     case "maxLosses": {
       const n = g.kind ? (st.lost[g.kind] ?? 0) : g.buildings ? stats.buildingsLost : stats.unitsLost;
-      return { state: n > g.n ? "failed" : "ok", label: "Lost", value: `${n}/${g.n}`, progress: g.n > 0 ? Math.min(1, n / g.n) : n > 0 ? 1 : 0 };
+      return { state: n > g.n ? "failed" : "ok", label: "Pertes", value: `${n}/${g.n}`, progress: g.n > 0 ? Math.min(1, n / g.n) : n > 0 ? 1 : 0 };
     }
   }
 }
@@ -522,32 +524,32 @@ export function evalGoal(w: World, st: OpsState, g: Goal): GoalEval {
 export function goalText(g: Goal, asStar = false): string {
   switch (g.type) {
     case "destroyHq":
-      return "Destroy the enemy HQ";
+      return "Détruis le GQG ennemi";
     case "destroy":
-      return `Destroy ${g.count} enemy ${plural(g.kind, g.count)}`;
+      return `Détruis ${g.count} ${plural(g.kind, g.count)} ${g.count > 1 ? "adverses" : "adverse"}`;
     case "survive":
-      return `Hold out for ${fmtClock(g.secs)}`;
+      return `Tiens ${fmtClock(g.secs)}`;
     case "waves":
-      return `Survive ${g.count} waves`;
+      return `Survis à ${g.count} vagues`;
     case "deliver":
-      return `Deliver ${fmtNum(g.scrap)} scrap`;
+      return `Livre ${fmtNum(g.scrap)} de charbon`;
     case "protect":
       return g.label;
     case "within":
-      return asStar ? `Finish in under ${fmtClock(g.secs)}` : `Before the clock hits ${fmtClock(g.secs)}`;
+      return asStar ? `Termine en moins de ${fmtClock(g.secs)}` : `Avant ${fmtClock(g.secs)} au chrono`;
     case "maxLosses": {
-      const what = g.kind ? plural(g.kind, g.n) : g.buildings ? (g.n === 1 ? "building" : "buildings") : g.n === 1 ? "unit" : "units";
-      return g.n === 0 ? `Lose no ${g.kind ? plural(g.kind, 2) : g.buildings ? "buildings" : "units"}` : `Lose ${g.n} ${what} or fewer`;
+      const what = g.kind ? plural(g.kind, g.n) : g.buildings ? (g.n === 1 ? "bâtiment" : "bâtiments") : g.n === 1 ? "unité" : "unités";
+      return g.n === 0 ? `Ne perds aucun${g.kind ? `${isFeminine(g.kind) ? "e" : ""} ${kindName(g.kind)}` : g.buildings ? " bâtiment" : "e unité"}` : `Perds ${g.n} ${what} au plus`;
     }
   }
 }
 
-/** The objective as one line: "Destroy the enemy HQ before 3:00 · Keep a bridge turret standing". */
+/** The objective as one line: "Détruis le GQG ennemi avant 3:00 · Garde une Hotchkiss du pont debout". */
 export function objectiveLine(op: OpDef): string {
   const main = op.goals.filter(isAchieveGoal).map((g) => goalText(g));
   const limit = op.goals.find((g): g is Extract<Goal, { type: "within" }> => g.type === "within");
   const rest = op.goals.filter((g) => !isAchieveGoal(g) && g.type !== "within").map((g) => goalText(g));
-  const head = `${main.join(" and ")}${limit ? ` before ${fmtClock(limit.secs)}` : ""}`;
+  const head = `${main.join(" et ")}${limit ? ` avant ${fmtClock(limit.secs)}` : ""}`;
   return [head, ...rest].filter(Boolean).join(" · ");
 }
 
@@ -565,31 +567,31 @@ export function starsNow(w: World, op: OpDef, st: OpsState): number {
 
 function winReason(w: World, op: OpDef, st: OpsState): string {
   const g = op.goals.find(isAchieveGoal);
-  if (!g) return "Objective complete";
+  if (!g) return "Objectif accompli";
   switch (g.type) {
     case "survive":
-      return `Held for ${fmtClock(g.secs)}`;
+      return `Tenu ${fmtClock(g.secs)}`;
     case "waves":
-      return `${g.count} waves survived`;
+      return `${g.count} vagues repoussées`;
     case "deliver":
-      return `${fmtNum(w.factions[st.player].stats.scrapHarvested)} scrap delivered`;
+      return `Charbon livré : ${fmtNum(w.factions[st.player].stats.scrapHarvested)}`;
     case "destroy":
-      return `${g.count} enemy ${plural(g.kind, g.count)} destroyed`;
+      return `Détruits : ${g.count} ${plural(g.kind, g.count)} ${g.count > 1 ? "adverses" : "adverse"}`;
     default:
-      return "Enemy HQ destroyed";
+      return "GQG ennemi détruit";
   }
 }
 
 function failReason(g: Goal): string {
   switch (g.type) {
     case "within":
-      return "Out of time";
+      return "Temps écoulé";
     case "protect":
-      return g.tag ? `${g.label.replace(/^Keep (an? |the )?/i, "").replace(/ standing$/i, "")} lost` : "Lost what we had to protect";
+      return g.lost ?? "Nous avons perdu ce qu'il fallait protéger";
     case "maxLosses":
-      return "Too many losses";
+      return "Trop de pertes";
     default:
-      return "Objective failed";
+      return "Objectif manqué";
   }
 }
 
@@ -630,7 +632,7 @@ export function tickOps(w: World): void {
   // an op is a base to hold: our HQ falling loses it, even with a Goliath still standing
   if (!w.winner && !hqOf(w, st.player)) {
     const fell = deathOf(w, (ev) => ev.buildingKind === "hq" && ev.faction === st.player);
-    finish(w, op, st, false, "Our HQ has fallen", fell ? { x: fell.x, y: fell.y } : centreOf(w, st.player), false);
+    finish(w, op, st, false, "Notre GQG est tombé", fell ? { x: fell.x, y: fell.y } : centreOf(w, st.player), false);
     return;
   }
   // an HQ (or an enemy's last Goliath, its HQ already gone) fell this tick: combat already named the winner
@@ -639,8 +641,8 @@ export function tickOps(w: World): void {
     const hq = won ? null : hqOf(w, st.player);
     const lastGoliath = won ? deathOf(w, (ev) => ev.unitKind === "goliath" && ev.faction === st.enemy) : undefined;
     const enemyHqFell = !!deathOf(w, (ev) => ev.buildingKind === "hq" && ev.faction === st.enemy);
-    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, "Enemy Goliath destroyed", { x: lastGoliath.x, y: lastGoliath.y }, false);
-    else finish(w, op, st, won, won ? "Enemy HQ destroyed" : "Our HQ has fallen", hq ? buildingCenter(hq) : centreOf(w, won ? st.enemy : st.player), false);
+    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, "Gargantua ennemi détruit", { x: lastGoliath.x, y: lastGoliath.y }, false);
+    else finish(w, op, st, won, won ? "GQG ennemi détruit" : "Notre GQG est tombé", hq ? buildingCenter(hq) : centreOf(w, won ? st.enemy : st.player), false);
     return;
   }
   if (w.tick % TICK_RATE !== 0) return;

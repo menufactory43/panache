@@ -30,10 +30,10 @@ function pills(id: OpenerId, side: Faction): string {
   const items: { icon?: string; label: string; cls?: string }[] = [{ icon: o.building, label: BUILDINGS[o.building].name }];
   const counts = new Map<UnitKind, number>();
   for (const k of o.units) counts.set(k, (counts.get(k) ?? 0) + 1);
-  for (const [k, n] of counts) items.push({ icon: k, label: `${n} ${UNITS[k].name}s` });
-  items.push({ icon: "harvester", label: `${o.harvesters} Harvesters` });
-  if (o.scrap > 0) items.push({ label: `+${o.scrap} scrap` });
-  if (o.scrap < 0) items.push({ label: `−${-o.scrap} scrap`, cls: "neg" });
+  for (const [k, n] of counts) items.push({ icon: k, label: `${n}× ${UNITS[k].name}` });
+  items.push({ icon: "harvester", label: `${o.harvesters}× ${UNITS.harvester.name}` });
+  if (o.scrap > 0) items.push({ label: `+${o.scrap} charbon` });
+  if (o.scrap < 0) items.push({ label: `−${-o.scrap} charbon`, cls: "neg" });
   return items
     .map(
       (it) =>
@@ -60,9 +60,9 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
   const el = document.createElement("div");
   el.className = "openers";
   el.innerHTML = `
-    <button class="op-back" title="Back to the menu">‹ Menu</button>
+    <button class="op-back" title="Retour au menu">‹ Menu</button>
     <div class="op-head">
-      <h2>Choose your opener</h2>
+      <h2>Choisis ton ouverture</h2>
       <p class="op-ctx"></p>
     </div>
     <div class="op-cards">
@@ -79,7 +79,7 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
         </button>`
       ).join("")}
     </div>
-    <p class="op-foot">The clock starts when you choose. The enemy picks too.</p>`;
+    <p class="op-foot">Le chrono démarre dès ton choix. L'ennemi choisit aussi.</p>`;
   el.querySelector(".op-ctx")!.textContent = opts.context;
   // keep touches on the overlay away from the game canvas underneath
   el.addEventListener("pointerdown", (e) => e.stopPropagation());

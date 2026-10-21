@@ -28,10 +28,10 @@ export function mountCineToggle(root: HTMLElement, onToggle: () => void): CineTo
       b.classList.toggle("held", on && held);
       b.setAttribute("aria-pressed", String(on));
       b.title = !on
-        ? "Cinematic camera: off (C)"
+        ? "Caméra cinéma : off (C)"
         : held
-        ? "Cinematic camera: back in a moment — or tap to switch off (C)"
-        : "Cinematic camera: on (C)";
+        ? "Caméra cinéma : reprend sous peu, ou touche pour couper (C)"
+        : "Caméra cinéma : on (C)";
     },
     destroy() {
       b.remove();

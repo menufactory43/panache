@@ -45,7 +45,7 @@ describe("a duel's Controller reads its own orders on their way as landed", () =
     // both seats are promised: the third tap selects the squad and says why
     c.tapWorld(sq[2]!.x, sq[2]!.y, { kind: "ownUnit", id: sq[2]!.id });
     expect(c.drainCommands()).toEqual([]);
-    expect(c.tip).toBe("Condor full: unload it first");
+    expect(c.tip).toBe("Montgolfière pleine : décharge-la d'abord");
     expect([...c.selectedUnits]).toEqual([sq[2]!.id]);
   });
 
@@ -80,7 +80,7 @@ describe("a duel's Controller reads its own orders on their way as landed", () =
     expect(c.idleArmy()).toHaveLength(3);
   });
 
-  it("stops a Condor sent somewhere to meet squads told to board it", () => {
+  it("stops a Montgolfière sent somewhere to meet squads told to board it", () => {
     const w = field();
     const c = duel(w);
     const condor = spawnUnit(w, "condor", "blue", 10, 10);
@@ -110,7 +110,7 @@ describe("a duel's Controller reads its own orders on their way as landed", () =
     expect(pickProducer(w, "condor", c.selectedUnits, v)).toBeNull();
   });
 
-  it("treats an anchored Goliath packing up as no barracks, and a tap on the map moves it", () => {
+  it("treats an anchored Gargantua packing up as no barracks, and a tap on the map moves it", () => {
     const w = field();
     const c = duel(w);
     const g = anchored(spawnUnit(w, "goliath", "blue", 14, 14));
@@ -213,7 +213,7 @@ describe("ordersAhead", () => {
     expect(g).toEqual(before);
   });
 
-  it("applies the sim's rules, in order: an order naming a hooking lift's Condors calls it off", () => {
+  it("applies the sim's rules, in order: an order naming a hooking lift's Montgolfières calls it off", () => {
     const w = field();
     const g = spawnUnit(w, "goliath", "blue", 14, 14);
     const [a, b] = [spawnUnit(w, "condor", "blue", 16, 14), spawnUnit(w, "condor", "blue", 17, 14)] as [Unit, Unit];
@@ -234,9 +234,9 @@ describe("ordersAhead", () => {
     expect(a.order.type).toBe("idle");
   });
 
-  it("leaves a lift called off by its Condors' order to take that order, whichever is named first, as the sim does", () => {
+  it("leaves a lift called off by its Montgolfières' order to take that order, whichever is named first, as the sim does", () => {
     const w = field();
-    // (the Condors' ids before the Goliath's: the order names them first)
+    // (the Condors' ids before the Gargantua's: the order names them first)
     const [a, b] = [spawnUnit(w, "condor", "blue", 16, 14), spawnUnit(w, "condor", "blue", 17, 14)] as [Unit, Unit];
     const g = spawnUnit(w, "goliath", "blue", 14, 14);
     step(w, [{ type: "lift", faction: "blue", unitIds: [a.id, b.id], goliathId: g.id }]);

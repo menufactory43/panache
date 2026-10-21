@@ -30,7 +30,7 @@ export interface SurvivalHud {
   pauseLine(): string;
 }
 
-const DIFF_LABEL: Record<string, string> = { easy: "Easy", normal: "Normal", hard: "Hard" };
+const DIFF_LABEL: Record<string, string> = { easy: "Facile", normal: "Normal", hard: "Difficile" };
 
 export function createSurvivalHud(
   pill: HTMLElement,
@@ -59,9 +59,9 @@ export function createSurvivalHud(
     const st = status;
     // during a wave: how many are left; otherwise what's coming next
     const active = st.left > 0 && !st.warned;
-    const label = active ? `Wave ${st.wave}` : `Wave ${st.next}`;
-    const what = active ? `${st.left} left` : `${THEME_ICONS[st.nextTheme]} ${st.nextName}`;
-    const clock = st.warned ? `${Math.ceil(st.nextIn)}s` : active ? `next ${fmtSecs(st.nextIn)}` : fmtSecs(st.nextIn);
+    const label = active ? `Vague ${st.wave}` : `Vague ${st.next}`;
+    const what = active ? `${st.left} restants` : `${THEME_ICONS[st.nextTheme]} ${st.nextName}`;
+    const clock = st.warned ? `${Math.ceil(st.nextIn)}s` : active ? `suiv. ${fmtSecs(st.nextIn)}` : fmtSecs(st.nextIn);
     const cls = `wavepill${st.warned ? " hot" : active ? " active" : ""}${st.warned && st.nextTheme === "boss" ? " boss" : ""}`;
     const key = `${cls}|${label}|${what}|${clock}`;
     if (key === lastKey) return;
@@ -76,7 +76,7 @@ export function createSurvivalHud(
     if (opts.spectator || !status || status.callBonus <= 0) return null;
     return {
       id: "callwave",
-      label: `⏩ Call wave ${status.next} +${status.callBonus}`,
+      label: `⏩ Appeler vague ${status.next} +${status.callBonus}`,
       cls: "callwave",
       on: () => opts.ctrl.enqueue({ type: "callWave", faction: PLAYER })
     };
@@ -120,15 +120,15 @@ export function createSurvivalHud(
     const diff = DIFF_LABEL[s.difficulty] ?? s.difficulty;
     const r = finishRun(w, w.mapId, s.difficulty, !opts.spectator);
     const st = w.factions[s.defender].stats;
-    const title = opts.spectator ? "OVERRUN" : r.isNew ? "NEW RECORD!" : "OVERRUN";
+    const title = opts.spectator ? "SUBMERGÉ" : r.isNew ? "NOUVEAU RECORD !" : "SUBMERGÉ";
     const bestLine = opts.spectator
-      ? `<p class="ls-best">The AI held for ${r.waves} wave${r.waves === 1 ? "" : "s"}</p>`
+      ? `<p class="ls-best">L'IA a tenu ${r.waves} vague${r.waves === 1 ? "" : "s"}</p>`
       : r.isNew
-        ? `<p class="ls-best new">🏆 New best${r.prevBest > 0 ? ` — beat ${r.prevBest}` : ""}</p>`
-        : `<p class="ls-best">Best ${r.best} · ${r.best - r.waves > 0 ? `${r.best - r.waves} short` : "tied your best"}</p>`;
+        ? `<p class="ls-best new">🏆 Nouveau record${r.prevBest > 0 ? ` — ancien : ${r.prevBest}` : ""}</p>`
+        : `<p class="ls-best">Record ${r.best} · ${r.best - r.waves > 0 ? `à ${r.best - r.waves} près` : "record égalé"}</p>`;
     // the defender's hero of the run, fallen or standing
     const hero = chronicleOf(w).mvp()[s.defender];
-    const mvp = hero ? `<div class="aar-mvps">${mvpCard(w, hero, opts.spectator ? "AI's MVP" : "Your MVP", "main")}</div>` : "";
+    const mvp = hero ? `<div class="aar-mvps">${mvpCard(w, hero, opts.spectator ? "MVP de l'IA" : "Ton MVP", "main")}</div>` : "";
     // career: XP for the waves held, Last Stand medals (ui/career.ts)
     const settled = opts.spectator ? null : settlementOf(w);
     const career = settled ? `<div class="ls-career">${careerBlockHtml(settled, "")}</div>` : "";
@@ -136,20 +136,20 @@ export function createSurvivalHud(
     endEl.innerHTML = `
       <div class="panel laststand-end${r.isNew ? " record" : ""}">
         <h1 class="${r.isNew ? "record" : "lose"}">${title}</h1>
-        <p class="time">Last Stand · ${mapName} · ${diff} · ${fmtSecs(secs)}</p>
-        <div class="ls-score"><b>${r.waves}</b><span>wave${r.waves === 1 ? "" : "s"} survived</span></div>
+        <p class="time">Survie · ${mapName} · ${diff} · ${fmtSecs(secs)}</p>
+        <div class="ls-score"><b>${r.waves}</b><span>vague${r.waves === 1 ? "" : "s"} survécue${r.waves === 1 ? "" : "s"}</span></div>
         ${bestLine}
         ${mvp}
         ${career}
         <table>
-          <tr><td>Enemies destroyed</td><td>${st.unitsKilled}</td></tr>
-          <tr><td>Units lost</td><td>${st.unitsLost}</td></tr>
-          <tr><td>Buildings lost</td><td>${st.buildingsLost}</td></tr>
-          <tr><td>Scrap harvested</td><td>${Math.floor(st.scrapHarvested)}</td></tr>
-          <tr><td>Wave bonuses</td><td>${Math.floor(s.bonusEarned)}</td></tr>
+          <tr><td>Ennemis détruits</td><td>${st.unitsKilled}</td></tr>
+          <tr><td>Unités perdues</td><td>${st.unitsLost}</td></tr>
+          <tr><td>Bâtiments perdus</td><td>${st.buildingsLost}</td></tr>
+          <tr><td>Charbon extrait</td><td>${Math.floor(st.scrapHarvested)}</td></tr>
+          <tr><td>Bonus de vagues</td><td>${Math.floor(s.bonusEarned)}</td></tr>
         </table>
-        <button id="again" class="cta">${opts.spectator ? "▶ Your turn" : "↻ Try again"}</button>
-        <button id="menu" class="cta alt">Main menu</button>
+        <button id="again" class="cta">${opts.spectator ? "▶ À toi" : "↻ Réessayer"}</button>
+        <button id="menu" class="cta alt">Menu principal</button>
       </div>`;
     endEl.querySelector("#again")!.addEventListener("click", onAgain);
     endEl.querySelector("#menu")!.addEventListener("click", onMenu);
@@ -159,7 +159,7 @@ export function createSurvivalHud(
 
   function pauseLine(): string {
     const diff = DIFF_LABEL[s.difficulty] ?? s.difficulty;
-    return `Last Stand · ${diff}${best ? ` · best ${best.best} waves` : ""}`;
+    return `Survie · ${diff}${best ? ` · record ${best.best} vagues` : ""}`;
   }
 
   update();

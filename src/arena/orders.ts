@@ -26,10 +26,11 @@ import {
   unitBlocker,
   type Producer
 } from "../sim/economy";
-import { anchorBlocker, anchoredGoliaths, applyGoliathCommand, goliathReachAt, orderedToMove, packUpBlocker, unitCost } from "../sim/goliath";
+import { UNIT_IN_THE_WAY, anchorBlocker, anchoredGoliaths, applyGoliathCommand, goliathReachAt, orderedToMove, packUpBlocker, unitCost } from "../sim/goliath";
 import { unitSeenBy, isInfantry, isTransport } from "../sim/infantry";
 import { applyLiftCommand, liftBlocker, liftedBy, routeLiftCommand } from "../sim/lift";
 import { OPENER_IDS, isOpenerId, openerBlocked, type OpenerId } from "../sim/openers";
+import { PLURALS } from "../sim/lexicon";
 import { placementBlocker } from "../sim/placement";
 import { POWER_KINDS, applyCalldown, calldownBlocker } from "../sim/powers";
 import { applyTransportCommand, freeSeats, isLoaded } from "../sim/transport";
@@ -65,27 +66,73 @@ const refuse = (why: string): never => {
   throw new Refused(why);
 };
 
-/** Accept "attack_move", "attackMove", "attack-move"… */
-const norm = (k: string) => k.toLowerCase().replace(/[-_\s]/g, "");
+/** Accept "attack_move", "attackMove", "attack-move"… (and "Éole" as "eole", "d'artificiers" as "dartificiers"). */
+const norm = (k: string) =>
+  k
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[-_\s'’.]/g, "");
 
 const VERBS = ["opener", "attackmove", "move", "attack", "stop", "harvest", "produce", "cancel", "build", "sell", "rally", "calldown", "board", "unload", "anchor", "packup", "pack", "lift"] as const;
 type Verb = (typeof VERBS)[number];
 
-/** The kind named by a word ("stingers", "Flak Crawler", "flak"). */
+/**
+ * Other names agents may use for a kind, besides its id and its name in
+ * balance.ts: the Belle Époque short forms and plurals, the English names
+ * of the original game, and the earlier French names (before the reskin).
+ */
+const UNIT_ALIASES: Partial<Record<UnitKind, string[]>> = {
+  harvester: ["Fardiers", "Harvester", "Récolteur"],
+  scout: ["Patries", "Scout", "Éclaireur", "dirigeable"],
+  stinger: ["Stinger", "Dard"],
+  "flak-crawler": ["Flak Crawler", "flak", "Arpenteur DCA", "Arpenteur", "DCA"],
+  mortar: ["Canons de 75", "75", "Mortar", "Mortier"],
+  mastodon: ["Mastodon", "Mastodonte"],
+  lancer: ["Hydroglisseurs", "Hydro", "Lancer", "Lancier"],
+  wasp: ["Wasp", "Guêpe"],
+  raptor: ["Raptor", "Rapace"],
+  hornet: ["Hornet", "Frelon"],
+  mender: ["Mender", "Réparateur"],
+  trooper: ["Pioupious", "Pioupiou", "Escouades de pioupious", "Trooper Squad", "Escouade de fantassins", "Fantassins"],
+  "rocket-squad": ["Artificiers", "Artificier", "Escouades d'artificiers", "rocket", "Rocket Squad", "Escouade lance-roquettes", "Lance-roquettes"],
+  sniper: ["Chasseurs alpins", "Chasseurs", "Sections de chasseurs alpins", "Sniper Team", "Équipe de snipers", "Snipers"],
+  condor: ["Montgolfières", "Montgolfiere", "Condor"],
+  goliath: ["Gargantuas", "Goliath"]
+};
+const BUILDING_ALIASES: Partial<Record<BuildingKind, string[]>> = {
+  hq: ["Grand Quartier Général", "HQ", "QG"],
+  "fab-plant": ["Forge", "fab", "factory", "Fab Plant", "Usine"],
+  airpad: ["Chalais-Meudon", "Meudon", "Chalais", "Airpad", "Aérodrome"],
+  "tech-lab": ["Polytechnique", "Tech Lab", "Labo tech", "Labo"],
+  depot: ["Halles", "Depot", "Dépôt"],
+  turret: ["Hotchkiss", "Turret", "Tourelle"],
+  "sam-site": ["Ruggieri", "Batteries Ruggieri", "sam", "SAM Site", "Batterie SAM"],
+  radar: ["Tour TSF", "TSF", "Radar"],
+  "assembly-bay": ["Manufactures", "Assembly Bay", "Atelier d'assemblage", "Atelier"],
+  gantry: ["Galerie", "Galerie des Machines", "Gantry", "Portique"]
+};
+const UNIT_WORDS = new Map<string, UnitKind>();
+for (const k of UNIT_KINDS)
+  for (const name of [k, UNITS[k].name, PLURALS[k], ...(UNIT_ALIASES[k] ?? [])]) {
+    UNIT_WORDS.set(norm(name), k);
+    UNIT_WORDS.set(norm(name) + "s", k);
+  }
+const BUILDING_WORDS = new Map<string, BuildingKind>();
+for (const k of BUILDING_KINDS)
+  for (const name of [k, BUILDINGS[k].name, PLURALS[k], ...(BUILDING_ALIASES[k] ?? [])]) {
+    BUILDING_WORDS.set(norm(name), k);
+    BUILDING_WORDS.set(norm(name) + "s", k);
+  }
+
+/** The kind named by a word ("stingers", "Flak Crawler", "flak", "Panhard", "Éole", "Faucheux"). */
 export function unitKindOf(s: string): UnitKind | null {
-  const n = norm(s);
-  for (const k of UNIT_KINDS) if (norm(k) === n || norm(k) + "s" === n || norm(UNITS[k].name) === n || norm(UNITS[k].name) + "s" === n) return k;
-  if (n === "flak" || n === "flaks") return "flak-crawler";
-  if (n === "rocket" || n === "rockets") return "rocket-squad";
-  return null;
+  return UNIT_WORDS.get(norm(s)) ?? null;
 }
 
+/** The building named by a word ("fab-plant", "factory", "Forges", "Polytechnique", "Batterie Ruggieri"). */
 export function buildingKindOf(s: string): BuildingKind | null {
-  const n = norm(s);
-  for (const k of BUILDING_KINDS) if (norm(k) === n || norm(k) + "s" === n || norm(BUILDINGS[k].name) === n) return k;
-  if (n === "sam") return "sam-site";
-  if (n === "fab" || n === "factory") return "fab-plant";
-  return null;
+  return BUILDING_WORDS.get(norm(s)) ?? null;
 }
 
 const an = (s: string) => `${/^[aeiou]/.test(s) ? "an" : "a"} ${s}`;
@@ -277,7 +324,7 @@ function one(w: World, fr: Frame, side: Faction, verb: Verb, o: Record<string, u
         at = fr.worldTopLeft(kind!, xy![0], xy![1]);
         const why = placementBlocker(w, side, kind!, at[0], at[1]);
         // (a unit standing there may move off before it's ready: placing then decides)
-        if (why && why !== "Unit in the way") refuse(`can't put ${an(kind!)} at ${xy![0]},${xy![1]}: ${why}`);
+        if (why && why !== UNIT_IN_THE_WAY) refuse(`can't put ${an(kind!)} at ${xy![0]},${xy![1]}: ${why}`);
       }
       if (f.pending) {
         if (f.pending.kind === kind && at) {

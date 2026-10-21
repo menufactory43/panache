@@ -1,4 +1,4 @@
-import { DIFFICULTY } from "../sim/ai/commander";
+import { DIFFICULTY, STRATEGIES } from "../sim/ai/commander";
 import { BUILDINGS, UNITS } from "../sim/balance";
 import { MAPS } from "../sim/maps";
 import {
@@ -19,6 +19,7 @@ import {
 import { GROUND_COMBAT, MUTATORS } from "../sim/rules";
 import type { World } from "../sim/types";
 import { sfx } from "../game/audio";
+import { BELLE_EPOQUE } from "../game/three/theme";
 import { mapAssetBase } from "../game/assets";
 import { loadCareer, opUnlocked, opsCompleted, settlementOf, starCount, type CareerData } from "../game/career";
 import { addReportSection, type ReportContext, type ReportOpts } from "./report";
@@ -35,10 +36,10 @@ const STAR_KEYS = ["★", "★★", "★★★"];
 
 /** "vs Rush · Hard", "Last Stand waves", "no enemy commander". */
 export function enemyLine(op: OpDef): string {
-  if (op.ai === "survival") return "Last Stand waves";
-  if (!op.ai) return "a static garrison";
-  const name = { balanced: "Balanced", rush: "Rush", airswarm: "Air Swarm", boom: "Boom", skyforce: "Skyforce", ironclad: "Ironclad" }[op.ai.strategy];
-  return `vs ${name} · ${DIFFICULTY[op.ai.difficulty].label}`;
+  if (op.ai === "survival") return "vagues de Survie";
+  if (!op.ai) return "une garnison statique";
+  const name = STRATEGIES[op.ai.strategy].label;
+  return `contre ${name} · ${DIFFICULTY[op.ai.difficulty].label}`;
 }
 
 /** "★★☆" for a star mask. */
@@ -46,7 +47,7 @@ const starRow = (mask: number) => [1, 2, 4].map((b) => (mask & b ? "★" : "☆"
 
 /** Star conditions as list items: what each star needs (and which you hold). */
 function starListHtml(op: OpDef, mask: number, live?: OpStatus): string {
-  const rows: { text: string; cls: string }[] = [{ text: "Complete the op", cls: mask & 1 ? "got" : "" }];
+  const rows: { text: string; cls: string }[] = [{ text: "Réussir l'op", cls: mask & 1 ? "got" : "" }];
   op.stars.forEach((g, i) => {
     const bit = 2 << i;
     const e = live?.stars[i]?.eval;
@@ -106,16 +107,16 @@ function goalListHtml(op: OpDef, live?: OpStatus): string {
 function rulesNote(op: OpDef): string {
   const bits: string[] = [];
   const bans = op.rules?.playerBans;
-  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push("⛔ No production");
+  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push("⛔ Aucune production");
   else {
-    if (bans?.buildings?.length) bits.push(`⛔ No ${bans.buildings.map((k) => `${BUILDINGS[k].name}s`).join(", ")}`);
+    if (bans?.buildings?.length) bits.push(`⛔ Interdits : ${bans.buildings.map((k) => BUILDINGS[k].name).join(", ")}`);
     // every ground combat kind reads "ground units"; anything else banned (the Condor) is named
     const ground = !!bans?.units && GROUND_COMBAT.every((k) => bans.units!.includes(k));
-    const named = (bans?.units ?? []).filter((k) => !ground || !GROUND_COMBAT.includes(k)).map((k) => `${UNITS[k].name}s`);
-    if (bans?.units?.length) bits.push(`⛔ No ${[...(ground ? ["ground units"] : []), ...named].join(", ")}`);
+    const named = (bans?.units ?? []).filter((k) => !ground || !GROUND_COMBAT.includes(k)).map((k) => UNITS[k].name);
+    if (bans?.units?.length) bits.push(`⛔ Interdits : ${[...(ground ? ["unités terrestres"] : []), ...named].join(", ")}`);
   }
-  if (op.rules?.playerIncome === 0) bits.push("❄ No income");
-  if (op.rules?.calldowns === false) bits.push("⚡ No calldowns");
+  if (op.rules?.playerIncome === 0) bits.push("❄ Aucun revenu");
+  if (op.rules?.calldowns === false) bits.push("⚡ Aucun appui");
   for (const id of op.rules?.mutators ?? []) bits.push(`${MUTATORS[id].icon} ${MUTATORS[id].name}`);
   return bits.join(" · ");
 }
@@ -153,7 +154,8 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
   const topbar = pill.parentElement;
   const landscape = window.matchMedia("(orientation: landscape)");
   const place = () => {
-    const corner = landscape.matches;
+    // (Panache keeps it in the top-left column in both orientations: src/ui/belle-hud.ts)
+    const corner = landscape.matches && !BELLE_EPOQUE;
     if (corner && pill.parentElement !== root) root.insertBefore(pill, card);
     else if (!corner && topbar && pill.parentElement !== topbar) topbar.appendChild(pill);
     pill.classList.toggle("corner", corner);
@@ -196,14 +198,14 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
     let label = main.eval.label;
     let value = main.eval.value;
     if (main.goal.type === "destroyHq") {
-      label = "Destroy HQ";
+      label = "Détruire le GQG";
       value = timer ? timer.eval.value : main.eval.value;
     }
     const others = st.goals.filter((g) => g !== main && !(main.goal.type === "destroyHq" && g === timer)).map((g) => compact(g.goal, g.eval));
     if (main.goal.type === "destroyHq") {
       // their HQ's health, once we have seen it
       const known = [...w.fog[w.ops!.player].known.values()].some((b) => b.kind === "hq" && b.faction === w.ops!.enemy);
-      others.unshift(known ? `HQ ${main.eval.value}` : "HQ unseen");
+      others.unshift(known ? `GQG ${main.eval.value}` : "GQG non repéré");
     }
     // nothing else to track: show the star conditions' progress instead
     if (others.length === 0) for (const g of st.stars) if (g.eval.state !== "failed") others.push(compact(g.goal, g.eval));
@@ -234,15 +236,15 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
     const career = loadCareer();
     const actions: ReportOpts["actions"] = [];
     if (won && nxt && opUnlocked(career, nxt.id))
-      actions.push({ id: "op-next", label: `▶ Next: ${nxt.title}`, on: () => opts.rematch(`op:${nxt.id}`) });
+      actions.push({ id: "op-next", label: `▶ Suivante : ${nxt.title}`, on: () => opts.rematch(`op:${nxt.id}`) });
     return {
       head: {
-        title: won ? "OP COMPLETE" : "OP FAILED",
+        title: won ? "OP RÉUSSIE" : "OP ÉCHOUÉE",
         cls: won ? "win" : "lose",
         sub: `Op ${opIndex(op.id) + 1} · ${op.title} · ${mapName(op.map)} · ${fmtClock(r?.secs ?? 0)}`
       },
       actions,
-      rematchLabel: won ? "↻ Replay" : "↻ Retry"
+      rematchLabel: won ? "↻ Rejouer" : "↻ Réessayer"
     };
   }
 
@@ -275,7 +277,7 @@ function opSectionHtml(ctx: ReportContext): string | null {
   const rec = loadCareer().ops[op.id];
   const bestLine =
     rec && (rec.stars & 1)
-      ? `<p class="op-best">Best ${starRow(best)}${rec.bestSecs !== null ? ` · ${fmtClock(rec.bestSecs)}` : ""} · ${rec.plays} attempt${rec.plays === 1 ? "" : "s"}</p>`
+      ? `<p class="op-best">Record ${starRow(best)}${rec.bestSecs !== null ? ` · ${fmtClock(rec.bestSecs)}` : ""} · ${rec.plays} tentative${rec.plays === 1 ? "" : "s"}</p>`
       : "";
   const unlocked = s?.op?.unlocked ? opById(s.op.unlocked) : null;
   return `<div class="op-res ${r?.won ? "won" : "lost"}">
@@ -283,8 +285,8 @@ function opSectionHtml(ctx: ReportContext): string | null {
     <p class="op-reason">${esc(r?.reason ?? "")}</p>
     ${starListHtml(op, mask)}
     ${bestLine}
-    ${unlocked ? `<p class="op-unlock">🔓 New op unlocked: <b>${unlocked.icon} ${esc(unlocked.title)}</b></p>` : ""}
-    ${r?.won ? "" : `<p class="op-tip"><b>Tip</b><span>${esc(op.tip)}</span></p>`}
+    ${unlocked ? `<p class="op-unlock">🔓 Nouvelle op débloquée : <b>${unlocked.icon} ${esc(unlocked.title)}</b></p>` : ""}
+    ${r?.won ? "" : `<p class="op-tip"><b>Conseil</b><span>${esc(op.tip)}</span></p>`}
   </div>`;
 }
 
@@ -316,7 +318,7 @@ export interface MenuOps {
 function summaryHtml(c: CareerData): string {
   const stars = OPS.reduce((n, o) => n + starCount(c.ops[o.id]?.stars ?? 0), 0);
   const done = opsCompleted(c);
-  return `🎖 <b>${done}/${OPS.length}</b> complete · <b>${stars}/${OPS.length * 3}</b> ★`;
+  return `🎖 <b>${done}/${OPS.length}</b> terminées · <b>${stars}/${OPS.length * 3}</b> ★`;
 }
 
 function cardHtml(op: OpDef, c: CareerData): string {
@@ -327,7 +329,7 @@ function cardHtml(op: OpDef, c: CareerData): string {
       <span class="op-n">${opIndex(op.id) + 1}</span>
       <span class="op-ic">${locked ? "🔒" : op.icon}</span>
       <span class="mn">${esc(op.title)}</span>
-      <span class="mstars${mask ? " got" : ""}">${locked ? "Locked" : starRow(mask)}</span>
+      <span class="mstars${mask ? " got" : ""}">${locked ? "Verrouillée" : starRow(mask)}</span>
     </button>`;
 }
 
@@ -377,7 +379,7 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
     if (blurb) {
       const need = opIndex(sel.id) + 1 - 3 - opsCompleted(career);
       blurb.innerHTML = locked(sel)
-        ? `🔒 Complete ${need} more op${need === 1 ? "" : "s"} to unlock <b>${esc(sel.title)}</b>`
+        ? `🔒 Réussis encore ${need} op${need === 1 ? "" : "s"} pour débloquer <b>${esc(sel.title)}</b>`
         : `<b>${esc(sel.tagline)}</b><small>${mapName(sel.map)} · ${enemyLine(sel)}</small>`;
     }
   };
@@ -392,24 +394,24 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
     wrap.innerHTML = `<div class="sheet opbrief" role="dialog">
       <div class="ob-head">
         <img src="${mapAssetBase(op.map)}/thumb.webp" alt="" draggable="false"/>
-        <div><span class="ob-n">Op ${opIndex(op.id) + 1} of ${OPS.length}</span><h2>${op.icon} ${esc(op.title)}</h2>
+        <div><span class="ob-n">Op ${opIndex(op.id) + 1} sur ${OPS.length}</span><h2>${op.icon} ${esc(op.title)}</h2>
           <p class="ob-where">${mapName(op.map)} · ${enemyLine(op)}</p></div>
-        <button class="sheet-close x" aria-label="Close">✕</button>
+        <button class="sheet-close x" aria-label="Fermer">✕</button>
       </div>
       <div class="ob-cols">
         <div class="ob-l">
           <p class="ob-brief">${esc(op.brief)}</p>
           ${note ? `<p class="ob-rules">${esc(note)}</p>` : ""}
-          <h3>Objective</h3>
+          <h3>Objectif</h3>
           <p class="ob-obj">${esc(objectiveLine(op))}</p>
         </div>
         <div class="ob-r">
-          <h3>Stars ${mask ? `<small>best ${starRow(mask)}${rec?.bestSecs != null ? ` · ${fmtClock(rec.bestSecs)}` : ""}</small>` : ""}</h3>
+          <h3>Étoiles ${mask ? `<small>record ${starRow(mask)}${rec?.bestSecs != null ? ` · ${fmtClock(rec.bestSecs)}` : ""}</small>` : ""}</h3>
           ${starListHtml(op, mask)}
           <p class="ob-tip">💡 ${esc(op.tip)}</p>
         </div>
       </div>
-      <div class="sh-actions"><button class="cta" id="ob-start">▶ Start op</button></div>
+      <div class="sh-actions"><button class="cta" id="ob-start">▶ Lancer l'op</button></div>
     </div>`;
     menu.appendChild(wrap);
     const close = () => wrap.remove();

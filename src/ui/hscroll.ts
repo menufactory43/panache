@@ -25,8 +25,8 @@ export function scrollCue(row: HTMLElement): ScrollCue {
     wrap.appendChild(b);
     return b;
   };
-  btn("l", "Scroll left");
-  btn("r", "Scroll right");
+  btn("l", "Défiler à gauche");
+  btn("r", "Défiler à droite");
 
   // (the wrapper hides with its row through CSS, in the same layout pass: see .hscroll:has)
   const update = () => {

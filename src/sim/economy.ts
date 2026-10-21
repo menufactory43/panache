@@ -51,16 +51,16 @@ export function buildingBlocker(w: World, faction: Faction, kind: BuildingKind):
     const noGoliaths = bannedBy(w, "goliath", faction);
     if (noGoliaths) return noGoliaths;
   }
-  if (stats.unique && (hasBuilding(w, faction, kind) || w.factions[faction].pending?.kind === kind)) return "One per side";
+  if (stats.unique && (hasBuilding(w, faction, kind) || w.factions[faction].pending?.kind === kind)) return "Un par camp";
   if (stats.requires && !stats.requires.some((k) => hasBuilding(w, faction, k)))
-    return `Needs ${stats.requires.map((k) => BUILDINGS[k].name).join(" or ")}`;
+    return `Requiert ${stats.requires.map((k) => BUILDINGS[k].name).join(" ou ")}`;
   const missing = (stats.requiresAll ?? []).filter((k) => !hasBuilding(w, faction, k));
-  if (missing.length > 0) return `Needs ${andList(missing.map((k) => BUILDINGS[k].name))}`;
+  if (missing.length > 0) return `Requiert ${andList(missing.map((k) => BUILDINGS[k].name))}`;
   return null;
 }
 
-/** "A", "A and B", "A, B and C". */
-const andList = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+/** "A", "A et B", "A, B et C". */
+const andList = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`);
 
 /** Why this unit can't be queued right now (null = it can). An anchored Goliath stands in for an Assembly Bay. */
 export function unitBlocker(w: World, faction: Faction, kind: UnitKind): string | null {
@@ -70,10 +70,10 @@ export function unitBlocker(w: World, faction: Faction, kind: UnitKind): string 
   if (!hasBuilding(w, faction, stats.builtAt) && !(trainableAt(w, kind) && anchoredGoliaths(w, faction).length > 0))
     // (with a Goliath on the move and no HQ, which can never be built: say how to get the button back)
     return trainableAt(w, kind) && hasGoliath(w, faction) && stats.builtAt === "hq"
-      ? "Anchor a Goliath"
-      : `Needs ${BUILDINGS[stats.builtAt].name}`;
+      ? "Ancre un Gargantua"
+      : `Requiert ${BUILDINGS[stats.builtAt].name}`;
   if (stats.requires && !hasBuilding(w, faction, stats.requires))
-    return `Needs ${BUILDINGS[stats.requires].name}`;
+    return `Requiert ${BUILDINGS[stats.requires].name}`;
   return null;
 }
 
@@ -177,12 +177,12 @@ const queueCap = (kind: UnitKind): number => (kind === "goliath" ? GOLIATH.queue
  * usual tech and bans — but no Assembly Bay needed (the Goliath is the barracks).
  */
 export function trainBlocker(w: World, g: Unit, kind: UnitKind): string | null {
-  if (!g.goliath || !trainableAt(w, kind)) return "Can't train that";
+  if (!g.goliath || !trainableAt(w, kind)) return "Production impossible";
   const banned = bannedBy(w, kind, g.faction);
   if (banned) return banned;
   const req = UNITS[kind].requires;
-  if (req && !hasBuilding(w, g.faction, req)) return `Needs ${BUILDINGS[req].name}`;
-  if (!isAnchored(g)) return "Anchor to train";
+  if (req && !hasBuilding(w, g.faction, req)) return `Requiert ${BUILDINGS[req].name}`;
+  if (!isAnchored(g)) return "Ancre-le pour produire";
   return null;
 }
 

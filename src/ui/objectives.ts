@@ -27,7 +27,7 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
   if (!bar || (o.uplinks.length === 0 && o.dropSites.length === 0)) return null;
   const el = document.createElement("div");
   el.className = "objpill";
-  el.innerHTML = `<span class="ol" title="Uplinks"><b>📡</b><span class="pips"></span></span><span class="lf" title="A free Condor is on its way" hidden></span><span class="od" title="Supply drops"></span>`;
+  el.innerHTML = `<span class="ol" title="Relais TSF"><b>📡</b><span class="pips"></span></span><span class="lf" title="Une Montgolfière gratuite est en route" hidden></span><span class="od" title="Largages de ravitaillement"></span>`;
   bar.appendChild(el);
   const pipsEl = el.querySelector<HTMLElement>(".pips")!;
   const dropEl = el.querySelector<HTMLElement>(".od")!;
@@ -62,7 +62,7 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
         .join("");
       const held = o.uplinks.filter((l) => l.owner === player);
       const unmanned = held.filter(idle).length;
-      el.title = `Uplinks: you hold ${held.length} of ${o.uplinks.length}${unmanned ? ` (${unmanned} with no troops on them: not paying)` : ""}`;
+      el.title = `Relais : tu en tiens ${held.length} sur ${o.uplinks.length}${unmanned ? ` (${unmanned} sans troupes : ne rapporte rien)` : ""}`;
     }
     // a free replacement Condor on its way (lifeline.ts)
     const due = spectator ? null : world.lifeline?.[player]?.due ?? null;

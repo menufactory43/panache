@@ -16,6 +16,7 @@
 import { BUILDINGS, UNITS } from "../sim/balance";
 import { unitBlocker } from "../sim/economy";
 import { unitSeenBy } from "../sim/infantry";
+import { PLURALS } from "../sim/lexicon";
 import { bannedBy } from "../sim/rules";
 import type { BuildingKind, Faction, UnitKind, World } from "../sim/types";
 
@@ -66,15 +67,8 @@ export const COUNTERS: Partial<Record<UnitKind | BuildingKind, Threat[]>> = {
   "sam-site": ["hornet", "wasp", "condor"]
 };
 
-const PLURAL: Partial<Record<Threat, string>> = {
-  "sam-site": "SAM Sites",
-  "flak-crawler": "Flak",
-  trooper: "Trooper Squads",
-  "rocket-squad": "Rocket Squads",
-  sniper: "Sniper Teams"
-};
-export const plural = (k: Threat): string =>
-  PLURAL[k] ?? `${k in UNITS ? UNITS[k as UnitKind].name : BUILDINGS[k as BuildingKind].name}s`;
+/** "Faucheux", "Batteries Ruggieri", "Escouades de pioupious" (sim/lexicon.ts). */
+export const plural = (k: Threat): string => PLURALS[k];
 
 const threatCost = (k: Threat): number => (k in UNITS ? UNITS[k as UnitKind].cost : BUILDINGS[k as BuildingKind].cost);
 
@@ -169,7 +163,7 @@ function ownValue(w: World, faction: Faction, kind: UnitKind | BuildingKind): nu
 export function adviceNote(a: Advice): string | null {
   if (a.threats.length === 0) return null;
   const [first, ...rest] = a.threats;
-  return `Counters ${plural(first!.kind)} (seen ×${first!.count})${rest.map((x) => `, ${plural(x.kind)} (×${x.count})`).join("")}`;
+  return `Contre : ${plural(first!.kind)} (vus ×${first!.count})${rest.map((x) => `, ${plural(x.kind)} (×${x.count})`).join("")}`;
 }
 
 /** Factory → tab: which build-bar tab an idle factory nudges. */

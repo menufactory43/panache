@@ -166,11 +166,11 @@ describe("orders", () => {
   it("refusals carry the HUD's reasons", () => {
     const w = start();
     const r = (o: unknown, side: Faction = "blue") => parseOrders(structuredClone(w), side, [o], "play").results[0]!;
-    expect(r({ produce: "mortar" })).toMatch(/refused: Needs Tech Lab/);
-    expect(r({ produce: "wasp" })).toMatch(/refused: Needs Airpad/);
+    expect(r({ produce: "mortar" })).toMatch(/refused: Requiert Polytechnique/);
+    expect(r({ produce: "wasp" })).toMatch(/refused: Requiert Parc de Chalais-Meudon/);
     expect(r({ build: "tech-lab" })).toMatch(/refused: Not enough scrap \(have 500, need 450\)|ok/);
-    expect(r({ build: "turret", at: [40, 10] })).toMatch(/refused: can't put a turret at 40,10: Too far from base/);
-    expect(r({ calldown: "barrage", at: [10, 10] })).toMatch(/refused: Barrage needs 60 charge/);
+    expect(r({ build: "turret", at: [40, 10] })).toMatch(/refused: can't put a turret at 40,10: Trop loin de la base/);
+    expect(r({ calldown: "barrage", at: [10, 10] })).toMatch(/refused: Feu roulant : 60 de charge requis/);
     expect(r({ attack: "army", target: 999 })).toMatch(/refused: #999 is not an enemy you can see or remember/);
     expect(r({ move: [12345], to: [3, 3] })).toMatch(/refused: #12345 is not one of your units/);
     expect(r({ fly: 3 })).toMatch(/refused: unknown order/);
@@ -359,9 +359,9 @@ describe("a pasted battle record", () => {
     a.advance();
     const json = JSON.stringify(a.record);
     expect(parseRecord(json).end).toEqual(a.record.end);
-    expect(() => parseRecord("{not json")).toThrow(/isn't JSON/);
-    expect(() => parseRecord('{"hello": 1}')).toThrow(/isn't a battle record/);
-    expect(() => parseRecord(json.replace('"map":"frostbite"', '"map":"atlantis"'))).toThrow(/"atlantis", a map this version of the game doesn't have/);
+    expect(() => parseRecord("{not json")).toThrow(/pas du JSON/);
+    expect(() => parseRecord('{"hello": 1}')).toThrow(/pas un enregistrement de bataille/);
+    expect(() => parseRecord(json.replace('"map":"frostbite"', '"map":"atlantis"'))).toThrow(/« atlantis », une carte absente de cette version du jeu/);
   });
 });
 
@@ -408,10 +408,10 @@ describe("a battle record linked by URL (?replay=)", () => {
   it("says what went wrong", async () => {
     const { fetchLinkedRecord } = await import("../src/game/replay");
     stub(() => respond("nope", 404));
-    await expect(fetchLinkedRecord("https://example.com/gone.json", base)).rejects.toThrow("Couldn't fetch https://example.com/gone.json: 404 Not Found");
+    await expect(fetchLinkedRecord("https://example.com/gone.json", base)).rejects.toThrow("Impossible de récupérer https://example.com/gone.json : 404 Not Found");
     vi.stubGlobal("fetch", () => Promise.reject(new TypeError("Failed to fetch")));
     await expect(fetchLinkedRecord("https://example.com/a.json", base)).rejects.toThrow(/CORS/);
-    await expect(fetchLinkedRecord("javascript:alert(1)", base)).rejects.toThrow(/Only http and https/);
+    await expect(fetchLinkedRecord("javascript:alert(1)", base)).rejects.toThrow(/Seuls les liens http et https/);
   });
 });
 

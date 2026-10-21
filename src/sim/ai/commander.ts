@@ -105,7 +105,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
   /** Steady macro: factory, airpad, tech, then an Assembly Bay; standard timing, the odd Condor drop. */
   balanced: {
     name: "balanced",
-    label: "Balanced",
+    label: "Équilibré",
     buildOrder: ["fab-plant", "airpad", "turret", "tech-lab", "assembly-bay", "depot", "turret", "radar"],
     harvesters: 4,
     assaultValue: 1700,
@@ -132,7 +132,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
   /** Airpad first: relentless wasp raids, bombers later; Rocket Squads when Mastodons show up. */
   airswarm: {
     name: "airswarm",
-    label: "Air Swarm",
+    label: "Essaim aérien",
     buildOrder: ["airpad", "fab-plant", "turret", "tech-lab", "depot", "airpad"],
     harvesters: 4,
     assaultValue: 1700,
@@ -161,7 +161,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
    */
   skyforce: {
     name: "skyforce",
-    label: "Skyforce",
+    label: "Force aérienne",
     buildOrder: ["airpad", "turret", "tech-lab", "airpad", "fab-plant", "depot", "sam-site"],
     harvesters: 4,
     assaultValue: 2000,
@@ -177,7 +177,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
    */
   ironclad: {
     name: "ironclad",
-    label: "Ironclad",
+    label: "Cuirassé",
     buildOrder: ["fab-plant", "turret", "tech-lab", "assembly-bay", "airpad", "depot", "fab-plant", "sam-site"],
     harvesters: 4,
     assaultValue: 1400,
@@ -196,7 +196,7 @@ export const DIFFICULTY: Record<
   }
 > = {
   easy: {
-    label: "Easy", interval: 3.5, incomeMult: 0.75, extraHarvesters: -1, assaultMult: 1.35, harass: false,
+    label: "Facile", interval: 3.5, incomeMult: 0.75, extraHarvesters: -1, assaultMult: 1.35, harass: false,
     // no Skyforce: its all-air wave at ~3:00 beat a scripted first-week player
     // 11 games in 15 on Easy (tools/beginner.ts); the other three lost 6 in 45
     pool: ["balanced", "rush", "airswarm"]
@@ -206,7 +206,7 @@ export const DIFFICULTY: Record<
     pool: ["balanced", "rush", "airswarm", "boom", "skyforce", "ironclad"]
   },
   hard: {
-    label: "Hard", interval: 1.2, incomeMult: 1.3, extraHarvesters: 1, assaultMult: 0.9, harass: true,
+    label: "Difficile", interval: 1.2, incomeMult: 1.3, extraHarvesters: 1, assaultMult: 0.9, harass: true,
     pool: ["balanced", "airswarm", "boom", "ironclad"]
   }
 };

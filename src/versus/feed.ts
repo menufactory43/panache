@@ -352,9 +352,9 @@ export class VersusFeed implements MatchFeed {
     this.onFrame = o.onFrame ?? null;
     this.env = { ...browserEnv(), ...o.env };
     this.local = r.local;
-    this.opponent = o.opponent ?? "your friend";
+    this.opponent = o.opponent ?? "ton ami";
     this.config = { mapId: r.mapId, mutators: r.setup.mutators.slice(), local: r.local };
-    this.labels = { [r.local]: "You", [OTHER[r.local]]: "Friend" } as Record<Faction, string>;
+    this.labels = { [r.local]: "Toi", [OTHER[r.local]]: "Ami" } as Record<Faction, string>;
     this.created = this.env.date().toISOString();
     this.world = setupWorld(r.setup);
     o.session.beginMatch(parseInt(worldHash(this.world), 16));
@@ -368,7 +368,7 @@ export class VersusFeed implements MatchFeed {
       resigning: () => this.resignAt !== null,
       rematch: () => this.exit("rematch"),
       menu: () => this.exit("menu"),
-      actions: () => (this.env.document ? [{ id: "duel-save", label: "Save battle", cls: "alt", on: () => this.save() }] : [])
+      actions: () => (this.env.document ? [{ id: "duel-save", label: "Enregistrer la bataille", cls: "alt", on: () => this.save() }] : [])
     };
 
     const env = this.env;

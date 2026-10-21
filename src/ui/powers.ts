@@ -7,6 +7,7 @@ import type { Controller } from "../game/controller";
 import { PLAYER } from "../game/controller";
 import type { TargetPreview } from "../game/render/powers";
 import { HINTS, type HintOffer } from "../game/hints";
+import { BELLE_EPOQUE } from "../game/three/theme";
 
 /**
  * The commander's calldown buttons: a stack of four round buttons on the
@@ -55,10 +56,10 @@ const COLOR: Record<PowerKind, string> = {
 };
 
 const ABOUT: Record<PowerKind, string> = {
-  barrage: `Barrage: 3 shells land in the circle ${POWERS.barrage.telegraph} s after you call it. Hits ground units and buildings. ${POWERS.barrage.cost} charge, ${POWERS.barrage.cooldown} s cooldown.`,
-  emp: `EMP: enemy units and buildings in the circle freeze for ${POWERS.emp.stun} s (no moving, shooting or production). ${POWERS.emp.cost} charge, ${POWERS.emp.cooldown} s cooldown.`,
-  droppod: `Drop Pod: 2 Stingers + a Flak Crawler land where you can see (2 Lancers + Flak with a Tech Lab). ${POWERS.droppod.cost} charge, ${POWERS.droppod.cooldown} s cooldown.`,
-  hammer: `Sky Hammer: an orbital strike after a ${POWERS.hammer.telegraph} s warning. Wrecks units; buildings lose ${POWERS.hammer.buildingDamage} HP. Online at ${POWERS.hammer.unlock / 60}:00, then every ${POWERS.hammer.cooldown / 60} min.`
+  barrage: `${POWER_NAMES.barrage} : 3 salves tombent dans le cercle ${POWERS.barrage.telegraph} s après l'appel. Touche unités terrestres et bâtiments. Coût ${POWERS.barrage.cost}, recharge ${POWERS.barrage.cooldown} s.`,
+  emp: `${POWER_NAMES.emp} : unités et bâtiments ennemis du cercle gelés ${POWERS.emp.stun} s (ni mouvement, ni tir, ni production). Coût ${POWERS.emp.cost}, recharge ${POWERS.emp.cooldown} s.`,
+  droppod: `${POWER_NAMES.droppod} : 2 Panhard + un Faucheux atterrissent là où tu as la vue (2 Hydroglisseurs + Faucheux avec Polytechnique). Coût ${POWERS.droppod.cost}, recharge ${POWERS.droppod.cooldown} s.`,
+  hammer: `${POWER_NAMES.hammer} : l'obus tombe de la Lune après ${POWERS.hammer.telegraph} s d'alerte. Détruit les unités ; les bâtiments perdent ${POWERS.hammer.buildingDamage} PV. Dispo à ${POWERS.hammer.unlock / 60}:00, puis toutes les ${POWERS.hammer.cooldown / 60} min.`
 };
 
 /** Inline icons (24×24, currentColor): crisp at any DPR, no emoji fonts needed. */
@@ -69,12 +70,12 @@ const ICON: Record<PowerKind, string> = {
   hammer: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.3 0h3.4l-.6 13.5h-2.2z" opacity=".85"/><path fill="currentColor" d="M12 12.2l1.7 3.4 3.8-1.2-2.2 3.3 3.3 2.1-4-.1-.6 3.9-2-3.4-2 3.4-.6-3.9-4 .1 3.3-2.1-2.2-3.3 3.8 1.2z"/></svg>`
 };
 
-/** "2 Wasps + a Raptor" */
+/** "2× Éole + Blériot" */
 function crewLabel(crew: UnitKind[]): string {
   const n = new Map<UnitKind, number>();
   for (const k of crew) n.set(k, (n.get(k) ?? 0) + 1);
   return [...n]
-    .map(([k, c]) => (c === 1 ? `a ${UNITS[k].name}` : `${c} ${UNITS[k].name}s`))
+    .map(([k, c]) => (c === 1 ? UNITS[k].name : `${c}× ${UNITS[k].name}`))
     .join(" + ");
 }
 
@@ -88,7 +89,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
   const el = document.createElement("div");
   el.className = "powers";
   el.innerHTML = `
-    <div class="pw-meter" title="Command meter: fills over time, and from your losses (and kills)"><i>⚡</i><b>0</b></div>
+    <div class="pw-meter" title="Jauge de commandement : se remplit avec le temps, tes pertes (et tes victimes)"><i>⚡</i><b>0</b></div>
     <div class="pw-grid">
       ${POWER_KINDS.map(
         (p) => `<button class="pw" data-p="${p}" aria-label="${POWER_NAMES[p]}" title="${POWER_NAMES[p]}" style="--c:${COLOR[p]}">
@@ -118,7 +119,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
     if (p !== "droppod") return ABOUT[p];
     const crew = podCrew(w, PLAYER);
     if (crew.join() === POWERS.droppod.units.join() || crew.join() === POWERS.droppod.techUnits.join()) return ABOUT[p];
-    return `Drop Pod: ${crewLabel(crew)} land where you can see. ${POWERS.droppod.cost} charge, ${POWERS.droppod.cooldown} s cooldown.`;
+    return `${POWER_NAMES.droppod} : ${crewLabel(crew)} atterrissent là où tu as la vue. Coût ${POWERS.droppod.cost}, recharge ${POWERS.droppod.cooldown} s.`;
   };
 
   const arm = (p: PowerKind | null) => {
@@ -199,7 +200,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
         state = "cool";
       } else {
         k = st.charge;
-        tag = p === "hammer" ? "READY" : String(st.cost);
+        tag = p === "hammer" ? "PRÊT" : String(st.cost);
         state = st.ready ? "ready" : "charging";
       }
       const key = `${state}|${tag}|${Math.round(k * 60)}`;
@@ -214,7 +215,9 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
     if (!hinted && anyReady())
       api.offerHint?.({
         id: "calldowns",
-        msg: "Your ⚡ meter can pay for a calldown. Tap a glowing button on the right, then the map.",
+        msg: BELLE_EPOQUE
+          ? "Ta jauge ⚡ peut payer un appui. Touche ⚡ en bas, un pouvoir lumineux, puis la carte."
+          : "Ta jauge ⚡ peut payer un appui. Touche un bouton lumineux à droite, puis la carte.",
         priority: HINTS.priority.calldowns,
         valid: anyReady,
         onShow: () => {
@@ -264,7 +267,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
       if (targeting) arm(null);
     },
     chip() {
-      return targeting ? { label: `Tap map: ${POWER_NAMES[targeting]}`, cancel: () => arm(null) } : null;
+      return targeting ? { label: `Touche la carte : ${POWER_NAMES[targeting]}`, cancel: () => arm(null) } : null;
     },
     update,
     destroy() {

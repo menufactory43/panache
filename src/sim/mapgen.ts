@@ -124,6 +124,8 @@ interface Flavour {
   /** Words for the name and blurb. */
   names: string[];
   water: string;
+  /** Two of `water` (Twin Rivers). */
+  waters: string;
   lake: string;
   bridge: string;
 }
@@ -131,46 +133,43 @@ interface Flavour {
 const FLAVOURS: Record<Biome, Flavour> = {
   temperate: {
     river: [3.6, 4.8], bank: Terrain.Rough, bankW: 2.6, rim: 0, fords: true, forest: 1, rough: 0.6, rock: 0.8,
-    names: ["Willow", "Bracken", "Thornfield", "Greenwater", "Meadow", "Hawthorn", "Elder", "Foxglove"],
-    water: "river", lake: "lake", bridge: "stone"
+    names: ["des Saules", "des Fougères", "des Ronces", "de l'Eau-Verte", "des Prés", "de l'Aubépine", "du Sureau", "des Digitales"],
+    water: "une rivière", waters: "deux rivières", lake: "un lac", bridge: "en pierre"
   },
   desert: {
     river: [2.6, 3.4], bank: Terrain.Forest, bankW: 1.8, rim: 0, fords: true, forest: 0.25, rough: 1.3, rock: 1.5,
-    names: ["Dune", "Sunscorch", "Mirage", "Sandstone", "Dustwind", "Saltpan", "Sirocco", "Amber"],
-    water: "wadi", lake: "oasis", bridge: "timber"
+    names: ["des Dunes", "du Soleil", "du Mirage", "du Grès", "des Vents", "des Salines", "du Sirocco", "d'Ambre"],
+    water: "un oued", waters: "deux oueds", lake: "une oasis", bridge: "en bois"
   },
   arctic: {
     river: [4, 5], bank: Terrain.Rough, bankW: 1.4, rim: 2.2, fords: true, forest: 0.85, rough: 0.6, rock: 0.8,
-    names: ["Glacier", "Frost", "Rime", "Whiteout", "Icefang", "Snowdrift", "Hoarfrost", "Boreal"],
-    water: "icy river", lake: "frozen lake", bridge: "iron"
+    names: ["du Glacier", "du Givre", "du Frimas", "du Blizzard", "des Crocs de glace", "des Congères", "de la Gelée", "du Grand Nord"],
+    water: "une rivière glacée", waters: "deux rivières glacées", lake: "un lac gelé", bridge: "en fer"
   },
   volcanic: {
     river: [3.4, 4.4], bank: Terrain.Rough, bankW: 3.2, rim: 0, fords: false, forest: 0.3, rough: 0.9, rock: 1.6,
-    names: ["Cinder", "Ash", "Magma", "Obsidian", "Brimstone", "Scorch", "Ember", "Basalt"],
-    water: "lava river", lake: "lava lake", bridge: "steel"
+    names: ["des Escarbilles", "des Cendres", "du Magma", "d'Obsidienne", "du Soufre", "du Brasier", "des Braises", "du Basalte"],
+    water: "une rivière de lave", waters: "deux rivières de lave", lake: "un lac de lave", bridge: "en acier"
   },
   tropical: {
     river: [4.6, 5.8], bank: Terrain.Forest, bankW: 2.4, rim: 1.3, fords: true, forest: 1.7, rough: 0.4, rock: 0.6,
-    names: ["Mangrove", "Jade", "Monsoon", "Lagoon", "Coral", "Orchid", "Parrot", "Banyan"],
-    water: "jungle river", lake: "lagoon", bridge: "timber"
+    names: ["des Mangroves", "de Jade", "de la Mousson", "du Lagon", "du Corail", "des Orchidées", "des Perroquets", "des Banians"],
+    water: "une rivière de jungle", waters: "deux rivières de jungle", lake: "un lagon", bridge: "en bois"
   }
 };
 
 const NOUNS: Record<Layout, string[]> = {
-  crossing: ["Crossing", "Divide", "Run", "Reach"],
-  "twin-rivers": ["Twins", "Moats", "Sisters", "Rings"],
-  lake: ["Basin", "Mere", "Hollow", "Bowl"],
-  canyon: ["Canyon", "Gorge", "Rift", "Spine"],
-  fork: ["Fork", "Delta", "Branches", "Split"],
-  badlands: ["Badlands", "Wastes", "Mesas", "Breaks"]
+  crossing: ["Passage", "Partage", "Couloir", "Bief"],
+  "twin-rivers": ["Jumelles", "Douves", "Sœurs", "Anneaux"],
+  lake: ["Bassin", "Étang", "Creux", "Cuvette"],
+  canyon: ["Canyon", "Gorge", "Faille", "Échine"],
+  fork: ["Fourche", "Delta", "Bras", "Embranchement"],
+  badlands: ["Badlands", "Friches", "Mesas", "Ravines"]
 };
-
-/** "a" or "an", for the biome words. */
-const an = (s: string): string => `${/^[aeiou]/.test(s) ? "an" : "a"} ${s}`;
 
 const cap = (s: string): string => s[0]!.toUpperCase() + s.slice(1);
 
-const numWord = (n: number): string => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight"][n] ?? String(n);
+const numWord = (n: number): string => ["aucun", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit"][n] ?? String(n);
 
 interface River {
   pts: Pt[];
@@ -256,7 +255,8 @@ function generate(biome: Biome, seed: number): MapDef {
   const top = stream(hash32(seed, saltOf("map")));
   const layout = LAYOUTS[Math.floor(top() * LAYOUTS.length)]!;
   const fl = FLAVOURS[biome];
-  const name = `${fl.names[Math.floor(top() * fl.names.length)]} ${NOUNS[layout][Math.floor(top() * 4)]}`;
+  const of = fl.names[Math.floor(top() * fl.names.length)];
+  const name = `${NOUNS[layout][Math.floor(top() * 4)]} ${of}`;
   const hq: Pt = [12 + Math.floor(top() * 7), 84 + Math.floor(top() * 7)];
   const def: MapDef = {
     id: randomMapId(biome, seed),
@@ -284,17 +284,17 @@ function generate(biome: Biome, seed: number): MapDef {
 }
 
 const LEADS: Record<Layout, (f: Flavour) => string> = {
-  crossing: (f) => `${cap(an(f.water))} cuts the map in two`,
-  "twin-rivers": (f) => `Twin ${f.water}s moat each base off a central heartland`,
-  lake: (f) => `${cap(an(f.lake))} fills the centre and drains to the corners`,
-  canyon: () => `A rock spine splits the field, a stream at its foot`,
-  fork: (f) => `${cap(an(f.water))} forks round two cut-off pockets`,
-  badlands: (f) => `Mesas break the plain, ${an(f.water)} winds between`
+  crossing: (f) => `${cap(f.water)} coupe la carte en deux`,
+  "twin-rivers": (f) => `${cap(f.waters)} isolent chaque base du cœur de la carte`,
+  lake: (f) => `${cap(f.lake)} occupe le centre et s'écoule vers les coins`,
+  canyon: () => `Une échine rocheuse fend le terrain, un ruisseau à son pied`,
+  fork: (f) => `${cap(f.water)} se divise autour de deux poches isolées`,
+  badlands: (f) => `Des mesas brisent la plaine, ${f.water} serpente entre elles`
 };
 
 function blurbOf(layout: Layout, fl: Flavour, f: Grown["facts"]): string {
-  const fords = f.fords ? `, ${numWord(f.fords)} ford${f.fords > 1 ? "s" : ""}` : "";
-  return `${LEADS[layout](fl)}: ${numWord(f.bridges)} ${fl.bridge} bridge${f.bridges === 1 ? "" : "s"}${fords}${f.extra}; crystals ${f.crystals}.`;
+  const fords = f.fords ? `, ${numWord(f.fords)} gué${f.fords > 1 ? "s" : ""}` : "";
+  return `${LEADS[layout](fl)}\u00a0: ${numWord(f.bridges)} pont${f.bridges > 1 ? "s" : ""} ${fl.bridge}${fords}${f.extra}\u00a0; cristaux ${f.crystals}.`;
 }
 
 /** One generation pass on a scratch world. */
@@ -461,9 +461,12 @@ function grow(def: MapDef, layout: Layout, sub: number, force: boolean): Grown {
     p.blob(C, C, r(2.6, 3.4), G, 0.15, [Terrain.Water, Terrain.Deep]);
     const a = r(0.15, 0.35) * Math.PI;
     if (bridgeAt([C + cos(a) * 3.2, C - sin(a) * 3.2], [sin(a), cos(a)], lakeR + 6)) bridges += 2;
-    facts.extra = ", a causeway to the island";
+    facts.extra = ", une chaussée vers l'île";
   }
-  if (spine) facts.extra = `, ${numWord(passes.reduce((n, q) => n + (q[0] === C ? 1 : 2), 0))} passes through the rock`;
+  if (spine) {
+    const n = passes.reduce((n, q) => n + (q[0] === C ? 1 : 2), 0);
+    facts.extra = `, ${numWord(n)} passage${n > 1 ? "s" : ""} dans la roche`;
+  }
   facts.bridges = bridges;
 
   // ---- 3. cover: rock outcrops and ridges, woods and rough ground by noise
@@ -568,7 +571,7 @@ function grow(def: MapDef, layout: Layout, sub: number, force: boolean): Grown {
   if (cOpen > 0.9 && dB[Math.floor(C) * S + Math.floor(C)]! >= 0 && rnd() < 0.5) {
     p.blob(C, C, 1.5, Terrain.Crystal, 0.2, OPEN);
     fields.push([C, C]);
-    facts.crystals = "at the centre";
+    facts.crystals = "au centre";
   }
   const nCrystal = facts.crystals ? 1 : 1 + Math.floor(rnd() * 2);
   for (let k = 0; k < nCrystal; k++)
@@ -577,8 +580,8 @@ function grow(def: MapDef, layout: Layout, sub: number, force: boolean): Grown {
       r(1.2, 1.5),
       Terrain.Crystal
     );
-  facts.crystals ||= ends.length ? "by the crossings" : "out in the open";
-  if (facts.crystals !== "at the centre" && ends.length && fields.slice(-nCrystal).every((f) => nearBridge(f[0], f[1]) > 10)) facts.crystals = "out in no-man's-land";
+  facts.crystals ||= ends.length ? "près des passages" : "à découvert";
+  if (facts.crystals !== "au centre" && ends.length && fields.slice(-nCrystal).every((f) => nearBridge(f[0], f[1]) > 10)) facts.crystals = "en plein no man's land";
 
   // ---- 6. roads: from the HQ down the ground path to the two nearest bridgeheads
   const at = (e: Pt) => dB[Math.floor(e[1]) * S + Math.floor(e[0])] ?? -1;

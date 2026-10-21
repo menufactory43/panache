@@ -72,8 +72,8 @@ describe("veteran callsigns", () => {
     u.kills = 9;
     const name = callsignOf(w, u);
     expect(callsignOf(w, u)).toBe(name);
-    expect(heroLine(w, u)).toBe(`★★ ${name} · Lancer · 9 kills`);
-    expect(heroShort(w, u)).toBe(`${name} (Lancer, 9 kills)`);
+    expect(heroLine(w, u)).toBe(`★★ ${name} · Hydroglisseur · 9 élim.`);
+    expect(heroShort(w, u)).toBe(`${name} (Hydroglisseur, 9 élim.)`);
   });
 });
 
@@ -200,7 +200,7 @@ describe("chronicle analysis", () => {
     expect(turningPoint(steady)).toBeNull();
     expect(pulledAway(steady)).toMatchObject({ t: 50, leader: "red" });
     const m = moments({ samples: steady, deaths: [], refs: { width: 48, height: 48, hq: {} } }, "blue");
-    expect(m[0]).toMatchObject({ kind: "lead", title: "Pulled ahead", tone: "bad" });
+    expect(m[0]).toMatchObject({ kind: "lead", title: "Échappée", tone: "bad" });
   });
 
   it("phrases moments for the player and for spectators", () => {
@@ -214,15 +214,15 @@ describe("chronicle analysis", () => {
     for (let t = 60; t <= 120; t += 5) s.push(sample(t, 1500, 400));
     const mine = moments({ samples: s, deaths, refs }, "blue");
     expect(mine.map((m) => m.kind)).toEqual(["first-blood", "turn", "battle"]);
-    expect(mine[0]!.text).toBe("Your Wasp took out their Harvester");
+    expect(mine[0]!.text).toBe("Ton Éole a éliminé leur Fardier");
     expect(mine[0]!.tone).toBe("good");
-    expect(mine[2]!.text).toBe("Mid-map: you lost 1, they lost 4");
-    expect(mine[1]!.text).toMatch(/^Your army overtook theirs/);
+    expect(mine[2]!.text).toBe("Au centre : tu as perdu 1, l'ennemi a perdu 4");
+    expect(mine[1]!.text).toMatch(/^Ton armée a dépassé la leur/);
     const spec = moments({ samples: s, deaths, refs }, null);
-    expect(spec[0]!.text).toBe("Blue's Wasp took out Red's Harvester");
+    expect(spec[0]!.text).toBe("L'Éole bleu a éliminé le Fardier rouge");
     expect(spec.every((m) => m.tone === "neutral")).toBe(true);
-    expect(placeName(refs, 8, 40, "blue")).toBe("at your base");
-    expect(placeName(refs, 24, 4, null)).toBe("in the north");
+    expect(placeName(refs, 8, 40, "blue")).toBe("à ta base");
+    expect(placeName(refs, 24, 4, null)).toBe("au nord");
   });
 
   it("picks one actionable tip by rule", () => {
@@ -232,20 +232,20 @@ describe("chronicle analysis", () => {
       firstBuilt: { blue: { "tech-lab": 200 }, red: {} },
       deaths: [], samples: [], factories: { blue: { total: 100, idleRich: 5 }, red: { total: 100, idleRich: 0 } }
     };
-    expect(pickTip(base)).toMatch(/8 aircraft.*Flak/);
+    expect(pickTip(base)).toMatch(/8 aéronefs.*DCA/);
     const lostHarv = { ...base, built: { blue: { flak: 0, "flak-crawler": 4 }, red: {} }, deaths: [...Array(6)].map((_, i) => death(i, 5, 5, "blue", { unitKind: "harvester" })) };
-    expect(pickTip(lostHarv)).toMatch(/lost 6 harvesters/);
+    expect(pickTip(lostHarv)).toMatch(/perdu 6 Fardiers/);
     const idle = { ...base, built: { blue: { "flak-crawler": 3 }, red: {} }, factories: { blue: { total: 100, idleRich: 45 }, red: { total: 0, idleRich: 0 } } };
-    expect(pickTip(idle)).toMatch(/idle .* 45%/);
+    expect(pickTip(idle)).toMatch(/arrêt .* 45 %/);
     const won = { ...base, won: true, built: { blue: { "flak-crawler": 3 }, red: {} } };
-    expect(pickTip(won)).toMatch(/harder AI/);
+    expect(pickTip(won)).toMatch(/IA plus coriace/);
     // a swarm of robot infantry met with no splash or Snipers; Mastodons met with no Rocket Squads
     const swarm = { ...base, built: { blue: { "flak-crawler": 3, mastodon: 6 }, red: { trooper: 7, "rocket-squad": 3 } } };
-    expect(pickTip(swarm)).toMatch(/10 infantry squads.*Mortars/);
-    expect(pickTip({ ...swarm, built: { ...swarm.built, blue: { "flak-crawler": 3, mortar: 2 } } })).not.toMatch(/infantry/);
+    expect(pickTip(swarm)).toMatch(/10 escouades d'infanterie.*Canons de 75/);
+    expect(pickTip({ ...swarm, built: { ...swarm.built, blue: { "flak-crawler": 3, mortar: 2 } } })).not.toMatch(/infanterie/);
     const mastodons = { ...base, built: { blue: { "flak-crawler": 3 }, red: { mastodon: 5 } } };
-    expect(pickTip(mastodons)).toMatch(/5 Mastodons.*Rocket Squads/);
-    expect(pickTip({ ...mastodons, built: { ...mastodons.built, blue: { "flak-crawler": 3, "rocket-squad": 3 } } })).not.toMatch(/Mastodons/);
+    expect(pickTip(mastodons)).toMatch(/5 Creusot.*Artificiers/);
+    expect(pickTip({ ...mastodons, built: { ...mastodons.built, blue: { "flak-crawler": 3, "rocket-squad": 3 } } })).not.toMatch(/Creusot/);
   });
 
   it("records a real match: samples, kills, and an MVP that matches the best unit", () => {
@@ -273,7 +273,7 @@ describe("chronicle analysis", () => {
   });
 });
 
-describe("chronicle: squads riding in a Condor", () => {
+describe("chronicle: squads riding in a Montgolfière", () => {
   it("still count toward the army, and a veteran aboard can still be the MVP", () => {
     const w = createMapWorld("frostbite", { seed: 3 });
     const c = new Chronicle(w);
@@ -317,7 +317,7 @@ describe("promotion titles", () => {
     hp.handleFx({ type: "rankUp", id: sniper.id });
     expect(titles).toEqual([]);
     hp.handleFx({ type: "rankUp", id: mastodon.id });
-    expect(titles).toEqual(["HARDENED"]);
+    expect(titles).toEqual(["AGUERRI"]);
   });
 });
 
@@ -329,8 +329,8 @@ describe("after-action report stats", () => {
     const blue = { ...core, scrapSalvaged: 240, uplinkSeconds: 40, weirdThing: 3, flag: true } as unknown as FactionStats;
     const red = { ...core, scrapSalvaged: 80 } as unknown as FactionStats;
     const rows = extraStatRows(blue, red);
-    expect(rows[0]).toEqual({ label: "Uplink time (s)", a: 40, b: 0 });
-    expect(rows.some((r) => r.label === "Scrap salvaged")).toBe(false);
+    expect(rows[0]).toEqual({ label: "Temps de liaison (s)", a: 40, b: 0 });
+    expect(rows.some((r) => r.label === "Charbon récupérée")).toBe(false);
     expect(rows.find((r) => r.label === "Weird thing")).toEqual({ label: "Weird thing", a: 3, b: 0 });
     expect(rows.some((r) => r.label === "Flag")).toBe(false);
   });

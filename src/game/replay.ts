@@ -77,7 +77,7 @@ export class ReplayFeed implements MatchFeed {
     // a saved sound duel (src/versus/records.ts names its seats "sound-duel:host" and "sound-duel:guest"): the phone
     // and the opener as the game names them, "Host phone · Air Wing"; the record itself stays as it is
     const phone = SOUND_DUEL_SEAT.exec(player)?.[1];
-    if (phone) return `${phone === "host" ? "Host" : "Guest"} phone${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
+    if (phone) return `Téléphone ${phone === "host" ? "hôte" : "invité"}${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
     return `${player.replace(/^(openai|anthropic|llm):/, "")}${opener ? ` · ${opener}` : ""}`;
   }
 
@@ -131,7 +131,7 @@ export class ReplayFeed implements MatchFeed {
     const want = this.hashes.get(w.tick);
     if (want !== undefined && this.divergedAt === null && worldHash(w) !== want) {
       this.divergedAt = w.tick;
-      this.scene?.alert(`⚠ This replay diverged at ${clock(w.tick)}`);
+      this.scene?.alert(`⚠ Ce replay a divergé à ${clock(w.tick)}`);
     }
     if (w.tick % KEYFRAME_TICKS === 0 && !this.keyframes.has(w.tick)) this.keyframes.set(w.tick, structuredClone(w));
     const radio = this.record.radio;
@@ -192,12 +192,12 @@ export function parseRecord(text: string): BattleRecord {
   try {
     r = JSON.parse(text) as BattleRecord;
   } catch {
-    throw new Error("That isn't JSON: paste the whole .json file a battle wrote to battles/");
+    throw new Error("Ce n'est pas du JSON : colle tout le fichier .json écrit par une bataille dans battles/");
   }
   if (!r || typeof r !== "object" || r.v !== 1 || !Array.isArray(r.turns) || !Array.isArray(r.hashes) || !r.seats)
-    throw new Error("That isn't a battle record (tools/arena.ts and llm battledrones write them to battles/)");
-  if (!isKnownMapId(r.map)) throw new Error(`This battle was played on "${r.map}", a map this version of the game doesn't have`);
-  if (!r.end && !r.tick) throw new Error("This battle hasn't been played past its first round yet");
+    throw new Error("Ce n'est pas un enregistrement de bataille (tools/arena.ts et llm battledrones les écrivent dans battles/)");
+  if (!isKnownMapId(r.map)) throw new Error(`Cette bataille s'est jouée sur « ${r.map} », une carte absente de cette version du jeu`);
+  if (!r.end && !r.tick) throw new Error("Cette bataille n'a pas encore dépassé son premier tour");
   return r;
 }
 
@@ -228,9 +228,9 @@ export async function fetchLinkedRecord(ref: string, base = location.href): Prom
   try {
     url = new URL(ref.trim(), base);
   } catch {
-    throw new Error(`"${ref}" isn't a URL`);
+    throw new Error(`« ${ref} » n'est pas une URL`);
   }
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("Only http and https links can be loaded");
+  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("Seuls les liens http et https peuvent être chargés");
   const page = (url.origin + url.pathname).replace(/\/$/, "");
   const gist = GIST.exec(page);
   if (gist) {
@@ -238,10 +238,10 @@ export async function fetchLinkedRecord(ref: string, base = location.href): Prom
     // with the owner in the link, the raw file needs no API call (GitHub allows 60 an hour per address); it's the Gist's first file
     if (owner) return fetchText(`https://gist.githubusercontent.com/${owner}/${id}/raw/${revision ?? ""}`);
     const res = await fetch(`https://api.github.com/gists/${id}${revision ? `/${revision}` : ""}`).catch(() => null);
-    if (!res?.ok) throw new Error(`Couldn't look up Gist ${id} with GitHub's API${res ? ` (${res.status})` : ""}`);
+    if (!res?.ok) throw new Error(`Impossible de trouver le Gist ${id} via l'API GitHub${res ? ` (${res.status})` : ""}`);
     const files = Object.values(((await res.json()) as { files?: Record<string, { filename: string; raw_url: string }> }).files ?? {});
     const file = files.find((f) => /\.json$/i.test(f.filename)) ?? files[0];
-    if (!file) throw new Error(`Gist ${id} has no files`);
+    if (!file) throw new Error(`Le Gist ${id} n'a aucun fichier`);
     return fetchText(file.raw_url);
   }
   const blob = GITHUB_FILE.exec(page);
@@ -254,9 +254,9 @@ async function fetchText(url: string): Promise<string> {
     res = await fetch(url);
   } catch {
     // (to a page, a server that doesn't allow cross-origin reads looks just like no network)
-    throw new Error(`Couldn't fetch ${url}: no network, or its server doesn't allow other sites to read it (CORS)`);
+    throw new Error(`Impossible de récupérer ${url} : pas de réseau, ou son serveur interdit la lecture par d'autres sites (CORS)`);
   }
-  if (!res.ok) throw new Error(`Couldn't fetch ${url}: ${res.status} ${res.statusText}`.trim());
+  if (!res.ok) throw new Error(`Impossible de récupérer ${url} : ${res.status} ${res.statusText}`.trim());
   return res.text();
 }
 

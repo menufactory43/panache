@@ -156,25 +156,25 @@ export type RigErrorReason = "no-audio" | "no-worklet" | "mic-refused" | "no-mic
 
 /** What the lobby says for each reason ("rate" carries the modem's own sentence). */
 export const RIG_MESSAGES: Readonly<Record<Exclude<RigErrorReason, "rate">, string>> = {
-  "no-audio": "This browser can't play the sound link",
-  "no-worklet": "This browser can't run the sound link",
-  "mic-refused": "Microphone refused",
-  "no-mic": "No microphone available: close other apps using it and try again",
-  update: "A new version is ready: reload this phone (and your friend's)"
+  "no-audio": "Ce navigateur ne peut pas jouer la liaison sonore",
+  "no-worklet": "Ce navigateur ne peut pas faire tourner la liaison sonore",
+  "mic-refused": "Micro refusé",
+  "no-mic": "Aucun micro disponible : ferme les autres applis qui l'utilisent et réessaie",
+  update: "Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)"
 };
 
 /** What to do about a reason, in a line: under the lobby's error, and the reconnect cover's after a failed tap. */
 export const RIG_ADVICE: Readonly<Partial<Record<RigErrorReason, string>>> = {
-  "mic-refused": "Allow the microphone for this site in the browser's settings, then try again.",
-  rate: "Try again with headphones and Bluetooth disconnected.",
-  "no-audio": "Try another browser.",
-  "no-worklet": "Try another browser."
+  "mic-refused": "Autorise le micro pour ce site dans les réglages du navigateur, puis réessaie.",
+  rate: "Réessaie avec le casque et le Bluetooth déconnectés.",
+  "no-audio": "Essaie un autre navigateur.",
+  "no-worklet": "Essaie un autre navigateur."
 };
 
 export class RigError extends Error {
   constructor(
     readonly reason: RigErrorReason,
-    message: string = reason === "rate" ? "This phone's audio can't carry the sound link" : RIG_MESSAGES[reason]
+    message: string = reason === "rate" ? "L'audio de ce téléphone ne peut pas porter la liaison sonore" : RIG_MESSAGES[reason]
   ) {
     super(message);
     this.name = "RigError";
@@ -563,12 +563,12 @@ export class Rig {
       : req!.then(async (s) => {
           if (this.st === "closed") {
             for (const t of s.getTracks()) t.stop();
-            throw new RigError("no-audio", "The rig was closed");
+            throw new RigError("no-audio", "Le dispositif audio a été fermé");
           }
           s = await this.settleRate(s);
           if (this.shut()) {
             for (const t of s.getTracks()) t.stop();
-            throw new RigError("no-audio", "The rig was closed");
+            throw new RigError("no-audio", "Le dispositif audio a été fermé");
           }
           this.useStream(s);
         });
@@ -647,7 +647,7 @@ export class Rig {
    */
   async createLink(cfg: LinkConfig): Promise<RigLink> {
     await this.mic;
-    if (this.shut()) throw new RigError("no-audio", "The rig was closed");
+    if (this.shut()) throw new RigError("no-audio", "Le dispositif audio a été fermé");
     const ctx = this.ctx;
     const full: ModemConfig = { ...cfg, sampleRate: ctx.sampleRate };
     const problem = rateProblem(ctx.sampleRate, full.plan) ?? this.micRateProblem(full.plan);
@@ -658,7 +658,7 @@ export class Rig {
     } catch {
       throw new RigError("update");
     }
-    if (this.shut()) throw new RigError("no-audio", "The rig was closed");
+    if (this.shut()) throw new RigError("no-audio", "Le dispositif audio a été fermé");
     if (this.context !== ctx) return this.createLink(cfg);
     this.link?.close();
     const t = this.env.createTransport(ctx, full, { clock: this.env.now });
@@ -863,7 +863,7 @@ export class Rig {
   private micRateProblem(plan: BandPlan, s: MediaStream | null = this.stream): string | null {
     const sr = s ? micRate(s) : null;
     if (sr === null || sr >= MIN_RATE[plan]) return null;
-    return `This phone's microphone runs at ${sr} Hz, which the sound link can't use`;
+    return `Le micro de ce téléphone tourne à ${sr} Hz, inutilisable pour la liaison sonore`;
   }
 
   /** micRateProblem for the live link's plan (null when there is no live link). */

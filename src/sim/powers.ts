@@ -25,10 +25,10 @@ import { atan2, cos, hypot, sin } from "./fmath";
 export const POWER_KINDS: PowerKind[] = ["barrage", "emp", "droppod", "hammer"];
 
 export const POWER_NAMES: Record<PowerKind, string> = {
-  barrage: "Barrage",
-  emp: "EMP",
-  droppod: "Drop Pod",
-  hammer: "Sky Hammer"
+  barrage: "Feu roulant",
+  emp: "Fée Électricité",
+  droppod: "Obus-capsule",
+  hammer: "Obus Méliès"
 };
 
 const FACTIONS: Faction[] = ["blue", "red"];
@@ -104,14 +104,14 @@ const clock = (t: number) => {
 
 /** Why the power can't be fired at all right now (charge, cooldown, lock), or null. */
 export function powerBlocker(w: World, faction: Faction, power: PowerKind): string | null {
-  if (w.winner) return "The battle is over";
-  if (rulesOf(w).noCalldowns) return "No calldowns in this match";
-  if (!hqOf(w, faction) && !hasGoliath(w, faction)) return "Calldowns need an HQ or a Goliath";
-  if (power === "droppod" && podCrew(w, faction).length === 0) return "Drop Pod is disabled in this match";
+  if (w.winner) return "La bataille est terminée";
+  if (rulesOf(w).noCalldowns) return "Pas de frappes dans cette partie";
+  if (!hqOf(w, faction) && !hasGoliath(w, faction)) return "Frappes : il faut un GQG ou un Gargantua";
+  if (power === "droppod" && podCrew(w, faction).length === 0) return "Obus-capsule désactivé dans cette partie";
   const st = powerStatus(w, faction, power);
-  if (st.locked > 0) return `Sky Hammer comes online at ${clock(ticks(POWERS.hammer.unlock))}`;
-  if (st.cooldown > 0) return `${POWER_NAMES[power]} recharging: ${Math.ceil(st.cooldown / TICK_RATE)} s`;
-  if (st.charge < 1) return `${POWER_NAMES[power]} needs ${st.cost} charge (${Math.floor(w.powers.meter[faction])})`;
+  if (st.locked > 0) return `Obus Méliès disponible à ${clock(ticks(POWERS.hammer.unlock))}`;
+  if (st.cooldown > 0) return `${POWER_NAMES[power]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`;
+  if (st.charge < 1) return `${POWER_NAMES[power]} : ${st.cost} de charge requis (${Math.floor(w.powers.meter[faction])})`;
   return null;
 }
 
@@ -119,12 +119,12 @@ export function powerBlocker(w: World, faction: Faction, power: PowerKind): stri
 export function targetBlocker(w: World, faction: Faction, power: PowerKind, x: number, y: number): string | null {
   const tx = Math.floor(x);
   const ty = Math.floor(y);
-  if (!inBounds(w, tx, ty)) return "Off the map";
-  if (!isExplored(w, faction, tx, ty)) return "Can't target unexplored ground";
+  if (!inBounds(w, tx, ty)) return "Hors de la carte";
+  if (!isExplored(w, faction, tx, ty)) return "Zone inexplorée : cible impossible";
   if (power === "droppod") {
-    if (!isVisible(w, faction, tx, ty)) return "Drop Pods need eyes on the landing zone";
-    if (!passable(w, tx, ty, "ground")) return "Drop Pods need open ground to land on";
-    if (!onHomeLand(w, faction, tx, ty)) return "Drop Pods can't land on islands: fly troops in by Condor";
+    if (!isVisible(w, faction, tx, ty)) return "Obus-capsule : zone d'atterrissage non visible";
+    if (!passable(w, tx, ty, "ground")) return "Obus-capsule : il faut un sol dégagé";
+    if (!onHomeLand(w, faction, tx, ty)) return "Obus-capsule impossible sur une île : amène tes troupes en Montgolfière";
   }
   return null;
 }

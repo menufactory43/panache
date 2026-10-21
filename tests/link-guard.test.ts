@@ -429,7 +429,7 @@ describe("link mode", () => {
     expect(speak).toHaveBeenCalledTimes(1);
     radioCheck();
     expect(speak).toHaveBeenCalledTimes(2);
-    expect((speak.mock.calls[1]![0] as { text: string }).text).toBe("Radio check");
+    expect((speak.mock.calls[1]![0] as { text: string }).text).toBe("Essai radio");
   });
 
   it("is never saved", () => {

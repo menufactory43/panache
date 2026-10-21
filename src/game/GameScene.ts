@@ -43,6 +43,7 @@ import { createPowerPanel, type PowerPanel } from "../ui/powers";
 import { createObjectivePill, type ObjectivePill } from "../ui/objectives";
 import { mountCineToggle, type CineToggle } from "../ui/cinecam";
 import { fitZoom, homeBox, hudInsets, startBox } from "./framing";
+import { BELLE_EPOQUE } from "./three/theme";
 import { Stage } from "./three/stage";
 import { Terrain3D, type TerrainArt } from "./three/terrain";
 import { Particles } from "./three/particles";
@@ -105,9 +106,9 @@ export type AbortReason = "desync" | "left" | "lost";
 
 /** The end screen's head for each abort (SOUND-DUEL.md "Hash trail", "Leaving"). */
 const ABORT_HEAD: Record<AbortReason, { title: string; cls: "lose"; sub: string }> = {
-  desync: { title: "OUT OF SYNC", cls: "lose", sub: "No contest: the two phones' games drifted apart" },
-  left: { title: "FRIEND LEFT", cls: "lose", sub: "No result" },
-  lost: { title: "SIGNAL LOST", cls: "lose", sub: "You left · No result" }
+  desync: { title: "DÉSYNCHRONISÉ", cls: "lose", sub: "Sans résultat : les deux parties ont divergé" },
+  left: { title: "AMI PARTI", cls: "lose", sub: "Sans résultat" },
+  lost: { title: "SIGNAL PERDU", cls: "lose", sub: "Tu es parti · Sans résultat" }
 };
 
 /**
@@ -255,6 +256,7 @@ export class GameScene {
     rig.bounds = { x0: -EDGE_PAD, y0: -EDGE_PAD, x1: this.world.width + EDGE_PAD, y1: this.world.height + EDGE_PAD };
     const v = this.view;
     this.fx = new Fx(v, this.world.biome, (x, y) => this.earshot(x, y));
+    this.fx.sourceKind = (id) => this.world.units.get(id)?.kind ?? this.world.buildings.get(id)?.kind ?? null;
     this.entities = new EntityRenderer(
       v,
       this.world,
@@ -387,10 +389,10 @@ export class GameScene {
         : this.blueAi
         ? {
             blue: `${this.blueAi.strategy.label}${openers.blue ? ` · ${OPENERS[openers.blue].name}` : ""}`,
-            red: !this.ai ? "the waves" : `${this.ai.strategy.label}${openers.red ? ` · ${OPENERS[openers.red].name}` : ""}`
+            red: !this.ai ? "les vagues" : `${this.ai.strategy.label}${openers.red ? ` · ${OPENERS[openers.red].name}` : ""}`
           }
         : null,
-      enemy: { strategy: this.ai?.strategy.label ?? "Last Stand", difficulty: gameMode.difficulty },
+      enemy: { strategy: this.ai?.strategy.label ?? "Survie", difficulty: gameMode.difficulty },
       cardNote: (k) => this.command?.cardNote(k) ?? null,
       busy: () => this.holdStart || !!this.finale,
       uncharted,
@@ -454,12 +456,12 @@ export class GameScene {
     if (focus && !gameMode.op) this.frameStart(); // an op opens on its own focus point
     if (this.holdStart) {
       const picker = showOpenerPicker({
-        context: `${uncharted ? "Uncharted" : mapById(gameMode.mapId).name} · vs ${this.ai ? `${this.ai.strategy.label} AI` : "the waves"} (${DIFFICULTY[gameMode.difficulty].label})`,
+        context: `${uncharted ? "Inexplorée" : mapById(gameMode.mapId).name} · contre ${this.ai ? `IA ${this.ai.strategy.label}` : "les vagues"} (${DIFFICULTY[gameMode.difficulty].label})`,
         onPick: (id) => this.startWithOpener(id),
         blocked: (id) => openerBlocked(this.world, PLAYER, id),
         // islands are taken by troops and defended from the air: the Airpad matters most there
         // (not on an Uncharted map: that would tell what it is)
-        recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? "Good here: an Airpad for more Condors" : null)
+        recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? "Idéal ici : Chalais-Meudon pour plus de Montgolfières" : null)
       });
       this.teardown.push(() => picker.destroy());
     }
@@ -555,7 +557,7 @@ export class GameScene {
 
   /** A commander's radio line: in the ticker, read out by the announcer. */
   commanderRadio(side: Faction, text: string): void {
-    this.radio.push({ key: `commander-${side}`, text: `${side === "blue" ? "Blue" : "Red"}: ${text}`, priority: 1, tone: "info", caption: true });
+    this.radio.push({ key: `commander-${side}`, text: `${side === "blue" ? "Bleu" : "Rouge"} : ${text}`, priority: 1, tone: "info", caption: true });
   }
 
   /** A line in the alert ticker. */
@@ -608,7 +610,7 @@ export class GameScene {
     }
     sfx.play("build");
     const o = OPENERS[id];
-    announce({ key: `opener-${id}`, text: `${o.name}!`, sub: o.rollout, tone: "good", priority: 1 });
+    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: o.rollout, tone: "good", priority: 1 });
     announceRules(this.world); // (queued behind the roll-out)
   }
 
@@ -641,7 +643,7 @@ export class GameScene {
     if (this.cineOn) this.cine.reset({ ...this.aware.viewCentre(), zoom: this.stage.rig.zoom });
     this.cineUi?.set(this.cineOn, false);
     sfx.play("click", 0.5);
-    this.hud.notify(this.cineOn ? "🎥 Cinematic camera on" : "🎥 Cinematic camera off — the camera is yours");
+    this.hud.notify(this.cineOn ? "🎥 Caméra cinématique activée" : "🎥 Caméra cinématique désactivée — à toi la caméra");
   }
 
   /**
@@ -838,11 +840,11 @@ export class GameScene {
       opts.actions = [
         {
           id: "copy-debug",
-          label: "Copy debug info",
+          label: "Copier infos de débogage",
           cls: "alt",
           on: () => {
-            const ok = () => this.hud.notify("Debug info copied", "good");
-            const no = () => this.hud.notify("Couldn't copy: this browser doesn't allow it", "bad");
+            const ok = () => this.hud.notify("Infos de débogage copiées", "good");
+            const no = () => this.hud.notify("Copie impossible : ce navigateur ne l'autorise pas", "bad");
             try {
               void navigator.clipboard.writeText(info).then(ok, no);
             } catch {
@@ -911,7 +913,7 @@ export class GameScene {
           this.ops && !love
             ? this.ops.endAnnouncement()
             : this.survival && !love
-            ? { key: "base-overrun", text: "Base overrun", sub: "The HQ has fallen", tone: "bad", priority: 0, x: at.x, y: at.y }
+            ? { key: "base-overrun", text: "Base submergée", sub: "Le GQG est tombé", tone: "bad", priority: 0, x: at.x, y: at.y }
             : finaleBanner({ cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y })
         );
       },
@@ -1078,7 +1080,7 @@ export class GameScene {
             const goliath = !ev.building && !!w.units.get(ev.id)?.goliath;
             // (a drop to 1× for this attack already put "Speed 1× — HQ under attack" in the ticker)
             if (!(hq && this.aware.slowedFor("hq")) && !(goliath && this.aware.slowedFor("goliath")))
-              this.hud.alert(hq ? "HQ under attack!" : goliath ? "Goliath under attack!" : ev.building ? "Base under attack!" : "Units under attack!", ev.x, ev.y);
+              this.hud.alert(hq ? "GQG attaqué !" : goliath ? "Gargantua attaqué !" : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
           }
         }
         this.hud.ping(ev.x, ev.y);
@@ -1170,7 +1172,8 @@ export class GameScene {
       // aircraft: ring the craft itself (at altitude), not the ground under it
       const at = air ? p.h - 0.1 : undefined;
       if (own) g.fillStyle(0x7ef29b, 0.1).fillEllipse(p.x, p.y, r * 2.1, r * 2.1, at);
-      g.lineStyle(2.5, own ? 0x7ef29b : 0xff7a6a, 1).strokeEllipse(p.x, p.y, r * 2.1, r * 2.1, at);
+      // (Panache: a finer ring, less ink on a crowded field)
+      g.lineStyle(BELLE_EPOQUE ? 1.6 : 2.5, own ? 0x7ef29b : 0xff7a6a, 1).strokeEllipse(p.x, p.y, r * 2.1, r * 2.1, at);
       if (!own) continue;
       const o = u.order;
       let tx = 0;
@@ -1314,12 +1317,15 @@ export class GameScene {
     for (const r of this.entities.ranked()) {
       const s = rig.project(r.x, r.y, r.h + 0.12);
       if (s.behind) continue;
-      const y = Math.round((s.y - 20) * dpr) / dpr;
+      // (Panache: small pips just over the health bar)
+      const y = Math.round((s.y - (BELLE_EPOQUE ? 15 : 20)) * dpr) / dpr;
+      const k = BELLE_EPOQUE ? 0.55 : 0.8;
+      const step = BELLE_EPOQUE ? 10 : 14;
       for (let i = 0; i < r.rank; i++) {
         const last = i === r.rank - 1;
-        chev[n++] = Math.round((s.x - (r.rank - 1) * 7 + i * 14) * dpr) / dpr;
+        chev[n++] = Math.round((s.x - ((r.rank - 1) * step) / 2 + i * step) * dpr) / dpr;
         chev[n++] = y;
-        chev[n++] = last ? 0.8 + (1 - r.pop) * 0.8 : 0.8;
+        chev[n++] = last ? k + (1 - r.pop) * k : k;
       }
     }
     if (n > 0) {

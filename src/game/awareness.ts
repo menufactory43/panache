@@ -200,7 +200,7 @@ export interface Hotspot {
 }
 
 /** Victim classes, most important last: index = class. */
-const CLASS_LABEL = ["Attack", "Units", "Harvesters", "Base", "HQ!"] as const;
+const CLASS_LABEL = ["Attaque", "Unités", "Fardiers", "Base", "GQG !"] as const;
 /** Arrow priority per class (inbound sits between harvesters and base). */
 const CLASS_PRIORITY = [10, 20, 30, 50, 60] as const;
 const INBOUND_PRIORITY = 40;
@@ -356,7 +356,7 @@ export class HeatMap {
         x: k.sx / k.w,
         y: k.sy / k.w,
         heat: k.w,
-        label: spectator ? (cls === 4 ? `${k.hq === "red" ? "Red" : "Blue"} HQ` : "Fight") : CLASS_LABEL[cls]!,
+        label: spectator ? (cls === 4 ? `GQG ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : CLASS_LABEL[cls]!,
         priority: CLASS_PRIORITY[cls]! + Math.min(9, k.w)
       });
     }
@@ -405,31 +405,32 @@ export interface InboundWarning {
 }
 
 /** What to call a raid led by `lead`, and what beats it (from the duel matrix, tools/balance.ts). */
-export function raidAdvice(domain: RaidDomain, lead: UnitKind): { what: string; advice: string } {
-  if (domain === "mixed") return { what: "strike force", advice: "Flak and Mastodons, or a Turret" };
+export function raidAdvice(domain: RaidDomain, lead: UnitKind): { what: string; advice: string; enemy: string } {
+  // (`enemy`: "ennemi" agreed with `what`, for "Aéronefs ennemis en approche")
+  if (domain === "mixed") return { what: "force de frappe", enemy: "ennemie", advice: "Faucheux et Creusot, ou une Hotchkiss" };
   if (domain === "air") {
-    if (lead === "hornet") return { what: "bombers", advice: "Flak, Raptors or a SAM" };
-    if (lead === "condor") return { what: "dropships", advice: "Flak, Raptors or a SAM" };
-    return { what: "drones", advice: "Flak, Raptors or a Turret" };
+    if (lead === "hornet") return { what: "bombardiers", enemy: "ennemis", advice: "Faucheux, Blériot ou une Batterie Ruggieri" };
+    if (lead === "condor") return { what: "Montgolfières", enemy: "ennemies", advice: "Faucheux, Blériot ou une Batterie Ruggieri" };
+    return { what: "aéronefs", enemy: "ennemis", advice: "Faucheux, Blériot ou une Hotchkiss" };
   }
   switch (lead) {
     case "goliath":
       // (the answers GOLIATH.md tunes it against; its Menders are the next thing to shoot)
-      return { what: "Goliath", advice: "Rocket Squads, Wasps, Lancers or Hornets" };
+      return { what: "Gargantua", enemy: "ennemi", advice: "Artificiers, Éole, Hydroglisseurs ou Albatros" };
     case "mastodon":
-      return { what: "Mastodons", advice: "Rocket Squads, Lancers or Wasps" };
+      return { what: "Creusot", enemy: "ennemis", advice: "Artificiers, Hydroglisseurs ou Éole" };
     case "trooper":
-      return { what: "troops", advice: "Mortars, Turrets or Snipers" };
+      return { what: "pioupious", enemy: "ennemis", advice: "Canons de 75, Hotchkiss ou Chasseurs alpins" };
     case "rocket-squad":
-      return { what: "rocket troops", advice: "Troopers, Mortars or Snipers" };
+      return { what: "artificiers", enemy: "ennemis", advice: "Pioupious, Canons de 75 ou Chasseurs alpins" };
     case "sniper":
-      return { what: "snipers", advice: "rush them with Stingers or Wasps" };
+      return { what: "chasseurs alpins", enemy: "ennemis", advice: "fonce dessus avec Panhard ou Éole" };
     case "mortar":
-      return { what: "artillery", advice: "close in with Stingers or Wasps" };
+      return { what: "artillerie", enemy: "ennemie", advice: "approche-toi avec Panhard ou Éole" };
     case "lancer":
-      return { what: "Lancers", advice: "Stingers or Hornets" };
+      return { what: "Hydroglisseurs", enemy: "ennemis", advice: "Panhard ou Albatros" };
     default:
-      return { what: "tanks", advice: "Mastodons, Wasps or a Turret" };
+      return { what: "blindés", enemy: "ennemis", advice: "Creusot, Éole ou une Hotchkiss" };
   }
 }
 
@@ -560,9 +561,10 @@ export class InboundWatch {
       const domain: RaidDomain = air >= total * 0.7 ? "air" : air <= total * 0.3 ? "ground" : "mixed";
       const pool = [...cost].filter(([k]) => (domain === "air" ? UNITS[k].domain === "air" : domain === "ground" ? UNITS[k].domain !== "air" : true));
       const lead = pool.sort((a, b) => b[1] - a[1])[0]![0];
-      const { what, advice } = raidAdvice(domain, lead);
-      const text = `Enemy ${what} inbound`;
-      const short = `${what[0]!.toUpperCase()}${what.slice(1)} inbound`;
+      const { what, advice, enemy } = raidAdvice(domain, lead);
+      const Cap = `${what[0]!.toUpperCase()}${what.slice(1)}`;
+      const text = `${Cap} ${enemy} en approche`;
+      const short = `${Cap} en approche`;
       const loud = t - this.lastLoud >= I.minGapS;
       if (loud) this.lastLoud = t;
       const first = loud && !this.warnedDomain.has(domain === "mixed" ? "ground" : domain);
@@ -592,7 +594,7 @@ export class InboundWatch {
         x: g.x,
         y: g.y,
         heat: 1,
-        label: g.domain === "air" ? "Air raid" : "Raid",
+        label: g.domain === "air" ? "Raid aérien" : "Raid",
         priority: INBOUND_PRIORITY
       }));
   }
@@ -658,22 +660,22 @@ export class TempoGuard {
         if (!ev.building) {
           // the last life: a Goliath with no HQ behind it (with the HQ standing, it's one more thing under fire)
           if (!w.units.get(ev.id)?.goliath || hqOf(w, player)) continue;
-          if (t - this.lastGoliathHit > TEMPO.hqQuietS) hq ??= { cause: "goliath", note: "Goliath under attack", x: ev.x, y: ev.y };
+          if (t - this.lastGoliathHit > TEMPO.hqQuietS) hq ??= { cause: "goliath", note: "Gargantua attaqué", x: ev.x, y: ev.y };
           this.lastGoliathHit = t;
           continue;
         }
         if (w.buildings.get(ev.id)?.kind !== "hq") continue;
         // HQ hits are tracked at any speed, so speeding up mid-siege doesn't snap back
-        if (t - this.lastHqHit > TEMPO.hqQuietS) hq ??= { cause: "hq", note: "HQ under attack", x: ev.x, y: ev.y };
+        if (t - this.lastHqHit > TEMPO.hqQuietS) hq ??= { cause: "hq", note: "GQG attaqué", x: ev.x, y: ev.y };
         this.lastHqHit = t;
       } else if (ev.type === "calldown" && ev.faction !== player && !calldown) {
         if (calldownThreatens(w, player, ev.x, ev.y, ev.radius))
-          calldown = { cause: "calldown", note: `enemy ${POWER_NAMES[ev.power]} inbound`, x: ev.x, y: ev.y };
+          calldown = { cause: "calldown", note: `${POWER_NAMES[ev.power]} ${ev.power === "emp" ? "ennemie" : "ennemi"} en approche`, x: ev.x, y: ev.y };
       }
     }
     if (!fast) return null;
     const raid = warnings.find((wn) => wn.loud);
-    return calldown ?? hq ?? (raid ? { cause: "inbound", note: raid.text.replace(/^Enemy/, "enemy"), x: raid.x, y: raid.y } : null);
+    return calldown ?? hq ?? (raid ? { cause: "inbound", note: raid.text, x: raid.x, y: raid.y } : null);
   }
 }
 

@@ -181,17 +181,17 @@ describe("the Gantry: tech", () => {
     w.factions.blue.scrap = 5000;
     step(w, [{ type: "startBuilding", faction: "blue", building: "gantry" }]);
     expect(w.factions.blue.pending?.kind).toBe("gantry");
-    expect(buildingBlocker(w, "blue", "gantry")).toBe("One per side");
+    expect(buildingBlocker(w, "blue", "gantry")).toBe("Un par camp");
     expect(buildingBlocker(w, "red", "gantry")).toBeNull();
     // finished but not yet placed: still pending
     w.factions.blue.pending = { kind: "gantry", remaining: 0, ready: true };
-    expect(buildingBlocker(w, "blue", "gantry")).toBe("One per side");
+    expect(buildingBlocker(w, "blue", "gantry")).toBe("Un par camp");
 
     const w2 = field();
     giveTech(w2, "blue", PREREQS);
     giveTech(w2, "red", PREREQS);
     const g = spawnBuilding(w2, "gantry", "blue", 8, 8);
-    expect(buildingBlocker(w2, "blue", "gantry")).toBe("One per side");
+    expect(buildingBlocker(w2, "blue", "gantry")).toBe("Un par camp");
     expect(buildingBlocker(w2, "red", "gantry")).toBeNull();
     w2.factions.blue.scrap = 5000;
     step(w2, [{ type: "startBuilding", faction: "blue", building: "gantry" }]);
@@ -380,8 +380,8 @@ describe("anchoring", () => {
     }
     expect(at((w) => spawnBuilding(w, "turret", "blue", 30, 30)).why).not.toBeNull();
     expect(at((w) => spawnBuilding(w, "turret", "red", 29, 30)).why).not.toBeNull();
-    expect(at((w) => spawnUnit(w, "stinger", "blue", 29.5, 29.5)).why).toBe("Unit in the way");
-    expect(at((w) => spawnUnit(w, "harvester", "red", 30.5, 30.5)).why).toBe("Unit in the way");
+    expect(at((w) => spawnUnit(w, "stinger", "blue", 29.5, 29.5)).why).toBe("Une unité gêne");
+    expect(at((w) => spawnUnit(w, "harvester", "red", 30.5, 30.5)).why).toBe("Une unité gêne");
     // an aircraft overhead is not in the way
     expect(at((w) => spawnUnit(w, "wasp", "blue", 29.5, 29.5)).why).toBeNull();
     // on a lift (Condors hooking on)
@@ -763,7 +763,7 @@ describe("outposts", () => {
     expect(depot.outpost).toBe(true);
     // in range of the outpost but out of the ring: no, even with the Goliath still anchored
     expect(canPlaceBuilding(w, "blue", "turret", 38, 30)).toBe(false);
-    expect(placementBlocker(w, "blue", "turret", 38, 30)).toBe("Too far from base");
+    expect(placementBlocker(w, "blue", "turret", 38, 30)).toBe("Trop loin de la base");
     run(w, PACK_TICKS + 2, [packCmd(g)]);
     run(w, 1, [{ type: "move", faction: "blue", unitIds: [g.id], x: 20, y: 30 }]);
     run(w, 60);
@@ -815,7 +815,7 @@ describe("outposts", () => {
     // every tile of the ground it stands on
     for (const [tx, ty] of [[29, 29], [30, 29], [29, 30], [30, 30]] as const) {
       expect(canPlaceBuilding(w, "blue", "turret", tx, ty), `${tx},${ty}`).toBe(false);
-      expect(placementBlocker(w, "blue", "turret", tx, ty), `${tx},${ty}`).toBe("Unit in the way");
+      expect(placementBlocker(w, "blue", "turret", tx, ty), `${tx},${ty}`).toBe("Une unité gêne");
     }
     expect(canPlaceBuilding(w, "blue", "fab-plant", 28, 28)).toBe(false);
     // a walking one parked in the base

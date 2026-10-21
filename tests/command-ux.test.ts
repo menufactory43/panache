@@ -45,24 +45,24 @@ describe("placement: why not, and where instead", () => {
   it("names the problem: range, ground, buildings, units, map edge", () => {
     const w = field();
     expect(placementBlocker(w, "blue", "turret", 9, 5)).toBeNull();
-    expect(placementBlocker(w, "blue", "turret", 25, 5)).toBe("Too far from base");
-    expect(placementBlocker(w, "blue", "turret", 5, 5)).toBe("Blocked");
-    expect(placementBlocker(w, "blue", "fab-plant", -1, 5)).toBe("Off the map");
+    expect(placementBlocker(w, "blue", "turret", 25, 5)).toBe("Trop loin de la base");
+    expect(placementBlocker(w, "blue", "turret", 5, 5)).toBe("Bloqué");
+    expect(placementBlocker(w, "blue", "fab-plant", -1, 5)).toBe("Hors de la carte");
     setTerrain(w, 9, 6, Terrain.Water);
-    expect(placementBlocker(w, "blue", "turret", 9, 6)).toBe("Not on water");
+    expect(placementBlocker(w, "blue", "turret", 9, 6)).toBe("Impossible sur l'eau");
     w.biome = "volcanic";
-    expect(placementBlocker(w, "blue", "turret", 9, 6)).toBe("Not on lava");
+    expect(placementBlocker(w, "blue", "turret", 9, 6)).toBe("Impossible sur la lave");
     setTerrain(w, 9, 7, Terrain.Rock);
-    expect(placementBlocker(w, "blue", "turret", 9, 7)).toBe("Not on rock");
+    expect(placementBlocker(w, "blue", "turret", 9, 7)).toBe("Impossible sur la roche");
     setTerrain(w, 10, 8, Terrain.Rough);
-    expect(placementBlocker(w, "blue", "turret", 10, 8)).toBe("Not on cinders");
+    expect(placementBlocker(w, "blue", "turret", 10, 8)).toBe("Impossible sur les cendres");
     spawnUnit(w, "mastodon", "blue", 9.5, 9.5);
-    expect(placementBlocker(w, "blue", "turret", 9, 9)).toBe("Unit in the way");
+    expect(placementBlocker(w, "blue", "turret", 9, 9)).toBe("Une unité gêne");
     // aircraft overhead don't block
     spawnUnit(w, "wasp", "blue", 8.5, 9.5);
     expect(placementBlocker(w, "blue", "turret", 8, 9)).toBeNull();
     // the enemy's base doesn't count as yours
-    expect(placementBlocker(w, "blue", "turret", 30, 30)).toBe("Too far from base");
+    expect(placementBlocker(w, "blue", "turret", 30, 30)).toBe("Trop loin de la base");
   });
 
   it("suggests the valid spot nearest the view centre, inside build range", () => {
@@ -146,9 +146,9 @@ describe("controller: touch placement", () => {
     ready(w, "turret");
     c.placing = "turret";
     c.movePlacement(25, 25);
-    expect(c.placementProblem()).toBe("Too far from base");
+    expect(c.placementProblem()).toBe("Trop loin de la base");
     expect(c.commitPlacement()).toBe(false);
-    expect(c.denied).toEqual({ reason: "Too far from base", tx: 25, ty: 25 });
+    expect(c.denied).toEqual({ reason: "Trop loin de la base", tx: 25, ty: 25 });
     expect(c.placing).toBe("turret");
     expect(c.drainCommands()).toEqual([]);
   });
@@ -159,7 +159,7 @@ describe("controller: touch placement", () => {
     ready(w, "turret");
     c.placing = "turret";
     c.tapWorld(25.5, 25.5, { kind: "ground" });
-    expect(c.denied?.reason).toBe("Too far from base");
+    expect(c.denied?.reason).toBe("Trop loin de la base");
     expect(c.placing).toBe("turret");
     c.tapWorld(9.5, 5.5, { kind: "ground" });
     expect(c.drainCommands()).toEqual([{ type: "placeBuilding", faction: "blue", tx: 9, ty: 5 }]);
@@ -188,7 +188,7 @@ describe("controller: touch placement", () => {
     expect(c.idleArmy()).toEqual([a.id]);
   });
 
-  it("⚔ Select army and 💤 Idle leave out harvesters and the unarmed Condor", () => {
+  it("⚔ Select army and 💤 Idle leave out harvesters and the unarmed Montgolfière", () => {
     const w = field();
     const c = new Controller(w);
     const tank = spawnUnit(w, "stinger", "blue", 10, 10);
@@ -376,7 +376,7 @@ describe("build advisor", () => {
       expect(counterAdvice(w, "blue", intel, k, 1).active, k).toBe(true);
     for (const k of ["stinger", "mastodon", "wasp", "turret"] as const)
       expect(counterAdvice(w, "blue", intel, k, 1).active, k).toBe(false);
-    expect(adviceNote(counterAdvice(w, "blue", intel, "flak-crawler", 1))).toBe("Counters Wasps (seen ×2)");
+    expect(adviceNote(counterAdvice(w, "blue", intel, "flak-crawler", 1))).toBe("Contre : Éole (vus ×2)");
     // two wasps (400) vs flak: queued and built flak both count toward the answer
     const fab = [...w.buildings.values()].find((b) => b.kind === "fab-plant")!;
     fab.queue.push({ kind: "flak-crawler", remaining: 100 });
@@ -384,10 +384,10 @@ describe("build advisor", () => {
     spawnUnit(w, "flak-crawler", "blue", 6, 9);
     expect(counterAdvice(w, "blue", intel, "flak-crawler", 1).active).toBe(false); // 380 ≥ 300
     // the info card still explains it
-    expect(adviceNote(counterAdvice(w, "blue", intel, "flak-crawler", 1))).toBe("Counters Wasps (seen ×2)");
+    expect(adviceNote(counterAdvice(w, "blue", intel, "flak-crawler", 1))).toBe("Contre : Éole (vus ×2)");
   });
 
-  it("counts squads riding in Condors toward the answer", () => {
+  it("counts squads riding in Montgolfières toward the answer", () => {
     const w = scene();
     const intel = new EnemyIntel(w, "blue");
     spawnUnit(w, "mastodon", "red", 8, 9);
@@ -409,7 +409,7 @@ describe("build advisor", () => {
     expect(counterAdvice(w, "blue", intel, "rocket-squad", 0).active).toBe(false);
   });
 
-  it("counts squads an anchored Goliath is training toward the answer, as a Bay's queue does", () => {
+  it("counts squads an anchored Gargantua is training toward the answer, as a Bay's queue does", () => {
     const w = scene();
     const intel = new EnemyIntel(w, "blue");
     spawnUnit(w, "mastodon", "red", 8, 9);
@@ -437,7 +437,7 @@ describe("build advisor", () => {
     }
     // the allowed answer still lights up
     expect(counterAdvice(w, "blue", intel, "raptor", 0).active).toBe(true);
-    expect(adviceNote(counterAdvice(w, "blue", intel, "raptor", 0))).toBe("Counters Wasps (seen ×2)");
+    expect(adviceNote(counterAdvice(w, "blue", intel, "raptor", 0))).toBe("Contre : Éole (vus ×2)");
     // an op's one-sided ban counts too
     const op = scene();
     op.rules = { ...rulesOf(op), sideBans: { blue: { units: ["raptor"] } } };
@@ -457,7 +457,7 @@ describe("build advisor", () => {
     for (let i = 0; i < 3; i++) spawnUnit(w, "wasp", "red", 9 + i * 0.5, 10);
     tickFog(w);
     intel.update(0);
-    expect(adviceNote(counterAdvice(w, "blue", intel, "raptor", 0))).toBe("Counters Wasps (seen ×3), Hornets (×1)");
+    expect(adviceNote(counterAdvice(w, "blue", intel, "raptor", 0))).toBe("Contre : Éole (vus ×3), Albatros (×1)");
     expect(adviceNote(counterAdvice(w, "blue", intel, "stinger", 0))).toBeNull();
   });
 
@@ -509,7 +509,7 @@ describe("build advisor", () => {
     for (const k of ["mortar", "hornet", "stinger", "turret", "sniper"] as const)
       expect(counterAdvice(w, "blue", intel, k, 0).active, k).toBe(true);
     expect(counterAdvice(w, "blue", intel, "rocket-squad", 0).active).toBe(false);
-    expect(adviceNote(counterAdvice(w, "blue", intel, "sniper", 0))).toBe("Counters Trooper Squads (seen ×2)");
+    expect(adviceNote(counterAdvice(w, "blue", intel, "sniper", 0))).toBe("Contre : Escouades de pioupious (vus ×2)");
     spawnUnit(w, "mastodon", "red", 8, 10);
     spawnUnit(w, "mastodon", "red", 9, 10);
     tickFog(w);
@@ -537,7 +537,7 @@ describe("build advisor", () => {
   });
 });
 
-describe("Condor: boarding and drops from taps", () => {
+describe("Montgolfière: boarding and drops from taps", () => {
   /** Blue Condor at (10, 10) with two Trooper Squads and a Rocket Squad near it, a Stinger alongside. */
   function bay() {
     const w = field();
@@ -557,13 +557,13 @@ describe("Condor: boarding and drops from taps", () => {
     }
   };
 
-  it("squads selected + tap an own Condor: they board it, nearest first, as many as it seats", () => {
+  it("squads selected + tap an own Montgolfière: they board it, nearest first, as many as it seats", () => {
     const { w, c, condor, t1, t2, rk, tank } = bay();
     c.selectUnits([t1.id, t2.id, rk.id, tank.id]);
     c.tapWorld(10, 10, { kind: "ownUnit", id: condor.id });
     expect(c.drainCommands()).toEqual([{ type: "board", faction: "blue", unitIds: [t2.id, t1.id], carrierId: condor.id }]);
     expect(c.lastFeedback?.kind).toBe("board");
-    expect(c.tip).toMatch(/Room for 2/);
+    expect(c.tip).toMatch(/Place pour 2/);
     // the selection stays as it was until they climb in; then the Condor takes their place
     expect(c.selectedUnits.size).toBe(4);
     embark(w, condor, t1, t2);
@@ -571,7 +571,7 @@ describe("Condor: boarding and drops from taps", () => {
     expect([...c.selectedUnits]).toEqual([rk.id, tank.id, condor.id]);
   });
 
-  it("a flying Condor stops to come and meet them; seats already promised count", () => {
+  it("a flying Montgolfière stops to come and meet them; seats already promised count", () => {
     const { c, condor, t1, t2, rk } = bay();
     condor.order = { type: "move", x: 30, y: 30 };
     rk.order = { type: "board", carrierId: condor.id, ticks: 0 }; // already on its way
@@ -583,7 +583,7 @@ describe("Condor: boarding and drops from taps", () => {
     ]);
   });
 
-  it("Condor selected + tap an own squad: it boards the nearest selected Condor with a seat", () => {
+  it("Montgolfière selected + tap an own squad: it boards the nearest selected Montgolfière with a seat", () => {
     const { w, c, condor, t1, t2 } = bay();
     const far = spawnUnit(w, "condor", "blue", 30, 10);
     c.selectUnits([far.id, condor.id]);
@@ -596,21 +596,21 @@ describe("Condor: boarding and drops from taps", () => {
     expect(c.drainCommands()).toEqual([{ type: "board", faction: "blue", unitIds: [t1.id], carrierId: far.id }]);
   });
 
-  it("a full Condor is selected instead, with a note", () => {
+  it("a full Montgolfière is selected instead, with a note", () => {
     const { w, c, condor, t1, t2, rk } = bay();
     embark(w, condor, t2, rk);
     c.selectUnits([t1.id]);
     c.tapWorld(10, 10, { kind: "ownUnit", id: condor.id });
     expect(c.drainCommands()).toEqual([]);
     expect([...c.selectedUnits]).toEqual([condor.id]);
-    expect(c.tip).toMatch(/full/);
+    expect(c.tip).toMatch(/plein/);
     // …and with only full Condors selected, tapping a squad just selects it
     c.tapWorld(13, 10, { kind: "ownUnit", id: t1.id });
     expect(c.drainCommands()).toEqual([]);
     expect([...c.selectedUnits]).toEqual([t1.id]);
   });
 
-  it("ordinary selection taps are untouched: squad → squad, Condor alone → Condor, Shift toggles", () => {
+  it("ordinary selection taps are untouched: squad → squad, Montgolfière alone → Montgolfière, Shift toggles", () => {
     const { c, condor, t1, t2, tank } = bay();
     c.tapWorld(13, 10, { kind: "ownUnit", id: t1.id });
     c.tapWorld(12, 10, { kind: "ownUnit", id: t2.id });
@@ -624,7 +624,7 @@ describe("Condor: boarding and drops from taps", () => {
     expect(c.drainCommands()).toEqual([]);
   });
 
-  it("the Unload chip drops where the Condors are; a long-press flies them there and drops", () => {
+  it("the Unload chip drops where the Montgolfières are; a long-press flies them there and drops", () => {
     const { w, c, condor, t1, t2, tank } = bay();
     const empty = spawnUnit(w, "condor", "blue", 20, 20);
     c.selectUnits([condor.id, empty.id, tank.id]);
@@ -669,7 +669,7 @@ describe("Condor: boarding and drops from taps", () => {
     expect(c.drainCommands()).toEqual([]);
   });
 
-  it("squad chips keep members riding in a Condor; selecting the squad selects the Condor", () => {
+  it("squad chips keep members riding in a Montgolfière; selecting the squad selects the Montgolfière", () => {
     const { w, c, condor, t1, t2, tank } = bay();
     c.selectUnits([t1.id, t2.id, tank.id]);
     c.assignSquad(0);
@@ -696,7 +696,7 @@ describe("Condor: boarding and drops from taps", () => {
     expect(c.squads.slots[0]).toEqual([t2.id, tank.id]);
   });
 
-  it("a squad saved with its Condor selects that Condor once when its riders are aboard", () => {
+  it("a squad saved with its Montgolfière selects that Montgolfière once when its riders are aboard", () => {
     const { w, c, condor, t1 } = bay();
     c.selectUnits([t1.id, condor.id]);
     c.assignSquad(0);

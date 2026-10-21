@@ -78,7 +78,7 @@ describe("calldown validation", () => {
 
     w.powers.meter.blue = 100;
     // the far corner is unexplored
-    expect(calldownBlocker(w, "blue", "barrage", 35, 35)).toMatch(/unexplored/);
+    expect(calldownBlocker(w, "blue", "barrage", 35, 35)).toMatch(/inexplorée/);
     run(w, 1, [call("blue", "barrage", 35, 35)]);
     expect(w.powers.active).toHaveLength(0);
 
@@ -88,7 +88,7 @@ describe("calldown validation", () => {
     expect(w.powers.active).toHaveLength(1);
     expect(w.powers.meter.blue).toBeCloseTo(100 - POWERS.barrage.cost, 0);
     expect(fx.some((e) => e.type === "calldown" && e.power === "barrage" && e.faction === "blue")).toBe(true);
-    expect(calldownBlocker(w, "blue", "barrage", 6, 6)).toMatch(/recharging/);
+    expect(calldownBlocker(w, "blue", "barrage", 6, 6)).toMatch(/en recharge/);
     expect(powerStatus(w, "blue", "barrage").cooldown).toBeGreaterThan(POWERS.barrage.cooldown * TICK_RATE - 3);
     // the other powers have their own cooldowns
     expect(calldownBlocker(w, "blue", "emp", 6, 6)).toBeNull();
@@ -99,9 +99,9 @@ describe("calldown validation", () => {
     tickFog(w);
     // explored (remembered) but not visible right now
     w.fog.blue.vis[20 * w.width + 20] = 1;
-    expect(calldownBlocker(w, "blue", "droppod", 20.5, 20.5)).toMatch(/eyes/);
+    expect(calldownBlocker(w, "blue", "droppod", 20.5, 20.5)).toMatch(/non visible/);
     setTerrain(w, 6, 7, Terrain.Water);
-    expect(calldownBlocker(w, "blue", "droppod", 6.5, 7.5)).toMatch(/open ground/);
+    expect(calldownBlocker(w, "blue", "droppod", 6.5, 7.5)).toMatch(/sol dégagé/);
     expect(calldownBlocker(w, "blue", "droppod", 7.5, 7.5)).toBeNull();
   });
 
@@ -250,7 +250,7 @@ describe("Sky Hammer", () => {
     const w = arena();
     reveal(w, "blue");
     const unlock = POWERS.hammer.unlock * TICK_RATE;
-    expect(calldownBlocker(w, "blue", "hammer", 20, 20)).toMatch(/online/);
+    expect(calldownBlocker(w, "blue", "hammer", 20, 20)).toMatch(/disponible/);
     w.tick = unlock - 2;
     let fx = run(w, 3);
     expect(fx.filter((e) => e.type === "powerOnline" && e.power === "hammer").map((e) => (e as { faction: string }).faction).sort()).toEqual(["blue", "red"]);

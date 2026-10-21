@@ -96,10 +96,10 @@ export function starsText(mask: number): string {
 function rankBadgeHtml(c: CareerData): string {
   const r = rankOf(c.xp);
   const medals = MEDAL_IDS.reduce((n, id) => n + (c.medals[id] ? 1 : 0), 0);
-  const xpLine = r.next === null ? `${fmt(c.xp)} XP · top rank` : `${fmt(c.xp)} / ${fmt(r.next)} XP`;
+  const xpLine = r.next === null ? `${fmt(c.xp)} XP · grade max` : `${fmt(c.xp)} / ${fmt(r.next)} XP`;
   return `${insigniaSvg(r.index)}
     <span class="rb-t"><b>${r.name}</b><span class="rb-xp">${xpLine}</span></span>
-    <span class="rb-medals" title="Medals earned">🏅 ${medals}/${MEDAL_IDS.length}</span>
+    <span class="rb-medals" title="Médailles obtenues">🏅 ${medals}/${MEDAL_IDS.length}</span>
     <span class="rb-bar"><i style="width:${(r.progress * 100).toFixed(1)}%"></i></span>`;
 }
 
@@ -110,31 +110,31 @@ function dailyHtml(op: DailyOp, c: CareerData): string {
   const muts = op.mutators.map((id) => `<span class="dl-mut">${MUTATORS[id].icon} ${MUTATORS[id].name}</span>`).join("");
   return `
     <div class="dl-head">
-      <span class="dl-tag">📅 Daily Op #${op.number}</span>
+      <span class="dl-tag">📅 Op du jour n°${op.number}</span>
       <span class="dl-date">${op.label}</span>
-      <span class="dl-streak${streak > 0 ? " hot" : ""}" title="Daily Op win streak">🔥 ${streak}</span>
+      <span class="dl-streak${streak > 0 ? " hot" : ""}" title="Série de victoires (Op du jour)">🔥 ${streak}</span>
     </div>
     <div class="dl-body">
       <img src="${mapAssetBase(op.mapId)}/thumb.webp" alt="" draggable="false"/>
       <div class="dl-what">
         <b>${mapName(op.mapId)}</b>
-        <span class="dl-vs">vs ${STRATEGIES[op.strategy].label} · <i class="${op.difficulty}">${diffName(op.difficulty)}</i></span>
+        <span class="dl-vs">contre ${STRATEGIES[op.strategy].label} · <i class="${op.difficulty}">${diffName(op.difficulty)}</i></span>
       </div>
-      <button class="dl-play${wonToday ? " done" : ""}" id="dl-play">${wonToday ? "✓ Won<small>replay</small>" : "▶ Play"}</button>
+      <button class="dl-play${wonToday ? " done" : ""}" id="dl-play">${wonToday ? "✓ Gagné<small>rejouer</small>" : "▶ Jouer"}</button>
       <span class="dl-muts">${muts}</span>
     </div>`;
 }
 
 function mutButtonHtml(): string {
   const on = gameMode.mutators;
-  if (on.length === 0) return `<span class="mb-k">🧪 Mutators</span><span class="mb-v">Off</span>`;
+  if (on.length === 0) return `<span class="mb-k">🧪 Mutateurs</span><span class="mb-v">Non</span>`;
   // (one the picked map can't be played with is left out of its matches: struck through)
   const def = mapById(gameMode.mapId);
   const names = on
     .map((id) => (mapBansMutator(def, id) ? `<s>${MUTATORS[id].icon} ${MUTATORS[id].name}</s>` : `${MUTATORS[id].icon} ${MUTATORS[id].name}`))
     .join(" · ");
   const live = on.some((id) => !mapBansMutator(def, id));
-  return `<span class="mb-k">🧪</span><span class="mb-v on">${names}</span>${live ? `<span class="mb-n">no stars</span>` : ""}`;
+  return `<span class="mb-k">🧪</span><span class="mb-v on">${names}</span>${live ? `<span class="mb-n">sans étoiles</span>` : ""}`;
 }
 
 export interface MenuCareer {
@@ -214,11 +214,11 @@ export function showMutatorSheet(host: HTMLElement, onDone: () => void): void {
   const wrap = openSheet(
     host,
     "mutsheet",
-    `<h2>🧪 Mutators</h2>
-     <p class="sh-sub">Twist the rules of your next skirmish. Both sides play by them.</p>
+    `<h2>🧪 Mutateurs</h2>
+     <p class="sh-sub">Change les règles de ta prochaine escarmouche. Les deux camps les subissent.</p>
      <div class="mutgrid">${chips}</div>
-     <p class="sh-note">Mutated matches earn XP and medals but no map stars.</p>
-     <div class="sh-actions"><button class="cta alt" id="mut-clear">Clear all</button><button class="cta sheet-close" id="mut-done">Done</button></div>`
+     <p class="sh-note">Les parties mutées rapportent XP et médailles, mais pas d'étoiles de carte.</p>
+     <div class="sh-actions"><button class="cta alt" id="mut-clear">Tout retirer</button><button class="cta sheet-close" id="mut-done">OK</button></div>`
   );
   const refresh = () =>
     wrap.querySelectorAll<HTMLElement>(".mutchip").forEach((el) => {
@@ -257,7 +257,7 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
   const totalStars = Object.entries(c.stars).reduce((s, [k, m]) => s + (isRandomMapId(k) ? 0 : starCount(m)), 0);
   // maps with their own ★★ time (the Archipelago: 12:00)
   const ownTimes = MAPS.filter((m) => m.starSecs !== undefined)
-    .map((m) => ` (${starLabelsFor(m.id)[1]!.replace("Win in under ", "")} on ${m.name})`)
+    .map((m) => ` (${starLabelsFor(m.id)[1]!.replace(/^\D*/, "")} sur ${m.name})`)
     .join("");
   const starRows = MAPS.map(
     (m) => `<tr><td>${m.name}</td>${diffs
@@ -283,27 +283,27 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
     "careersheet",
     `<div class="cs-head">${insigniaSvg(r.index)}
        <div><h2>${r.name}</h2>
-         <p class="cs-xp">${fmt(c.xp)} XP${r.next !== null ? ` · ${fmt(r.next - c.xp)} to ${r.nextName}` : " · top rank"}</p>
+         <p class="cs-xp">${fmt(c.xp)} XP${r.next !== null ? ` · ${fmt(r.next - c.xp)} avant ${r.nextName}` : " · grade max"}</p>
          <div class="rb-bar big"><i style="width:${(r.progress * 100).toFixed(1)}%"></i></div></div>
-       <button class="sheet-close x" aria-label="Close">✕</button></div>
+       <button class="sheet-close x" aria-label="Fermer">✕</button></div>
      <div class="cs-stats">
-       <span><b>${c.wins}</b>wins</span><span><b>${c.losses}</b>losses</span>
-       <span><b>${totalStars}</b>/${MAPS.length * 9} stars</span>
-       <span><b>🔥 ${currentStreak(c, day)}</b>daily streak${c.daily.bestStreak > 1 ? ` (best ${c.daily.bestStreak})` : ""}</span>
+       <span><b>${c.wins}</b>victoires</span><span><b>${c.losses}</b>défaites</span>
+       <span><b>${totalStars}</b>/${MAPS.length * 9} étoiles</span>
+       <span><b>🔥 ${currentStreak(c, day)}</b>série quotidienne${c.daily.bestStreak > 1 ? ` (record ${c.daily.bestStreak})` : ""}</span>
      </div>
-     <h3>Ops <small>${opsCompleted(c)}/${OPS.length} complete</small></h3>
+     <h3>Opérations <small>${opsCompleted(c)}/${OPS.length} terminées</small></h3>
      <table class="cs-table">${OPS.map((o) => {
        const r = c.ops[o.id];
        return `<tr><td>${o.icon} ${o.title}</td><td class="st${r?.stars ? " got" : ""}">${starsText(r?.stars ?? 0)}</td><td>${r?.bestSecs != null ? fmtClock(r.bestSecs) : "—"}</td></tr>`;
      }).join("")}</table>
-     <h3>Medals</h3><div class="medalgrid">${medalCells}</div>
-     <h3>Map stars <small>${STAR_LABELS.map((l, i) => `${"★".repeat(i + 1)} ${l.toLowerCase()}${i === 1 ? ownTimes : ""}`).join(" · ")}</small></h3>
+     <h3>Médailles</h3><div class="medalgrid">${medalCells}</div>
+     <h3>Étoiles de carte <small>${STAR_LABELS.map((l, i) => `${"★".repeat(i + 1)} ${l.toLowerCase()}${i === 1 ? ownTimes : ""}`).join(" · ")}</small></h3>
      <table class="cs-table"><tr><th></th>${diffs.map((d) => `<th>${diffName(d)}</th>`).join("")}</tr>${starRows}</table>
-     <h3>Last Stand bests <small>${c.laststand.runs} run${c.laststand.runs === 1 ? "" : "s"} · ${fmt(c.laststand.waves)} waves in all</small></h3>
+     <h3>Records de Survie <small>${c.laststand.runs} partie${c.laststand.runs === 1 ? "" : "s"} · ${fmt(c.laststand.waves)} vagues au total</small></h3>
      <table class="cs-table"><tr><th></th>${diffs.map((d) => `<th>${diffName(d)}</th>`).join("")}</tr>${lsRows}</table>
-     <h3>Ranks</h3><ol class="ladder">${ladder}</ol>
-     <p class="sh-note">XP: wins 100 · losses 30 (× Easy 1 / Normal 1.5 / Hard 2.2) · 25 per medal · Last Stand 10 per wave · Daily Op win +100 · Ops 60 per clear, +100 the first time, +40 per new star. Spectated games don't count.</p>
-     <div class="sh-actions"><button class="cta sheet-close">Close</button></div>`
+     <h3>Grades</h3><ol class="ladder">${ladder}</ol>
+     <p class="sh-note">XP : victoire 100 · défaite 30 (× Facile 1 / Normal 1,5 / Difficile 2,2) · 25 par médaille · Survie 10 par vague · Op du jour gagnée +100 · Opérations 60 par réussite, +100 la première fois, +40 par nouvelle étoile. Les parties en spectateur ne comptent pas.</p>
+     <div class="sh-actions"><button class="cta sheet-close">Fermer</button></div>`
   );
 }
 
@@ -313,7 +313,7 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
 export function rulesLine(w: World): string {
   const parts: string[] = [];
   const d = gameMode.daily;
-  if (d) parts.push(`📅 Daily Op #${d.number}`);
+  if (d) parts.push(`📅 Op du jour n°${d.number}`);
   for (const id of rulesOf(w).mutators) parts.push(`${MUTATORS[id].icon} ${MUTATORS[id].name}`);
   return parts.join(" · ");
 }
@@ -332,7 +332,7 @@ export function pauseRulesHtml(w: World): string {
 
 function medalChip(id: MedalId, i: number, first: boolean, side?: Faction): string {
   const m = MEDALS[id];
-  return `<span class="medal${side ? ` ${side}` : ""}" style="--i:${i}" title="${esc(m.desc)}"><em>${m.icon}</em><span><b>${m.name}</b><small>${m.desc}</small></span>${first ? `<i class="md-new">NEW</i>` : ""}</span>`;
+  return `<span class="medal${side ? ` ${side}` : ""}" style="--i:${i}" title="${esc(m.desc)}"><em>${m.icon}</em><span><b>${m.name}</b><small>${m.desc}</small></span>${first ? `<i class="md-new">NOUVEAU</i>` : ""}</span>`;
 }
 
 /** With nothing earned, name the next goal. */
@@ -340,9 +340,9 @@ function noMedalLine(s: Settlement): string {
   const waves = s.result.waves ?? 0;
   if (s.result.kind === "survival") {
     const next = waves < AWARDS.holdoutWaves ? MEDALS.holdout : waves < AWARDS.unbreakableWaves ? MEDALS.unbreakable : null;
-    if (next) return `Next medal: ${next.icon} ${next.name} — ${next.desc.replace("Last Stand: ", "")}`;
+    if (next) return `Prochaine médaille : ${next.icon} ${next.name} — ${next.desc.replace(/^[^:]*:\s*/, "")}`;
   }
-  return "No medals this time — the Career sheet lists what to aim for.";
+  return "Aucune médaille cette fois — la fiche Carrière liste les objectifs.";
 }
 
 /** The career block: XP gained and the bar, medals, stars, streak. */
@@ -358,8 +358,8 @@ export function careerBlockHtml(s: Settlement, rules: string): string {
   let stars = "";
   if (res.kind === "skirmish") {
     const where = `${mapName(res.mapId)} · ${diffName(res.difficulty)}`;
-    if (res.mutators.length > 0 || res.daily !== null) stars = `<p class="cr-stars dim">Mutated match: no map stars</p>`;
-    else if (isRandomMapId(res.mapId)) stars = `<p class="cr-stars dim">${esc(where)} · generated map: no map stars</p>`;
+    if (res.mutators.length > 0 || res.daily !== null) stars = `<p class="cr-stars dim">Partie mutée : pas d'étoiles de carte</p>`;
+    else if (isRandomMapId(res.mapId)) stars = `<p class="cr-stars dim">${esc(where)} · carte générée : pas d'étoiles de carte</p>`;
     else {
       const gained = s.starsAfter & ~s.starsBefore;
       const labels = starLabelsFor(res.mapId);
@@ -367,11 +367,11 @@ export function careerBlockHtml(s: Settlement, rules: string): string {
         .map((b, i) => `<i class="${s.starsAfter & b ? "on" : ""}${gained & b ? " new" : ""}" title="${labels[i]}">${s.starsAfter & b ? "★" : "☆"}</i>`)
         .join("");
       const note = gained ? labels.filter((_, i) => gained & (1 << i)).join(" · ") : "";
-      stars = `<p class="cr-stars"><span class="cr-st">${cells}</span><span>${where}${note ? ` <em>New: ${note.toLowerCase()}</em>` : ""}</span></p>`;
+      stars = `<p class="cr-stars"><span class="cr-st">${cells}</span><span>${where}${note ? ` <em>Nouveau : ${note.toLowerCase()}</em>` : ""}</span></p>`;
     }
   }
   const daily = s.daily
-    ? `<p class="cr-daily">${s.daily.won ? `🔥 Daily streak <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · already won today"}` : `Daily Op #${s.daily.number}: try again — today's op stays open until midnight`}</p>`
+    ? `<p class="cr-daily">${s.daily.won ? `🔥 Série quotidienne <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · déjà gagnée aujourd'hui"}` : `Op du jour n°${s.daily.number} : réessaie — l'op reste ouverte jusqu'à minuit`}</p>`
     : "";
   return `${rules ? `<p class="cr-rules">${esc(rules)}</p>` : ""}
     <div class="cr-xp">
@@ -449,7 +449,7 @@ export function mountCareerBlock(el: HTMLElement, s: Settlement, startDelay = 50
     if (name) name.textContent = after.name;
     if (promo) {
       promo.hidden = false;
-      promo.textContent = "PROMOTED";
+      promo.textContent = "PROMU";
     }
     xpBox!.classList.add("promoted");
     sfx.play("victory", 0.6);
@@ -462,7 +462,7 @@ function spectatorHtml(w: World, rules: string): string | null {
     .map((f) => {
       const ids = medalsOf(w, f);
       if (!ids.length) return "";
-      return `<div class="cr-side ${f}"><span class="cr-sl">${f === "blue" ? "Blue" : "Red"}</span><div class="cr-medals">${ids
+      return `<div class="cr-side ${f}"><span class="cr-sl">${f === "blue" ? "Bleu" : "Rouge"}</span><div class="cr-medals">${ids
         .map((id, i) => medalChip(id, i, false))
         .join("")}</div></div>`;
     })

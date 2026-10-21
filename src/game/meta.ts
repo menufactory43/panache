@@ -48,7 +48,7 @@ export function announceRules(w: World): void {
   if (!line && !d) return;
   announce({
     key: "match-rules",
-    text: d ? `Daily Op #${d.number}` : "Mutators active",
+    text: d ? `Op du jour n°${d.number}` : "Mutateurs actifs",
     sub: line,
     tone: "info",
     priority: 1

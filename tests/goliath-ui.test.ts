@@ -29,8 +29,8 @@ const hook = (g: Unit, a: Unit, b: Unit, phase: "hooking" | "carrying" = "hookin
   g.goliath!.lift = { carriers: [a.id, b.id], phase, dest: null, setDown: false };
 };
 
-describe("Goliath orders from taps", () => {
-  it("a ground tap with only anchored Goliaths selected sets their rally point, it doesn't pack them up", () => {
+describe("Gargantua orders from taps", () => {
+  it("a ground tap with only anchored Gargantuas selected sets their rally point, it doesn't pack them up", () => {
     const w = field();
     const c = new Controller(w);
     const g = anchored(spawnUnit(w, "goliath", "blue", 12, 12));
@@ -38,7 +38,7 @@ describe("Goliath orders from taps", () => {
     c.tapWorld(20.5, 14.5, { kind: "ground" });
     expect(c.drainCommands()).toEqual([{ type: "rally", faction: "blue", buildingId: g.id, x: 20.5, y: 14.5 }]);
     expect(c.lastFeedback?.kind).toBe("rally");
-    expect(c.tip).toMatch(/Pack up first \(G\)/i);
+    expect(c.tip).toMatch(/lève l'ancre d'abord \(G\)/i);
     // one still digging in counts as dug in
     anchored(g, "anchoring");
     c.tip = null;
@@ -47,7 +47,7 @@ describe("Goliath orders from taps", () => {
     expect(c.tip).toBeNull(); // (the same lesson isn't repeated straight away)
   });
 
-  it("in a group, the army marches and the anchored Goliath stays put", () => {
+  it("in a group, the army marches and the anchored Gargantua stays put", () => {
     const w = field();
     const c = new Controller(w);
     const g = anchored(spawnUnit(w, "goliath", "blue", 12, 12));
@@ -60,12 +60,12 @@ describe("Goliath orders from taps", () => {
       { type: "attackMove", faction: "blue", unitIds: [tank.id], x: 25.5, y: 20.5 }
     ]);
     expect(c.lastFeedback?.kind).toBe("move");
-    expect(c.tip).toMatch(/stays put/);
+    expect(c.tip).toMatch(/reste en place/);
     // the same with a long-press (it isn't a drop: nothing is aboard anything)
     expect(c.dropAt(25.5, 20.5)).toBe(false);
   });
 
-  it("a Goliath packing up takes the move: it walks once it is free", () => {
+  it("a Gargantua packing up takes the move: it walks once it is free", () => {
     const w = field();
     const c = new Controller(w);
     const g = anchored(spawnUnit(w, "goliath", "blue", 12, 12), "packing");
@@ -75,7 +75,7 @@ describe("Goliath orders from taps", () => {
     expect(c.drainCommands()).toEqual([{ type: "attackMove", faction: "blue", unitIds: [g.id], x: 25.5, y: 20.5 }]);
   });
 
-  it("⚔ Select army leaves anchored Goliaths at their posts, and 💤 Idle never lists a busy one", () => {
+  it("⚔ Select army leaves anchored Gargantuas at their posts, and 💤 Idle never lists a busy one", () => {
     const w = field();
     const c = new Controller(w);
     const walker = spawnUnit(w, "goliath", "blue", 12, 12);
@@ -88,7 +88,7 @@ describe("Goliath orders from taps", () => {
     expect(c.idleArmy()).toEqual([walker.id, tank.id]);
   });
 
-  it("G anchors walking Goliaths, packs up anchored ones, and says why when the ground won't take it", () => {
+  it("G anchors walking Gargantuas, packs up anchored ones, and says why when the ground won't take it", () => {
     const w = field();
     const c = new Controller(w);
     const g = spawnUnit(w, "goliath", "blue", 15, 15);
@@ -99,7 +99,7 @@ describe("Goliath orders from taps", () => {
     // a tank parked under its feet
     const tank = spawnUnit(w, "stinger", "blue", 15.2, 15.2);
     expect(c.toggleAnchor()).toBeNull();
-    expect(c.tip).toBe("Can't anchor here: unit in the way");
+    expect(c.tip).toBe("Impossible d'ancrer ici : une unité gêne");
     expect(c.drainCommands()).toEqual([]);
     w.units.delete(tank.id);
     anchored(g);
@@ -115,7 +115,7 @@ describe("Goliath orders from taps", () => {
   });
 });
 
-describe("the two-Condor lift from taps", () => {
+describe("the two-Montgolfière lift from taps", () => {
   /** A walking Goliath at (20, 20), two empty Condors near it, a third further off and a tank. */
   function pad() {
     const w = field();
@@ -128,7 +128,7 @@ describe("the two-Condor lift from taps", () => {
     return { w, c, g, near, mid, far, tank };
   }
 
-  it("two or more empty Condors selected + tap the Goliath: the two nearest hook on, and the lift is the selection", () => {
+  it("two or more empty Montgolfières selected + tap the Gargantua: the two nearest hook on, and the lift is the selection", () => {
     const { c, g, near, mid, far, tank } = pad();
     c.selectUnits([far.id, mid.id, near.id, tank.id]);
     c.tapWorld(20, 20, { kind: "ownUnit", id: g.id });
@@ -137,28 +137,28 @@ describe("the two-Condor lift from taps", () => {
     expect(c.lastFeedback).toEqual({ kind: "board", x: 20, y: 20 });
   });
 
-  it("says why not, and selects the Goliath: one Condor, Condors with squads aboard, a Goliath dug in", () => {
+  it("says why not, and selects the Gargantua: one Montgolfière, Montgolfières with squads aboard, a Gargantua dug in", () => {
     const { w, c, g, near, mid } = pad();
     c.selectUnits([near.id]);
     c.tapWorld(20, 20, { kind: "ownUnit", id: g.id });
     expect(c.drainCommands()).toEqual([]);
-    expect(c.tip).toBe("Two empty Condors lift a Goliath");
+    expect(c.tip).toBe("Deux Montgolfières vides portent un Gargantua");
     expect([...c.selectedUnits]).toEqual([g.id]);
     const squad = spawnUnit(w, "trooper", "blue", 5, 5);
     w.units.delete(squad.id);
     mid.passengers!.push(squad);
     c.selectUnits([near.id, mid.id]);
     c.tapWorld(20, 20, { kind: "ownUnit", id: g.id });
-    expect(c.tip).toBe("Unload the Condors first");
+    expect(c.tip).toBe("Décharge d'abord les Montgolfières");
     mid.passengers = [];
     anchored(g);
     c.selectUnits([near.id, mid.id]);
     c.tapWorld(20, 20, { kind: "ownUnit", id: g.id });
-    expect(c.tip).toBe("Pack up first (G)");
+    expect(c.tip).toBe("Lève l'ancre d'abord (G)");
     expect(c.drainCommands()).toEqual([]);
   });
 
-  it("orders given while the Condors hook on wait for take-off (an order to them would call it off)", () => {
+  it("orders given while the Montgolfières hook on wait for take-off (an order to them would call it off)", () => {
     const { c, g, near, mid } = pad();
     hook(g, near, mid);
     c.selectUnits([near.id, mid.id, g.id]);
@@ -220,8 +220,8 @@ describe("the two-Condor lift from taps", () => {
   });
 });
 
-describe("training from an anchored Goliath", () => {
-  it("queues on a selected anchored Goliath first, else the shortest queue (buildings first on a tie)", () => {
+describe("training from an anchored Gargantua", () => {
+  it("queues on a selected anchored Gargantua first, else the shortest queue (buildings first on a tie)", () => {
     const w = field();
     const bay = spawnBuilding(w, "assembly-bay", "blue", 10, 4);
     const g = anchored(spawnUnit(w, "goliath", "blue", 20, 20));
@@ -244,7 +244,7 @@ describe("training from an anchored Goliath", () => {
     expect(pickProducer(w, "rocket-squad", none)?.id).toBe(g.id);
   });
 
-  it("under Nomads, Harvesters queue on the anchored Goliath, and a ground tap gives it a rally point", () => {
+  it("under Nomads, Harvesters queue on the anchored Gargantua, and a ground tap gives it a rally point", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     expect(hqOf(w, "blue")).toBeNull();
     const g = [...w.units.values()].find((u) => u.goliath && u.faction === "blue")!;
@@ -263,7 +263,7 @@ describe("training from an anchored Goliath", () => {
     expect(startBox(w, "blue")).not.toBeNull();
   });
 
-  it("a Gantry holds one Goliath at a time", () => {
+  it("a Gantry holds one Gargantua at a time", () => {
     const w = field();
     const gantry = spawnBuilding(w, "gantry", "blue", 10, 10);
     expect(pickProducer(w, "goliath", new Set())?.id).toBe(gantry.id);
@@ -273,7 +273,7 @@ describe("training from an anchored Goliath", () => {
 });
 
 describe("outposts: the build zone", () => {
-  it("is base range plus the rings of anchored Goliaths (anything but an HQ), outposts never counting", () => {
+  it("is base range plus the rings of anchored Gargantuas (anything but an HQ), outposts never counting", () => {
     const w = field();
     // blue HQ at (4,4)–(7,7): base range reaches a few tiles past it
     expect(zoneAt(w, "blue", "turret", 9, 5)).toBe(1);

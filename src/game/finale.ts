@@ -197,21 +197,21 @@ export function finaleBanner(o: {
 }): Announcement {
   const { x, y } = o;
   if (o.cause === "resign") {
-    if (o.winner === "draw") return { key: "draw", text: "Both resigned", sub: "Draw", tone: "info", priority: 0, x, y };
+    if (o.winner === "draw") return { key: "draw", text: "Double abandon", sub: "Match nul", tone: "info", priority: 0, x, y };
     if (o.spectator) {
-      const won = o.winner === "blue" ? "Blue" : "Red";
-      return { key: "hq-destroyed", text: `${won === "Blue" ? "Red" : "Blue"} resigned`, sub: `${won} wins`, tone: "epic", priority: 0, x, y };
+      const won = o.winner === "blue" ? "Bleu" : "Rouge";
+      return { key: "hq-destroyed", text: `${won === "Bleu" ? "Rouge" : "Bleu"} abandonne`, sub: `${won} l'emporte`, tone: "epic", priority: 0, x, y };
     }
-    if (o.winner === o.player) return { key: "victory", text: "Your friend resigned", sub: "Victory", tone: "epic", priority: 0, x, y };
-    return { key: "defeat", text: "You resigned", sub: "Defeat", tone: "bad", priority: 0, x, y };
+    if (o.winner === o.player) return { key: "victory", text: "Ton ami abandonne", sub: "Victoire", tone: "epic", priority: 0, x, y };
+    return { key: "defeat", text: "Tu as abandonné", sub: "Défaite", tone: "bad", priority: 0, x, y };
   }
   if (o.winner === "draw" || o.cause === "love")
-    return { key: "draw", text: "💘 They fell in love", sub: "It's a draw", tone: "good", priority: 0, x, y, say: "They fell in love. It's a draw." };
-  const loser = o.winner === "blue" ? "Red" : "Blue";
-  const what = o.cause === "goliath" ? "Goliath" : "HQ";
-  if (o.spectator) return { key: "hq-destroyed", text: `${loser} ${what} destroyed`, sub: `${loser === "Red" ? "Blue" : "Red"} wins`, tone: "epic", priority: 0, x, y };
-  if (o.winner === o.player) return { key: "victory", text: `Enemy ${what} destroyed`, sub: "Victory", tone: "epic", priority: 0, x, y };
-  return { key: "defeat", text: o.cause === "goliath" ? "Our last Goliath has fallen" : "Our HQ has fallen", sub: "Defeat", tone: "bad", priority: 0, x, y };
+    return { key: "draw", text: "💘 Ils sont tombés amoureux", sub: "Match nul", tone: "good", priority: 0, x, y, say: "Ils sont tombés amoureux. Match nul." };
+  const loser = o.winner === "blue" ? "Rouge" : "Bleu";
+  const what = o.cause === "goliath" ? "Gargantua" : "GQG";
+  if (o.spectator) return { key: "hq-destroyed", text: `${what} ${loser} détruit`, sub: `${loser === "Rouge" ? "Bleu" : "Rouge"} l'emporte`, tone: "epic", priority: 0, x, y };
+  if (o.winner === o.player) return { key: "victory", text: `${what} ennemi détruit`, sub: "Victoire", tone: "epic", priority: 0, x, y };
+  return { key: "defeat", text: o.cause === "goliath" ? "Notre dernier Gargantua est tombé" : "Notre GQG est tombé", sub: "Défaite", tone: "bad", priority: 0, x, y };
 }
 
 /** Zoom the finale settles at: a push-in, but never further out than `atLeast`. */

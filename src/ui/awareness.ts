@@ -109,7 +109,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   const speed = document.createElement("button");
   speed.id = "speed";
   speed.className = "speed";
-  speed.title = "Game speed (.) — hold the clock to fast-forward";
+  speed.title = "Vitesse (.) : maintiens l'horloge pour accélérer";
   speed.textContent = "1×";
   // the clock and its speed chip share one row (pills added next to the clock land in it too)
   const tempo = document.createElement("div");
@@ -124,7 +124,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   let pid: number | null = null;
   if (clock && !h.fixedSpeed) {
     clock.classList.add("holdable");
-    clock.title = "Hold to fast-forward (3×)";
+    clock.title = "Maintiens pour accélérer (3×)";
     const release = () => {
       if (pid === null) return;
       pid = null;
@@ -153,7 +153,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   const meter = document.createElement("div");
   meter.className = "bmeter";
   meter.hidden = true;
-  meter.innerHTML = `<span class="bm-side bm-own">${h.spectator ? "B" : "You"}</span><span class="bm-bar"><i class="bm-fill"></i><i class="bm-knob"></i></span><span class="bm-side bm-foe">${h.spectator ? "R" : "Foe"}</span><span class="bm-tp"></span>`;
+  meter.innerHTML = `<span class="bm-side bm-own">${h.spectator ? "B" : "Toi"}</span><span class="bm-bar"><i class="bm-fill"></i><i class="bm-knob"></i></span><span class="bm-side bm-foe">${h.spectator ? "R" : "Ennemi"}</span><span class="bm-tp"></span>`;
   root.querySelector(".topbar")?.appendChild(meter);
   const fill = meter.querySelector<HTMLElement>(".bm-fill")!;
   const knob = meter.querySelector<HTMLElement>(".bm-knob")!;
@@ -179,7 +179,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   // ------------------------------------------------------------- jump ---
   const jump = document.createElement("button");
   jump.className = "zb jump";
-  jump.title = "Jump to the action (J)";
+  jump.title = "Aller à l'action (J)";
   jump.innerHTML = `<span class="ji">⚡</span><span class="jdot" hidden></span>`;
   root.querySelector(".zoombtns")?.appendChild(jump);
   jump.addEventListener("click", () => h.onJump());
@@ -273,7 +273,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
       meter.classList.toggle("losing", share <= 0.4);
     },
     turning(dir) {
-      tp.textContent = "Turning point!";
+      tp.textContent = "Tournant !";
       // spectators have no side: the swing is news, not good or bad
       tp.className = `bm-tp ${h.spectator ? "neutral" : dir}`;
       void tp.offsetWidth;

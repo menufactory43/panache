@@ -120,7 +120,7 @@ describe("hotspots", () => {
     expect(r.heat.hotspots()).toEqual([]);
     r.tick(hit("blue", h.id, false, 40, 40));
     const [s] = r.heat.hotspots();
-    expect(s).toMatchObject({ kind: "defend", label: "Harvesters" });
+    expect(s).toMatchObject({ kind: "defend", label: "Fardiers" });
     expect(s!.x).toBeCloseTo(40);
     // 15% decay a second: gone after ~1 s below the threshold
     for (let i = 0; i < 10 * 3; i++) r.tick();
@@ -137,7 +137,7 @@ describe("hotspots", () => {
     // a tank hit next to the HQ doesn't rename it
     r.tick(hit("blue", tank.id, false, 6, 6));
     const spots = r.heat.hotspots();
-    expect(spots.map((s) => s.label)).toEqual(["HQ!", "Base", "Units"]);
+    expect(spots.map((s) => s.label)).toEqual(["GQG !", "Base", "Unités"]);
     expect(spots.every((s) => s.kind === "defend")).toBe(true);
   });
 
@@ -148,7 +148,7 @@ describe("hotspots", () => {
     for (let i = 0; i < 3; i++) r.tick(shot(me.id, 20, 20), hit("red", foe.id, false, 22, 20), shot(foe.id, 22, 20, 20, 20));
     expect(r.heat.hotspots()).toEqual([]);
     for (let i = 0; i < 3; i++) r.tick(shot(me.id, 20, 20));
-    expect(r.heat.hotspots()).toMatchObject([{ kind: "attack", label: "Attack" }]);
+    expect(r.heat.hotspots()).toMatchObject([{ kind: "attack", label: "Attaque" }]);
   });
 
   it("merges nearby cells into one hotspot", () => {
@@ -162,10 +162,10 @@ describe("hotspots", () => {
     const r = rig(true);
     const a = spawnUnit(r.w, "stinger", "red", 30, 30);
     for (let i = 0; i < 3; i++) r.tick(hit("red", a.id, false, 30, 30));
-    expect(r.heat.hotspots()).toMatchObject([{ kind: "fight", label: "Fight" }]);
+    expect(r.heat.hotspots()).toMatchObject([{ kind: "fight", label: "Combat" }]);
     const hq = spawnBuilding(r.w, "hq", "red", 4, 50);
     for (let i = 0; i < 3; i++) r.tick(hit("red", hq.id, true, 5.5, 51.5));
-    expect(r.heat.hotspots().map((s) => s.label)).toContain("Red HQ");
+    expect(r.heat.hotspots().map((s) => s.label)).toContain("GQG Rouge");
   });
 
   it("an inbound raid already being fought shows as the fight, not twice", () => {
@@ -207,8 +207,8 @@ describe("inbound warning", () => {
       u.y = 7;
     }
     const [wn] = r.tick();
-    expect(wn).toMatchObject({ domain: "air", text: "Enemy drones inbound", short: "Drones inbound", first: true, loud: true, count: 2 });
-    expect(wn!.advice).toMatch(/Flak/);
+    expect(wn).toMatchObject({ domain: "air", text: "Aéronefs ennemis en approche", short: "Aéronefs en approche", first: true, loud: true, count: 2 });
+    expect(wn!.advice).toMatch(/Faucheux/);
     expect(wn!.ids.sort()).toEqual(wasps.map((u) => u.id).sort());
     // the same group hanging around: no repeat
     expect(r.tick(10 * 15)).toEqual([]);
@@ -236,13 +236,13 @@ describe("inbound warning", () => {
     spawnUnit(r.w, "mastodon", "red", 6, 12);
     spawnUnit(r.w, "stinger", "red", 7, 12);
     const [a] = r.tick();
-    expect(a).toMatchObject({ domain: "ground", text: "Enemy Mastodons inbound", first: true, loud: true });
-    expect(a!.advice).toMatch(/Lancers/);
+    expect(a).toMatchObject({ domain: "ground", text: "Creusot ennemis en approche", first: true, loud: true });
+    expect(a!.advice).toMatch(/Hydroglisseurs/);
     // a second, separate group a moment later: tracked (arrow), but not shouted
     spawnUnit(r.w, "wasp", "red", 21, 8);
     const [b] = r.tick(5);
     expect(b).toMatchObject({ domain: "air", loud: false, first: false });
-    expect(r.watch.hotspots(r.now()).map((h) => h.label).sort()).toEqual(["Air raid", "Raid"]);
+    expect(r.watch.hotspots(r.now()).map((h) => h.label).sort()).toEqual(["Raid", "Raid aérien"]);
     // the arrows expire
     r.tick(10 * (AWARE.inbound.arrowS + 1));
     expect(r.watch.hotspots(r.now())).toEqual([]);
@@ -265,16 +265,16 @@ describe("inbound warning", () => {
   });
 
   it("advice matches the counter web", () => {
-    expect(raidAdvice("air", "hornet").advice).toMatch(/Flak/);
-    expect(raidAdvice("ground", "mastodon").advice).toMatch(/Lancers/);
-    expect(raidAdvice("ground", "mastodon").advice).toMatch(/Rocket Squads/);
-    expect(raidAdvice("ground", "mortar").advice).toMatch(/Stingers/);
-    expect(raidAdvice("mixed", "wasp").what).toBe("strike force");
-    expect(raidAdvice("ground", "trooper")).toEqual({ what: "troops", advice: "Mortars, Turrets or Snipers" });
-    expect(raidAdvice("air", "condor").what).toBe("dropships");
+    expect(raidAdvice("air", "hornet").advice).toMatch(/Faucheux/);
+    expect(raidAdvice("ground", "mastodon").advice).toMatch(/Hydroglisseurs/);
+    expect(raidAdvice("ground", "mastodon").advice).toMatch(/Artificiers/);
+    expect(raidAdvice("ground", "mortar").advice).toMatch(/Panhard/);
+    expect(raidAdvice("mixed", "wasp").what).toBe("force de frappe");
+    expect(raidAdvice("ground", "trooper")).toEqual({ what: "pioupious", enemy: "ennemis", advice: "Canons de 75, Hotchkiss ou Chasseurs alpins" });
+    expect(raidAdvice("air", "condor").what).toBe("Montgolfières");
   });
 
-  it("a Sniper Team hidden in the woods raises no warning; a Condor does, loaded or not", () => {
+  it("a Sniper Team hidden in the woods raises no warning; a Montgolfière does, loaded or not", () => {
     const r = rig();
     // in sight of the HQ, in woods, more than 3 tiles from anything of ours
     setTerrain(r.w, 11, 6, Terrain.Forest);
@@ -285,18 +285,18 @@ describe("inbound warning", () => {
     // what a Condor carries is hidden: an empty one warns just as a loaded one would
     const c = spawnUnit(r.w, "condor", "red", 21, 9);
     const [wn] = r.tick();
-    expect(wn).toMatchObject({ domain: "air", text: "Enemy dropships inbound", ids: [c.id] });
+    expect(wn).toMatchObject({ domain: "air", text: "Montgolfières ennemies en approche", ids: [c.id] });
     r.w.units.delete(c.id);
     const loaded = spawnUnit(r.w, "condor", "red", 21, 9);
     const t = spawnUnit(r.w, "trooper", "red", 21, 9);
     r.w.units.delete(t.id);
     loaded.passengers!.push(t);
     const [wl] = r.tick(40);
-    expect(wl).toMatchObject({ domain: "air", text: "Enemy dropships inbound", ids: [loaded.id] });
+    expect(wl).toMatchObject({ domain: "air", text: "Montgolfières ennemies en approche", ids: [loaded.id] });
     // the sniper gives itself away by firing: now it counts
     sn.firedTick = r.w.tick;
     const [ws] = r.tick();
-    expect(ws).toMatchObject({ lead: "sniper", text: "Enemy snipers inbound" });
+    expect(ws).toMatchObject({ lead: "sniper", text: "Chasseurs alpins ennemis en approche" });
   });
 
   it("an air raid warning stands in for 'Enemy aircraft detected'", () => {
@@ -326,8 +326,8 @@ describe("tempo safety (drop to 1× when the player must react)", () => {
 
   it("an enemy calldown aimed at our units or buildings drops a fast game to 1×", () => {
     const r = rig();
-    expect(r.guard.check([calldown("red", 31, 30)], 10, [], true)).toMatchObject({ cause: "calldown", note: "enemy Barrage inbound", x: 31, y: 30 });
-    expect(r.guard.check([calldown("red", 6, 8, "hammer", 2.5)], 11, [], true)).toMatchObject({ cause: "calldown", note: "enemy Sky Hammer inbound" });
+    expect(r.guard.check([calldown("red", 31, 30)], 10, [], true)).toMatchObject({ cause: "calldown", note: "Feu roulant ennemi en approche", x: 31, y: 30 });
+    expect(r.guard.check([calldown("red", 6, 8, "hammer", 2.5)], 11, [], true)).toMatchObject({ cause: "calldown", note: "Obus Méliès ennemi en approche" });
     // far from anything of ours, or our own: no
     expect(r.guard.check([calldown("red", 45, 10)], 12, [], true)).toBeNull();
     expect(r.guard.check([calldown("blue", 31, 30)], 13, [], true)).toBeNull();
@@ -340,7 +340,7 @@ describe("tempo safety (drop to 1× when the player must react)", () => {
   it("the HQ coming under a new attack drops to 1×, but not every hit of the same siege", () => {
     const r = rig();
     const hqHit = (t: number, fast = true) => r.guard.check([hit("blue", r.hq.id, true, 5.5, 5.5, 99)], t, [], fast);
-    expect(hqHit(20)).toMatchObject({ cause: "hq", note: "HQ under attack" });
+    expect(hqHit(20)).toMatchObject({ cause: "hq", note: "GQG attaqué" });
     // the siege goes on: the player chose to speed up again, so leave it
     expect(hqHit(25)).toBeNull();
     expect(hqHit(25 + TEMPO.hqQuietS - 1)).toBeNull();
@@ -358,9 +358,9 @@ describe("tempo safety (drop to 1× when the player must react)", () => {
     const r = rig();
     const wn = {
       id: 1, domain: "air" as const, lead: "wasp" as const, count: 3, ids: [], x: 20, y: 6,
-      text: "Enemy drones inbound", short: "Drones inbound", advice: "Flak", first: false, loud: true, t: 5
+      text: "Drones ennemis en approche", short: "Drones en approche", advice: "DCA", first: false, loud: true, t: 5
     };
-    expect(r.guard.check([], 5, [wn], true)).toMatchObject({ cause: "inbound", note: "enemy drones inbound" });
+    expect(r.guard.check([], 5, [wn], true)).toMatchObject({ cause: "inbound", note: "Drones ennemis en approche" });
     expect(r.guard.check([], 5, [{ ...wn, loud: false }], true)).toBeNull();
     expect(r.guard.check([calldown("red", 31, 30)], 6, [wn], true)?.cause).toBe("calldown");
   });

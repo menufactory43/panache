@@ -420,7 +420,7 @@ describe("VersusFeed as GameScene drives it", () => {
     expect(liftGroupsFirst(w, [{ type: "move", faction: "blue", unitIds: ids.all, x: 1.5, y: 1.5 }])).toHaveLength(1);
   });
 
-  it("(control) without the grouping, the hooking Goliath misses the split order", { timeout: 60_000 }, () => {
+  it("(control) without the grouping, the hooking Gargantua misses the split order", { timeout: 60_000 }, () => {
     const { r, ids } = liftAndMove(true);
     for (const p of [r.host, r.guest]) {
       const pw = p.feed!.world;
@@ -460,7 +460,7 @@ describe("VersusFeed as GameScene drives it", () => {
       const g = p.feed!.world.units.get(ids.g)!;
       // (the lift landed first, hooking on; the group called it off and took the order)
       expect(g.goliath!.lift).toBeNull();
-      expect(g.order, "the Goliath").toMatchObject({ type: "move", ...to });
+      expect(g.order, "the Gargantua").toMatchObject({ type: "move", ...to });
     }
     expect(ls(r.host).desync || ls(r.guest).desync).toBe(false);
     // (liftGroupsFirst with a lift on its way, or one earlier in the same drain: the same group; one after it: nothing)
@@ -570,9 +570,9 @@ describe("the report's order delay", () => {
   });
 
   it("reads as the mean and the worst", () => {
-    expect(orderRows(null)).toEqual([["Order delay", "–"], ["Slowest order", "–"]]);
-    expect(orderRows({ meanMs: 620.4, worstMs: 1420 })).toEqual([["Order delay", "620 ms average"], ["Slowest order", "1.4 s"]]);
-    expect(orderRows({ meanMs: 412, worstMs: 12_400 })).toEqual([["Order delay", "412 ms average"], ["Slowest order", "12 s"]]);
+    expect(orderRows(null)).toEqual([["Délai des ordres", "–"], ["Ordre le plus lent", "–"]]);
+    expect(orderRows({ meanMs: 620.4, worstMs: 1420 })).toEqual([["Délai des ordres", "620 ms en moyenne"], ["Ordre le plus lent", "1.4 s"]]);
+    expect(orderRows({ meanMs: 412, worstMs: 12_400 })).toEqual([["Délai des ordres", "412 ms en moyenne"], ["Ordre le plus lent", "12 s"]]);
   });
 });
 
@@ -771,7 +771,7 @@ describe("taps that build on your own last order, the world D ticks behind", () 
     expect(ctrl.selectedUnits).toEqual(new Set(ids.s));
     sealedNotLanded(r, blue, () => ids.s.every((id) => w.units.get(id)!.order.type !== "board"));
     ctrl.tapWorld(isl.tx + 0.5, isl.ty + 0.5, { kind: "ground" });
-    expect(ctrl.tip).toBe("Boarding: they'll drop there once they're aboard");
+    expect(ctrl.tip).toBe("Embarquement : largage là-bas une fois à bord");
     runUntil(r, () => ids.s.every((id) => onBoth(r, id, (u, pw) => regionAt(pw, Math.floor(u.x), Math.floor(u.y), "foot") === region)), 80_000);
     expect(blueOrders(blue)).toEqual([`board:${list(...ids.s)}`, `unload:${ids.c}`]);
     expect(ls(r.host).desync || ls(r.guest).desync).toBe(false);
@@ -787,10 +787,10 @@ describe("taps that build on your own last order, the world D ticks behind", () 
     ctrl.enqueue({ type: "calldown", faction: "blue", power: "barrage", x: hq.tx + 5.5, y: hq.ty - 4.5 });
     const fired = () => {
       expect(ctrl.powerStatus("barrage")).toMatchObject({ ready: false, cooldown: cooldownTicks("barrage") });
-      expect(ctrl.powerBlocker("barrage")).toBe(`Barrage recharging: ${POWERS.barrage.cooldown} s`);
+      expect(ctrl.powerBlocker("barrage")).toBe(`Feu roulant en recharge : ${POWERS.barrage.cooldown} s`);
       // (the meter trickles up meanwhile)
       expect(ctrl.powerMeter()).toBeCloseTo(w.powers.meter.blue - POWERS.barrage.cost, 9);
-      expect(ctrl.powerBlocker("emp")).toBe("EMP needs 40 charge (30)");
+      expect(ctrl.powerBlocker("emp")).toBe("Fée Électricité : 40 de charge requis (30)");
     };
     // (not drained yet, then sealed: the panel offers neither again)
     fired();
@@ -836,7 +836,7 @@ describe("the duel's record", () => {
     const hostSide: Faction = red.role === "host" ? "red" : "blue";
     const guestSide: Faction = hostSide === "red" ? "blue" : "red";
     expect(rec.seats[hostSide].player).toBe("sound-duel:host");
-    expect(viewer.labels).toEqual({ [hostSide]: `Host phone · ${OPENERS[rec.openers[hostSide]!].name}`, [guestSide]: `Guest phone · ${OPENERS[rec.openers[guestSide]!].name}` });
+    expect(viewer.labels).toEqual({ [hostSide]: `Téléphone hôte · ${OPENERS[rec.openers[hostSide]!].name}`, [guestSide]: `Téléphone invité · ${OPENERS[rec.openers[guestSide]!].name}` });
     // Menu on blue, Rematch on red: the end goes out, then the page reloads (once), the record untouched
     blue.feed!.duel.menu();
     red.feed!.duel.rematch();
@@ -1153,7 +1153,7 @@ describe("the duel's record when the worlds drift apart", () => {
     expect(red.feed!.outcome).toBe("noContest");
     expect(readTally(red.local)).toEqual({ w: 0, l: 0, d: 0, abandoned: 0, noContest: 1 });
     expect(red.local.writes(RECORD_KEY)).toBe(2);
-    expect(red.feed!.reportView()).toMatchObject({ sync: "desync", record: "0 wins · 0 losses · 0 draws · 1 with no result" });
+    expect(red.feed!.reportView()).toMatchObject({ sync: "desync", record: "0 victoire · 0 défaite · 0 nul · 1 sans résultat" });
   });
 });
 
@@ -1253,7 +1253,7 @@ describe("the reconnect cover", () => {
     rig.error = new RigError("mic-refused");
     f.reconnect();
     await settled();
-    const why = "Microphone refused. Allow the microphone for this site in the browser's settings, then try again.";
+    const why = "Micro refusé. Autorise le micro pour ce site dans les réglages du navigateur, puis réessaie.";
     expect(f.reportView().relink).toEqual({ phase: "failed", why });
     expect(duelReportSection(() => f.reportView(), { reconnect: () => undefined }).render({} as ReportContext)).toContain(`<small>${why}</small>`);
     rig.works = true;
@@ -1272,20 +1272,20 @@ describe("the reconnect cover", () => {
     const f = r.host.feed!;
     rig.lose();
     // a Bluetooth headset joined: the microphone it brings runs at 16 kHz
-    rig.error = new RigError("rate", "This phone's microphone runs at 16000 Hz, which the sound link can't use");
+    rig.error = new RigError("rate", "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore");
     f.reconnect();
     expect(f.overlay().reconnect).toEqual({ phase: "trying", leave: false, why: null });
     await settled();
     expect(f.overlay().reconnect).toEqual({
       phase: "failed",
       leave: false,
-      why: "This phone's microphone runs at 16000 Hz, which the sound link can't use. Try again with headphones and Bluetooth disconnected."
+      why: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore. Réessaie avec le casque et le Bluetooth déconnectés."
     });
     // a reason with no advice of its own: its words alone
     rig.error = new RigError("no-mic");
     f.reconnect();
     await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: true, why: "No microphone available: close other apps using it and try again." });
+    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: true, why: "Aucun micro disponible : ferme les autres applis qui l'utilisent et réessaie." });
     // the context didn't start: the rig has no reason, so the cover's own words
     rig.error = null;
     f.reconnect();

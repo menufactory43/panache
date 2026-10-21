@@ -15,15 +15,18 @@ document.getElementById("units")!.innerHTML = GROUPS.map(
 
 // the damage table: every damage type against every armour class, straight from DAMAGE_VS
 const ARMOR_NAME: Record<ArmorClass, string> = {
-  light: "Light", medium: "Medium", heavy: "Heavy", structure: "Buildings", infantry: "Infantry"
+  light: "Léger", medium: "Moyen", heavy: "Lourd", structure: "Bâtiments", infantry: "Infanterie"
 };
 const armors = Object.keys(ARMOR_NAME) as ArmorClass[];
 const users = (t: DamageType): string =>
   (Object.keys(UNITS) as UnitKind[]).filter((k) => UNITS[k].dmgType === t).map((k) => UNITS[k].name).join(", ");
-const cell = (m: number): string => `<td class="${m >= 1.2 ? "hi" : m <= 0.7 ? "lo" : ""}">×${m}</td>`;
+const DMG_NAME: Record<DamageType, string> = {
+  kinetic: "cinétique", cannon: "canon", flak: "DCA", missile: "missile", explosive: "explosif", laser: "arc électrique", precision: "précision"
+};
+const cell = (m: number): string => `<td class="${m >= 1.2 ? "hi" : m <= 0.7 ? "lo" : ""}">×${String(m).replace(".", ",")}</td>`;
 document.getElementById("damage")!.innerHTML = `<table class="dmg">
-  <thead><tr><th>Damage</th>${armors.map((a) => `<th>${ARMOR_NAME[a]}</th>`).join("")}</tr></thead>
+  <thead><tr><th>Dégâts</th>${armors.map((a) => `<th>${ARMOR_NAME[a]}</th>`).join("")}</tr></thead>
   <tbody>${(Object.keys(DAMAGE_VS) as DamageType[])
-    .map((t) => `<tr><th>${t}<small>${users(t)}</small></th>${armors.map((a) => cell(DAMAGE_VS[t][a])).join("")}</tr>`)
+    .map((t) => `<tr><th>${DMG_NAME[t]}<small>${users(t)}</small></th>${armors.map((a) => cell(DAMAGE_VS[t][a])).join("")}</tr>`)
     .join("")}</tbody>
 </table>`;

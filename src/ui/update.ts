@@ -108,12 +108,12 @@ export function mountUpdatePill(menu: HTMLElement, update: AppUpdate = appUpdate
   pill.className = "update-pill";
   pill.setAttribute("role", "status");
   pill.hidden = true;
-  pill.innerHTML = `<span class="up-t"><b>✨ New version ready</b><span>Tap Update to switch to it</span></span><button class="up-go">Update ↻</button>`;
+  pill.innerHTML = `<span class="up-t"><b>✨ Nouvelle version prête</b><span>Touche Mettre à jour pour l'installer</span></span><button class="up-go">Mettre à jour ↻</button>`;
   menu.appendChild(pill);
   const btn = pill.querySelector<HTMLButtonElement>(".up-go")!;
   btn.addEventListener("click", () => {
     btn.disabled = true;
-    btn.textContent = "Updating…";
+    btn.textContent = "Mise à jour…";
     fullscreen.reload();
   });
   return update.onReady(() => {

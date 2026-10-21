@@ -419,7 +419,7 @@ describe("opening the rig", () => {
     const err = await rig.ready.catch((e: unknown) => e);
     expect(err).toBeInstanceOf(RigError);
     expect((err as RigError).reason).toBe("mic-refused");
-    expect((err as RigError).message).toBe("Microphone refused");
+    expect((err as RigError).message).toBe("Micro refusé");
     expect(rig.state).toBe("failed");
     expect(w.contexts[0]!.state).toBe("closed");
     expect(w.session.type).toBe("auto");
@@ -476,9 +476,9 @@ describe("the link", () => {
     let w = world();
     w.nextCtx = { sampleRate: 22050 };
     let rig = open(w);
-    expect(rig.rateProblem("high")).toBe("This phone's audio runs at 22050 Hz, which the sound link can't use");
+    expect(rig.rateProblem("high")).toBe("L'audio de ce téléphone tourne à 22050 Hz, inutilisable pour la liaison sonore");
     const err = await rig.createLink({ ...HOST, plan: "low" }).catch((e: unknown) => e);
-    expect(err).toMatchObject({ reason: "rate", message: "This phone's audio runs at 22050 Hz, which the sound link can't use" });
+    expect(err).toMatchObject({ reason: "rate", message: "L'audio de ce téléphone tourne à 22050 Hz, inutilisable pour la liaison sonore" });
     w = world();
     w.nextCtx = { sampleRate: 32000 };
     rig = open(w);
@@ -488,7 +488,7 @@ describe("the link", () => {
     w = world();
     w.worklet = "fail";
     rig = open(w);
-    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "update", message: "A new version is ready: reload this phone (and your friend's)" });
+    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "update", message: "Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)" });
     rig.close();
   });
 
@@ -548,7 +548,7 @@ describe("the link", () => {
     w.devices.getUserMedia = (c) => (n++ === 0 ? gum(c) : Promise.reject(Object.assign(new Error("denied"), { name: "NotAllowedError" })));
     rig = open(w);
     expect(await rig.ready).toBe("running");
-    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "This phone's microphone runs at 16000 Hz, which the sound link can't use" });
+    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore" });
     rig.close();
   });
 
@@ -558,7 +558,7 @@ describe("the link", () => {
     const rig = open(w);
     await rig.ready;
     expect(w.contexts.map((c) => [c.sampleRate, c.state])).toEqual([[16000, "running"], [16000, "closed"]]);
-    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "This phone's audio runs at 16000 Hz, which the sound link can't use" });
+    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "L'audio de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore" });
     rig.close();
   });
 
@@ -566,7 +566,7 @@ describe("the link", () => {
     let w = world();
     w.devices.micRate = 16000;
     let rig = open(w);
-    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "This phone's microphone runs at 16000 Hz, which the sound link can't use" });
+    await expect(rig.createLink(HOST)).rejects.toMatchObject({ reason: "rate", message: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore" });
     rig.close();
     // 32 kHz carries the low plan, not the high one; a reported 48 kHz (or none) is fine
     w = world();
@@ -908,7 +908,7 @@ describe("the lifecycle", () => {
     const { rig, lost } = await running(w);
     // the new mode's comes at 16 kHz, the old mode's again at 48
     w.devices.micRates = [16000, 48000];
-    await expect(rig.setMicMode("ec")).rejects.toMatchObject({ reason: "rate", message: "This phone's microphone runs at 16000 Hz, which the sound link can't use" });
+    await expect(rig.setMicMode("ec")).rejects.toMatchObject({ reason: "rate", message: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore" });
     expect(rig.micMode).toBe("raw");
     expect(w.devices.streams[1]!.track.stopped).toBe(true);
     const back = w.devices.streams[2]!;
@@ -1145,7 +1145,7 @@ describe("the lifecycle", () => {
       expect(await rig.reconnect(), `tap ${i}`).toBe(false);
       expect(w.devices.streams).toHaveLength(1 + i);
       expect(w.devices.streams[i]!.track.stopped).toBe(true);
-      expect(rig.lastError).toMatchObject({ reason: "rate", message: "This phone's microphone runs at 16000 Hz, which the sound link can't use" });
+      expect(rig.lastError).toMatchObject({ reason: "rate", message: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore" });
       expect(rig.failures).toBe(i);
       expect(rig.state).toBe("lost");
       expect(w.contexts[0]!.sources.at(-1)!.stream).toBe(w.devices.streams[0]);
@@ -1306,7 +1306,7 @@ describe("a modem that stops", () => {
     await w.clock.advance(500);
     expect(lost).toEqual(["modem"]);
     nodes[1]!.onprocessorerror?.();
-    expect(heard.at(-1)).toBe("the sound link's audio processor failed (losses so far: 1)");
+    expect(heard.at(-1)).toBe("le processeur audio de la liaison sonore a échoué (losses so far: 1)");
     expect(lost).toEqual(["modem", "modem"]);
     expect(await rig.reconnect()).toBe(true);
     expect([w.contexts.length, nodes.length, rig.state]).toEqual([3, 3, "running"]);

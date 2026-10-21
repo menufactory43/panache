@@ -108,7 +108,7 @@ class ModemProcessor extends AudioWorkletProcessor {
       this.report(modem, frame);
     } catch (e) {
       this.modem = null;
-      this.post({ t: "error", message: `the modem stopped: ${messageOf(e)}`, fatal: true });
+      this.post({ t: "error", message: `le modem s'est arrêté : ${messageOf(e)}`, fatal: true });
       for (let c = 0; c < out.length; c++) out[c]!.fill(0);
     }
     return true;

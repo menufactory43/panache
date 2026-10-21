@@ -79,10 +79,10 @@ export default defineConfig({
     showcaseBattles(),
     VitePWA({
       registerType: "autoUpdate",
-      // precache the shell, icons and menu art; painted map terrain
+      // precache the shell, icons and menu art (and the title scene and intro film); painted map terrain
       // (a few MB per map) and each biome's rock material are cached on
       // first play instead
-      includeAssets: ["assets/icons/*", "assets/icons/red/*", "assets/ui/*", "assets/maps/*/thumb.webp", "icons/*"],
+      includeAssets: ["assets/icons/*", "assets/icons/red/*", "assets/ui/*", "assets/ui/title/*", "assets/maps/*/thumb.webp", "icons/*"],
       workbox: {
         // There are no client-side routes. Exact precached URLs still work
         // offline, but /v1/ etc. must reach their own game and service worker.
@@ -107,10 +107,10 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: "Battle Drones",
-        short_name: "BattleDrones",
+        name: "Panache",
+        short_name: "Panache",
         description:
-          "A mobile RTS: two armies of flying and ground drones battle for territory and resources.",
+          "Un STR mobile à la Belle Époque : deux armées d'aéronefs, de blindés et d'automates s'affrontent pour le territoire et le charbon.",
         display: "fullscreen",
         orientation: "any",
         background_color: "#070a10",

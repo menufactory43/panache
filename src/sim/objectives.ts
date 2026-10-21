@@ -29,11 +29,11 @@ export const CRATE_REWARDS: CrateReward[] = ["scrap", "veterans", "repair", "cha
 
 /** Short names for HUD lines ("Supply drop inbound: Veterans"). */
 export const CRATE_NAMES: Record<CrateReward, string> = {
-  scrap: `${D.scrap} scrap`,
-  veterans: "Veterans",
-  repair: "Field Repair",
-  charge: `+${D.charge} command charge`,
-  unit: "Free Lancer"
+  scrap: `${D.scrap} de charbon`,
+  veterans: "Vétérans",
+  repair: "Réparation de campagne",
+  charge: `+${D.charge} de charge de commandement`,
+  unit: "Hydroglisseur offert"
 };
 
 export function createObjectiveState(): ObjectiveState {

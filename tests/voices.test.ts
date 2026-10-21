@@ -178,6 +178,7 @@ describe("radio queue", () => {
     expect(speakable("SUPPLY DROP INBOUND")).toBe("Supply drop inbound");
     expect(speakable("⚡ ENEMY HQ DESTROYED!")).toBe("Enemy HQ destroyed!");
     expect(speakable("First blood")).toBe("First blood");
+    expect(speakable("⚡ GQG ENNEMI DÉTRUIT !")).toBe("GQG ennemi détruit !");
     expect(speakable("Wave 5 — Mastodons")).toBe("Wave 5 Mastodons");
     expect(lineSeconds("Warning: our HQ is under attack")).toBeGreaterThan(1.5);
     expect(lineSeconds("Squad lost")).toBeLessThan(1.2);
@@ -262,7 +263,7 @@ describe("battle callouts", () => {
     r.at(1, death({ faction: "blue", unitKind: "mastodon", value: 475 }));
     r.at(30, death({ faction: "blue", unitKind: "harvester", value: 150 }));
     r.at(60, death({ faction: "blue", unitKind: "stinger", value: 150 }));
-    expect(r.radio.map((l) => l.text)).toEqual(["Mastodon lost", "Harvester lost"]);
+    expect(r.radio.map((l) => l.text)).toEqual(["Creusot perdu", "Fardier perdu"]);
   });
 
   it("calls first blood once, for the player's first kill", () => {
@@ -271,7 +272,7 @@ describe("battle callouts", () => {
     expect(r.banners).toHaveLength(0);
     r.at(2, death({ faction: "red", unitKind: "wasp" }));
     expect(r.banners).toHaveLength(1);
-    expect(r.banners[0]).toMatchObject({ key: "first-blood", text: "First blood", tone: "epic", sub: "Enemy Wasp destroyed" });
+    expect(r.banners[0]).toMatchObject({ key: "first-blood", text: "Premier sang", tone: "epic", sub: "Éole ennemi détruit" });
     r.at(30, death({ faction: "red" }));
     r.at(60, death({ faction: "red" }));
     expect(r.banners.filter((b) => b.key === "first-blood")).toHaveLength(1);
@@ -290,7 +291,7 @@ describe("battle callouts", () => {
     r.at(22, death({ faction: "red" }));
     r.at(23, death({ faction: "red" }));
     r.at(24);
-    expect(r.banners.at(-1)).toMatchObject({ key: "streak-5", text: "Rampage", tone: "epic" });
+    expect(r.banners.at(-1)).toMatchObject({ key: "streak-5", text: "Carnage", tone: "epic" });
     // kills too far apart never streak
     const s = rig();
     s.at(1, death({ faction: "red" }));
@@ -319,12 +320,12 @@ describe("battle callouts", () => {
     const r = rig();
     r.at(1, death({ faction: "red" }));
     r.at(20, death({ faction: "red", unitKind: "mastodon", value: 475 }));
-    expect(r.banners.at(-1)).toMatchObject({ key: "kill-mastodon", text: "Mastodon down", say: "Enemy Mastodon destroyed", tone: "good" });
+    expect(r.banners.at(-1)).toMatchObject({ key: "kill-mastodon", text: "Creusot abattu", say: "Creusot ennemi détruit", tone: "good" });
     const s = rig();
     s.at(1, death({ faction: "red" }));
     s.at(20, death({ faction: "red" }), death({ faction: "red", unitKind: "hornet", value: 375 }));
     s.at(21);
-    expect(s.banners.at(-1)).toMatchObject({ key: "streak-2", sub: "Hornet destroyed" });
+    expect(s.banners.at(-1)).toMatchObject({ key: "streak-2", sub: "Albatros détruit" });
   });
 
   it("announces structures destroyed and lost", () => {
@@ -332,8 +333,8 @@ describe("battle callouts", () => {
     r.at(1, death({ faction: "red", unitKind: null, buildingKind: "airpad", value: 350 }));
     r.at(2, death({ faction: "blue", unitKind: null, buildingKind: "turret", value: 225 }));
     expect(r.radio.map((l) => [l.key, l.text])).toEqual([
-      ["structure-killed", "Enemy Airpad destroyed"],
-      ["structure-lost", "Structure lost: Turret"]
+      ["structure-killed", "Parc de Chalais-Meudon ennemi détruit"],
+      ["structure-lost", "Bâtiment perdu : Hotchkiss"]
     ]);
   });
 
@@ -350,7 +351,7 @@ describe("battle callouts", () => {
     tickFog(r.w);
     r.at(2);
     expect(r.radio).toHaveLength(1);
-    expect(r.radio[0]).toMatchObject({ key: "enemy-air", text: "Enemy aircraft detected", caption: true });
+    expect(r.radio[0]).toMatchObject({ key: "enemy-air", text: "Aviation ennemie détectée", caption: true });
     r.at(10);
     expect(r.radio).toHaveLength(1);
     r.w.units.delete(far.id);
@@ -390,7 +391,7 @@ describe("battle callouts", () => {
     r.at(5, { type: "rankUp", id: vet.id });
     vet.rank = 2;
     r.at(6, { type: "rankUp", id: vet.id });
-    expect(r.radio.at(-1)).toMatchObject({ key: "promoted", text: "Mastodon promoted", priority: 3 });
+    expect(r.radio.at(-1)).toMatchObject({ key: "promoted", text: "Creusot promu", priority: 3 });
   });
 
   it("closes with victory or defeat, then falls silent", () => {
@@ -412,24 +413,24 @@ describe("battle callouts", () => {
     const r = rig({ spectator: true });
     const redHq = spawnBuilding(r.w, "hq", "red", 30, 30);
     r.at(1, hit("red", redHq.id, true));
-    expect(r.radio[0]).toMatchObject({ text: "Red HQ under attack", caption: true });
+    expect(r.radio[0]).toMatchObject({ text: "GQG Rouge attaqué", caption: true });
     r.at(2, death({ faction: "red" }));
-    expect(r.banners[0]).toMatchObject({ key: "first-blood", sub: "Blue strikes first", say: "First blood to Blue" });
+    expect(r.banners[0]).toMatchObject({ key: "first-blood", sub: "Bleu frappe en premier", say: "Premier sang pour Bleu" });
     r.at(20, death({ faction: "blue" }), death({ faction: "blue" }));
     r.at(21);
-    expect(r.banners.at(-1)).toMatchObject({ key: "streak-2", sub: "Red", say: "Double kill for Red" });
+    expect(r.banners.at(-1)).toMatchObject({ key: "streak-2", sub: "Rouge", say: "Doublé pour Rouge" });
     r.at(30, death({ faction: "red", unitKind: null, buildingKind: "fab-plant" }));
-    expect(r.radio.at(-1)!.text).toBe("Red Fab Plant destroyed");
+    expect(r.radio.at(-1)!.text).toBe("Forges Rouge détruites");
     // no player-only lines for a spectator
     r.w.factions.blue.pending = { kind: "fab-plant", remaining: 0, ready: true };
     r.at(40, death({ faction: "blue" }), death({ faction: "blue" }), death({ faction: "blue" }));
     expect(r.radio.some((l) => l.key === "construction" || l.key === "squad-lost")).toBe(false);
     r.w.winner = "red";
     r.at(50);
-    expect(r.radio.at(-1)!.text).toBe("Red wins the battle");
+    expect(r.radio.at(-1)!.text).toBe("Rouge remporte la bataille");
   });
 
-  it("Condor drops: ours is flavour, the enemy's a warning where we see it; shot down says what happened", () => {
+  it("Montgolfière drops: ours is flavour, the enemy's a warning where we see it; shot down says what happened", () => {
     let visible = false;
     const r = rig({ onScreen: () => visible });
     const drop = (faction: Faction, carrierId: number, unitIds: number[], bailout = false, x = 20, y = 20): FxEvent => ({
@@ -450,11 +451,11 @@ describe("battle callouts", () => {
     spawnUnit(r.w, "stinger", "blue", 40, 41);
     tickFog(r.w);
     r.at(21, drop("red", 60, [61], false, 40, 40));
-    expect(r.radio.at(-1)).toMatchObject({ key: "enemy-drop", text: "Enemy troops landing!", priority: 1, tone: "bad" });
+    expect(r.radio.at(-1)).toMatchObject({ key: "enemy-drop", text: "Débarquement ennemi !", priority: 1, tone: "bad" });
     // our Condor shot down over land: its squads bail out
     r.at(30, embark("blue", 70, 71));
     r.at(40, death({ faction: "blue", id: 70, unitKind: "condor", value: 200 }), drop("blue", 70, [71], true));
-    expect(r.radio.at(-1)).toMatchObject({ key: "condor-down", text: "Condor down! Troops bailing out", priority: 1 });
+    expect(r.radio.at(-1)).toMatchObject({ key: "condor-down", text: "Montgolfière abattue ! Les troupes sautent", priority: 1 });
     // …over water: lost with it — one line, not "Squad lost" on top
     r.at(60, embark("blue", 80, 81), embark("blue", 80, 82));
     r.at(80,
@@ -462,7 +463,7 @@ describe("battle callouts", () => {
       death({ faction: "blue", id: 81, unitKind: "trooper", value: 100 }),
       death({ faction: "blue", id: 82, unitKind: "trooper", value: 100 })
     );
-    expect(r.radio.at(-1)).toMatchObject({ key: "condor-down", text: "Condor down with 2 squads aboard" });
+    expect(r.radio.at(-1)).toMatchObject({ key: "condor-down", text: "Montgolfière abattue avec 2 escouades à bord" });
     expect(r.keys().filter((k) => k === "squad-lost")).toEqual([]);
     // an empty Condor going down is just a unit lost
     const before = r.radio.length;

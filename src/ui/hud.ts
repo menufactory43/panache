@@ -1,4 +1,5 @@
 import { BUILDINGS, ECONOMY, GOLIATH, INFANTRY as INF, LIFELINE, OBJECTIVES, POWERS, TICK_RATE, UNITS } from "../sim/balance";
+import { agree, isFeminine } from "../sim/lexicon";
 import { buildingBlocker, queuesOf, unitBlocker } from "../sim/economy";
 import { Vis } from "../sim/fog";
 import { anchorBlocker, modeProgress, unitCost, weaponReady } from "../sim/goliath";
@@ -24,6 +25,8 @@ import { mountHudLayout } from "./layout";
 import { HINTS, HintQueue, type HintOffer } from "../game/hints";
 import { fullscreen } from "./fullscreen";
 import { mapById } from "../sim/maps";
+import { BELLE_EPOQUE } from "../game/three/theme";
+import { mountBelleHud, mountHudSettings, type BelleHud } from "./belle-hud";
 
 export interface HudApi {
   world: World;
@@ -124,9 +127,9 @@ type DuelAsk = "resign" | "resign-leave" | "leave";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "build", label: "Base", icon: "🏗" },
-  { id: "ground", label: "Vehicles", icon: "⛓" },
-  { id: "infantry", label: "Infantry", icon: "🤖" },
-  { id: "air", label: "Aircraft", icon: "✈" }
+  { id: "ground", label: "Véhicules", icon: "⛓" },
+  { id: "infantry", label: "Infanterie", icon: "🤖" },
+  { id: "air", label: "Aviation", icon: "✈" }
 ];
 
 const BUILDABLE: BuildingKind[] = ["fab-plant", "airpad", "assembly-bay", "tech-lab", "depot", "turret", "sam-site", "radar", "gantry"];
@@ -144,44 +147,44 @@ const tabOf = (kind: UnitKind): Tab => UNIT_TABS.find((t) => t.kinds.includes(ki
 
 /** Counter hints for the info card, distilled from the duel matrix (tools/balance.ts). */
 const MATCHUPS: Partial<Record<UnitKind | BuildingKind, { strong: string; weak: string }>> = {
-  harvester: { strong: "—", weak: "Everything. Guard it." },
-  scout: { strong: "Spotting through the fog", weak: "Flak, Raptors, SAMs" },
-  stinger: { strong: "Flak, Mortars, Lancers, Harvesters", weak: "Wasps, Mastodons, Hornets" },
-  "flak-crawler": { strong: "All aircraft", weak: "Any ground unit" },
-  mortar: { strong: "Buildings, clumped armies", weak: "Stingers up close, aircraft" },
-  mastodon: { strong: "Stingers, Flak, Mortars", weak: "Rocket Squads, Lancers, Wasps" },
-  lancer: { strong: "Mastodons, Goliaths, Flak, Raptors; crosses water", weak: "Stinger swarms, Hornets" },
-  goliath: { strong: "Ground armies and bases; a walking base itself", weak: "Rocket Squads, Wasps, Lancers, Hornets" },
-  wasp: { strong: "Stingers, Mastodons, Goliaths, Mortars", weak: "Flak, Raptors, Lancers" },
-  raptor: { strong: "Wasps, Hornets, Scouts", weak: "Flak, Lancers, SAMs" },
-  hornet: { strong: "Bases, Mastodons, Goliaths, clumps", weak: "Flak, Raptors, SAMs" },
-  mender: { strong: "Keeps your army alive; the only repair a Goliath takes", weak: "Anything that shoots air" },
-  trooper: { strong: "Rocket Squads, light raids; shoots air too", weak: "Snipers, Mortars, Hornets, Turrets" },
-  "rocket-squad": { strong: "Mastodons, Goliaths, Hornets, heavy armour", weak: "Troopers, Snipers, Mortars" },
-  sniper: { strong: "Infantry at long range; hides in woods", weak: "Stingers, Wasps, anything armoured" },
-  condor: { strong: "Drops 2 squads anywhere, over water and rock", weak: "Flak, Raptors, SAMs" },
-  turret: { strong: "Raids by ground or air, infantry", weak: "Mortars, Hornets" },
-  "sam-site": { strong: "Aircraft at long range", weak: "Any ground unit" },
-  "assembly-bay": { strong: "Cheap squads that hold woods and Uplinks", weak: "Splash: Mortars, Hornets" },
-  gantry: { strong: "Builds Goliaths, the base that walks", weak: "Always in the enemy's sight; Mortars, Hornets" }
+  harvester: { strong: "—", weak: "Tout. Protège-le." },
+  scout: { strong: "Repérer à travers le brouillard", weak: "Faucheux, Blériot, Ruggieri" },
+  stinger: { strong: "Faucheux, Canons de 75, Hydroglisseurs, Fardiers", weak: "Éole, Creusot, Albatros" },
+  "flak-crawler": { strong: "Tous les aéronefs", weak: "Toute unité au sol" },
+  mortar: { strong: "Bâtiments, armées groupées", weak: "Panhard au contact, aéronefs" },
+  mastodon: { strong: "Panhard, Faucheux, Canons de 75", weak: "Artificiers, Hydroglisseurs, Éole" },
+  lancer: { strong: "Creusot, Gargantuas, Faucheux, Blériot ; traverse l'eau", weak: "Essaims de Panhard, Albatros" },
+  goliath: { strong: "Armées au sol et bases ; une base qui marche", weak: "Artificiers, Éole, Hydroglisseurs, Albatros" },
+  wasp: { strong: "Panhard, Creusot, Gargantuas, Canons de 75", weak: "Faucheux, Blériot, Hydroglisseurs" },
+  raptor: { strong: "Éole, Albatros, Patries", weak: "Faucheux, Hydroglisseurs, Ruggieri" },
+  hornet: { strong: "Bases, Creusot, Gargantuas, groupes", weak: "Faucheux, Blériot, Ruggieri" },
+  mender: { strong: "Garde ton armée en vie ; seul à réparer un Gargantua", weak: "Tout ce qui tire en l'air" },
+  trooper: { strong: "Artificiers, raids légers ; tire aussi en l'air", weak: "Chasseurs alpins, Canons de 75, Albatros, Hotchkiss" },
+  "rocket-squad": { strong: "Creusot, Gargantuas, Albatros, blindés lourds", weak: "Pioupious, Chasseurs alpins, Canons de 75" },
+  sniper: { strong: "Infanterie à longue portée ; se cache en forêt", weak: "Panhard, Éole, tout blindé" },
+  condor: { strong: "Largue 2 escouades partout, sur l'eau et la roche", weak: "Faucheux, Blériot, Ruggieri" },
+  turret: { strong: "Raids au sol ou aériens, infanterie", weak: "Canons de 75, Albatros" },
+  "sam-site": { strong: "Aéronefs à longue portée", weak: "Toute unité au sol" },
+  "assembly-bay": { strong: "Escouades bon marché qui tiennent forêts et Relais", weak: "Dégâts de zone : Canons de 75, Albatros" },
+  gantry: { strong: "Construit les Gargantuas, la base qui marche", weak: "Toujours visible par l'ennemi ; Canons de 75, Albatros" }
 };
 
 /** A Goliath's weapon systems in the order damage takes them, with short labels for the selection panel. */
 const GOLIATH_STRIP: { k: GoliathWeapon; short: string }[] = [
-  { k: "mortars", short: "Mortars" },
-  { k: "laser", short: "Laser" },
-  { k: "cannons", short: "Cannons" },
-  { k: "mg", short: "MG" }
+  { k: "mortars", short: "Mortiers" },
+  { k: "laser", short: "Arc" },
+  { k: "cannons", short: "Canons" },
+  { k: "mg", short: "Mitr." }
 ];
 
 /** A Goliath's state for the selection panel: walking, anchoring (with progress), anchored, packing up, or on a lift. */
 function goliathMode(u: Unit): string {
   const g = u.goliath!;
-  if (g.lift) return g.lift.phase === "hooking" ? "Condors hooking on…" : "⇡ On a lift";
+  if (g.lift) return g.lift.phase === "hooking" ? "Montgolfières en accroche…" : "⇡ Aéroporté";
   const pct = `${Math.floor(modeProgress(u) * 20) * 5}%`;
-  if (g.mode === "anchoring") return `⚓ Anchoring ${pct}`;
-  if (g.mode === "packing") return `⇡ Packing up ${pct}`;
-  return g.mode === "anchored" ? "⚓ Anchored" : "Walking";
+  if (g.mode === "anchoring") return `⚓ Ancrage ${pct}`;
+  if (g.mode === "packing") return `⇡ Levée ${pct}`;
+  return g.mode === "anchored" ? "⚓ Ancré" : "En marche";
 }
 
 /** One weapon system's state: firing, held (grounded to its machine guns on a lift), rebooting or offline. */
@@ -191,10 +194,13 @@ function weaponState(u: Unit, k: GoliathWeapon): "on" | "held" | "boot" | "off" 
   return ws.reboot >= 0 ? "boot" : "off";
 }
 
+const ARMOR_FR: Record<string, string> = { light: "léger", medium: "moyen", heavy: "lourd", structure: "structure", infantry: "infanterie" };
+
 /** Compact labels for the narrow build buttons. */
 const SHORT: Partial<Record<UnitKind | BuildingKind, string>> = {
-  "fab-plant": "Fab", "tech-lab": "Tech", "sam-site": "SAM", "flak-crawler": "Flak", harvester: "Harvester",
-  "assembly-bay": "Bay", trooper: "Troopers", "rocket-squad": "Rockets", sniper: "Snipers"
+  "fab-plant": "Forges", airpad: "Meudon", "tech-lab": "Poly", "sam-site": "Rugg.", radar: "TSF", turret: "Hotch.",
+  "assembly-bay": "Manuf.", gantry: "Galerie", mortar: "Canon 75", lancer: "Hydro", condor: "Montgolfière",
+  trooper: "Pioupious", "rocket-squad": "Artificiers", sniper: "Chasseurs"
 };
 
 const MINIMAP_PX = 256;
@@ -257,8 +263,8 @@ export function revealHtml(mapId: string): string {
   return `<div class="aar-tip reveal" style="flex-direction:row;align-items:center;gap:12px;text-align:left">
     <img src="${mapThumbUrl(mapId)}" alt="" draggable="false" width="76" height="76" style="flex:none;border-radius:8px"/>
     <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-      <b>Revealed</b><span>${escHtml(def.name)}${code}</span>
-      <small style="color:#c3cde0">Play it again from the 🎲 card</small>
+      <b>Carte révélée</b><span>${escHtml(def.name)}${code}</span>
+      <small style="color:#c3cde0">Rejoue-la depuis la carte 🎲</small>
     </div></div>`;
 }
 
@@ -277,14 +283,14 @@ export function createHud(api: HudApi): Hud {
     </div>
     <div class="tl">
       <button id="btn-menu" class="round" title="Pause (P)">❚❚</button>
-      <button id="btn-mute" class="round" title="Mute all (sound settings in the pause menu)">🔊</button>
+      <button id="btn-mute" class="round" title="Couper le son (réglages audio dans le menu pause)">🔊</button>
     </div>
     <div id="toasts" class="toasts"></div>
     <div id="banner" class="banner" hidden></div>
     <div class="minimap-wrap"><canvas id="minimap"></canvas></div>
     <div class="zoombtns">
-      <button id="zoom-in" class="zb" title="Zoom in (+)">＋</button>
-      <button id="zoom-out" class="zb" title="Zoom out (−)">−</button>
+      <button id="zoom-in" class="zb" title="Zoom avant (+)">＋</button>
+      <button id="zoom-out" class="zb" title="Zoom arrière (−)">−</button>
     </div>
     <div class="dock">
       <div class="ctx">
@@ -372,7 +378,7 @@ export function createHud(api: HudApi): Hud {
     b.dataset.key = key;
     b.innerHTML = `
       <img class="ic" src="${icon(kind)}" alt="" draggable="false" />
-      <span class="nm">${name}</span>
+      <span class="nm${name.length >= 6 ? " tight" : ""}">${name}</span>
       <span class="cost">${cost}</span>
       <span class="badge" hidden></span>
       <span class="prog" hidden></span>
@@ -426,14 +432,14 @@ export function createHud(api: HudApi): Hud {
         return;
       }
       if (p) {
-        toast(p.kind === kind ? "Under construction…" : "Already constructing a building");
+        toast(p.kind === kind ? "En construction…" : "Un bâtiment est déjà en construction");
         return;
       }
       const why = buildingBlocker(w, PLAYER, kind);
       if (why) return toast(why);
       if (view.scrap < BUILDINGS[kind].cost) {
         radioCue("no-scrap");
-        return toast("Not enough scrap");
+        return toast("Pas assez de charbon");
       }
       api.ctrl.enqueue({ type: "startBuilding", faction: PLAYER, building: kind });
       sfx.play("click");
@@ -446,11 +452,11 @@ export function createHud(api: HudApi): Hud {
       const view = api.ctrl.view();
       if (view.scrap < unitCost(w, PLAYER, kind)) {
         radioCue("no-scrap");
-        return toast("Not enough scrap");
+        return toast("Pas assez de charbon");
       }
       // (infantry: a selected anchored Goliath first, else the shortest queue, Bays and Goliaths alike)
       const at = pickProducer(w, kind, api.ctrl.selectedUnits, view);
-      if (!at) return toast(kind === "goliath" ? "Gantry busy" : "Production queue full");
+      if (!at) return toast(kind === "goliath" ? "Galerie des Machines occupée" : "File de production pleine");
       api.ctrl.enqueue({ type: "produce", faction: PLAYER, buildingId: at.id, unit: kind });
       sfx.play("click");
     }, () => showCard(kind));
@@ -473,39 +479,39 @@ export function createHud(api: HudApi): Hud {
     const rows: string[] = [];
     // (a Goliath's price climbs with every one you have: the card shows today's)
     const cost = isUnit ? unitCost(w, PLAYER, kind as UnitKind) : s.cost;
-    rows.push(`<tr><td>Cost</td><td>${cost}</td><td>HP</td><td>${s.hp}</td></tr>`);
+    rows.push(`<tr><td>Coût</td><td>${cost}</td><td>PV</td><td>${s.hp}</td></tr>`);
     /** A Goliath's four weapon systems, in a table of their own after the cost. */
     let weapons = "";
     if (kind === "goliath") {
-      rows.push(`<tr><td>Price</td><td colspan="3">+${Math.round(GOLIATH.costStep * 100)}% for each Goliath you have</td></tr>`);
+      rows.push(`<tr><td>Prix</td><td colspan="3">+${Math.round(GOLIATH.costStep * 100)} % par Gargantua possédé</td></tr>`);
       // four weapon systems instead of one: the longest reach goes first as it is hurt
-      weapons = `<table class="gwt"><tr class="gw-head"><td>Weapon</td><td>Range</td><td></td></tr>${GOLIATH_STRIP.map(({ k }) => {
+      weapons = `<table class="gwt"><tr class="gw-head"><td>Arme</td><td>Portée</td><td></td></tr>${GOLIATH_STRIP.map(({ k }) => {
         const ws = GOLIATH.weapons[k];
-        const off = ws.lostBelow > 0 ? `offline below ${Math.round(ws.lostBelow * 100)}%` : "always on";
-        return `<tr><td>${ws.name}</td><td>${ws.range}</td><td>${off}${ws.targets === "both" ? " · air too" : ""}</td></tr>`;
+        const off = ws.lostBelow > 0 ? `hors service sous ${Math.round(ws.lostBelow * 100)} %` : "toujours actif";
+        return `<tr><td>${ws.name}</td><td>${ws.range}</td><td>${off}${ws.targets === "both" ? " · air aussi" : ""}</td></tr>`;
       }).join("")}</table>`;
     } else if (s.dps > 0) {
-      const tgt = s.targets === "both" ? "Air + Ground" : s.targets === "air" ? "Air" : "Ground";
-      rows.push(`<tr><td>DPS</td><td>${s.dps}</td><td>Range</td><td>${s.range}</td></tr>`);
-      rows.push(`<tr><td>Hits</td><td colspan="3">${tgt}${s.splash ? " · splash" : ""}${s.minRange ? ` · min range ${s.minRange}` : ""}</td></tr>`);
+      const tgt = s.targets === "both" ? "Air + Sol" : s.targets === "air" ? "Air" : "Sol";
+      rows.push(`<tr><td>DPS</td><td>${s.dps}</td><td>Portée</td><td>${s.range}</td></tr>`);
+      rows.push(`<tr><td>Cibles</td><td colspan="3">${tgt}${s.splash ? " · zone" : ""}${s.minRange ? ` · portée min ${s.minRange}` : ""}</td></tr>`);
     }
     if (isUnit) {
       const u = UNITS[kind as UnitKind];
-      rows.push(`<tr><td>Speed</td><td>${u.speed}</td><td>Armor</td><td>${u.armor}</td></tr>`);
-      if (u.heal) rows.push(`<tr><td>Repair</td><td colspan="3">${u.heal} HP/s</td></tr>`);
+      rows.push(`<tr><td>Vitesse</td><td>${u.speed}</td><td>Blindage</td><td>${ARMOR_FR[u.armor] ?? u.armor}</td></tr>`);
+      if (u.heal) rows.push(`<tr><td>Réparation</td><td colspan="3">${u.heal} PV/s</td></tr>`);
       // a squad is one unit drawn as several robots; the Condor is a flying bus
-      if (u.squad) rows.push(`<tr><td>Squad</td><td colspan="3">${u.squad} robots · firepower drops as they fall</td></tr>`);
-      if (u.capacity) rows.push(`<tr><td>Cargo</td><td colspan="3">Carries ${u.capacity} squads · unarmed</td></tr>`);
-      if (kind === "goliath") rows.push(`<tr><td>Repair</td><td colspan="3">Menders only</td></tr>`);
-      rows.push(`<tr><td>Built at</td><td colspan="3">${BUILDINGS[u.builtAt].name}${u.requires ? ` + ${BUILDINGS[u.requires].name}` : ""}</td></tr>`);
+      if (u.squad) rows.push(`<tr><td>Escouade</td><td colspan="3">${u.squad} automates · puissance de feu réduite à chaque perte</td></tr>`);
+      if (u.capacity) rows.push(`<tr><td>Soute</td><td colspan="3">Transporte ${u.capacity} escouades · ${agree(kind as UnitKind, "non armé")}</td></tr>`);
+      if (kind === "goliath") rows.push(`<tr><td>Réparation</td><td colspan="3">Pasteur uniquement</td></tr>`);
+      rows.push(`<tr><td>Produit à</td><td colspan="3">${BUILDINGS[u.builtAt].name}${u.requires ? ` + ${BUILDINGS[u.requires].name}` : ""}</td></tr>`);
     } else {
       const b = BUILDINGS[kind as BuildingKind];
       // every prerequisite, ticked off as it stands (the Gantry needs all four)
       if (b.requiresAll)
-        rows.push(`<tr><td>Needs</td><td colspan="3" class="needs">${b.requiresAll
+        rows.push(`<tr><td>Requiert</td><td colspan="3" class="needs">${b.requiresAll
           .map((k) => (hasBuilding(w, PLAYER, k) ? `<span class="have">✓ ${BUILDINGS[k].name}</span>` : `<span>${BUILDINGS[k].name}</span>`))
           .join(" ")}</td></tr>`);
-      if (b.unique) rows.push(`<tr><td>Limit</td><td colspan="3">One per side</td></tr>`);
+      if (b.unique) rows.push(`<tr><td>Limite</td><td colspan="3">${isFeminine(kind as BuildingKind) ? "Une" : "Un"} par camp</td></tr>`);
     }
     const note = api.cardNote?.(kind) ?? null;
     const view = api.ctrl.view();
@@ -518,8 +524,8 @@ export function createHud(api: HudApi): Hud {
       ${weapons ? `<table>${rows.slice(0, 2).join("")}</table>${weapons}<table>${rows.slice(2).join("")}</table>` : `<table>${rows.join("")}</table>`}
       ${m ? `<p class="good">▲ ${m.strong}</p><p class="bad">▼ ${m.weak}</p>` : ""}
       ${note ? `<p class="ctr">⚔ ${note}</p>` : ""}
-      ${queuedHere > 0 ? `<button class="cta small" id="card-cancel">Cancel one (${queuedHere} queued)</button>` : ""}
-      ${!isUnit && view.pending?.kind === kind ? `<button class="cta small warn" id="card-cancel-b">Cancel construction</button>` : ""}`;
+      ${queuedHere > 0 ? `<button class="cta small" id="card-cancel">En annuler un (${queuedHere} en file)</button>` : ""}
+      ${!isUnit && view.pending?.kind === kind ? `<button class="cta small warn" id="card-cancel-b">Annuler la construction</button>` : ""}`;
     cardEl.hidden = false;
     layout.refresh(true); // (portrait: kept under the band at its real height)
     cardEl.querySelector("#card-x")!.addEventListener("click", () => (cardEl.hidden = true));
@@ -605,10 +611,10 @@ export function createHud(api: HudApi): Hud {
       const why = walking.every((g) => anchorBlocker(w, g)) ? anchorBlocker(w, walking[0]!) : null;
       if (why)
         return { id: "anchor", label: `⚠ ${why}`, cls: "anchor bad", on: () => (ctrl.toggleAnchor(), nope("anchor")) };
-      return { id: "anchor", label: "⚓ Anchor", cls: "anchor go", on: () => ctrl.toggleAnchor() };
+      return { id: "anchor", label: "⚓ Ancrer", cls: "anchor go", on: () => ctrl.toggleAnchor() };
     }
     if (gs.some((g) => g.goliath!.mode === "anchored"))
-      return { id: "anchor", label: "⇡ Pack up", cls: "anchor", on: () => ctrl.toggleAnchor() };
+      return { id: "anchor", label: "⇡ Lever l'ancre", cls: "anchor", on: () => ctrl.toggleAnchor() };
     // digging in or packing up: progress only (the one furthest from done)
     const slow = gs.reduce((a, b) => (modeProgress(b) < modeProgress(a) ? b : a));
     const short = `${slow.goliath!.mode === "packing" ? "⇡" : "⚓"} ${Math.floor(modeProgress(slow) * 20) * 5}%`;
@@ -653,7 +659,7 @@ export function createHud(api: HudApi): Hud {
     const mode = g.lift ? g.lift.phase : g.mode;
     const key = `g${u.id}:${mode}:${states.join(",")}:${g.queue.map((q) => q.kind).join(",")}:${u.rank}:${u.kills}:${own}`;
     const title = `${st.name}${u.rank ? ` <span class="rank">${stars(u.rank)}</span>` : ""}${u.kills ? ` · ${killsLabel(u.kills)}` : ""}`;
-    const said = { on: "firing", held: "held on the lift", boot: "rebooting", off: "offline" };
+    const said = { on: "en tir", held: "bloqué en vol", boot: "redémarrage", off: "hors service" };
     const strip = GOLIATH_STRIP.map(
       ({ k, short }, i) => `<span class="gw ${states[i]}" title="${GOLIATH.weapons[k].name}: ${said[states[i]!]}">${short}</span>`
     ).join("");
@@ -664,7 +670,7 @@ export function createHud(api: HudApi): Hud {
       : g.queue.length > 0
         ? queueHtml(u.id, g.queue, u.faction)
         : g.mode === "anchored" && !g.lift
-          ? `<span class="hint">${goliathBase(w) ? "Trains Harvesters and squads" : "Trains squads"} · tap the map to rally</span>`
+          ? `<span class="hint">${goliathBase(w) ? "Forme Fardiers et escouades" : "Forme des escouades"} · touche la carte pour rallier</span>`
           : "";
     const live: Live = { hp: `${Math.ceil(u.hp)} / ${st.hp}`, head: headShare(g.queue), mode: goliathMode(u) };
     // (short landscape screens put the name and the HP line side by side: style.css)
@@ -691,9 +697,9 @@ export function createHud(api: HudApi): Hud {
         // an outpost (built in a Goliath's ring) that it doesn't count as base
         const rally = isProducer(b.kind);
         const note = b.outpost
-          ? "Outpost: doesn't extend build range"
-          : rally && !ctrl.spectator ? "Tap the map to set a rally point" : st.role;
-        html = `<img class="pi" src="${icon(b.kind, b.faction)}" alt=""/><div class="pt"><b>${st.name}${b.outpost ? ' <span class="outpost">· Outpost</span>' : ""}</b>
+          ? "Avant-poste : n'étend pas la zone de construction"
+          : rally && !ctrl.spectator ? "Touche la carte pour fixer un point de ralliement" : st.role;
+        html = `<img class="pi" src="${icon(b.kind, b.faction)}" alt=""/><div class="pt"><b>${st.name}${b.outpost ? ' <span class="outpost">· Avant-poste</span>' : ""}</b>
           <span class="hp">${Math.ceil(b.hp)} / ${st.hp}</span>
           ${b.queue.length ? queueHtml(b.id, b.queue, b.faction) : `<span class="hint">${note}</span>`}</div>`;
       }
@@ -726,23 +732,23 @@ export function createHud(api: HudApi): Hud {
               : `${st.name}${u.rank ? ` <span class="rank">${stars(u.rank)}</span>` : ""}${u.kills ? ` · ${killsLabel(u.kills)}` : ""}`;
           // a squad counts its robots still standing ("4/5 robots")
           const n = squadSize(u.kind);
-          const robots = n > 1 ? `<span class="robots"> · ${squadAlive(u)}/${n} robots</span>` : "";
+          const robots = n > 1 ? `<span class="robots"> · ${squadAlive(u)}/${n} automates</span>` : "";
           // a Condor shows who is aboard, seat by seat, instead of its role line (or the Goliath it lifts)
           const transport = isTransport(u.kind);
           const empty =
             mine("gantry") || [...w.units.values()].some((o) => o.goliath && o.faction === PLAYER)
-              ? `<span class="hint">Empty: tap a squad to load it</span><span class="hint">Select two and tap a Goliath to lift it</span>`
-              : `<span class="hint">Empty: tap a squad to load it</span>`;
+              ? `<span class="hint">Vide : touche une escouade pour l'embarquer</span><span class="hint">Sélectionnes-en deux et touche un Gargantua pour le soulever</span>`
+              : `<span class="hint">Vide : touche une escouade pour l'embarquer</span>`;
           const how = u.faction === PLAYER && !ctrl.spectator;
           const hint = lifting
             ? lifting.goliath!.lift!.phase === "hooking"
-              ? `<span class="hint">Hooking onto a Goliath</span>`
-              : `<span class="hint">Carrying a Goliath</span>${how ? `<span class="hint">Long-press the map to set it down</span>` : ""}`
+              ? `<span class="hint">Accroche d'un Gargantua</span>`
+              : `<span class="hint">Transporte un Gargantua</span>${how ? `<span class="hint">Appui long sur la carte pour le déposer</span>` : ""}`
             : transport
               ? (u.passengers?.length ?? 0) > 0 || ctrl.spectator ? "" : empty
               : `<span class="hint">${st.role}</span>`;
           const hold = lifting
-            ? `<div class="cargo"><span class="seat lift" title="Goliath"><img src="${icon("goliath", u.faction)}" alt=""/></span></div>`
+            ? `<div class="cargo"><span class="seat lift" title="Gargantua"><img src="${icon("goliath", u.faction)}" alt=""/></span></div>`
             : transport ? cargoHtml(u) : "";
           html = `<img class="pi" src="${icon(u.kind, u.faction)}" alt=""/><div class="pt"><b class="${u.rank >= NAMED_RANK ? "hero" : ""}">${title}</b>
             <span class="hp">${Math.ceil(u.hp)} / ${st.hp}${robots}</span>${hint}</div>${hold}`;
@@ -751,7 +757,7 @@ export function createHud(api: HudApi): Hud {
         html = `<div class="group">${[...counts]
           .map(([k, n]) => `<span class="gi"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
           .join("")}${[...aboard]
-          .map(([k, n]) => `<span class="gi aboard" title="Aboard a Condor"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
+          .map(([k, n]) => `<span class="gi aboard" title="À bord d'une Montgolfière"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
           .join("")}</div>`;
       }
     }
@@ -887,23 +893,25 @@ export function createHud(api: HudApi): Hud {
       still = () => hasFactory() === factory && armySize() > 0 === army;
       if (factory) {
         msg = army
-          ? "Your harvesters mine on their own. Tap a unit (or ⚔ Select army), then tap the map to send it."
-          : "Your harvesters mine on their own. Train tanks in Vehicles, then tap a unit and tap the map to send it.";
+          ? "Tes Fardiers minent seuls. Touche une unité (ou ⚔ Toute l'armée), puis la carte pour l'y envoyer."
+          : "Tes Fardiers minent seuls. Produis des chars dans Véhicules, puis touche une unité et la carte pour l'y envoyer.";
         next = 2;
       } else {
-        msg = "Your harvester mines scrap by itself. Open Base and tap Fab to build a factory.";
+        msg = BELLE_EPOQUE
+          ? "Ton Fardier extrait le charbon seul. Touche 🔨 Construire, puis Forges pour bâtir des forges."
+          : "Ton Fardier extrait le charbon seul. Ouvre Base et touche Forges pour bâtir des forges.";
         next = 1;
       }
     } else if (stage === 1 && mine("fab-plant")) {
-      msg = "Train tanks in Vehicles. Tap a unit, then tap the map to send it.";
+      msg = "Produis des chars dans Véhicules. Touche une unité, puis la carte pour l'y envoyer.";
       next = 2;
     } else if (stage === 2 && armySize() >= 3 && secs > 30) {
-      msg = "Long-press any build button to see what it counters. ⚔ Select army grabs everyone.";
+      msg = "Appui long sur un bouton de production pour voir ce qu'il contre. ⚔ Toute l'armée sélectionne tout le monde.";
       next = 3;
     } else if (stage === 3 && secs > 150) {
       // (one already stands: nothing left to teach)
       if (mine("tech-lab")) return advance(99);
-      msg = "Build a Tech Lab to unlock Mastodons, Lancers, Mortars, Hornets and Snipers.";
+      msg = "Bâtis Polytechnique pour débloquer Creusot, Hydroglisseurs, Canons de 75, Albatros et Chasseurs alpins.";
       still = () => !mine("tech-lab");
       next = 99;
     }
@@ -944,8 +952,8 @@ export function createHud(api: HudApi): Hud {
     const versus = $("#versus");
     versus.hidden = false;
     versus.innerHTML = `<span class="vs-blue"></span><span class="vs-red"></span>`;
-    versus.querySelector(".vs-blue")!.textContent = api.strategies?.blue ?? "Blue";
-    versus.querySelector(".vs-red")!.textContent = api.strategies?.red ?? "Red";
+    versus.querySelector(".vs-blue")!.textContent = api.strategies?.blue ?? "Bleu";
+    versus.querySelector(".vs-red")!.textContent = api.strategies?.red ?? "Rouge";
     versus.title = `${api.strategies?.blue} vs ${api.strategies?.red}`;
   }
 
@@ -963,22 +971,31 @@ export function createHud(api: HudApi): Hud {
     const duel = api.duel;
     const line = duel
       ? `vs ${duel.opponent} · 🔊 ${duel.delayMs()} ms`
-      : ops ? ops.pauseLine() : surv ? surv.pauseLine() : api.strategies ? "AI vs AI" : `vs ${api.enemy.strategy} AI · ${api.enemy.difficulty}`;
+      : ops ? ops.pauseLine() : surv ? surv.pauseLine() : api.strategies ? "IA contre IA" : `vs IA ${api.enemy.strategy} · ${api.enemy.difficulty}`;
     pauseEl.innerHTML = `
       <div class="panel">
-        <h1>PAUSED</h1>
+        <h1>PAUSE</h1>
         <p class="time">${line}</p>
         ${ops ? ops.pauseHtml() : ""}
         ${pauseRulesHtml(w)}
-        <button class="cta" id="p-resume">▶ Resume</button>
+        <button class="cta" id="p-resume">▶ Reprendre</button>
         <div id="p-sound"></div>
-        <button class="cta alt" id="p-help">How to play</button>
-        ${uncharted || duel ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? "Reveal map (debug)" : "Restore fog of war"}</button>`}
-        ${duel ? `<div id="p-duel" class="p-duel"></div>` : `<button class="cta alt" id="p-quit">Quit to menu</button>`}
+        ${BELLE_EPOQUE ? `<div id="p-hud"></div>` : ""}
+        <button class="cta alt" id="p-help">Comment jouer</button>
+        ${uncharted || duel ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? "Révéler la carte (debug)" : "Rétablir le brouillard"}</button>`}
+        ${duel ? `<div id="p-duel" class="p-duel"></div>` : `<button class="cta alt" id="p-quit">Quitter vers le menu</button>`}
         <div id="p-helptext" class="help" hidden>${HELP_HTML}</div>
       </div>`;
     shield(pauseEl);
-    offToggles = mountAudioToggles(pauseEl.querySelector<HTMLElement>("#p-sound")!);
+    const offSound = mountAudioToggles(pauseEl.querySelector<HTMLElement>("#p-sound")!);
+    // Panache: the interface toggles (zoom buttons, left-handed) beside the sound ones
+    const hudBox = pauseEl.querySelector<HTMLElement>("#p-hud");
+    const offHud = hudBox ? mountHudSettings(hudBox) : null;
+    offToggles = () => {
+      offSound();
+      offHud?.();
+    };
+    belle?.closeAll();
     pauseEl.querySelector("#p-resume")!.addEventListener("click", togglePause);
     pauseEl.querySelector("#p-help")!.addEventListener("click", () => {
       const h = pauseEl.querySelector<HTMLElement>("#p-helptext")!;
@@ -1012,11 +1029,11 @@ export function createHud(api: HudApi): Hud {
     if (ask) {
       const q =
         ask === "leave"
-          ? `Leave with no result? The match ends for ${duel.opponent} too.`
-          : `Resign${ask === "resign-leave" ? " and leave" : ""}? ${duel.opponent.charAt(0).toUpperCase()}${duel.opponent.slice(1)} wins.`;
+          ? `Partir sans résultat ? La partie s'arrête aussi pour ${duel.opponent}.`
+          : `Abandonner${ask === "resign-leave" ? " et partir" : ""} ? Victoire pour ${duel.opponent}.`;
       box.innerHTML = `<p class="p-ask">${q}</p>
-        <button class="cta alt warn" id="p-yes">${ask === "leave" ? "Leave" : ask === "resign" ? "🏳 Resign" : "Resign and leave"}</button>
-        <button class="cta alt" id="p-no">Cancel</button>`;
+        <button class="cta alt warn" id="p-yes">${ask === "leave" ? "Partir" : ask === "resign" ? "🏳 Abandonner" : "Abandonner et partir"}</button>
+        <button class="cta alt" id="p-no">Annuler</button>`;
       box.querySelector("#p-no")!.addEventListener("click", () => renderDuelExits(duel, null));
       box.querySelector("#p-yes")!.addEventListener("click", () => {
         // (the pause menu closes and the game runs on: the resign lands D ticks later, both phones step it)
@@ -1026,9 +1043,9 @@ export function createHud(api: HudApi): Hud {
       });
       return;
     }
-    box.innerHTML = `${resigning ? "" : `<button class="cta alt" id="p-resign">🏳 Resign</button>`}
-      ${ex.resignAndLeave && !resigning ? `<button class="cta alt" id="p-resign-leave">Resign and leave</button>` : ""}
-      ${ex.leave ? `<button class="cta alt warn" id="p-leave">Leave (no result)</button>` : ""}`;
+    box.innerHTML = `${resigning ? "" : `<button class="cta alt" id="p-resign">🏳 Abandonner</button>`}
+      ${ex.resignAndLeave && !resigning ? `<button class="cta alt" id="p-resign-leave">Abandonner et partir</button>` : ""}
+      ${ex.leave ? `<button class="cta alt warn" id="p-leave">Partir (sans résultat)</button>` : ""}`;
     box.querySelector("#p-resign")?.addEventListener("click", () => renderDuelExits(duel, "resign"));
     box.querySelector("#p-resign-leave")?.addEventListener("click", () => renderDuelExits(duel, "resign-leave"));
     box.querySelector("#p-leave")?.addEventListener("click", () => renderDuelExits(duel, "leave"));
@@ -1111,7 +1128,7 @@ export function createHud(api: HudApi): Hud {
       // the ghost's spot: build it here, or why not (src/game/placement-view.ts)
       const why = ctrl.placementProblem();
       chips.push({
-        id: "place", label: why ? `⚠ ${why}` : `✓ Place ${BUILDINGS[ctrl.placing].name}`,
+        id: "place", label: why ? `⚠ ${why}` : `✓ Placer ${BUILDINGS[ctrl.placing].name}`,
         cls: why ? "place bad" : "place go", on: () => ctrl.commitPlacement()
       });
       chips.push({ id: "cancel", label: "✕", cls: "warn", on: () => (ctrl.placing = null) });
@@ -1125,7 +1142,7 @@ export function createHud(api: HudApi): Hud {
       const unload = aboard > 0 || setDown;
       chips.push({ id: "stop", label: narrow && (unload || anchor) ? "■" : "■ Stop", on: () => ctrl.stopSelected() });
       if (unload)
-        chips.push({ id: "unload", label: aboard > 0 ? `⇣ Unload ${aboard}` : "⇣ Set down", cls: "unload", on: () => ctrl.unloadSelected() });
+        chips.push({ id: "unload", label: aboard > 0 ? `⇣ Larguer ${aboard}` : "⇣ Déposer", cls: "unload", on: () => ctrl.unloadSelected() });
       if (anchor) chips.push(anchor);
       // (unarmed Condors, lifts and anchored Goliaths have no fights to skip: Move only would
       // change nothing; on a phone the Unload or anchor chip takes its place in a mixed
@@ -1138,7 +1155,7 @@ export function createHud(api: HudApi): Hud {
       });
       if (marchers && (!narrow || (!unload && !anchor) || ctrl.forceMove))
         chips.push({
-          id: "move", label: narrow ? "➜ Move" : "➜ Move only", active: ctrl.forceMove,
+          id: "move", label: "⚑ Repli", active: ctrl.forceMove,
           on: () => (ctrl.forceMove = !ctrl.forceMove)
         });
       chips.push({ id: "clear", label: "✕", on: () => ctrl.clearSelection() });
@@ -1146,7 +1163,7 @@ export function createHud(api: HudApi): Hud {
       const b = w.buildings.get(ctrl.selectedBuilding);
       if (b && b.kind !== "hq") {
         const refund = Math.floor(BUILDINGS[b.kind].cost * ECONOMY.sellRefund * (b.hp / BUILDINGS[b.kind].hp));
-        chips.push({ id: "sell", label: `$ Sell +${refund}`, cls: "warn", on: () => ctrl.sellSelected() });
+        chips.push({ id: "sell", label: `$ Vendre +${refund}`, cls: "warn", on: () => ctrl.sellSelected() });
       }
       chips.push({ id: "clear", label: "✕", on: () => ctrl.clearSelection() });
     } else if (!ctrl.spectator) {
@@ -1158,9 +1175,9 @@ export function createHud(api: HudApi): Hud {
       // Last Stand: bring the next wave in early
       const call = surv?.chip();
       if (army)
-        chips.push({ id: "army", label: narrow && (showIdle || call) ? "⚔ Army" : "⚔ Select army", on: () => ctrl.selectArmy() });
+        chips.push({ id: "army", label: narrow && (showIdle || call) ? "⚔ Armée" : "⚔ Toute l'armée", on: () => ctrl.selectArmy() });
       if (showIdle)
-        chips.push({ id: "idle", label: `💤 Idle ${idle.length}`, cls: "idle", on: () => ctrl.selectUnits(ctrl.idleArmy()) });
+        chips.push({ id: "idle", label: `💤 Inactifs ${idle.length}`, cls: "idle", on: () => ctrl.selectUnits(ctrl.idleArmy()) });
       if (call) chips.push(call);
     }
     renderChips(chips);
@@ -1181,7 +1198,7 @@ export function createHud(api: HudApi): Hud {
     if (p?.ready && lastReady !== p.kind && !ctrl.spectator) {
       lastReady = p.kind;
       sfx.play("ready");
-      toast(`${BUILDINGS[p.kind].name} ready — tap here to place it`, () => {
+      toast(`${BUILDINGS[p.kind].name} prêt — touche ici pour le placer`, () => {
         // (not once it has been placed: in a sound duel the placement may still be on its way)
         if (ctrl.view().pending?.ready) ctrl.placing = p.kind;
       }, "good");
@@ -1241,6 +1258,7 @@ export function createHud(api: HudApi): Hud {
       prog.hidden = headProg < 0;
       if (headProg >= 0) prog.style.height = `${headProg * 100}%`;
     }
+    belle?.update({ queued: tabQ.build + tabQ.ground + tabQ.infantry + tabQ.air + (p && !p.ready ? 1 : 0), ready: !!p?.ready && !ctrl.spectator });
     for (const el of tabsEl.children) {
       const t = (el as HTMLElement).dataset.tab as Tab;
       const n = t === "build" ? (p ? 1 : 0) : tabQ[t];
@@ -1426,7 +1444,7 @@ export function createHud(api: HudApi): Hud {
         ...(duel
           ? {
               opponent: duel.opponent,
-              via: duel.practice ? "practice link (no sound)" : "over sound",
+              via: duel.practice ? "lien d'entraînement (sans son)" : "par le son",
               onRematch: () => duel.rematch(),
               onMenu: () => duel.menu(),
               after: [...duel.actions(), ...(opts?.actions ?? [])]
@@ -1439,6 +1457,11 @@ export function createHud(api: HudApi): Hud {
     }
     shield(endEl);
   }
+
+  // Panache: the same widgets regrouped for phones (src/ui/belle-hud.ts); ?style=original keeps this layout
+  const belle: BelleHud | null = BELLE_EPOQUE
+    ? mountBelleHud({ root, ctrl: api.ctrl, spectator: api.ctrl.spectator, togglePause, tip: (msg) => toast(`💡 ${msg}`, undefined, "hint", 3000) })
+    : null;
 
   return {
     update,
@@ -1472,6 +1495,7 @@ export function createHud(api: HudApi): Hud {
     destroy() {
       offAnnounce();
       offMute();
+      belle?.destroy();
       layout.destroy();
       offToggles?.();
       window.clearTimeout(bannerTimer);
@@ -1490,24 +1514,23 @@ function cargoHtml(c: Unit): string {
 }
 
 export const HELP_HTML = `
-  <h3>Goal</h3><p>Destroy the enemy HQ and every Goliath it has. Protect yours: while a Goliath stands you aren't beaten, even with your HQ gone.</p>
-  <h3>Openers</h3><p>Every skirmish starts with a pick: <b>Blitz</b> (Fab Plant + 3 Stingers), <b>Industry</b> (Fab Plant, a third harvester, +200 scrap) or <b>Air Wing</b> (Airpad + 3 Wasps). The enemy picks one too.</p>
-  <h3>Commander powers</h3><p>The ⚡ meter on the right fills slowly, and faster when you lose units. Spend it on <b>Barrage</b> (3 shells), <b>EMP</b> (freezes enemies for 4 s) or <b>Drop Pod</b> (3 units land where you can see): tap the button, then the map. At 6:00 the <b>Sky Hammer</b> comes online for both sides, an orbital strike every ${POWERS.hammer.cooldown / 60} minutes. Every strike shows a warning circle first: red ones are the enemy's, so move out!</p>
-  <h3>Objectives</h3><p>📡 <b>Uplinks</b> sit in the contested middle of every map: park units in the ring to fill its bar (aircraft count half, harvesters not at all; with both sides inside it freezes). Holding one pays ${OBJECTIVES.uplink.income} scrap/s, lights up the fog around it and charges your ⚡ meter. 📦 <b>Supply drops</b> land in pairs from 1:30, every 75 s, announced 10 s ahead to both sides: the first unit to reach a crate takes it (scrap, Veterans, Field Repair, ⚡ charge, or a rare free Lancer). Unclaimed crates burn out after 45 s.</p>
-  <h3>Archipelago</h3><p>Every 📡 Uplink sits on an island only a <b>Condor</b> can reach, and only robot infantry count there: aircraft, the Condor itself and vehicles neither take nor contest them. An island Uplink pays only while your troops stand on it (a hollow pip means it's held but empty). Tap your Condor, then tap an island to drop the squads aboard. You start with a Condor and a squad aboard; lose your last Condor and a free one flies in ${LIFELINE.delay} s later from the map edge by your HQ, or your Goliath if the HQ is gone (with a free squad if you're short of infantry). The open sea stops everything but aircraft — hover tanks included — so the two bridges are the only way across by land.</p>
-  <h3>Last Stand</h3><p>No enemy base: hold out against endless waves. The top bar shows the next wave's theme (four of Air Raid, Armour Column, Artillery, Mixed and Bot Swarm, then a Boss every 5th) and the minimap arrow where it will enter. Clearing a wave pays scrap; with the field clear, <b>Call wave</b> brings the next one early for a bonus.</p>
-  <h3>Ops</h3><p>A short campaign of handcrafted missions with a twist — hold a bridge, deliver scrap under air raids, decapitate a base with a strike group, fight with no income. Each has a goal pill under the clock (tap it for the objectives) and three stars: complete it, plus two harder conditions. The first three are open; every op you complete opens the next.</p>
-  <h3>Career, Daily Op and mutators</h3><p>Wins, Last Stand waves and medals earn XP toward ten ranks; each map and difficulty has three stars (win, win under 8:00 — 12:00 on the Archipelago — and win without losing a building). The <b>Daily Op</b> is one seeded match a day, the same for everyone, and keeps a win streak. <b>Mutators</b> twist a skirmish's rules for both sides (no stars). Tap your rank on the menu for medals and records.</p>
-  <h3>Economy</h3><p>Harvesters mine scrap piles and glowing crystals (worth more) and haul them to your HQ, a Depot or an anchored Goliath. More harvesters, more scrap. Destroyed units leave glinting <b>wrecks</b> worth 30% of their cost (a Last Stand wave's only 5%) for a minute: roll any ground unit over one to salvage it.</p>
-  <h3>Building</h3><p>Open <b>Base</b> and tap a structure to construct it. When it's ready, tap it again: a ghost appears on a free spot near your base. Tap the map (or drag the ghost) to move it, then tap the ghost or <b>✓ Place</b> to build. With a mouse, just click the spot. Build buttons marked ⚔ counter enemies you've seen; a tab marked <b>idle</b> has a factory doing nothing.</p>
-  <h3>Army</h3><p>Tap a unit to select it, drag-hold (long-press) to box-select, double-tap to grab all of that type on screen. With a mouse, Shift+click adds a unit to the selection or takes it out. Tap the ground to attack-move, tap an enemy to attack. <b>Move only</b> retreats without stopping to fight. <b>💤 Idle</b> grabs units with no orders.</p>
-  <h3>Squads</h3><p>Hold a squad chip (<b>1</b>, <b>2</b>, <b>3</b>) to save the selected units into it. Tap it to select them again, double-tap to fly the camera there. It flashes red when a member is hit. Keys: 1–3 select, Ctrl+1–3 (or Shift+1–3) save.</p>
-  <h3>Infantry</h3><p>You start every battle with a <b>Trooper Squad</b> by your HQ. The <b>Assembly Bay</b> trains more: <b>Troopers</b> (cheap rifles that hit air too), <b>Rocket Squads</b> (kill Mastodons and Hornets) and, with a Tech Lab, <b>Sniper Teams</b> (delete other infantry, and stay hidden in woods unless they fire or you come within ${INF.concealRadius} tiles). A squad is one unit of several robots: they fall as it takes damage, and it shoots weaker with each one lost. Squads walk through woods and rough ground at full speed, take half damage in woods and capture Uplinks twice as fast, but Mastodons crush them.</p>
-  <h3>Condor</h3><p>The Airpad's dropship carries two squads over water, rock and anything else. Select squads and tap the Condor (or select the Condor and tap a squad) to load them; then <b>long-press</b> the map to fly there and drop them, or tap <b>⇣ Unload</b> (key U) to drop them where it is. Shot down over land, its squads bail out hurt; over water or rock they go down with it.</p>
-  <h3>Gantry and Goliath</h3><p>With a Fab Plant, an Airpad, a Tech Lab and an Assembly Bay standing you can build the <b>Gantry</b> (one per side, and the enemy always sees it). It builds the <b>Goliath</b>: a giant walking mech and a base on legs. Each one costs ${Math.round(GOLIATH.costStep * 100)}% more for every Goliath you already have. Select it and tap <b>⚓ Anchor</b> (key G) to dig in where it stands (${GOLIATH.anchorTime} s): anchored, harvesters unload at it, it trains squads (Infantry tab, no Assembly Bay needed; tap the map to set their rally point) and you can build within ${GOLIATH.buildRing} tiles of it, even far from base. Those <b>outposts</b> keep working after it leaves, but never extend your build range. <b>⇡ Pack up</b> (G again, ${GOLIATH.packTime} s) before it can walk. It fires mortars, an eye laser, arm cannons and machine guns, and loses them as it is hurt: mortars below ${Math.round(GOLIATH.weapons.mortars.lostBelow * 100)}%, the laser below ${Math.round(GOLIATH.weapons.laser.lostBelow * 100)}%, the cannons below ${Math.round(GOLIATH.weapons.cannons.lostBelow * 100)}% (the machine guns never). Only <b>Menders</b> repair it, and brought back up its weapons reboot. The enemy can always see it.</p>
-  <h3>Lift</h3><p>Two empty Condors can carry a walking Goliath: select both and tap it to hook on, then <b>long-press</b> where to set it down (a tap flies it there and hovers; <b>⇣ Set down</b> or U puts it down where it is). In the air it fires only its machine guns, and if either Condor is shot down it falls: hurt over land, lost over water, sea, lava or rock.</p>
-  <h3>Counters</h3><p>Stingers beat Flak · Flak beats aircraft · Wasps beat tanks · Raptors hunt aircraft · Mastodons crush ground armies · Mortars and Hornets smash bases and squads · Rocket Squads beat Mastodons · Snipers beat infantry · Rocket Squads, Wasps, Lancers and Hornets bring down Goliaths. Long-press any build button for details.</p>
-  <h3>Terrain</h3><p>Roads are fast, mud and woods are slow, woods give cover. Water blocks tanks — Lancers hover across, aircraft fly over everything; the open sea round the Archipelago's islands stops Lancers too. Infantry walk through woods and mud at full speed but can't cross water or rock.</p>
-  <h3>Camera</h3><p>Drag to pan, pinch to zoom, tap the minimap to jump. Pulsing arrows at the screen edge point at fights you can't see (red: you're being hit) — tap one to fly there, or tap ⚡ to cycle through them. Watching AI vs AI, the 🎥 cinematic camera (key C) follows the action by itself; pan or zoom and it hands the camera to you, taking it back a few seconds later.</p>
-  <h3>Speed</h3><p>Tap the <b>1×</b> chip by the clock for 1.5× or 2×; hold the clock to fast-forward at 3×.</p>`;
-
+  <h3>But</h3><p>Détruis le GQG ennemi et tous ses Gargantuas. Protège les tiens : tant qu'un Gargantua tient debout, tu n'es pas battu, même sans GQG.</p>
+  <h3>Ouvertures</h3><p>Chaque escarmouche commence par un choix : <b>Blitz</b> (Forges + 3 Panhard), <b>Industrie</b> (Forges, un troisième Fardier, +200 charbon) ou <b>Escadrille</b> (Chalais-Meudon + 3 Éole). L'ennemi choisit aussi.</p>
+  <h3>Pouvoirs du commandant</h3><p>La jauge ⚡ à droite se remplit lentement, et plus vite quand tu perds des unités. Dépense-la en <b>Feu roulant</b> (3 salves), <b>Fée Électricité</b> (gèle les ennemis 4 s) ou <b>Obus-capsule</b> (3 unités atterrissent là où tu vois) : touche le bouton, puis la carte. À 6:00, l'<b>Obus Méliès</b> s'active pour les deux camps, un obus tombé de la Lune toutes les ${POWERS.hammer.cooldown / 60} minutes. Chaque frappe affiche d'abord un cercle d'alerte : les rouges sont ennemis, alors dégage !</p>
+  <h3>Objectifs</h3><p>Des 📡 <b>Relais TSF</b> occupent le centre disputé de chaque carte : gare des unités dans l'anneau pour remplir sa barre (les aéronefs comptent pour moitié, les Fardiers pas du tout ; avec les deux camps dedans, elle se fige). En tenir un rapporte ${OBJECTIVES.uplink.income} charbon/s, dévoile le brouillard autour et charge ta jauge ⚡. Les 📦 <b>Caisses de ravitaillement</b> tombent par deux dès 1:30, toutes les 75 s, annoncées 10 s à l'avance aux deux camps : la première unité à atteindre une caisse la prend (charbon, Vétérans, Réparation de terrain, charge ⚡, ou un rare Hydroglisseur gratuit). Les caisses non réclamées brûlent au bout de 45 s.</p>
+  <h3>Archipel</h3><p>Chaque 📡 Relais se trouve sur une île que seule une <b>Montgolfière</b> peut atteindre, et seule l'infanterie y compte : aéronefs, Montgolfière et véhicules ne les prennent ni ne les contestent. Un Relais d'île ne rapporte que tant que tes troupes s'y tiennent (un point creux : tenu mais vide). Touche ta Montgolfière, puis une île pour y larguer les escouades à bord. Tu commences avec une Montgolfière et une escouade à bord ; perds ta dernière Montgolfière et une gratuite arrive ${LIFELINE.delay} s plus tard depuis le bord de carte près de ton GQG, ou de ton Gargantua si le GQG est tombé (avec une escouade gratuite si tu manques d'infanterie). La pleine mer arrête tout sauf les aéronefs — hydroglisseurs compris — donc les deux ponts sont les seuls passages terrestres.</p>
+  <h3>Survie</h3><p>Pas de base ennemie : tiens face à des vagues sans fin. La barre du haut montre le thème de la prochaine vague (quatre parmi Raid aérien, Colonne blindée, Artillerie, Assaut mixte et Essaim d'automates, puis un Boss toutes les 5) et la flèche de la minicarte, son point d'entrée. Vaincre une vague rapporte du charbon ; terrain dégagé, <b>Appeler la vague</b> amène la suivante plus tôt contre un bonus.</p>
+  <h3>Opérations</h3><p>Une courte campagne de missions faites main, chacune avec sa particularité — tenir un pont, livrer du charbon sous les raids aériens, décapiter une base avec un groupe d'assaut, combattre sans revenu. Chacune a un objectif sous l'horloge (touche-le pour les détails) et trois étoiles : la réussir, plus deux conditions plus dures. Les trois premières sont ouvertes ; chaque opération réussie ouvre la suivante.</p>
+  <h3>Carrière, Op du jour et mutateurs</h3><p>Victoires, vagues de Survie et médailles rapportent de l'XP vers dix grades ; chaque carte et difficulté a trois étoiles (gagner, gagner en moins de 8:00 — 12:00 sur l'Archipel — et gagner sans perdre de bâtiment). L'<b>Op du jour</b> est une partie générée par jour, la même pour tous, avec une série de victoires. Les <b>mutateurs</b> modifient les règles d'une escarmouche pour les deux camps (sans étoiles). Touche ton grade au menu pour les médailles et records.</p>
+  <h3>Économie</h3><p>Les Fardiers extraient le charbon et le radium luisant (plus rentable) et les ramènent au GQG, aux Halles ou à un Gargantua ancré. Plus de Fardiers, plus de charbon. Les unités détruites laissent des <b>épaves</b> scintillantes valant 30 % de leur coût (5 % seulement pour une vague de Survie) pendant une minute : passe dessus avec une unité au sol pour les récupérer.</p>
+  <h3>Construction</h3><p>Ouvre <b>Base</b> et touche un bâtiment pour le construire. Une fois prêt, touche-le encore : un fantôme apparaît sur un emplacement libre près de ta base. Touche la carte (ou fais glisser le fantôme) pour le déplacer, puis touche le fantôme ou <b>✓ Placer</b> pour bâtir. À la souris, clique simplement l'emplacement. Les boutons marqués ⚔ contrent des ennemis repérés ; un onglet marqué <b>inactif</b> a un atelier qui ne fait rien.</p>
+  <h3>Armée</h3><p>Touche une unité pour la sélectionner, maintiens et glisse (appui long) pour une sélection en cadre, touche deux fois pour prendre toutes celles du même type à l'écran. À la souris, Maj+clic ajoute ou retire une unité de la sélection. Touche le sol pour un déplacement offensif, un ennemi pour l'attaquer. <b>⚑ Repli</b> : touche-le puis le sol, et les unités s'y rendent sans s'arrêter pour combattre (pour battre en retraite ou forcer un passage). <b>💤 Inactifs</b> prend les unités sans ordres.</p>
+  <h3>Groupes</h3><p>Maintiens un bouton de groupe (<b>1</b>, <b>2</b>, <b>3</b>) pour y enregistrer les unités sélectionnées. Touche-le pour les resélectionner, deux fois pour y envoyer la caméra. Il clignote en rouge quand un membre est touché. Touches : 1–3 sélectionne, Ctrl+1–3 (ou Maj+1–3) enregistre.</p>
+  <h3>Infanterie</h3><p>Chaque bataille commence avec une <b>Escouade de pioupious</b> près de ton GQG. La <b>Manufacture</b> en forme d'autres : <b>Pioupious</b> (fusils bon marché qui touchent aussi l'air), <b>Artificiers</b> (tuent Creusot et Albatros) et, avec Polytechnique, <b>Chasseurs alpins</b> (éliminent l'infanterie, et restent cachées en forêt sauf si elles tirent ou si tu approches à ${INF.concealRadius} cases). Une escouade est une unité de plusieurs automates : ils tombent sous les dégâts, et elle tire moins fort à chaque perte. Les escouades traversent forêts et terrain accidenté à pleine vitesse, subissent moitié moins de dégâts en forêt et capturent les Relais deux fois plus vite, mais les Creusot les écrasent.</p>
+  <h3>Montgolfière</h3><p>Le ballon de transport du Parc de Chalais-Meudon emporte deux escouades par-dessus l'eau, la roche et tout le reste. Sélectionne des escouades et touche la Montgolfière (ou sélectionne la Montgolfière et touche une escouade) pour les embarquer ; puis <b>appui long</b> sur la carte pour y voler et les larguer, ou touche <b>⇣ Larguer</b> (touche U) pour les déposer sur place. Abattue au-dessus de la terre, ses escouades s'éjectent blessées ; au-dessus de l'eau ou de la roche, elles sombrent avec elle.</p>
+  <h3>Galerie des Machines et Gargantua</h3><p>Avec les Forges, un Parc de Chalais-Meudon, Polytechnique et une Manufacture debout, tu peux bâtir la <b>Galerie des Machines</b> (une par camp, et toujours visible par l'ennemi). Elle construit le <b>Gargantua</b> : une machine géante, une base sur pattes. Chacun coûte ${Math.round(GOLIATH.costStep * 100)} % de plus par Gargantua déjà possédé. Sélectionne-le et touche <b>⚓ Ancrer</b> (touche G) pour l'enterrer sur place (${GOLIATH.anchorTime} s) : ancré, les Fardiers y déchargent, il forme des escouades (onglet Infanterie, sans Manufacture ; touche la carte pour fixer leur point de ralliement) et tu peux construire à ${GOLIATH.buildRing} cases de lui, même loin de ta base. Ces <b>avant-postes</b> fonctionnent après son départ, mais n'étendent jamais ta zone de construction. <b>⇡ Lever l'ancre</b> (G encore, ${GOLIATH.packTime} s) avant de marcher. Il tire au mortier, à l'arc électrique oculaire, aux canons de bras et à la mitrailleuse, et les perd sous les dégâts : mortiers sous ${Math.round(GOLIATH.weapons.mortars.lostBelow * 100)} %, arc sous ${Math.round(GOLIATH.weapons.laser.lostBelow * 100)} %, canons sous ${Math.round(GOLIATH.weapons.cannons.lostBelow * 100)} % (les mitrailleuses jamais). Seuls les <b>Pasteur</b> le réparent, et ses armes redémarrent une fois remontées. L'ennemi le voit toujours.</p>
+  <h3>Transport aérien</h3><p>Deux Montgolfières vides peuvent porter un Gargantua en marche : sélectionne-les et touche-le pour l'accrocher, puis <b>appui long</b> là où le déposer (un simple toucher l'y amène en vol stationnaire ; <b>⇣ Déposer</b> ou U le pose sur place). En vol, il ne tire qu'à la mitrailleuse, et si une Montgolfière est abattue il tombe : blessé sur terre, perdu sur l'eau, la mer, la lave ou la roche.</p>
+  <h3>Contres</h3><p>Panhard battent Faucheux · Faucheux battent aéronefs · Éole battent chars · Blériot chassent les aéronefs · Creusot écrasent les armées au sol · Canons de 75 et Albatros rasent bases et escouades · Artificiers battent Creusot · Chasseurs alpins battent l'infanterie · Artificiers, Éole, Hydroglisseurs et Albatros abattent les Gargantuas. Appui long sur un bouton de production pour les détails.</p>
+  <h3>Terrain</h3><p>Les routes sont rapides, boue et forêts lentes, les forêts offrent un couvert. L'eau bloque les chars — les Hydroglisseurs la survolent, les aéronefs passent partout ; la pleine mer autour des îles de l'Archipel arrête aussi les Hydroglisseurs. L'infanterie traverse forêts et boue à pleine vitesse mais ne franchit ni eau ni roche.</p>
+  <h3>Caméra</h3><p>Glisse pour te déplacer, pince pour zoomer, touche la minicarte pour sauter. Des flèches pulsantes au bord de l'écran indiquent les combats hors champ (rouge : tu es attaqué) — touches-en une pour y voler, ou touche ⚡ pour les parcourir. En IA contre IA, la caméra cinéma 🎥 (touche C) suit l'action seule ; déplace ou zoome et elle te rend la main, puis la reprend quelques secondes plus tard.</p>
+  <h3>Vitesse</h3><p>Touche le bouton <b>1×</b> près de l'horloge pour 1,5× ou 2× ; maintiens l'horloge pour accélérer à 3×.</p>`;

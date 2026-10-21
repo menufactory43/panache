@@ -71,29 +71,29 @@ export const AWARDS = {
   unbreakableWaves: 20
 } as const;
 
-/** 1500 → "1,500" */
-const n = (x: number) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+/** 1500 → "1 500" */
+const n = (x: number) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
 
 export const MEDALS: Record<MedalId, MedalDef> = {
-  lightning: { id: "lightning", name: "Lightning War", icon: "⚡", desc: "Win in under 5:00", mode: "skirmish" },
-  untouchable: { id: "untouchable", name: "Untouchable", icon: "🛡️", desc: "Win without losing a building", mode: "skirmish" },
-  comeback: { id: "comeback", name: "Comeback", icon: "🔄", desc: "Win after your army fell to half of theirs", mode: "skirmish" },
-  flawless: { id: "flawless", name: "Flawless", icon: "💎", desc: "Win losing 5 units or fewer", mode: "skirmish" },
-  tycoon: { id: "tycoon", name: "Tycoon", icon: "💰", desc: "Win having harvested twice the enemy's scrap", mode: "skirmish" },
-  ace: { id: "ace", name: "Ace", icon: "🎖️", desc: "One unit scores 9 kills", mode: "skirmish" },
-  "giant-slayer": { id: "giant-slayer", name: "Giant Slayer", icon: "🗿", desc: "Destroy 3 enemy Mastodons", mode: "skirmish" },
-  "goliath-slayer": { id: "goliath-slayer", name: "Goliath Slayer", icon: "🪨", desc: "Bring down an enemy Goliath", mode: "skirmish" },
-  "air-superiority": { id: "air-superiority", name: "Air Superiority", icon: "✈️", desc: "Shoot down 30 enemy aircraft", mode: "skirmish" },
-  "iron-wall": { id: "iron-wall", name: "Iron Wall", icon: "🧱", desc: "Your defences destroy 30 enemy units", mode: "skirmish" },
-  exterminator: { id: "exterminator", name: "Exterminator", icon: "☠️", desc: "Destroy 60 enemy units", mode: "skirmish" },
-  "wrecking-crew": { id: "wrecking-crew", name: "Wrecking Crew", icon: "🏚", desc: "Destroy 12 enemy buildings", mode: "skirmish" },
-  orbital: { id: "orbital", name: "Orbital", icon: "🛰️", desc: `Destroy ${n(AWARDS.orbitalValue)} scrap with one Sky Hammer`, mode: "skirmish" },
-  scavenger: { id: "scavenger", name: "Scavenger", icon: "♻️", desc: `Salvage ${n(AWARDS.scavengerScrap)} scrap from wrecks`, mode: "skirmish" },
+  lightning: { id: "lightning", name: "Guerre éclair", icon: "⚡", desc: "Gagne en moins de 5:00", mode: "skirmish" },
+  untouchable: { id: "untouchable", name: "Intouchable", icon: "🛡️", desc: "Gagne sans perdre de bâtiment", mode: "skirmish" },
+  comeback: { id: "comeback", name: "Remontada", icon: "🔄", desc: "Gagne après être tombé à la moitié de leur armée", mode: "skirmish" },
+  flawless: { id: "flawless", name: "Sans faute", icon: "💎", desc: "Gagne en perdant 5 unités au plus", mode: "skirmish" },
+  tycoon: { id: "tycoon", name: "Magnat", icon: "💰", desc: "Gagne en récoltant deux fois plus de charbon que l'ennemi", mode: "skirmish" },
+  ace: { id: "ace", name: "As", icon: "🎖️", desc: "Une unité totalise 9 victimes", mode: "skirmish" },
+  "giant-slayer": { id: "giant-slayer", name: "Tueur de géants", icon: "🗿", desc: "Détruis 3 Creusot ennemis", mode: "skirmish" },
+  "goliath-slayer": { id: "goliath-slayer", name: "Tueur de Gargantua", icon: "🪨", desc: "Abats un Gargantua ennemi", mode: "skirmish" },
+  "air-superiority": { id: "air-superiority", name: "Supériorité aérienne", icon: "✈️", desc: "Abats 30 appareils ennemis", mode: "skirmish" },
+  "iron-wall": { id: "iron-wall", name: "Mur d'acier", icon: "🧱", desc: "Tes défenses détruisent 30 unités ennemies", mode: "skirmish" },
+  exterminator: { id: "exterminator", name: "Exterminateur", icon: "☠️", desc: "Détruis 60 unités ennemies", mode: "skirmish" },
+  "wrecking-crew": { id: "wrecking-crew", name: "Démolisseurs", icon: "🏚", desc: "Détruis 12 bâtiments ennemis", mode: "skirmish" },
+  orbital: { id: "orbital", name: "Voyage dans la Lune", icon: "🛰️", desc: `Détruis ${n(AWARDS.orbitalValue)} de charbon d'un seul Obus Méliès`, mode: "skirmish" },
+  scavenger: { id: "scavenger", name: "Charognard", icon: "♻️", desc: `Récupère ${n(AWARDS.scavengerScrap)} de charbon sur les épaves`, mode: "skirmish" },
   "steady-hands": {
-    id: "steady-hands", name: "Steady Hands", icon: "💨", desc: `Dodge ${AWARDS.steadyDodges} enemy Barrages or Sky Hammers`, mode: "skirmish"
+    id: "steady-hands", name: "Sang-froid", icon: "💨", desc: `Esquive ${AWARDS.steadyDodges} Feux roulants ou Obus Méliès ennemis`, mode: "skirmish"
   },
-  holdout: { id: "holdout", name: "Holdout", icon: "🏰", desc: "Last Stand: survive 10 waves", mode: "survival" },
-  unbreakable: { id: "unbreakable", name: "Unbreakable", icon: "🗼", desc: "Last Stand: survive 20 waves", mode: "survival" }
+  holdout: { id: "holdout", name: "Résistant", icon: "🏰", desc: "Survie : tiens 10 vagues", mode: "survival" },
+  unbreakable: { id: "unbreakable", name: "Inébranlable", icon: "🗼", desc: "Survie : tiens 20 vagues", mode: "survival" }
 };
 
 export const MEDAL_IDS = Object.keys(MEDALS) as MedalId[];

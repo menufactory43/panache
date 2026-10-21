@@ -11,104 +11,108 @@ import { Terrain, type ArmorClass, type BuildingKind, type UnitKind } from "./si
 
 export const FEATURES: Record<UnitKind, string[]> = {
   harvester: [
-    "Your economy: drives to the nearest scrap or crystal field, fills its hold and hauls it back to the HQ or a Depot.",
-    "Crystal is worth 1.6× scrap per load, so crystal fields are worth fighting over.",
-    "Unarmed and slow; air raids hunt them first. Build a Depot near distant fields to shorten the trip.",
-    "Leaves no salvage when destroyed."
+    "Ton économie : il rejoint le gisement de charbon ou de radium le plus proche, remplit sa benne et rapporte le tout au GQG ou aux Halles.",
+    "Le radium vaut 1,6× le charbon par chargement : les gisements de radium valent qu'on se batte pour eux.",
+    "Lent et non armé ; les raids aériens le chassent en priorité. Bâtis des Halles près des gisements éloignés pour raccourcir le trajet.",
+    "Ne laisse aucune épave à récupérer."
   ],
   scout: [
-    "The fastest thing on the map, with the widest sight of any unit.",
-    "Unarmed: use it to find the enemy base, spot fields and watch for attacks coming through the fog.",
-    "Cheap and quick to build — losing one is fine if it bought you information."
+    "Le dirigeable le plus rapide de la carte, avec la plus grande vision.",
+    "Non armée : sers-t'en pour trouver la base ennemie, repérer les gisements et guetter les attaques dans le brouillard.",
+    "Bon marché et rapide à produire — en perdre une n'est pas grave si elle t'a rapporté du renseignement."
   ],
   stinger: [
-    "Cheap, fast light tank with a turreted cannon — the backbone of an early army.",
-    "Quick enough to raid harvesters and outrun slower armour.",
-    "Wins cost-for-cost against Flak Crawlers, Mortars and Lancers, but cannot shoot at aircraft."
+    "Automitrailleuse légère, rapide et bon marché, à canon en tourelle — la colonne vertébrale d'une armée en début de partie.",
+    "Assez rapide pour raider les Fardiers et distancer les blindés plus lents.",
+    "À coût égal, bat Faucheux, Canons de 75 et Hydroglisseurs, mais ne peut pas tirer sur les appareils."
   ],
   "flak-crawler": [
-    "The dedicated anti-air answer: rapid flak bursts that shred drones, extra-effective against light airframes.",
-    "Beats every aircraft cost-for-cost, including Hornet bombers.",
-    "Completely helpless against ground units — escort it with tanks."
+    "La réponse antiaérienne dédiée : des rafales de DCA rapides qui déchiquettent les aéronefs, très efficaces contre les appareils légers.",
+    "À coût égal, bat tous les appareils, bombardiers Albatros compris.",
+    "Totalement impuissant face aux unités au sol — escorte-le avec des chars."
   ],
   mortar: [
-    "Long-range artillery: out-ranges every turret and SAM Site, making it the tool for cracking a base.",
-    "Shells are real projectiles with splash, aimed where the target was — fast units can dodge them.",
-    "Has a minimum range and light armour: anything that closes the distance tears it apart."
+    "Artillerie longue portée : tire plus loin que toute Hotchkiss ou Batterie Ruggieri, l'outil idéal pour percer une base.",
+    "Les obus sont de vrais projectiles à effet de zone, visant la position passée de la cible — les unités rapides peuvent les esquiver.",
+    "Portée minimale et blindage léger : tout ce qui s'approche le met en pièces."
   ],
   mastodon: [
-    "Super-heavy twin-cannon tank with by far the most HP of any tank.",
-    "Its cannons hit heavy armour harder, and it crushes Stingers, Flak and Mortars.",
-    "Slow and unable to shoot at air — Wasps and Lancers are its nightmare."
+    "Char super-lourd à double canon, sorti des aciéries du Creusot : de loin le char le plus résistant.",
+    "Ses canons frappent plus fort les blindés lourds, et il écrase Panhard, Faucheux et Canons de 75.",
+    "Lent et incapable de tirer en l'air — Éole et Hydroglisseurs sont son cauchemar."
   ],
   lancer: [
-    "Hover tank: crosses water and shallows and ignores rough ground, opening routes no tracked unit can take.",
-    "Its laser burns through heavy armour (1.55×), making it the Mastodon killer.",
-    "The only tank that can also shoot aircraft, at reduced effect."
+    "Hydroglisseur : traverse l'eau et les hauts-fonds et ignore le terrain accidenté, ouvrant des routes interdites aux chenillés.",
+    "Son arc électrique perce les blindages lourds (1,55×) : c'est le tueur de Creusot.",
+    "Le seul char qui peut aussi tirer sur les appareils, avec un effet réduit."
   ],
   wasp: [
-    "Rocket strike drone that flies over every obstacle to hit ground targets.",
-    "Beats tanks and artillery cost-for-cost — great for harassing harvesters and Mortars.",
-    "Dies quickly to Flak, Raptors and SAM Sites."
+    "Aéronef d'attaque à roquettes qui survole tous les obstacles pour frapper les cibles au sol.",
+    "À coût égal, bat chars et artillerie — parfait pour harceler Fardiers et Canons de 75.",
+    "Tombe vite face aux Faucheux, aux Blériot et aux Batteries Ruggieri."
   ],
   raptor: [
-    "Air superiority interceptor: fast missiles that hunt other aircraft.",
-    "Counters Wasps, Hornets and Menders.",
-    "Cannot attack anything on the ground."
+    "Intercepteur de supériorité aérienne : des missiles rapides qui chassent les autres appareils.",
+    "Contre les Éole, Albatros et Pasteur.",
+    "Ne peut rien attaquer au sol."
   ],
   hornet: [
-    "Heavy armoured bomber that carpet-bombs ground units and buildings with splash damage.",
-    "Explosive bombs do 1.35× damage to structures — ideal for flattening a base.",
-    "Bombs are projectiles that can be dodged, and it needs an escort against Flak, Raptors and SAMs."
+    "Bombardier lourd blindé qui pilonne unités au sol et bâtiments avec des dégâts de zone.",
+    "Ses bombes explosives font 1,35× de dégâts aux structures — idéal pour raser une base.",
+    "Les bombes sont des projectiles esquivables, et il lui faut une escorte contre Faucheux, Blériot et Ruggieri."
   ],
   mender: [
-    "Repair drone: a beam that heals one damaged friendly unit or building in range at a time.",
-    "Keeps an army in the fight longer; the AI uses them as army escorts.",
-    "Unarmed and lightly armoured — Raptors and Flak pick them off."
+    "Aéronef de réparation : un rayon qui soigne une unité ou un bâtiment allié endommagé à portée, un à la fois.",
+    "Garde une armée plus longtemps au combat ; l'IA s'en sert comme escorte.",
+    "Non armé et peu blindé — Blériot et Faucheux l'abattent facilement."
   ],
   trooper: [
-    `Five rifle bots fighting as one squad: one HP pool, and a robot falls each time it loses a fifth of it — the squad's firepower falls with them.`,
-    "The cheapest unit that can shoot aircraft, at half effect. Every side starts the match with one squad.",
-    `Walks through woods and rough ground at full speed, and takes only ${Math.round(INFANTRY.woodsCover * 100)}% damage in woods (vehicles: ${Math.round(TERRAIN[Terrain.Forest].cover * 100)}%).`,
-    `Captures Uplinks ${INFANTRY.captureWeight}× as fast as a vehicle and picks up supply crates. Leaves no wreck.`
+    `Cinq automates fusiliers qui combattent en une escouade : un seul total de PV, et un automate tombe à chaque cinquième perdu — la puissance de feu baisse avec eux.`,
+    "L'unité la moins chère capable de tirer sur les appareils, à moitié d'effet. Chaque camp commence avec une escouade.",
+    `Traverse bois et terrain accidenté à pleine vitesse, et ne subit que ${Math.round(INFANTRY.woodsCover * 100)} % des dégâts dans les bois (véhicules : ${Math.round(TERRAIN[Terrain.Forest].cover * 100)} %).`,
+    `Capture les Relais ${INFANTRY.captureWeight}× plus vite qu'un véhicule et ramasse les caisses de ravitaillement. Ne laisse pas d'épave.`
   ],
   "rocket-squad": [
-    `Three bots with shoulder-fired rockets: cannon damage that hits heavy armour ${DAMAGE_VS.cannon.heavy}× — the cheap answer to Mastodons.`,
-    `Also fires at aircraft (${UNITS["rocket-squad"].airMult}×), so Hornets and Wasps pay for low passes.`,
-    "Weak against other infantry: Troopers and Snipers cut it down."
+    `Trois automates à fusées d'épaule : dégâts de canon, ${DAMAGE_VS.cannon.heavy}× contre les blindés lourds — la réponse bon marché aux Creusot.`,
+    `Tire aussi sur les appareils (${UNITS["rocket-squad"].airMult}×) : Albatros et Éole paient cher leurs passages à basse altitude.`,
+    "Faible contre l'infanterie : pioupious et chasseurs alpins la fauchent."
   ],
   sniper: [
-    `Two marksmen with rail-rifles: precision damage, ${Math.round(shotDamage(UNITS.sniper))} per shot and ${DAMAGE_VS.precision.infantry}× against infantry — one shot drops about three Trooper robots.`,
-    `Hidden in woods: enemies only see it within ${INFANTRY.concealRadius} tiles, until ${INFANTRY.concealAfterShot} s after it fires.`,
-    "Next to useless against armour and buildings, and slow to fire: keep vehicles away from it."
+    `Deux tireurs d'élite au fusil Lebel : dégâts de précision, ${Math.round(shotDamage(UNITS.sniper))} par tir et ${DAMAGE_VS.precision.infantry}× contre l'infanterie — un tir abat environ trois automates pioupious.`,
+    `Caché dans les bois : l'ennemi ne le voit qu'à moins de ${INFANTRY.concealRadius} cases, sauf pendant ${INFANTRY.concealAfterShot} s après chaque tir.`,
+    "Presque inutile contre blindés et bâtiments, et lent à tirer : tiens les véhicules à distance."
   ],
   condor: [
-    `Dropship: carries ${UNITS.condor.capacity} infantry squads over water, rock and anything else in the way. Unarmed.`,
-    `Select squads and tap the Condor to load them (1 s each, once they reach it); long-press the map to fly there and drop them (it hovers ${INFANTRY.unloadHover} s), or tap Unload.`,
-    `Shot down over land, its squads bail out with at most ${Math.round(INFANTRY.bailoutHp * 100)}% HP; over water or rock they are lost with it.`
+    `Transport : emporte ${UNITS.condor.capacity} escouades d'infanterie au-dessus de l'eau, des rochers et de tout obstacle. Non armé.`,
+    `Sélectionne des escouades et touche la Montgolfière pour les embarquer (1 s chacune, une fois arrivées) ; appui long sur la carte pour y voler et les larguer (elle fait du surplace ${INFANTRY.unloadHover} s), ou touche Débarquer.`,
+    `Abattue au-dessus de la terre, ses escouades sautent avec au plus ${Math.round(INFANTRY.bailoutHp * 100)} % de PV ; au-dessus de l'eau ou des rochers, elles périssent avec elle.`
   ],
   goliath: [
-    "A giant walking mech and a mobile base: shoulder mortars, an eye laser, arm cannons and machine guns that hit aircraft too.",
-    `Anchor it (${GOLIATH.anchorTime} s to dig in, ${GOLIATH.packTime} s to pack up) and it takes harvesters' scrap, trains infantry, and lets you build outposts within ${GOLIATH.buildRing} tiles of it, anywhere on the map.`,
-    `Loses its weapons as it is hurt: mortars below ${Math.round(GOLIATH.weapons.mortars.lostBelow * 100)}% HP, the laser below ${Math.round(GOLIATH.weapons.laser.lostBelow * 100)}%, the cannons below ${Math.round(GOLIATH.weapons.cannons.lostBelow * 100)}%. Only Menders repair it, and each weapon reboots once it is mended.`,
-    `Always visible to the enemy. Two empty Condors can carry it; while a side has a Goliath, losing its HQ doesn't lose the game. Each one costs ${Math.round(GOLIATH.costStep * 100)}% more for every Goliath you already have.`
+    "Une machine géante qui marche, et une base mobile : mortiers d'épaule, arc électrique oculaire, canons de bras et mitrailleuses qui touchent aussi les appareils.",
+    `Ancre-le (${GOLIATH.anchorTime} s pour s'ancrer, ${GOLIATH.packTime} s pour lever l'ancre) : il reçoit le charbon des Fardiers, forme de l'infanterie et te laisse bâtir des avant-postes à ${GOLIATH.buildRing} cases de lui, n'importe où sur la carte.`,
+    `Perd ses armes à mesure qu'il est touché : mortiers sous ${Math.round(GOLIATH.weapons.mortars.lostBelow * 100)} % de PV, arc électrique sous ${Math.round(GOLIATH.weapons.laser.lostBelow * 100)} %, canons sous ${Math.round(GOLIATH.weapons.cannons.lostBelow * 100)} %. Seuls les Pasteur le soignent, et chaque arme redémarre une fois réparée.`,
+    `Toujours visible par l'ennemi. Deux Montgolfières vides peuvent le porter ; tant qu'un camp a un Gargantua, perdre son GQG ne fait pas perdre la partie. Chacun coûte ${Math.round(GOLIATH.costStep * 100)} % de plus par Gargantua déjà possédé.`
   ]
 };
 
 export const GROUPS: { title: string; kinds: UnitKind[] }[] = [
-  { title: "Built at the HQ", kinds: ["harvester"] },
-  { title: "Fab Plant — ground vehicles", kinds: ["stinger", "flak-crawler", "mortar", "mastodon", "lancer"] },
-  { title: "Assembly Bay — robot infantry", kinds: ["trooper", "rocket-squad", "sniper"] },
-  { title: "Airpad — flying drones", kinds: ["scout", "wasp", "raptor", "hornet", "mender", "condor"] },
-  { title: "Gantry — Goliath", kinds: ["goliath"] }
+  { title: "Produit au GQG", kinds: ["harvester"] },
+  { title: "Forges — véhicules terrestres", kinds: ["stinger", "flak-crawler", "mortar", "mastodon", "lancer"] },
+  { title: "Manufacture — infanterie automate", kinds: ["trooper", "rocket-squad", "sniper"] },
+  { title: "Parc de Chalais-Meudon — aéronefs", kinds: ["scout", "wasp", "raptor", "hornet", "mender", "condor"] },
+  { title: "Galerie des Machines — Gargantua", kinds: ["goliath"] }
 ];
 
-const BUILT_AT: Record<string, string> = { hq: "HQ", "fab-plant": "Fab Plant", airpad: "Airpad", "assembly-bay": "Assembly Bay", gantry: "Gantry" };
-const TARGETS = { ground: "Ground", air: "Air", both: "Ground + air", none: "Unarmed" };
+const BUILT_AT = (k: BuildingKind): string => BUILDINGS[k].name;
+const TARGETS = { ground: "Sol", air: "Air", both: "Sol + air", none: "Non armé" };
+const DMG: Record<string, string> = {
+  kinetic: "cinétique", cannon: "canon", flak: "DCA", missile: "missile", explosive: "explosif", laser: "arc électrique", precision: "précision"
+};
+const ARMOR: Record<string, string> = { light: "léger", medium: "moyen", heavy: "lourd", structure: "structure", infantry: "infanterie" };
 
 type Threat = UnitKind | "turret" | "sam-site";
 const threatName = (k: Threat): string =>
-  k === "turret" ? "Turret" : k === "sam-site" ? "SAM Site" : UNITS[k].name;
+  k === "turret" || k === "sam-site" ? BUILDINGS[k].name : UNITS[k].name;
 const threatLink = (k: Threat): string =>
   k in UNITS ? `<a href="#${k}">${threatName(k)}</a>` : threatName(k);
 
@@ -119,16 +123,17 @@ const counteredBy = (kind: UnitKind): Threat[] =>
 const stat = (value: string | number, label: string): string =>
   `<div class="stat"><b>${value}</b><span>${label}</span></div>`;
 
-const fmt = (n: number): string => String(Math.round(n * 100) / 100);
+const fmt = (n: number): string => String(Math.round(n * 100) / 100).replace(".", ",");
+const NB = "\u00a0";
 
 /** One of the Goliath's weapon systems: what it fires, how hard and how far, and when damage takes it offline. */
 function goliathWeapon(w: GoliathWeaponStats): string {
   const bits = [
-    `<b>${w.name}</b> ${w.dmgType}`,
-    `${fmt(shotDamage(w))} every ${w.shotInterval ?? 0.5}s`,
-    `range ${w.range}${w.minRange ? ` (min ${w.minRange})` : ""}`,
-    w.targets === "both" ? "ground + air" : w.targets,
-    w.lostBelow > 0 ? `offline below ${Math.round(w.lostBelow * 100)}% HP` : "never offline"
+    `<b>${w.name}</b> ${DMG[w.dmgType!] ?? w.dmgType}`,
+    `${fmt(shotDamage(w))} toutes les ${w.shotInterval ?? 0.5}${NB}s`,
+    `portée ${w.range}${w.minRange ? ` (min ${w.minRange})` : ""}`,
+    TARGETS[w.targets].toLowerCase(),
+    w.lostBelow > 0 ? `hors service sous ${Math.round(w.lostBelow * 100)}${NB}% PV` : "jamais hors service"
   ];
   return bits.join(" · ");
 }
@@ -138,23 +143,23 @@ function weaponLine(kind: UnitKind): string {
   // four weapon systems, the long-ranged first (damage takes them in that order)
   if (kind === "goliath")
     return (["mortars", "laser", "cannons", "mg"] as const).map((k) => goliathWeapon(GOLIATH.weapons[k])).join("<br />");
-  if (u.heal) return `<b>Repair beam</b> · ${u.heal} HP/s · range ${u.range}`;
+  if (u.heal) return `<b>Rayon de réparation</b> · ${u.heal} PV/s · portée ${u.range}`;
   return armedLine(u);
 }
 
 /** A unit's or building's weapon: its damage type, how hard and how often, and what it's strong against. */
 function armedLine(u: ArmedStats): string {
-  if (u.targets === "none") return "<b>No weapon</b>";
+  if (u.targets === "none") return "<b>Aucune arme</b>";
   const strong = (Object.entries(DAMAGE_VS[u.dmgType!]) as [ArmorClass, number][])
     .filter(([a, m]) => a !== "structure" ? m > 1 : m >= 1.3)
-    .map(([a, m]) => `${a === "structure" ? "buildings" : a === "infantry" ? "infantry" : `${a} armour`} ×${m}`);
+    .map(([a, m]) => `${a === "structure" ? "bâtiments" : a === "infantry" ? "infanterie" : `blindage ${ARMOR[a]}`} ×${fmt(m)}`);
   const bits = [
-    `<b>${u.dmgType}</b> damage`,
-    `${fmt(shotDamage(u))} per shot every ${u.shotInterval ?? 0.5}s`,
-    u.minRange ? `min range ${u.minRange}` : "",
-    u.splash ? `splash ${u.splash} tiles` : "",
-    u.airMult ? `×${u.airMult} vs air` : "",
-    strong.length ? `strong vs ${strong.join(", ")}` : ""
+    `dégâts <b>${DMG[u.dmgType!] ?? u.dmgType}</b>`,
+    `${fmt(shotDamage(u))} par tir toutes les ${u.shotInterval ?? 0.5}${NB}s`,
+    u.minRange ? `portée min ${u.minRange}` : "",
+    u.splash ? `zone ${u.splash} cases` : "",
+    u.airMult ? `×${fmt(u.airMult)} contre l'air` : "",
+    strong.length ? `fort contre ${strong.join(", ")}` : ""
   ];
   return bits.filter(Boolean).join(" · ");
 }
@@ -169,17 +174,17 @@ export function card(kind: UnitKind, { portrait = true, id = true } = {}): strin
   const beats = (COUNTERS[kind] ?? []) as Threat[];
   const fears = counteredBy(kind);
   const tags = [
-    `<span class="tag">${u.hover ? "Hover" : u.squad ? "Infantry" : u.domain === "air" ? "Air" : "Ground"}</span>`,
-    `<span class="tag">${u.armor === "infantry" ? `squad of ${u.squad}` : `${u.armor} armour`}</span>`,
-    u.capacity ? `<span class="tag">Carries ${u.capacity} squads</span>` : "",
-    `<span class="tag">${BUILT_AT[u.builtAt]}</span>`,
-    u.requires ? `<span class="tag tech">⚗ Needs Tech Lab</span>` : ""
+    `<span class="tag">${u.hover ? "Hydroglisseur" : u.squad ? "Infanterie" : u.domain === "air" ? "Air" : "Sol"}</span>`,
+    `<span class="tag">${u.armor === "infantry" ? `escouade de ${u.squad}` : `blindage ${ARMOR[u.armor]}`}</span>`,
+    u.capacity ? `<span class="tag">Emporte ${u.capacity} escouades</span>` : "",
+    `<span class="tag">${BUILT_AT(u.builtAt)}</span>`,
+    u.requires ? `<span class="tag tech">⚗ Requiert ${BUILDINGS[u.requires].name}</span>` : ""
   ].join("");
   const matchups =
     beats.length || fears.length
       ? `<div class="matchups">
-          <div class="beats"><h4>Strong against</h4>${beats.map(threatLink).join(", ") || "—"}</div>
-          <div class="fears"><h4>Weak against</h4>${fears.map(threatLink).join(", ") || "—"}</div>
+          <div class="beats"><h4>Fort contre</h4>${beats.map(threatLink).join(", ") || "—"}</div>
+          <div class="fears"><h4>Faible contre</h4>${fears.map(threatLink).join(", ") || "—"}</div>
         </div>`
       : "";
   return `<article${id ? ` id="${kind}"` : ""}>
@@ -192,14 +197,14 @@ export function card(kind: UnitKind, { portrait = true, id = true } = {}): strin
       </div>
     </div>
     <div class="stats">
-      ${stat(u.cost, "Scrap")}
-      ${stat(u.hp, "HP")}
-      ${stat(u.speed, "Speed")}
-      ${stat(u.sight, "Sight")}
-      ${stat(u.dps || (u.heal ? `+${u.heal}` : "—"), u.heal ? "Heal/s" : "DPS")}
-      ${stat(u.range || "—", "Range")}
-      ${stat(TARGETS[u.targets], "Hits")}
-      ${stat(`${u.buildTime}s`, "Build")}
+      ${stat(u.cost, "Charbon")}
+      ${stat(u.hp, "PV")}
+      ${stat(u.speed, "Vitesse")}
+      ${stat(u.sight, "Vision")}
+      ${stat(u.dps || (u.heal ? `+${u.heal}` : "—"), u.heal ? "Soin/s" : "DPS")}
+      ${stat(u.range || "—", "Portée")}
+      ${stat(TARGETS[u.targets], "Cibles")}
+      ${stat(`${u.buildTime}${NB}s`, "Prod.")}
     </div>
     <div class="weapon">${weaponLine(kind)}</div>
     <ul class="features">${FEATURES[kind].map((f) => `<li>${f}</li>`).join("")}</ul>
@@ -214,10 +219,10 @@ export type ObjectiveKind = "uplink" | "supply-crate";
 export type SiteKind = BuildingKind | ObjectiveKind;
 
 export const BUILDING_GROUPS: { title: string; kinds: SiteKind[] }[] = [
-  { title: "Command and economy", kinds: ["hq", "depot", "radar"] },
+  { title: "Commandement et économie", kinds: ["hq", "depot", "radar"] },
   { title: "Production", kinds: ["fab-plant", "airpad", "assembly-bay", "tech-lab", "gantry"] },
-  { title: "Defences", kinds: ["turret", "sam-site"] },
-  { title: "Map objectives", kinds: ["uplink", "supply-crate"] }
+  { title: "Défenses", kinds: ["turret", "sam-site"] },
+  { title: "Objectifs de carte", kinds: ["uplink", "supply-crate"] }
 ];
 
 const isObjective = (k: SiteKind): k is ObjectiveKind => k === "uplink" || k === "supply-crate";
@@ -226,26 +231,26 @@ const D = OBJECTIVES.drops;
 const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const OBJECTIVE_INFO: Record<ObjectiveKind, { name: string; role: string; tags: string[]; stats: [string | number, string][]; features: string[] }> = {
   uplink: {
-    name: "Uplink relay",
-    role: "A capturable relay in the contested middle of the map: scrap, vision and command charge to whoever holds it.",
-    tags: ["Neutral", "Capturable"],
-    stats: [[`${U.income}/s`, "Scrap"], [U.sight, "Sight"], [U.radius, "Zone"], [`~${Math.round(100 / U.maxRate)}s`, "Capture"]],
+    name: "Relais TSF",
+    role: "Un relais capturable au cœur disputé de la carte : charbon, vision et charge de commandement pour qui le tient.",
+    tags: ["Neutre", "Capturable"],
+    stats: [[`${U.income}/s`, "Charbon"], [U.sight, "Vision"], [U.radius, "Zone"], [`~${Math.round(100 / U.maxRate)}${NB}s`, "Capture"]],
     features: [
-      `Park units in its ${U.radius}-tile zone to swing the capture bar your way: neutral to yours takes about ${Math.round(100 / U.maxRate)} s with four units, taking it off the enemy twice that.`,
-      `Infantry squads count ${INFANTRY.captureWeight}× and aircraft ${U.airWeight}×; harvesters don't count.`,
-      `Its holder earns ${U.income} scrap a second, sees ${U.sight} tiles around it and charges their command meter for calldowns.`,
-      "Some sit on islands only robot infantry flown in by Condor can take, and an island relay pays only while troops stand on it."
+      `Gare des unités dans sa zone de ${U.radius} cases pour faire pencher la barre de capture : de neutre à toi, il faut environ ${Math.round(100 / U.maxRate)} s avec quatre unités, deux fois plus pour le reprendre à l'ennemi.`,
+      `Les escouades d'infanterie comptent ${INFANTRY.captureWeight}× et les appareils ${U.airWeight}× ; les Fardiers ne comptent pas.`,
+      `Son détenteur gagne ${U.income} de charbon par seconde, voit à ${U.sight} cases autour et recharge sa jauge de commandement pour les frappes.`,
+      "Certains sont sur des îles que seule l'infanterie amenée en Montgolfière peut prendre, et un relais insulaire ne rapporte que tant que des troupes l'occupent."
     ]
   },
   "supply-crate": {
-    name: "Supply crate",
-    role: "Parachuted onto the battlefield in pairs: the first unit there takes it.",
-    tags: ["Neutral", "Announced to both sides"],
-    stats: [[mmss(D.first), "First"], [`${D.every}s`, "Every"], [`${D.warning}s`, "Warning"], [`${D.ttl}s`, "Lasts"]],
+    name: "Caisse de ravitaillement",
+    role: "Parachutées par paires sur le champ de bataille : la première unité sur place la prend.",
+    tags: ["Neutre", "Annoncée aux deux camps"],
+    stats: [[mmss(D.first), "Première"], [`${D.every}${NB}s`, "Toutes les"], [`${D.warning}${NB}s`, "Préavis"], [`${D.ttl}${NB}s`, "Durée"]],
     features: [
-      `The first drop lands at ${mmss(D.first)}, then one every ${D.every} s, announced to both sides ${D.warning} s ahead with a pillar of light where they'll land.`,
-      `Any unit but a harvester that comes within ${D.claimRadius} tiles claims it; unclaimed, it burns out after ${D.ttl} s.`,
-      `Inside: ${D.scrap} scrap, Veterans (+1 rank to the claimer and allies within ${D.veteranRadius} tiles), Field Repair (${Math.round(D.repairShare * 100)}% HP to your units within ${D.repairRadius}), +${D.charge} command charge, or a rare free Lancer.`
+      `Le premier largage arrive à ${mmss(D.first)}, puis un toutes les ${D.every} s, annoncé aux deux camps ${D.warning} s à l'avance par une colonne de lumière là où il tombera.`,
+      `Toute unité sauf un Fardier qui s'approche à ${D.claimRadius} cases la récupère ; sinon, elle se consume après ${D.ttl} s.`,
+      `Contenu : ${D.scrap} de charbon, Vétérans (+1 rang à l'unité et aux alliés à ${D.veteranRadius} cases), Réparation de campagne (${Math.round(D.repairShare * 100)} % de PV à tes unités à ${D.repairRadius} cases), +${D.charge} de charge de commandement, ou, rarement, un Hydroglisseur offert.`
     ]
   }
 };
@@ -272,55 +277,55 @@ export function siteCard(kind: SiteKind, { id = true } = {}): string {
 
 const BUILDING_FEATURES: Record<BuildingKind, string[]> = {
   hq: [
-    "Every side starts with one, and it can't be built: the heart of your base.",
-    `Builds Harvesters and takes their scrap, and salvages ${ECONOMY.hqTrickle} scrap a second on its own, so a broke side is never stuck.`,
-    "Its point-defence gun swats early drone raids. It can't hit ground units: leave those to real defences.",
-    "Lose it and every Goliath, and you lose the game."
+    "Chaque camp en a un au départ, et on ne peut pas en construire : le cœur de ta base.",
+    `Produit les Fardiers et reçoit leur charbon, et récupère seul ${ECONOMY.hqTrickle} de charbon par seconde : un camp ruiné n'est jamais bloqué.`,
+    "Son canon de défense rapprochée chasse les premiers raids d'aéronefs. Il ne touche pas les unités au sol : laisse-les aux vraies défenses.",
+    "Perds-le avec tous tes Gargantuas, et la partie est perdue."
   ],
   "fab-plant": [
-    "The ground-vehicle factory: tanks, anti-air, artillery and hover tanks roll out of its hall.",
-    `Queue up to ${ECONOMY.maxQueue} at a time, and tap the map to set where they rally.`,
-    "Heavier models need a Tech Lab too."
+    "Les forges des véhicules terrestres : chars, DCA, artillerie et hydroglisseurs sortent de leurs halls.",
+    `Jusqu'à ${ECONOMY.maxQueue} en file d'attente ; touche la carte pour fixer le point de ralliement.`,
+    "Les modèles lourds exigent aussi Polytechnique."
   ],
   airpad: [
-    "Launches every flying drone, from the Scout to the Condor dropship.",
-    `Queue up to ${ECONOMY.maxQueue} at a time, and tap the map to set where they rally.`,
-    "Aircraft ignore terrain, so an Airpad anywhere can strike everywhere."
+    "Lance tous les aéronefs, de la Patrie à la Montgolfière de transport.",
+    `Jusqu'à ${ECONOMY.maxQueue} en file d'attente ; touche la carte pour fixer le point de ralliement.`,
+    "Les appareils ignorent le terrain : un Parc de Chalais-Meudon n'importe où peut frapper partout."
   ],
   "assembly-bay": [
-    "Assembles robot infantry: Trooper Squads, Rocket Squads and Sniper Teams.",
-    "Squads are cheap, take cover in woods and capture Uplinks fastest.",
-    "An anchored Goliath trains infantry too, wherever it stands."
+    "Assemble l'infanterie automate : Escouades de pioupious, Escouades d'artificiers et Sections de chasseurs alpins.",
+    "Les escouades sont bon marché, se mettent à couvert dans les bois et capturent les Relais plus vite que tout.",
+    "Un Gargantua ancré forme aussi de l'infanterie, où qu'il soit."
   ],
   "tech-lab": [
-    "Research, not production: it unlocks the heavier units at the other factories.",
-    "Needs a Fab Plant, an Airpad or an Assembly Bay first.",
-    "Lose it and those units can't be built again until you rebuild it."
+    "Recherche, pas production : elle débloque les unités lourdes des autres bâtiments de production.",
+    "Requiert d'abord des Forges, un Parc de Chalais-Meudon ou une Manufacture.",
+    "Perds-la et ces unités sont indisponibles jusqu'à sa reconstruction."
   ],
   gantry: [
-    `Builds the Goliath, one at a time over ${UNITS.goliath.buildTime} s: the mech goes up on its cradle in stages, the crane swinging armour plates on.`,
-    "Needs every other factory and the Tech Lab. One per side.",
-    "The enemy can always see it, and the Goliath taking shape on it: expect them to come for it."
+    `Construit le Gargantua, un à la fois en ${UNITS.goliath.buildTime} s : la machine s'élève par étapes sur son berceau, la grue posant les plaques de blindage.`,
+    "Requiert tous les autres bâtiments de production et Polytechnique. Une par camp.",
+    "L'ennemi la voit toujours, ainsi que le Gargantua qui y prend forme : attends-toi à ce qu'il vienne le chercher."
   ],
   depot: [
-    "A forward drop-off: harvesters unload at the nearest one, so a Depot by a distant field cuts their trip.",
-    "Harvesters drop off at it just as at the HQ; it builds nothing.",
-    "Built near an anchored Goliath, an outpost Depot takes scrap anywhere on the map."
+    "Un point de dépôt avancé : les Fardiers déchargent au plus proche, donc des Halles près d'un gisement éloigné raccourcissent leur trajet.",
+    "Les Fardiers y déchargent comme au GQG ; elles ne produisent rien.",
+    "Bâties près d'un Gargantua ancré, des Halles d'avant-poste reçoivent le charbon n'importe où sur la carte."
   ],
   turret: [
-    "Autocannon defence that hits ground and air.",
-    `Mortars out-range it (${UNITS.mortar.range} tiles to its ${BUILDINGS.turret.range}): crack it with artillery, not tanks.`,
-    `Kinetic shells: weaker against heavy armour (×${DAMAGE_VS.kinetic.heavy}), so Mastodons shrug it off.`
+    "Mitrailleuse de défense qui touche sol et air.",
+    `Les Canons de 75 portent plus loin (${UNITS.mortar.range} cases contre ${BUILDINGS.turret.range}) : perce-la à l'artillerie, pas aux chars.`,
+    `Obus cinétiques : moins efficaces contre les blindés lourds (×${DAMAGE_VS.kinetic.heavy}), les Creusot s'en moquent.`
   ],
   "sam-site": [
-    `Long-range anti-air missiles, reaching ${BUILDINGS["sam-site"].range} tiles: further than any aircraft's weapon.`,
-    "Can't shoot at anything on the ground: tanks and artillery roll right past it.",
-    "Pair it with a Turret to cover both."
+    `Missiles antiaériens longue portée, jusqu'à ${BUILDINGS["sam-site"].range} cases : plus loin que l'arme de n'importe quel appareil.`,
+    "Ne peut rien viser au sol : chars et artillerie passent sous son nez.",
+    "Associe-la à une Hotchkiss pour couvrir les deux."
   ],
   radar: [
-    `Sees ${BUILDINGS.radar.sight} tiles in every direction, the widest view in the game, its dish sweeping round.`,
-    "Watch for attacks coming through the fog, or spot the next field.",
-    "Unarmed and lightly built: easy to lose to a raid."
+    `Voit à ${BUILDINGS.radar.sight} cases dans toutes les directions, la plus large vision du jeu, grâce à la télégraphie sans fil.`,
+    "Guette les attaques à travers le brouillard, ou repère le prochain gisement.",
+    "Non armée et fragile : facile à perdre lors d'un raid."
   ]
 };
 
@@ -338,18 +343,18 @@ export function buildingCard(kind: BuildingKind, { id = true } = {}): string {
   const unlocks = kinds.filter((k) => UNITS[k].requires === kind);
   const tags = [
     `<span class="tag">${b.size}×${b.size}</span>`,
-    b.dropOff ? `<span class="tag">Scrap drop-off</span>` : "",
-    b.unique ? `<span class="tag">One per side</span>` : "",
-    b.alwaysVisible ? `<span class="tag">Always visible</span>` : "",
-    b.requires ? `<span class="tag tech">Needs ${b.requires.map((k) => BUILDINGS[k].name).join(" or ")}</span>` : "",
-    b.requiresAll ? `<span class="tag tech">Needs ${b.requiresAll.map((k) => BUILDINGS[k].name).join(", ")}</span>` : ""
+    b.dropOff ? `<span class="tag">Dépôt de charbon</span>` : "",
+    b.unique ? `<span class="tag">Unique par camp</span>` : "",
+    b.alwaysVisible ? `<span class="tag">Toujours visible</span>` : "",
+    b.requires ? `<span class="tag tech">Requiert ${b.requires.map((k) => BUILDINGS[k].name).join(" ou ")}</span>` : "",
+    b.requiresAll ? `<span class="tag tech">Requiert ${b.requiresAll.map((k) => BUILDINGS[k].name).join(", ")}</span>` : ""
   ].join("");
   const armed = b.targets !== "none";
   const lists = [
-    builds.length ? `<div class="beats"><h4>Builds</h4>${builds.map(U_NAME).join(", ")}</div>` : "",
-    unlocks.length ? `<div class="beats"><h4>Unlocks</h4>${unlocks.map(U_NAME).join(", ")}</div>` : "",
+    builds.length ? `<div class="beats"><h4>Produit</h4>${builds.map(U_NAME).join(", ")}</div>` : "",
+    unlocks.length ? `<div class="beats"><h4>Débloque</h4>${unlocks.map(U_NAME).join(", ")}</div>` : "",
     b.requires || b.requiresAll
-      ? `<div class="fears"><h4>Needs</h4>${b.requires ? b.requires.map(B_NAME).join(" or ") : b.requiresAll!.map(B_NAME).join(", ")}</div>`
+      ? `<div class="fears"><h4>Requiert</h4>${b.requires ? b.requires.map(B_NAME).join(" ou ") : b.requiresAll!.map(B_NAME).join(", ")}</div>`
       : ""
   ].filter(Boolean);
   return `<article${id ? ` id="${kind}"` : ""}>
@@ -361,13 +366,13 @@ export function buildingCard(kind: BuildingKind, { id = true } = {}): string {
       </div>
     </div>
     <div class="stats">
-      ${stat(b.cost || "—", "Scrap")}
-      ${stat(b.hp, "HP")}
-      ${stat(b.sight, "Sight")}
-      ${stat(b.buildTime ? `${b.buildTime}s` : "—", "Build")}
+      ${stat(b.cost || "—", "Charbon")}
+      ${stat(b.hp, "PV")}
+      ${stat(b.sight, "Vision")}
+      ${stat(b.buildTime ? `${b.buildTime}${NB}s` : "—", "Prod.")}
       ${armed ? stat(b.dps, "DPS") : ""}
-      ${armed ? stat(b.range, "Range") : ""}
-      ${armed ? stat(TARGETS[b.targets], "Hits") : ""}
+      ${armed ? stat(b.range, "Portée") : ""}
+      ${armed ? stat(TARGETS[b.targets], "Cibles") : ""}
     </div>
     ${armed ? `<div class="weapon">${armedLine(b)}</div>` : ""}
     <ul class="features">${BUILDING_FEATURES[kind].map((f) => `<li>${f}</li>`).join("")}</ul>

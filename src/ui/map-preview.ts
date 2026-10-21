@@ -15,6 +15,7 @@ import { paintMapPixels } from "../game/terrain-paint";
 const PREVIEW_PX = 11;
 
 const BIOME_ICON: Record<Biome, string> = { temperate: "🌳", desert: "🏜️", arctic: "❄️", volcanic: "🌋", tropical: "🌴" };
+const BIOME_FR: Record<Biome, string> = { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" };
 
 /**
  * How thick the Shallows rim along the water runs (tiles), per biome: arctic
@@ -149,7 +150,7 @@ function markersSvg(def: MapDef): string {
   const hq = (x: number, y: number, side: "b" | "r") =>
     `<g class="mk-hq ${side}"><rect x="${x - 0.9}" y="${y - 0.9}" width="${hs + 1.8}" height="${hs + 1.8}" rx="1.1" class="halo"/>` +
     `<rect x="${x}" y="${y}" width="${hs}" height="${hs}" rx="0.5"/>` +
-    `<text x="${x + hs / 2}" y="${y + hs / 2}">HQ</text></g>`;
+    `<text x="${x + hs / 2}" y="${y + hs / 2}">GQG</text></g>`;
   const pts: [number, number][] = [];
   const add = (x: number, y: number) => {
     if (!pts.some(([a, b]) => Math.hypot(a - x, b - y) < 0.01)) pts.push([x, y]);
@@ -178,12 +179,12 @@ function statChips(def: MapDef): string {
     `<span class="mp-chip${zero ? " zero" : ""}">${icon} <b>${v}</b> ${label}</span>`;
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   return [
-    chip("⛏", s.scrap, s.scrap === 1 ? "scrap field" : "scrap fields"),
-    chip("💎", s.crystal, s.crystal === 1 ? "crystal patch" : "crystal patches"),
-    chip("🌉", s.bridges, s.bridges === 1 ? "bridge" : "bridges"),
-    chip("〰️", s.fords, s.fords === 1 ? "ford" : "fords"),
-    chip(lava ? "🔥" : "💧", pct(s.water), lava ? "lava" : "water", s.water < 0.005),
-    chip("🌲", pct(s.forest), "woods", s.forest < 0.005)
+    chip("⛏", s.scrap, s.scrap === 1 ? "gisement de charbon" : "gisements de charbon"),
+    chip("💎", s.crystal, s.crystal === 1 ? "gisement de radium" : "gisements de radium"),
+    chip("🌉", s.bridges, s.bridges === 1 ? "pont" : "ponts"),
+    chip("〰️", s.fords, s.fords === 1 ? "gué" : "gués"),
+    chip(lava ? "🔥" : "💧", pct(s.water), lava ? "lave" : "eau", s.water < 0.005),
+    chip("🌲", pct(s.forest), "bois", s.forest < 0.005)
   ].join("");
 }
 
@@ -213,30 +214,30 @@ export function openMapPreview(def: MapDef, hooks: MapPreviewHooks): () => void 
     <div class="mp-box">
       <div class="mp-head">
         <div class="mp-title"><h2 class="mp-name"></h2><p class="mp-meta"></p></div>
-        <button class="mp-x" data-a="close" title="Close (Esc)" aria-label="Close">✕</button>
+        <button class="mp-x" data-a="close" title="Fermer (Échap)" aria-label="Fermer">✕</button>
       </div>
-      <div class="mp-view" title="Tap to zoom">
-        <div class="mp-stage"><div class="mp-wait"><i></i>Surveying…</div></div>
-        <span class="mp-zoom">🔍 Tap to zoom</span>
+      <div class="mp-view" title="Touche pour zoomer">
+        <div class="mp-stage"><div class="mp-wait"><i></i>Relevé en cours…</div></div>
+        <span class="mp-zoom">🔍 Touche pour zoomer</span>
       </div>
       <div class="mp-side">
         <p class="mp-blurb"></p>
         <div class="mp-stats"></div>
         <div class="mp-legend">
-          <span><i class="k-hq b"></i>Your HQ</span>
-          <span><i class="k-hq r"></i>Enemy HQ</span>
-          <span><i class="k-up"></i>Uplink</span>
-          <span><i class="k-drop"></i>Supply drop</span>
+          <span><i class="k-hq b"></i>Ton GQG</span>
+          <span><i class="k-hq r"></i>GQG ennemi</span>
+          <span><i class="k-up"></i>Relais TSF</span>
+          <span><i class="k-drop"></i>Ravitaillement</span>
         </div>
         <div class="mp-actions">
-          <button class="cta alt" data-a="close">✕ Close</button>
-          <button class="cta alt" data-a="reroll">🎲 Reroll</button>
+          <button class="cta alt" data-a="close">✕ Fermer</button>
+          <button class="cta alt" data-a="reroll">🎲 Relancer</button>
           <button class="cta" data-a="play"></button>
         </div>
       </div>
     </div>`;
   hooks.host.appendChild(wrap);
-  wrap.querySelector('[data-a="play"]')!.textContent = hooks.playLabel ?? "▶ Play this map";
+  wrap.querySelector('[data-a="play"]')!.textContent = hooks.playLabel ?? "▶ Jouer cette carte";
   const view = wrap.querySelector<HTMLElement>(".mp-view")!;
   const stage = wrap.querySelector<HTMLElement>(".mp-stage")!;
   let token = 0;
@@ -246,7 +247,7 @@ export function openMapPreview(def: MapDef, hooks: MapPreviewHooks): () => void 
     const info = d.random;
     wrap.querySelector(".mp-name")!.textContent = d.name;
     wrap.querySelector(".mp-meta")!.innerHTML =
-      `<b>#${esc(info?.code ?? "")}</b> · ${BIOME_ICON[d.biome]} ${cap(d.biome)}` +
+      `<b>#${esc(info?.code ?? "")}</b> · ${BIOME_ICON[d.biome]} ${cap(BIOME_FR[d.biome])}` +
       (info ? ` · ${esc(cap(info.layout.replace(/-/g, " ")))}` : "") +
       ` · ${d.size}×${d.size}`;
     wrap.querySelector(".mp-blurb")!.textContent = d.blurb;

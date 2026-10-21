@@ -47,12 +47,12 @@ export function replayPanel(feed: ReplayFeed, scene: GameScene): ReplayPanel {
   const r = feed.record;
   root.innerHTML = `
     <div class="rp-bar">
-      <div class="rp-vs"><span class="blue">Blue</span> ${esc(feed.labels.blue)} vs <span class="red">Red</span> ${esc(feed.labels.red)} · ${esc(r.map)} seed ${esc(String(r.seed))}</div>
+      <div class="rp-vs"><span class="blue">Bleu</span> ${esc(feed.labels.blue)} contre <span class="red">Rouge</span> ${esc(feed.labels.red)} · ${esc(r.map)} graine ${esc(String(r.seed))}</div>
       <span class="rp-time"></span>
-      <input type="range" min="0" step="1" value="0" aria-label="Seek">
-      <button data-jump="-300" title="Back 30 s">−30s</button><button data-jump="300" title="Forward 30 s">+30s</button>
-      <button data-fog="off" title="The whole battlefield">All</button><button data-fog="blue" title="Through blue's eyes">Blue's eyes</button><button data-fog="red" title="Through red's eyes">Red's eyes</button>
-      <button data-notes title="Orders and notes">Notes</button>
+      <input type="range" min="0" step="1" value="0" aria-label="Position">
+      <button data-jump="-300" title="Reculer de 30 s">−30s</button><button data-jump="300" title="Avancer de 30 s">+30s</button>
+      <button data-fog="off" title="Tout le champ de bataille">Tout</button><button data-fog="blue" title="Vue du camp Bleu">Vue Bleu</button><button data-fog="red" title="Vue du camp Rouge">Vue Rouge</button>
+      <button data-notes title="Ordres et notes">Notes</button>
     </div>
     <div class="rp-status" hidden></div>
     <div class="rp-warn" hidden></div>
@@ -90,10 +90,10 @@ export function replayPanel(feed: ReplayFeed, scene: GameScene): ReplayPanel {
     // the latest round this side actually played, at or before the one on screen
     let l = null;
     for (let k = round; k >= 0 && !l; k--) l = feed.logFor(k, side);
-    if (!l) return `<h4 class="${side}">${side}</h4><pre>(nothing yet)</pre>`;
-    const orders = l.orders.length ? l.orders.map((o) => JSON.stringify(o)).join("\n") : "(no orders)";
+    if (!l) return `<h4 class="${side}">${SIDE[side]}</h4><pre>(rien pour l'instant)</pre>`;
+    const orders = l.orders.length ? l.orders.map((o) => JSON.stringify(o)).join("\n") : "(aucun ordre)";
     return (
-      `<h4 class="${side}">${side} · round ${l.round}${l.round !== round ? " (waiting since)" : ""}${l.ended && l.ended !== "end_round" ? ` · ${esc(l.ended)}` : ""}</h4>` +
+      `<h4 class="${side}">${SIDE[side]} · manche ${l.round}${l.round !== round ? " (en attente depuis)" : ""}${l.ended && l.ended !== "end_round" ? ` · ${esc(l.ended)}` : ""}</h4>` +
       (l.radio ? `<div class="rp-radio">“${esc(l.radio)}”</div>` : "") +
       `<pre>${esc(orders)}</pre><pre>${esc(l.results.join("\n"))}</pre><pre>${esc(l.notes)}</pre>`
     );
@@ -111,7 +111,7 @@ export function replayPanel(feed: ReplayFeed, scene: GameScene): ReplayPanel {
       // a live battle caught up with: the commanders are still on the next round
       const waiting = feed.follow && !feed.record.end && t >= end;
       status.hidden = !waiting;
-      if (waiting) status.textContent = `Round ${feed.roundAt(t)}: the commanders are thinking… ${clock(((performance.now() - feed.grewAt) / 1000) * 10)}`;
+      if (waiting) status.textContent = `Manche ${feed.roundAt(t)} : les commandants réfléchissent… ${clock(((performance.now() - feed.grewAt) / 1000) * 10)}`;
       // where this version of the game plays the battle differently: found ahead (checkAhead), or as it played
       const drift = feed.divergedAt ?? feed.driftsAt;
       warn.hidden = drift === null;
@@ -119,8 +119,8 @@ export function replayPanel(feed: ReplayFeed, scene: GameScene): ReplayPanel {
         shownDrift = drift;
         const pinned = pinnedLink(feed);
         warn.innerHTML =
-          `⚠ This replay diverges at ${clock(drift)}: what you see after that didn't happen` +
-          (pinned ? ` · <a href="${esc(pinned)}">▶ Watch it in ${esc(feed.record.version!)}</a>` : "");
+          `⚠ Cette rediffusion diverge à ${clock(drift)} : ce que tu vois ensuite n'a pas eu lieu` +
+          (pinned ? ` · <a href="${esc(pinned)}">▶ La voir en ${esc(feed.record.version!)}</a>` : "");
       }
       const round = feed.roundAt(Math.max(0, t - 1));
       if (!notes.hidden && round !== shownRound) {
@@ -144,9 +144,12 @@ function asPlayed(r: ReplayFeed["record"]): string | null {
   const now = r.end;
   // (an ending a few ticks off isn't worth a note)
   if (!was || (was.winner === now?.winner && Math.abs(was.tick - (now?.tick ?? 0)) < 10)) return null;
-  const how = was.winner ? `${was.winner} won at ${clock(was.tick)}` : `it was a draw at ${clock(was.tick)}`;
-  return `Re-simulated on newer game code, so the ending differs: as played, ${how}`;
+  const how = was.winner ? `${SIDE[was.winner]} a gagné à ${clock(was.tick)}` : `c'était un match nul à ${clock(was.tick)}`;
+  return `Re-simulé sur une version plus récente, la fin diffère : en vrai, ${how}`;
 }
+
+/** A side's name as the player reads it. */
+const SIDE: Record<Faction, string> = { blue: "Bleu", red: "Rouge" };
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);

@@ -17,7 +17,7 @@ function run(w: World, n: number, cmds: Command[] = []): void {
 }
 
 describe("Nomads", () => {
-  it("replaces each HQ with a Goliath anchored where it stood, mirror-placed", () => {
+  it("replaces each HQ with a Gargantua anchored where it stood, mirror-placed", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     expect(hqOf(w, "blue")).toBeNull();
     expect(hqOf(w, "red")).toBeNull();
@@ -34,7 +34,7 @@ describe("Nomads", () => {
     }
   });
 
-  it("builds Harvesters at the anchored Goliath, which takes their scrap", () => {
+  it("builds Harvesters at the anchored Gargantua, which takes their scrap", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     const g = goliathsOf(w, "blue")[0]!;
     expect(unitBlocker(w, "blue", "harvester")).toBeNull();
@@ -50,7 +50,7 @@ describe("Nomads", () => {
     expect(w.factions.blue.stats.scrapHarvested).toBeGreaterThan(before);
   });
 
-  it("builds outposts in the Goliath's ring, and never a second HQ", () => {
+  it("builds outposts in the Gargantua's ring, and never a second HQ", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     const g = goliathsOf(w, "blue")[0]!;
     let placed = 0;
@@ -72,13 +72,13 @@ describe("Nomads", () => {
     expect(fab?.outpost).toBe(true);
   });
 
-  it("lets the Goliath call down powers in place of the HQ", () => {
+  it("lets the Gargantua call down powers in place of the HQ", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     w.powers.meter.blue = 100;
     expect(powerBlocker(w, "blue", "emp")).toBeNull();
   });
 
-  it("hands openers out round the Goliath", () => {
+  it("hands openers out round the Gargantua", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"], openers: { blue: "blitz", red: "blitz" } });
     for (const f of ["blue", "red"] as const) {
       const fab = [...w.buildings.values()].find((b) => b.kind === "fab-plant" && b.faction === f);
@@ -88,7 +88,7 @@ describe("Nomads", () => {
     }
   });
 
-  it("is lost when the side's last Goliath falls", () => {
+  it("is lost when the side's last Gargantua falls", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     const g = goliathsOf(w, "red")[0]!;
     g.hp = 0;
@@ -112,7 +112,7 @@ describe("Robot Love", () => {
     return w;
   }
 
-  it("ends the match in a draw when enemy Goliaths come within range, naming the pair and the meeting point", () => {
+  it("ends the match in a draw when enemy Gargantuas come within range, naming the pair and the meeting point", () => {
     const w = field();
     const a = spawnUnit(w, "goliath", "blue", 14, 24);
     const b = spawnUnit(w, "goliath", "red", 34, 24);
@@ -165,8 +165,8 @@ describe("Robot Love", () => {
   });
 });
 
-describe("Goliath Armada", () => {
-  it("starts each side with four Goliaths in the air, two Condors carrying each, and nothing else, mirror-placed", () => {
+describe("Gargantua Armada", () => {
+  it("starts each side with four Gargantuas in the air, two Montgolfières carrying each, and nothing else, mirror-placed", () => {
     const w = createMapWorld("riverlands", { mutators: ["armada"] });
     expect(w.buildings.size).toBe(0);
     for (const f of ["blue", "red"] as const) {
@@ -199,11 +199,11 @@ describe("Goliath Armada", () => {
   it("deals no opener: every card says why", () => {
     const w = createMapWorld("riverlands", { mutators: ["armada"], openers: { blue: "blitz", red: "industry" } });
     expect(w.buildings.size).toBe(0);
-    for (const id of OPENER_IDS) expect(openerBlocked(w, "blue", id)).toBe("Disabled: Goliath Armada");
+    for (const id of OPENER_IDS) expect(openerBlocked(w, "blue", id)).toBe("Désactivé : Armada de Gargantuas");
     expect(allowedOpener(w, "red", "blitz")).toBeNull();
   });
 
-  it("flies, sets down and anchors like any lift, and an anchored Goliath builds Harvesters", () => {
+  it("flies, sets down and anchors like any lift, and an anchored Gargantua builds Harvesters", () => {
     const w = createMapWorld("riverlands", { mutators: ["armada"] });
     const g = goliathsOf(w, "blue")[0]!;
     run(w, 1, [{ type: "unload", faction: "blue", unitIds: [g.id] }]);
@@ -217,7 +217,7 @@ describe("Goliath Armada", () => {
     expect(producersOf(w, "blue", "harvester").map((p) => p.id)).toEqual([g.id]);
   });
 
-  it("is lost when the side's last Goliath falls", () => {
+  it("is lost when the side's last Gargantua falls", () => {
     const w = createMapWorld("riverlands", { mutators: ["armada"] });
     const [last, ...rest] = goliathsOf(w, "red");
     for (const g of rest) g.hp = 0;
@@ -235,7 +235,7 @@ describe("Goliath Armada", () => {
 });
 
 describe("the mutator list", () => {
-  it("keeps Nomads and Robot Love away from the mutators that ban the Goliath, both ways round", () => {
+  it("keeps Nomads and Robot Love away from the mutators that ban the Gargantua, both ways round", () => {
     for (const m of ["nomads", "robotlove"] as const)
       for (const ban of ["airwar", "infantrywar"] as const) {
         expect(mutatorsCompatible([m, ban])).toBe(false);
@@ -273,7 +273,7 @@ describe("a draw in the career", () => {
     const draw = xp({ ...base, won: false, drawn: true });
     expect(draw).toBeGreaterThan(xp({ ...base, won: false }));
     expect(draw).toBeLessThan(xp({ ...base, won: true }));
-    expect(xpLines({ ...base, won: false, drawn: true })[0]!.label).toMatch(/^Draw/);
+    expect(xpLines({ ...base, won: false, drawn: true })[0]!.label).toMatch(/^Match nul/);
     const { career } = applyResult(emptyCareer(), { ...base, won: false, drawn: true }, 20300);
     expect(career.wins).toBe(0);
     expect(career.losses).toBe(0);

@@ -12,6 +12,7 @@ import {
   isAnchored,
   isLifted,
   readyFirepower,
+  UNIT_IN_THE_WAY,
   weaponsDown
 } from "../goliath";
 import { isInfantry } from "../infantry";
@@ -1350,7 +1351,7 @@ function step(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan, ctx: 
         setPhase(w, plan, "dig");
         return;
       }
-      if (why === "Unit in the way") {
+      if (why === UNIT_IN_THE_WAY) {
         // our own units on its feet step aside (an enemy there: fight it out first)
         shoveAside(w, faction, g, ctx, cmds);
         if (++plan.tries > 6) {

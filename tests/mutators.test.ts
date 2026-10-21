@@ -141,14 +141,14 @@ describe("mutator effects", () => {
   it("Air War bans the Fab Plant, SAM sites and ground combat units for both sides", () => {
     const w = createMapWorld("riverlands", { mutators: ["airwar"] });
     for (const f of ["blue", "red"] as const) {
-      expect(buildingBlocker(w, f, "fab-plant")).toBe("Disabled: Air War");
-      expect(buildingBlocker(w, f, "sam-site")).toBe("Disabled: Air War");
+      expect(buildingBlocker(w, f, "fab-plant")).toBe("Désactivé : Guerre aérienne");
+      expect(buildingBlocker(w, f, "sam-site")).toBe("Désactivé : Guerre aérienne");
       expect(buildingBlocker(w, f, "airpad")).toBeNull();
       expect(buildingBlocker(w, f, "turret")).toBeNull();
       for (const k of ["stinger", "flak-crawler", "mortar", "mastodon", "lancer"] as const)
-        expect(unitBlocker(w, f, k)).toBe("Disabled: Air War");
+        expect(unitBlocker(w, f, k)).toBe("Désactivé : Guerre aérienne");
       // the starting Trooper Squad stays home: no Condor to fly it into the fight
-      expect(unitBlocker(w, f, "condor")).toBe("Disabled: Air War");
+      expect(unitBlocker(w, f, "condor")).toBe("Désactivé : Guerre aérienne");
       expect([...w.units.values()].filter((u) => u.faction === f && u.kind === "trooper")).toHaveLength(1);
       expect(bannedBy(w, "harvester")).toBeNull();
     }
@@ -234,9 +234,9 @@ describe("infantry mutators", () => {
   it("Infantry War bans every combat vehicle, combat aircraft and the Fab Plant, and keeps the rest", () => {
     const w = createMapWorld("riverlands", { mutators: ["infantrywar"] });
     for (const f of ["blue", "red"] as const) {
-      expect(buildingBlocker(w, f, "fab-plant")).toBe("Disabled: Infantry War");
+      expect(buildingBlocker(w, f, "fab-plant")).toBe("Désactivé : Guerre d'infanterie");
       for (const k of ["stinger", "flak-crawler", "mortar", "mastodon", "lancer", "wasp", "raptor", "hornet"] as const)
-        expect(unitBlocker(w, f, k)).toBe("Disabled: Infantry War");
+        expect(unitBlocker(w, f, k)).toBe("Désactivé : Guerre d'infanterie");
       for (const k of ["harvester", "scout", "mender", "condor", "trooper", "rocket-squad", "sniper"] as const)
         expect(bannedBy(w, k, f)).toBeNull();
       for (const k of ["airpad", "assembly-bay", "tech-lab", "turret", "sam-site", "radar", "depot"] as const)

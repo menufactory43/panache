@@ -79,17 +79,17 @@ describe("Ops: setup", () => {
 describe("Ops: rules", () => {
   it("bans the player's kinds without binding the enemy commander", () => {
     const w = opWorld("sky-pirates");
-    expect(buildingBlocker(w, "blue", "fab-plant")).toBe("Disabled in this op");
+    expect(buildingBlocker(w, "blue", "fab-plant")).toBe("Désactivé dans cette op");
     expect(buildingBlocker(w, "red", "fab-plant")).toBeNull();
     expect(unitBlocker(w, "blue", "raptor")).toBeNull();
     // ground units banned: so is the Condor that would fly the starting squad into the fight
-    expect(unitBlocker(w, "blue", "condor")).toBe("Disabled in this op");
+    expect(unitBlocker(w, "blue", "condor")).toBe("Désactivé dans cette op");
   });
 
   it("Decapitation: no production of any kind, and no income", () => {
     const w = opWorld("decapitation");
-    expect(unitBlocker(w, "blue", "harvester")).toBe("Disabled in this op");
-    expect(buildingBlocker(w, "blue", "turret")).toBe("Disabled in this op");
+    expect(unitBlocker(w, "blue", "harvester")).toBe("Désactivé dans cette op");
+    expect(buildingBlocker(w, "blue", "turret")).toBe("Désactivé dans cette op");
     idle(w, 20);
     expect(w.factions.blue.scrap).toBe(0);
   });
@@ -163,7 +163,7 @@ describe("Ops: goals", () => {
     const w = opWorld("harvest-moon");
     const st = w.ops!;
     w.factions.blue.stats.scrapHarvested = 2500;
-    expect(evalGoal(w, st, { type: "deliver", scrap: 10000 })).toMatchObject({ state: "pending", value: "2,500/10,000" });
+    expect(evalGoal(w, st, { type: "deliver", scrap: 10000 })).toMatchObject({ state: "pending", value: "2\u202f500/10\u202f000" });
     expect(evalGoal(w, st, { type: "destroyHq" }).state).toBe("pending");
   });
 
@@ -173,7 +173,7 @@ describe("Ops: goals", () => {
     step(w, []);
     expect(w.winner).toBe("blue");
     const r = w.ops!.result!;
-    expect(r).toMatchObject({ won: true, reason: "Held for 4:00", byGoal: true, stars: 7 });
+    expect(r).toMatchObject({ won: true, reason: "Tenu 4:00", byGoal: true, stars: 7 });
     // the sim stops at the winner
     const t = w.tick;
     step(w, []);
@@ -186,7 +186,7 @@ describe("Ops: goals", () => {
     w.tick = 10;
     step(w, []);
     expect(w.winner).toBe("red");
-    expect(w.ops!.result).toMatchObject({ won: false, reason: "bridge turret lost", stars: 0, byGoal: true });
+    expect(w.ops!.result).toMatchObject({ won: false, reason: "Hotchkiss du pont perdues", stars: 0, byGoal: true });
     expect(w.ops!.starsLost & 4).toBe(4);
   });
 
@@ -195,12 +195,12 @@ describe("Ops: goals", () => {
     hqOf(w, "red")!.hp = 0;
     step(w, []);
     expect(w.winner).toBe("blue");
-    expect(w.ops!.result).toMatchObject({ won: true, reason: "Enemy HQ destroyed", byGoal: false });
+    expect(w.ops!.result).toMatchObject({ won: true, reason: "GQG ennemi détruit", byGoal: false });
     expect(starsNow(w, opById("glass-jaw")!, w.ops!) & 1).toBe(1);
     const lost = opWorld("glass-jaw");
     hqOf(lost, "blue")!.hp = 0;
     step(lost, []);
-    expect(lost.ops!.result).toMatchObject({ won: false, reason: "Our HQ has fallen" });
+    expect(lost.ops!.result).toMatchObject({ won: false, reason: "Notre GQG est tombé" });
   });
 
   it("running out of time fails a timed op", () => {
@@ -208,7 +208,7 @@ describe("Ops: goals", () => {
     w.tick = 181 * TICK_RATE;
     step(w, []);
     expect(w.winner).toBe("red");
-    expect(w.ops!.result?.reason).toBe("Out of time");
+    expect(w.ops!.result?.reason).toBe("Temps écoulé");
   });
 });
 

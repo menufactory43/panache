@@ -65,11 +65,11 @@ const DEFENCES = (Object.keys(COUNTERS) as (UnitKind | BuildingKind)[]).filter((
 
 /** One-time tips offered when the selection calls for them (CommandUi.update). */
 const SELECTION_HINTS: [string, string][] = [
-  ["squads", "Squads: hold 1, 2 or 3 to save the selected units. Tap it to select them, double-tap to fly there."],
-  ["infantry", "Infantry cross woods at full speed and take half damage there. Keep them clear of Mastodons: they get crushed."],
-  ["condor", "Condor: select squads, then tap the Condor to load them. Long-press the map (or tap an island) to fly there and drop them, or tap ⇣ Unload."],
-  ["goliath", `⚓ Anchor (G) to take scrap, train squads and build within ${GOLIATH.buildRing} tiles. Pack up to move.`],
-  ["lift", "Two empty Condors lift a Goliath: tap your Goliath to hook on, then long-press where to set it down."]
+  ["squads", "Escouades : maintiens 1, 2 ou 3 pour enregistrer la sélection. Touche pour la sélectionner, double-touche pour y aller."],
+  ["infantry", "L'infanterie traverse les bois à pleine vitesse et y subit moitié moins de dégâts. Tiens-la loin des Creusot : ils l'écrasent."],
+  ["condor", "Montgolfière : sélectionne des escouades, puis touche la Montgolfière pour les embarquer. Appui long sur la carte (ou touche une île) pour les y larguer, ou touche ⇣ Larguer."],
+  ["goliath", `⚓ Ancre-le (G) pour prendre le charbon, former des escouades et construire à ${GOLIATH.buildRing} cases. Lève l'ancre pour bouger.`],
+  ["lift", "Deux Montgolfières vides soulèvent un Gargantua : touche ton Gargantua pour l'accrocher, puis appui long là où le poser."]
 ];
 
 interface SquadEl {
@@ -130,7 +130,7 @@ export class CommandUi {
       if (!tab) continue;
       const notes = document.createElement("span");
       notes.className = "tnotes";
-      notes.innerHTML = `<span class="tidle" hidden>idle</span><span class="tctr" hidden>⚔</span>`;
+      notes.innerHTML = `<span class="tidle" hidden>inactif</span><span class="tctr" hidden>⚔</span>`;
       tab.appendChild(notes);
       this.tabNotes.set(t, { idle: notes.firstElementChild as HTMLElement, ctr: notes.lastElementChild as HTMLElement });
     }
@@ -139,7 +139,7 @@ export class CommandUi {
   private makeSquad(i: number, parent: HTMLElement): SquadEl {
     const btn = document.createElement("button");
     btn.className = "sq empty";
-    btn.title = `Squad ${i + 1}: hold to save the selection, tap to select, double-tap to fly there (keys ${i + 1} / Ctrl+${i + 1})`;
+    btn.title = `Escouade ${i + 1} : maintiens pour enregistrer, touche pour sélectionner, double-touche pour y aller (touches ${i + 1} / Ctrl+${i + 1})`;
     btn.innerHTML = `<span class="sqn">${i + 1}</span><img class="sqi" alt="" draggable="false" hidden /><span class="sqc"></span><span class="sqhp"><i></i></span><span class="sqarm"></span>`;
     parent.appendChild(btn);
     let timer = 0;
@@ -203,8 +203,8 @@ export class CommandUi {
       if (ctrl.squads.ids(i, this.h.world).length > 0) {
         ctrl.squads.clear(i);
         sfx.play("sell", 0.4);
-        this.h.tip(`Squad ${i + 1} cleared`, 2200);
-      } else this.h.tip(`Select some units first, then hold ${i + 1} to save them as a squad.`, 3500);
+        this.h.tip(`Escouade ${i + 1} effacée`, 2200);
+      } else this.h.tip(`Sélectionne d'abord des unités, puis maintiens ${i + 1} pour en faire une escouade.`, 3500);
       return;
     }
     const n = ctrl.assignSquad(i);
@@ -231,8 +231,8 @@ export class CommandUi {
       this.lastTap[i] = -Infinity;
       this.h.tip(
         ctrl.selectedUnits.size > 0
-          ? `Hold ${i + 1} to save the selected units as squad ${i + 1}.`
-          : `Squad ${i + 1} is empty: select units, then hold ${i + 1} to save them.`,
+          ? `Maintiens ${i + 1} pour enregistrer la sélection en escouade ${i + 1}.`
+          : `Escouade ${i + 1} vide : sélectionne des unités, puis maintiens ${i + 1}.`,
         3500
       );
       return;

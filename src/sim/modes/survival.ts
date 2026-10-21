@@ -174,25 +174,25 @@ export interface SurvivalState {
 }
 
 export const THEME_NAMES: Record<WaveTheme, string> = {
-  air: "Air Raid",
-  armour: "Armour Column",
-  artillery: "Artillery",
-  mixed: "Mixed Assault",
-  swarm: "Bot Swarm",
+  air: "Raid aérien",
+  armour: "Colonne blindée",
+  artillery: "Artillerie",
+  mixed: "Assaut mixte",
+  swarm: "Essaim d'automates",
   boss: "Boss"
 };
 
 /** What beats each theme (shown to the player ahead of the wave). */
 export const THEME_COUNTERS: Record<WaveTheme, string> = {
-  air: "Flak, Turrets, SAMs, Raptors",
-  armour: "Lancers, Mastodons, Wasps",
-  artillery: "rush the guns with Stingers, Wasps",
-  mixed: "a mixed army, Turrets",
-  swarm: "Mortars, Turrets, Hornets, Sniper Teams",
-  boss: "everything you've got"
+  air: "Faucheux, Hotchkiss, Ruggieri, Blériot",
+  armour: "Hydroglisseurs, Creusot, Éole",
+  artillery: "fonce sur les canons avec Panhard, Éole",
+  mixed: "une armée mixte, Hotchkiss",
+  swarm: "Canons de 75, Hotchkiss, Albatros, Chasseurs alpins",
+  boss: "tout ce que tu as"
 };
 
-const BOSS_NAMES = ["Mastodon Spearhead", "Bomber Wing", "Elite Strike Force"];
+const BOSS_NAMES = ["Fer de lance Creusot", "Escadre de bombardiers", "Force d'élite"];
 /** The regular theme each boss grows out of: the four waves before it always include one. */
 const BOSS_PREVIEW: RegularTheme[] = ["armour", "air", "mixed"];
 

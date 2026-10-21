@@ -79,7 +79,7 @@ export interface RandomMapInfo {
 
 /** Why a mutator can't be played on this map (null: it can). */
 export function mapBansMutator(def: MapDef, id: MutatorId): string | null {
-  return def.bannedMutators?.includes(id) ? `Not on ${def.name}: island Uplinks need Condors and infantry` : null;
+  return def.bannedMutators?.includes(id) ? `Pas sur ${def.name} : les Relais des îles exigent Montgolfières et infanterie` : null;
 }
 
 // ---------------------------------------------------------------- noise ---
@@ -184,10 +184,10 @@ const LAND = [Terrain.Ground, Terrain.Rough, Terrain.Forest, Terrain.Rock];
 export const MAPS: MapDef[] = [
   {
     id: "proving-grounds",
-    name: "Proving Grounds",
+    name: "Terrain d'essai",
     biome: "temperate",
     size: 48,
-    blurb: "The classic: rock ridges, one contested field. Learn the ropes here.",
+    blurb: "Le classique : crêtes rocheuses, un champ disputé. Idéal pour apprendre.",
     hq: [4, 40],
     seed: 5,
     uplinks: [[35.5, 35.5]], // the open corners either side of the ridge
@@ -198,10 +198,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "riverlands",
-    name: "Riverlands",
+    name: "Terres fluviales",
     biome: "temperate",
     size: 56,
-    blurb: "A wide river splits the valley. One bridge, two muddy fords.",
+    blurb: "Un large fleuve coupe la vallée. Un pont, deux gués boueux.",
     hq: [4, 48],
     seed: 11,
     uplinks: [[28, 28], [45.5, 45.5]], // the bridge at the centre and the two fords
@@ -236,10 +236,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "dune-sea",
-    name: "Dune Sea",
+    name: "Mer de dunes",
     biome: "desert",
     size: 56,
-    blurb: "Open sands between towering mesas. Three lanes, rich wrecks.",
+    blurb: "Sables ouverts entre de hautes mesas. Trois voies, riches épaves.",
     hq: [4, 48],
     seed: 23,
     uplinks: [[41.5, 41.5]], // out on the two open flanks (the oasis holds the centre)
@@ -271,10 +271,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "frostbite",
-    name: "Frostbite",
+    name: "Engelure",
     biome: "arctic",
     size: 48,
-    blurb: "A frozen sea in the middle. Short, brutal and hover-friendly.",
+    blurb: "Une mer gelée au centre. Courte, brutale, idéale pour aéroglisseurs.",
     hq: [4, 40],
     seed: 37,
     uplinks: [[35.5, 35.5]], // the two lanes around the frozen sea, by the lane crystals
@@ -304,10 +304,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "ashlands",
-    name: "Ashlands",
+    name: "Terres de cendres",
     biome: "volcanic",
     size: 64,
-    blurb: "Lava rivers carve three plateaus. Bridges are choke points; air rules.",
+    blurb: "Des rivières de lave taillent trois plateaux. Ponts stratégiques, l'air domine.",
     hq: [5, 55],
     seed: 53,
     uplinks: [[44.5, 44.5]], // the outer plateaus, past the bridges
@@ -341,10 +341,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "archipelago",
-    name: "Archipelago",
+    name: "Archipel",
     biome: "tropical",
     size: 108,
-    blurb: "Island Uplinks only troops can take: fly them in by Condor. Two bridges.",
+    blurb: "Relais insulaires que seule l'infanterie peut prendre : amène-la en Montgolfière. Deux ponts.",
     hq: [14, 88],
     seed: 71,
     // island relays: infantry only, paid while crewed; the richer ones sit

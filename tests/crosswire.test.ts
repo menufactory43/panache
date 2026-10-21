@@ -88,7 +88,7 @@ describe("calldown kill credit", () => {
     expect(calldownKillOf(death({ unitKind: null, buildingKind: "turret", x: 24, y: 20 }), im, hq)).not.toBeNull();
   });
 
-  it("names the Barrage behind real kills in a sim run, and the tracker forgets old ticks", () => {
+  it("names the Feu roulant behind real kills in a sim run, and the tracker forgets old ticks", () => {
     const w = arena();
     const victims = frailClump(w, 4, 20, 20);
     const credit = new CalldownCredit(w);
@@ -140,17 +140,17 @@ describe("chronicle and report", () => {
       rec(35, "blue")
     ];
     const m = moments({ samples: [], deaths, refs }, "blue");
-    expect(m.find((x) => x.kind === "first-blood")!.text).toBe("Your Barrage took out their Stinger");
-    expect(m.find((x) => x.kind === "battle")!.text).toBe("Mid-map: you lost 2, they lost 5 (4 to your Barrage)");
+    expect(m.find((x) => x.kind === "first-blood")!.text).toBe("Ton Feu roulant a éliminé leur Panhard");
+    expect(m.find((x) => x.kind === "battle")!.text).toBe("Au centre : tu as perdu 2, l'ennemi a perdu 5 (dont 4 par ton Feu roulant)");
     const spec = moments({ samples: [], deaths, refs }, null);
-    expect(spec.find((x) => x.kind === "battle")!.text).toContain("(4 to Blue's Barrage)");
+    expect(spec.find((x) => x.kind === "battle")!.text).toContain("(dont 4 par le Feu roulant bleu)");
     // a strike just before the lead changed hands is the turn's story
     const army = (b: number, r: number) => ({ blue: b, red: r });
     const samples = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map((t) => ({
       t, army: t < 35 ? army(400, 2000) : army(2000, 400), bank: army(0, 0), harvesters: army(2, 2)
     }));
     const turn = moments({ samples, deaths, refs }, "blue").find((x) => x.kind === "turn")!;
-    expect(turn.text).toMatch(/^Your army overtook theirs after your Barrage/);
+    expect(turn.text).toMatch(/^Ton armée a dépassé la leur après ton Feu roulant/);
   });
 
   it("tips the player who stood in the red circles", () => {
@@ -159,7 +159,7 @@ describe("chronicle and report", () => {
       pov: "blue", won: false, duration: 400, difficulty: "normal", built: { blue: {}, red: {} }, firstBuilt: { blue: {}, red: {} },
       deaths: struck, samples: [], factories: { blue: { total: 0, idleRich: 0 }, red: { total: 0, idleRich: 0 } }
     });
-    expect(tip).toMatch(/Enemy calldowns destroyed 7 of your units/);
+    expect(tip).toMatch(/Les frappes ennemies ont détruit 7 de tes unités/);
   });
 
   it("counts calldowns per side for the stats table; salvage is a core row, not an extra", () => {
@@ -167,7 +167,7 @@ describe("chronicle and report", () => {
     w.powers.fired.blue.barrage = 2;
     w.powers.fired.blue.hammer = 1;
     const c = calldownCounts(w);
-    expect(c.blue).toEqual({ total: 3, by: [["Barrage", 2], ["Sky Hammer", 1]] });
+    expect(c.blue).toEqual({ total: 3, by: [["Feu roulant", 2], ["Obus Méliès", 1]] });
     expect(c.red.total).toBe(0);
     const core: FactionStats = { unitsBuilt: 1, unitsLost: 2, unitsKilled: 3, buildingsLost: 0, buildingsKilled: 1, scrapHarvested: 500, scrapSalvaged: 240 };
     expect(extraStatRows(core, core)).toEqual([]);
@@ -188,7 +188,7 @@ function rig(w: World, opts: { spectator?: boolean } = {}) {
 }
 
 describe("callouts and calldowns", () => {
-  it("a Barrage's kills count for first blood and make their own streak banner", () => {
+  it("a Feu roulant's kills count for first blood and make their own streak banner", () => {
     const strike = (warmup: boolean) => {
       const w = arena();
       frailClump(w, 3, 20, 20);
@@ -198,8 +198,8 @@ describe("callouts and calldowns", () => {
       run(w, 60, [call("blue", "barrage", 20.3, 20.3)], (fx) => r.c.events(fx, w.tick / TICK_RATE));
       return r.banners;
     };
-    expect(strike(false)[0]).toMatchObject({ key: "first-blood", sub: "Enemy Stinger destroyed by a Barrage" });
-    expect(strike(true).find((b) => b.key === "streak-3")).toMatchObject({ text: "Triple kill", sub: "Barrage", say: "Barrage: triple kill" });
+    expect(strike(false)[0]).toMatchObject({ key: "first-blood", sub: "Panhard ennemi détruit par un Feu roulant" });
+    expect(strike(true).find((b) => b.key === "streak-3")).toMatchObject({ text: "Triplé", sub: "Feu roulant", say: "Feu roulant : triplé" });
   });
 
   it("streakPower: one calldown doing most of the work", () => {
@@ -209,7 +209,7 @@ describe("callouts and calldowns", () => {
     expect(streakPower(["barrage", "barrage", "hammer", null])).toBe("barrage");
   });
 
-  it("warns by radio of an enemy Barrage, EMP or Drop Pod aimed at our things — not the Sky Hammer (its banner talks)", () => {
+  it("warns by radio of an enemy Feu roulant, EMP or Drop Pod aimed at our things — not the Sky Hammer (its banner talks)", () => {
     const w = arena();
     spawnUnit(w, "stinger", "blue", 20, 20);
     const r = rig(w);
@@ -224,8 +224,8 @@ describe("callouts and calldowns", () => {
     r.c.events([cd("droppod")], 5);
     r.c.events([cd("barrage", 20, 20, "blue")], 6); // ours
     expect(r.radio.map((l) => [l.key, l.text, l.priority, l.caption])).toEqual([
-      ["enemy-barrage", "Incoming artillery!", 1, false],
-      ["enemy-droppod", "Enemy drop pod!", 1, false]
+      ["enemy-barrage", "Artillerie en approche !", 1, false],
+      ["enemy-droppod", "Obus-capsule ennemi !", 1, false]
     ]);
     now = 1 + CALLOUTS.cooldownS["enemy-barrage"]!;
     r.c.events([cd("barrage")], now);
@@ -287,13 +287,13 @@ describe("hotspots and hero toasts", () => {
     hp.handleFx(impact({ faction: "red", power: "hammer", radius: 2.5 }));
     hp.handleFx(death(vet));
     hp.flush();
-    expect(notes[0]).toMatch(/^✝ \w+ \(Stinger, 7 kills\) destroyed by the enemy Sky Hammer$/);
+    expect(notes[0]).toMatch(/^✝ \w+ \([^,]+, 7 [^)]+\) détruit par la frappe .+ ennemie$/);
     // an enemy ace downed by our Barrage
     w.tick++;
     hp.handleFx(impact({ faction: "blue" }));
     hp.handleFx(death({ id: 502, rank: 3, kills: 4, killerId: hqOf(w, "blue")!.id }));
     hp.flush();
-    expect(notes[1]).toMatch(/^🎯 Enemy ace \w+ \(Stinger, 4 kills\) down to your Barrage$/);
+    expect(notes[1]).toMatch(/^🎯 As ennemi \w+ \([^,]+, 4 [^)]+\) abattu par ta frappe .+$/);
   });
 });
 
@@ -385,7 +385,7 @@ describe("which modes allow calldowns", () => {
       expect(w.rules?.noCalldowns).toBe(true);
       for (const f of ["blue", "red"] as Faction[]) {
         w.powers.meter[f] = 100;
-        expect(powerBlocker(w, f, "barrage")).toMatch(/No calldowns/);
+        expect(powerBlocker(w, f, "barrage")).toMatch(/Pas de frappes/);
         expect(powerStatus(w, f, "emp").ready).toBe(false);
       }
       w.tick = POWERS.hammer.unlock * TICK_RATE - 1;
@@ -427,6 +427,6 @@ describe("which modes allow calldowns", () => {
     expect(w.rules?.noCalldowns).toBeFalsy();
     w.powers.meter.blue = 100;
     expect(powerBlocker(w, "blue", "barrage")).toBeNull();
-    expect(powerBlocker(w, "red", "barrage")).toMatch(/HQ/);
+    expect(powerBlocker(w, "red", "barrage")).toMatch(/GQG/);
   });
 });

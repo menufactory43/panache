@@ -36,7 +36,7 @@ export const powerName = (p: PowerKind): string => POWER_NAMES[p];
 
 /** "a Barrage", "an EMP", "the Sky Hammer" (in running text). */
 export function powerPhrase(p: PowerKind): string {
-  return p === "hammer" ? "the Sky Hammer" : p === "emp" ? "an EMP" : `a ${POWER_NAMES[p]}`;
+  return p === "hammer" ? `l'${POWER_NAMES[p]}` : p === "emp" ? `la ${POWER_NAMES[p]}` : `un ${POWER_NAMES[p]}`;
 }
 
 /**

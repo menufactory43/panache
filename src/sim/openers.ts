@@ -50,8 +50,8 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   blitz: {
     id: "blitz",
     name: "Blitz",
-    tagline: "Strike first. Raid their harvesters before they're ready.",
-    rollout: "3 Stingers ready. Hit their harvesters!",
+    tagline: "Frappe en premier. Raide leurs Fardiers avant qu'ils soient prêts.",
+    rollout: "3 Panhard prêts. Frappe leurs Fardiers !",
     building: "fab-plant",
     units: ["stinger", "stinger", "stinger"],
     harvesters: 2,
@@ -60,9 +60,9 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   },
   industry: {
     id: "industry",
-    name: "Industry",
-    tagline: "Out-mine them now, out-build them later.",
-    rollout: "3 harvesters mining. Out-build them.",
+    name: "Industrie",
+    tagline: "Extrais plus qu'eux maintenant, produis plus qu'eux ensuite.",
+    rollout: "3 Fardiers au travail. Surproduis-les.",
     building: "fab-plant",
     units: [],
     harvesters: 3,
@@ -70,9 +70,9 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   },
   airwing: {
     id: "airwing",
-    name: "Air Wing",
-    tagline: "Own the skies. Wasps hunt tanks and harvesters.",
-    rollout: "3 Wasps ready. Beware their Flak.",
+    name: "Escadrille",
+    tagline: "Domine le ciel. Les Éole chassent chars et Fardiers.",
+    rollout: "3 Éole prêts. Gare à leur DCA.",
     building: "airpad",
     // the Airpad is a side-grade (you still want a Fab for anti-air and
     // tanks), so the wing carries a third Wasp
@@ -122,7 +122,7 @@ export function pickAiOpener(strategy: StrategyName, seed: number, faction: Fact
 
 /** Why this side can't take this opener under the match rules (a banned factory or crew), or null. */
 export function openerBlocked(w: World, faction: Faction, id: OpenerId): string | null {
-  if (rulesOf(w).armada) return `Disabled: ${MUTATORS.armada.name}`; // (a side starts with its Goliaths and nothing else)
+  if (rulesOf(w).armada) return `Désactivé : ${MUTATORS.armada.name}`; // (a side starts with its Goliaths and nothing else)
   const o = OPENERS[id];
   for (const kind of [o.building, ...o.units]) {
     const why = bannedBy(w, kind, faction);

@@ -110,7 +110,7 @@ describe("ranks and XP", () => {
   it("ten ranks from Cadet to Marshal with rising thresholds", () => {
     expect(RANKS).toHaveLength(10);
     expect(RANKS[0]!.name).toBe("Cadet");
-    expect(RANKS[9]!.name).toBe("Marshal");
+    expect(RANKS[9]!.name).toBe("Maréchal");
     for (let i = 1; i < RANKS.length; i++) {
       expect(RANKS[i]!.xp).toBeGreaterThan(RANKS[i - 1]!.xp);
       // each step is at least as long as the one before
@@ -119,11 +119,11 @@ describe("ranks and XP", () => {
   });
 
   it("rankOf finds the rank, the next one and the progress", () => {
-    expect(rankOf(0)).toMatchObject({ index: 0, name: "Cadet", next: 100, nextName: "Private", progress: 0 });
+    expect(rankOf(0)).toMatchObject({ index: 0, name: "Cadet", next: 100, nextName: "Soldat", progress: 0 });
     expect(rankOf(99).index).toBe(0);
-    expect(rankOf(100)).toMatchObject({ index: 1, name: "Private", floor: 100, next: 300 });
+    expect(rankOf(100)).toMatchObject({ index: 1, name: "Soldat", floor: 100, next: 300 });
     expect(rankOf(200).progress).toBeCloseTo(0.5);
-    expect(rankOf(1_000_000)).toMatchObject({ index: 9, name: "Marshal", next: null, nextName: null, progress: 1 });
+    expect(rankOf(1_000_000)).toMatchObject({ index: 9, name: "Maréchal", next: null, nextName: null, progress: 1 });
   });
 
   const base: MatchResult = {
@@ -162,7 +162,7 @@ describe("ranks and XP", () => {
     expect(s.gained).toBe(175);
     expect(s.rankedUp).toBe(true);
     expect(s.rankBefore.name).toBe("Cadet");
-    expect(s.rankAfter.name).toBe("Private");
+    expect(s.rankAfter.name).toBe("Soldat");
     expect(career.wins).toBe(1);
     expect(career.stars["riverlands:normal"]).toBe(0b111);
     expect(s.starsBefore).toBe(0);
@@ -194,11 +194,11 @@ describe("ranks and XP", () => {
     let c = emptyCareer();
     let r = applyResult(c, daily(day), day, 280);
     expect(r.s.daily).toEqual({ number: 280, won: true, streak: 1, firstWinToday: true });
-    expect(r.s.lines.map((l) => l.label)).toContain("Daily Op");
+    expect(r.s.lines.map((l) => l.label)).toContain("Op du jour");
     c = r.career;
     r = applyResult(c, daily(day), day, 280); // a replay the same day: no bonus, no double count
     expect(r.s.daily!.firstWinToday).toBe(false);
-    expect(r.s.lines.map((l) => l.label)).not.toContain("Daily Op");
+    expect(r.s.lines.map((l) => l.label)).not.toContain("Op du jour");
     expect(r.career.daily.streak).toBe(1);
     c = applyResult(r.career, daily(day + 1), day + 1).career;
     expect(c.daily.streak).toBe(2);
@@ -277,7 +277,7 @@ describe("the Daily Op", () => {
   it("is a pure function of the date", () => {
     expect(dailyOp(20733)).toEqual(dailyOp(20733));
     expect(dailyOp(20733).number).toBe(280);
-    expect(dayLabel(20733)).toBe("Wed 7 Oct");
+    expect(dayLabel(20733)).toBe("mer. 7 oct.");
     expect(dayIndexOf(new Date(2026, 9, 7, 23, 59))).toBe(20733);
     expect(dayIndexOf(new Date(2026, 9, 8, 0, 1))).toBe(20734);
   });

@@ -1,3 +1,5 @@
+// first: the Belle Époque switch tags <html> before the menu draws (src/ui/belle.css)
+import { BELLE_EPOQUE } from "./game/three/theme";
 import { DIFFICULTY, type Difficulty } from "./sim/ai/commander";
 import { MAPS, isKnownMapId, mapById } from "./sim/maps";
 import { BIOMES, RANDOM_MAP_SIZE, RANDOM_PREFIX, isRandomMapId, parseRandomMapId, randomMapId, rollRandomMapId, seedCode, seedFromText } from "./sim/mapgen";
@@ -20,6 +22,7 @@ import { appUpdate, mountUpdatePill } from "./ui/update";
 import { scrollCue } from "./ui/hscroll";
 import { showReplayPicker } from "./ui/replay-picker";
 import { openMapPreview } from "./ui/map-preview";
+import { mountTitle } from "./ui/title";
 // (types only: the sound duel's code is a lazily loaded chunk, reached through loadDuel() alone)
 import type * as DuelLobby from "./versus/lobby";
 import type { VersusFeed } from "./versus/feed";
@@ -51,7 +54,7 @@ function setupPageZoomRescue(): void {
   if (!vv) return;
   const btn = document.createElement("button");
   btn.id = "unzoom";
-  btn.textContent = "⤺ Zoom back out";
+  btn.textContent = "⤺ Dézoomer";
   btn.hidden = true;
   document.body.appendChild(btn);
 
@@ -104,7 +107,7 @@ const loadDuel = (): Promise<typeof DuelLobby> => (duelLoad ??= import("./versus
 const duelPractice = ["loop", "relay"].includes(new URLSearchParams(location.search).get("duel") ?? "");
 const canDuel = (): boolean =>
   duelPractice || (window.isSecureContext && typeof AudioWorkletNode === "function" && typeof navigator.mediaDevices?.getUserMedia === "function");
-const DUEL_UPDATE = "A new version is ready: reload this phone (and your friend's)";
+const DUEL_UPDATE = "Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)";
 /**
  * sessionStorage: what the next boot skips into (the end screen's Rematch: "1", "spectate", "daily", "op:<id>",
  * or a sound duel's "duel"). The duel's records.ts owns the key and the duel's token; main.ts may import the
@@ -123,8 +126,8 @@ async function startGame(feed?: MatchFeed): Promise<void> {
   loading.className = "screen";
   const def = mapById(gameMode.mapId);
   // (Uncharted: not even the name gives the map away)
-  const where = unchartedMatch() ? "uncharted territory" : def.id === gameMode.mapId ? def.name : "battlefield";
-  loading.innerHTML = `<div class="loadbox"><p>Deploying to ${where}…</p><div class="loadtrack"><div id="loadbar"></div></div></div>`;
+  const where = unchartedMatch() ? "territoire inconnu" : def.id === gameMode.mapId ? def.name : "champ de bataille";
+  loading.innerHTML = `<div class="loadbox"><p>Déploiement : ${where}…</p><div class="loadtrack"><div id="loadbar"></div></div></div>`;
   hud.appendChild(loading);
   const bar = loading.querySelector<HTMLElement>("#loadbar");
   // the painted terrain is draped over the 3D landscape; a failed chunk falls back to flat colours
@@ -148,6 +151,8 @@ async function startGame(feed?: MatchFeed): Promise<void> {
 // ------------------------------------------------------------ random maps ---
 
 const BIOME_ICON: Record<Biome, string> = { temperate: "🌳", desert: "🏜️", arctic: "❄️", volcanic: "🌋", tropical: "🌴" };
+/** Biome names as the player reads them. */
+const BIOME_FR: Record<Biome, string> = { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" };
 const RANDOM_KEY = "battledrones.randommaps";
 /** A transparent pixel: the Uncharted card keeps its image box (the fog sits on it) with nothing of the map in it. */
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -249,9 +254,9 @@ function showMenu(linkedMap?: string | null): void {
   const diffs = Object.keys(DIFFICULTY) as Difficulty[];
   menu.innerHTML = `
     <div class="keyart"></div>
-    <button class="round menu-mute" id="menu-mute" title="Mute all">🔊</button>
+    <button class="round menu-mute" id="menu-mute" title="Tout couper">🔊</button>
     <div class="menu-inner">
-      <h1 class="logo">BATTLE<br/><span>DRONES</span></h1>
+      <h1 class="logo panache">PANACHE</h1>
       <div class="menu-side" id="menuside">
         <button class="rankbadge" id="rankbadge"></button>
         <div class="dailyop" id="dailyop"></div>
@@ -259,9 +264,9 @@ function showMenu(linkedMap?: string | null): void {
       </div>
       <p class="sub" id="sub"></p>
       <div class="seg modes" id="gmode">
-        <button data-m="skirmish">⚔ Skirmish</button>
-        <button data-m="survival">🛡 Last Stand</button>
-        <button data-m="ops">🎖 Ops</button>
+        <button data-m="skirmish">⚔ Escarmouche</button>
+        <button data-m="survival">🛡 Survie</button>
+        <button data-m="ops">🎖 Opérations</button>
       </div>
       <p class="lsbest" id="lsbest" hidden></p>
       <p class="lsbest opsum" id="opsum" hidden></p>
@@ -273,7 +278,7 @@ function showMenu(linkedMap?: string | null): void {
           <button class="mapcard" data-id="${m.id}">
             <img src="${mapThumbUrl(m.id)}" alt="" draggable="false" />
             <span class="mn">${m.name}</span>
-            <span class="mb">${m.size}×${m.size} · ${m.biome}</span>
+            <span class="mb">${m.size}×${m.size} · ${BIOME_FR[m.biome]}</span>
             <span class="mbest" hidden></span>
             <span class="mstars" hidden></span>
           </button>`
@@ -286,26 +291,26 @@ function showMenu(linkedMap?: string | null): void {
           <span class="mb"></span>
           <span class="mbest" hidden></span>
           <span class="mstars" hidden></span>
-          <span class="mrnd">🎲 Random</span>
+          <span class="mrnd">🎲 Aléatoire</span>
         </button>
       </div>
       <div class="rndpanel" id="rndpanel" hidden>
         <div class="seg rndbiome" id="rndbiome">
-          <button data-b="" title="Rerolls pick any biome">🎲 Any</button>
-          ${BIOMES.map((b) => `<button data-b="${b}" title="${cap(b)}">${BIOME_ICON[b]}<span> ${cap(b)}</span></button>`).join("")}
+          <button data-b="" title="Les relances choisissent n'importe quel biome">🎲 Tous</button>
+          ${BIOMES.map((b) => `<button data-b="${b}" title="${cap(BIOME_FR[b])}">${BIOME_ICON[b]}<span> ${cap(BIOME_FR[b])}</span></button>`).join("")}
         </div>
         <div class="rndrow">
-          <label class="rndseed" title="Seed: type or paste a code to grow that map">#<input id="rndseed" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" /></label>
-          <button class="cta alt" id="rndroll">🎲 Reroll</button>
-          <button class="cta alt" id="rndcopy">🔗 Copy link</button>
+          <label class="rndseed" title="Graine : tape ou colle un code pour générer cette carte">#<input id="rndseed" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" /></label>
+          <button class="cta alt" id="rndroll">🎲 Relancer</button>
+          <button class="cta alt" id="rndcopy">🔗 Copier le lien</button>
         </div>
-        <p class="rndhint"><b>Before you play</b> <span id="rndhint"></span></p>
+        <p class="rndhint"><b>Avant de jouer</b> <span id="rndhint"></span></p>
         <div class="rndrow">
-          <div class="seg rndview" id="rndview" role="radiogroup" aria-label="Before you play">
-            <button data-u="0" role="radio" title="See the whole map before the match">👁️ Preview</button>
-            <button data-u="1" role="radio" title="The map stays black until you scout it">🌫️ Uncharted</button>
+          <div class="seg rndview" id="rndview" role="radiogroup" aria-label="Avant de jouer">
+            <button data-u="0" role="radio" title="Voir toute la carte avant le match">👁️ Aperçu</button>
+            <button data-u="1" role="radio" title="La carte reste noire tant que tu ne l'as pas explorée">🌫️ Inconnue</button>
           </div>
-          <button class="cta alt" id="rndfull">🔍 View<span class="wide"> full</span> map</button>
+          <button class="cta alt" id="rndfull">🔍 Voir<span class="wide"> toute la</span> carte</button>
         </div>
         <div class="rndrecent" id="rndrecent"></div>
       </div>
@@ -314,25 +319,50 @@ function showMenu(linkedMap?: string | null): void {
         ${diffs.map((d) => `<button data-d="${d}">${DIFFICULTY[d].label}</button>`).join("")}
       </div>
       <button class="mutbtn main"></button>
-      <button class="cta big" id="play">▶ Play</button>
-      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Duel a friend (sound)</button></div>
+      <button class="cta big" id="play">▶ Jouer</button>
+      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button></div>
       <div class="row">
-        <button class="cta alt" id="play-spectate">🤖 Watch AI vs AI</button>
-        <button class="cta alt" id="play-replay">🎬 Watch a replay</button>
-        <button class="cta alt" id="howto">? How to play</button>
+        <button class="cta alt" id="play-spectate">🤖 IA contre IA</button>
+        <button class="cta alt" id="play-replay">🎬 Voir une rediffusion</button>
+        <button class="cta alt" id="howto">? Comment jouer</button>
       </div>
       <div class="help" id="helpbox" hidden>${HELP_HTML}</div>
-      <p class="credits">Art generated with OpenAI gpt-image-2.5 · sound synthesised live</p>
+      ${BELLE_EPOQUE ? `<button class="linkbtn" id="replay-intro" type="button">🎞 Revoir l'intro</button>` : ""}
+      <p class="credits">D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct</p>
     </div>
   `;
   hud.appendChild(menu);
-  // inline, document-relative URLs keep GitHub Pages subpaths working
-  const art = menu.querySelector<HTMLElement>(".keyart")!;
-  const landscape = window.matchMedia("(orientation: landscape)");
-  const setArt = () =>
-    (art.style.backgroundImage = `url(assets/ui/keyart-${landscape.matches ? "landscape" : "portrait"}.webp)`);
-  setArt();
-  landscape.addEventListener("change", setArt);
+  /** The menu music waits for the title's logo slam (Belle Époque: ui/title.ts). */
+  let musicGo = true;
+  if (BELLE_EPOQUE) {
+    // the living title scene in place of the key art; press-start and the cinematic, unless skipping into a game
+    const title = mountTitle(
+      menu,
+      {
+        slam: () => {
+          musicGo = true;
+          const biome = biomeOf(shownMap());
+          menuBiome = biome;
+          music.play("menu", biome, true);
+        },
+        replay: () => {
+          musicGo = false;
+          menuBiome = null;
+          music.stop();
+        }
+      },
+      token !== null
+    );
+    musicGo = !title.waiting;
+  } else {
+    // inline, document-relative URLs keep GitHub Pages subpaths working
+    const art = menu.querySelector<HTMLElement>(".keyart")!;
+    const landscape = window.matchMedia("(orientation: landscape)");
+    const setArt = () =>
+      (art.style.backgroundImage = `url(assets/ui/keyart-${landscape.matches ? "landscape" : "portrait"}.webp)`);
+    setArt();
+    landscape.addEventListener("change", setArt);
+  }
 
   // menu music: a gentle take on the selected map's theme, from the first touch
   const biomeOf = (id: string) => mapById(id).biome;
@@ -417,9 +447,9 @@ function showMenu(linkedMap?: string | null): void {
       card.classList.toggle("uncharted", blind);
       const img = card.querySelector("img")!;
       img.src = blind ? BLANK_IMG : mapThumbUrl(randomId);
-      card.querySelector(".mn")!.textContent = blind ? "Uncharted" : def.name;
-      card.querySelector(".mb")!.textContent = `${RANDOM_MAP_SIZE}×${RANDOM_MAP_SIZE} · ${def.biome} · #${code}`;
-      card.title = blind ? `Uncharted (${def.biome}, seed ${code})` : `${def.name} (${def.biome}, seed ${code}) · tap again to view the whole map`;
+      card.querySelector(".mn")!.textContent = blind ? "Inconnue" : def.name;
+      card.querySelector(".mb")!.textContent = `${RANDOM_MAP_SIZE}×${RANDOM_MAP_SIZE} · ${BIOME_FR[def.biome]} · #${code}`;
+      card.title = blind ? `Inconnue (${BIOME_FR[def.biome]}, graine ${code})` : `${def.name} (${BIOME_FR[def.biome]}, graine ${code}) · touche encore pour voir toute la carte`;
     }
     menu.querySelectorAll<HTMLElement>("#rndview button").forEach((el) => {
       const on = (el.dataset.u === "1") === blind;
@@ -428,8 +458,8 @@ function showMenu(linkedMap?: string | null): void {
     });
     menu.querySelector<HTMLElement>("#rndfull")!.hidden = blind;
     menu.querySelector("#rndhint")!.textContent = blind
-      ? "Go in blind: scout to reveal the map."
-      : "Study the whole map first.";
+      ? "Pars à l'aveugle : explore pour révéler la carte."
+      : "Étudie d'abord toute la carte.";
     const box = menu.querySelector<HTMLInputElement>("#rndseed")!;
     if (document.activeElement !== box) box.value = code;
     menu.querySelectorAll<HTMLElement>("#rndbiome button").forEach((el) => el.classList.toggle("on", (el.dataset.b || null) === rnd.biome));
@@ -439,7 +469,7 @@ function showMenu(linkedMap?: string | null): void {
         const on = r.id === randomId ? " on" : "";
         // (uncharted: code and biome only, no names)
         const name = blind ? "" : `${esc(r.name)} `;
-        const title = blind ? `Uncharted · ${p.biome}` : `${esc(r.name)} · ${p.biome}`;
+        const title = blind ? `Inconnue · ${BIOME_FR[p.biome]}` : `${esc(r.name)} · ${BIOME_FR[p.biome]}`;
         return `<button class="rndchip${on}" data-id="${r.id}" title="${title}">${BIOME_ICON[p.biome]} ${name}<b>#${seedCode(p.seed)}</b></button>`;
       })
       .join("");
@@ -484,7 +514,7 @@ function showMenu(linkedMap?: string | null): void {
     }
     // the menu theme follows the map on show
     const biome = biomeOf(shown);
-    if (biome !== menuBiome) {
+    if (musicGo && biome !== menuBiome) {
       menuBiome = biome;
       music.play("menu", biome);
     }
@@ -492,28 +522,28 @@ function showMenu(linkedMap?: string | null): void {
     menu.querySelectorAll<HTMLElement>("#gmode button").forEach((el) => el.classList.toggle("on", el.dataset.m === gameMode.mode));
     const m = mapById(shown);
     const blind = gameMode.uncharted && isRandomMapId(shown);
-    menu.querySelector("#blurb")!.textContent = blind ? "An unknown battlefield. Scout it to learn its shape." : m.blurb;
+    menu.querySelector("#blurb")!.textContent = blind ? "Un champ de bataille inconnu. Explore-le pour en découvrir la forme." : m.blurb;
     menu.querySelector<HTMLElement>("#rndpanel")!.hidden = opsMode || !isRandomMapId(shown);
     menu.querySelector("#sub")!.textContent = opsMode
-      ? "Short missions with a twist. Three stars each — can you take them all?"
+      ? "Des missions courtes à rebondissement. Trois étoiles chacune : sauras-tu toutes les prendre ?"
       : survival
-        ? "Hold your base against endless, themed waves. How long can you last?"
-        : "Mine scrap. Build your swarm. Destroy the enemy HQ and its Goliaths.";
+        ? "Tiens ta base face à des vagues sans fin. Combien de temps tiendras-tu ?"
+        : "Extrais le charbon. Bâtis ton escadre. Détruis le GQG ennemi et ses Gargantuas.";
     const best = menu.querySelector<HTMLElement>("#lsbest")!;
     best.hidden = !survival;
     if (survival) {
       const rec = loadBest(shown, gameMode.difficulty);
-      const where = `${blind ? `Uncharted #${m.random?.code ?? ""}` : m.name} · ${DIFFICULTY[gameMode.difficulty].label}`;
+      const where = `${blind ? `Inconnue #${m.random?.code ?? ""}` : m.name} · ${DIFFICULTY[gameMode.difficulty].label}`;
       best.innerHTML = rec
-        ? `🏆 Best on ${where}: <b>${rec.best} wave${rec.best === 1 ? "" : "s"}</b>`
-        : `No record yet on ${where} — set one!`;
+        ? `🏆 Record sur ${where} : <b>${rec.best} vague${rec.best === 1 ? "" : "s"}</b>`
+        : `Aucun record sur ${where} : établis-en un !`;
     }
     const sel = ops.selected();
     menu.querySelector("#play")!.textContent = opsMode
-      ? ops.locked(sel) ? "🔒 Locked" : `▶ Op: ${sel.title}`
-      : survival ? "▶ Start Last Stand" : "▶ Play";
+      ? ops.locked(sel) ? "🔒 Verrouillée" : `▶ Op : ${sel.title}`
+      : survival ? "▶ Lancer la Survie" : "▶ Jouer";
     menu.querySelector("#play")!.classList.toggle("locked", opsMode && ops.locked(sel));
-    menu.querySelector("#play-spectate")!.textContent = survival ? "🤖 Watch AI defend" : "🤖 Watch AI vs AI";
+    menu.querySelector("#play-spectate")!.textContent = survival ? "🤖 Voir l'IA défendre" : "🤖 IA contre IA";
   };
   sync();
   menu.querySelectorAll<HTMLElement>("#maps .mapcard").forEach((el) =>
@@ -560,9 +590,9 @@ function showMenu(linkedMap?: string | null): void {
     void navigator.clipboard
       ?.writeText(mapLink(randomId))
       .then(() => {
-        copyBtn.textContent = "✓ Copied!";
+        copyBtn.textContent = "✓ Copié !";
         clearTimeout(copiedTimer);
-        copiedTimer = window.setTimeout(() => (copyBtn.textContent = "🔗 Copy link"), 1600);
+        copiedTimer = window.setTimeout(() => (copyBtn.textContent = "🔗 Copier le lien"), 1600);
       })
       .catch(() => {
         /* no clipboard (insecure context, denied): fail quietly */
@@ -585,7 +615,7 @@ function showMenu(linkedMap?: string | null): void {
     sfx.play("click", 0.5);
     openMapPreview(mapById(randomId), {
       host: menu,
-      playLabel: gameMode.mode === "survival" ? "▶ Start Last Stand" : "▶ Play this map",
+      playLabel: gameMode.mode === "survival" ? "▶ Lancer la Survie" : "▶ Jouer cette carte",
       onPlay: () => {
         gameMode.mapId = randomId;
         saveSettings(); // (a Rematch reloads the saved pick)
@@ -722,9 +752,9 @@ function showMenu(linkedMap?: string | null): void {
     const wrap = openSheet(
       menu,
       "duelupdate",
-      `<h2>🔊 Duel a friend</h2>
+      `<h2>🔊 Défier un ami</h2>
        <p class="sh-sub">${DUEL_UPDATE}</p>
-       <div class="sh-actions"><button class="cta alt sheet-close">Close</button><button class="cta" id="duel-reload">Reload</button></div>`
+       <div class="sh-actions"><button class="cta alt sheet-close">Fermer</button><button class="cta" id="duel-reload">Recharger</button></div>`
     );
     wrap.querySelector("#duel-reload")!.addEventListener("click", () => fullscreen.reload());
   };
@@ -741,7 +771,7 @@ function showMenu(linkedMap?: string | null): void {
     scr.innerHTML = `<div class="loadbox">
         <button class="cta big" id="duel-rematch" disabled>${
           // (a practice link has no sound to reconnect and asks for no microphone)
-          duelPractice ? "Rematch · tap to start" : "Rematch · tap to reconnect<br /><small>(allow the microphone if asked)</small>"
+          duelPractice ? "Revanche · touche pour lancer" : "Revanche · touche pour te reconnecter<br /><small>(autorise le micro si demandé)</small>"
         }</button>
         <button class="cta alt" id="duel-menu">Menu</button>
       </div>`;
@@ -792,13 +822,13 @@ function showMenu(linkedMap?: string | null): void {
 async function watchLinked(url: string, follow: boolean): Promise<void> {
   const note = document.createElement("div");
   note.className = "screen";
-  note.innerHTML = `<div class="loadbox"><p>Fetching the battle record…</p></div>`;
+  note.innerHTML = `<div class="loadbox"><p>Chargement de l'enregistrement…</p></div>`;
   document.getElementById("hud")!.appendChild(note);
   const feed = await import("./game/replay")
     .then((m) => m.loadReplay(url, follow))
     .catch((e: unknown) => {
-      note.innerHTML = `<div class="panel"><p class="time"></p><button class="cta">Main menu</button></div>`;
-      note.querySelector("p")!.textContent = `Couldn't play that battle record. ${e instanceof Error ? e.message : String(e)}`;
+      note.innerHTML = `<div class="panel"><p class="time"></p><button class="cta">Menu principal</button></div>`;
+      note.querySelector("p")!.textContent = `Impossible de lire cet enregistrement. ${e instanceof Error ? e.message : String(e)}`;
       note.querySelector("button")!.addEventListener("click", () => location.assign("./"));
       return null;
     });

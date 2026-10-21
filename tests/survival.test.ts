@@ -105,7 +105,7 @@ describe("wave schedule", () => {
       // the first block always shows the threats with their own answers (anti-air, anti-infantry)
       expect([1, 2, 3, 4].map((i) => waveTheme(w, i))).toEqual(expect.arrayContaining(["air", "swarm"]));
       // each boss is previewed in its block: an Air Raid before a Bomber Wing, and so on
-      const preview: Record<string, WaveTheme> = { "Mastodon Spearhead": "armour", "Bomber Wing": "air", "Elite Strike Force": "mixed" };
+      const preview: Record<string, WaveTheme> = { "Fer de lance Creusot": "armour", "Escadre de bombardiers": "air", "Force d'élite": "mixed" };
       for (let block = 0; block < 40; block++) {
         const boss = waveName(w, block * 5 + 5);
         expect([1, 2, 3, 4].map((i) => waveTheme(w, block * 5 + i)), `${boss} at ${block * 5 + 5}`).toContain(preview[boss]);
@@ -183,8 +183,8 @@ describe("Bot Swarm", () => {
   const cost = (units: UnitKind[], k?: UnitKind) => units.filter((u) => !k || u === k).reduce((s, u) => s + UNITS[u].cost, 0);
 
   it("is a named, announced theme with its counter and icon", () => {
-    expect(THEME_NAMES.swarm).toBe("Bot Swarm");
-    expect(THEME_COUNTERS.swarm).toMatch(/Mortars/);
+    expect(THEME_NAMES.swarm).toBe("Essaim d'automates");
+    expect(THEME_COUNTERS.swarm).toMatch(/Canons de 75/);
     expect(THEME_ICONS.swarm).toBeTruthy();
     expect(swarms.length).toBeGreaterThan(50);
     for (let seed = 1; seed <= 20; seed++) {
@@ -192,7 +192,7 @@ describe("Bot Swarm", () => {
       // it always shows up in the first block, while it is small
       const n = [1, 2, 3, 4].find((i) => waveTheme(w, i) === "swarm");
       expect(n).toBeDefined();
-      expect(waveName(w, n!)).toBe("Bot Swarm");
+      expect(waveName(w, n!)).toBe("Essaim d'automates");
     }
   });
 

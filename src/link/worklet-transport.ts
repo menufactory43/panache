@@ -256,7 +256,7 @@ export class WorkletTransport implements LinkTransport {
     this.port.onmessage = (e: MessageEvent<FromWorklet>) => this.receive(e.data);
     this.node.onprocessorerror = () => {
       this.dead = true;
-      this.onError?.("the sound link's audio processor failed");
+      this.onError?.("le processeur audio de la liaison sonore a échoué");
     };
     this.node.connect(ctx.destination);
   }

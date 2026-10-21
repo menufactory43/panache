@@ -26,7 +26,7 @@ export const CALLSIGNS: readonly string[] = [
 export const NAMED_RANK = 2;
 
 /** Promotion titles by rank (index 0 unused). */
-export const RANK_TITLES: readonly string[] = ["", "VETERAN", "HARDENED", "ELITE"];
+export const RANK_TITLES: readonly string[] = ["", "VÉTÉRAN", "AGUERRI", "ÉLITE"];
 
 const ROMAN = ["", "", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX"];
 
@@ -86,7 +86,7 @@ export function callsignOf(w: World, u: { id: number; faction: Faction }): strin
 
 export const stars = (rank: number): string => "★".repeat(Math.max(0, Math.min(3, rank)));
 
-export const killsLabel = (n: number): string => `${n} kill${n === 1 ? "" : "s"}`;
+export const killsLabel = (n: number): string => `${n} élim.`;
 
 /** "Viper (Lancer, 9 kills)" — the toast form. */
 export function heroShort(w: World, u: { id: number; faction: Faction; kind: UnitKind; kills: number }): string {

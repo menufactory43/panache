@@ -38,16 +38,20 @@ export function liftedBy(w: World, c: Unit): Unit | null {
 export const canCarry = (c: Unit): boolean =>
   isTransport(c.kind) && (c.passengers?.length ?? 0) === 0 && c.order.type !== "lift" && c.hp > 0;
 
+/** liftBlocker's reasons the controller rephrases (compare with these, not the text). */
+export const LIFT_NEEDS_TWO = "Il faut deux Montgolfières vides";
+export const LIFT_PACK_FIRST = "Lève l'ancre d'abord";
+
 /**
  * Why `condors` can't lift Goliath `g` (null: they can). Two empty Condors
  * of its side, a walking Goliath not already on a lift.
  */
 export function liftBlocker(condors: readonly Unit[], g: Unit): string | null {
-  if (!g.goliath) return "Not a Goliath";
+  if (!g.goliath) return "Pas un Gargantua";
   const free = condors.filter((c) => c.faction === g.faction && canCarry(c));
-  if (free.length < 2) return "Needs two empty Condors";
-  if (g.goliath.lift) return "Already on a lift";
-  if (g.goliath.mode !== "walking") return "Pack up first";
+  if (free.length < 2) return LIFT_NEEDS_TWO;
+  if (g.goliath.lift) return "Déjà en levage";
+  if (g.goliath.mode !== "walking") return LIFT_PACK_FIRST;
   return null;
 }
 

@@ -129,13 +129,13 @@ export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | n
   return back;
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const plural = (n: number, one: string, many: string) => `${n} ${n <= 1 ? one : many}`;
 
 /** "3 wins · 1 loss · 0 draws", and the matches with no result when there were any. */
 export function tallyLine(t: DuelTally): string {
-  const parts = [plural(t.w, "win", "wins"), plural(t.l, "loss", "losses"), plural(t.d, "draw", "draws")];
+  const parts = [plural(t.w, "victoire", "victoires"), plural(t.l, "défaite", "défaites"), plural(t.d, "nul", "nuls")];
   const none = t.abandoned + t.noContest;
-  if (none > 0) parts.push(`${none} with no result`);
+  if (none > 0) parts.push(`${none} sans résultat`);
   return parts.join(" · ");
 }
 

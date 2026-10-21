@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Battle Drones Record Viewer</title>
+<title>Panache Record Viewer</title>
 <link rel="icon" href="./icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -233,7 +233,7 @@ button, select, input { font: inherit; color: inherit; }
 <body>
 <header class="top">
   <div class="brand">
-    <div class="label" id="eyebrow">Battle Drones</div>
+    <div class="label" id="eyebrow">Panache</div>
     <h1 id="title">Battle records</h1>
     <div class="matchup" id="matchup"></div>
   </div>
@@ -618,7 +618,7 @@ function renderHeader() {
   const d = M.d, end = M.end;
   const mapName = String(d.map || "unknown map").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const player = (s) => String(((d.seats || {})[s] || {}).player || "?").replace(/^(openai|anthropic|llm):/, "");
-  document.title = `${player("blue")} vs ${player("red")} · ${mapName} · Battle Drones Record Viewer`;
+  document.title = `${player("blue")} vs ${player("red")} · ${mapName} · Panache Record Viewer`;
   $("#eyebrow").innerHTML = `<a href="?">Battle records</a> · v${esc(d.v ?? "?")}${Array.isArray(d.mutators) && d.mutators.length ? " · " + esc(d.mutators.join(", ")) : ""}`;
   $("#title").innerHTML = `${esc(mapName)}<small>seed ${esc(d.seed ?? "?")}</small>`;
   $("#matchup").innerHTML = SIDES.map((s) => {

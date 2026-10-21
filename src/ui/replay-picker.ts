@@ -10,12 +10,12 @@ export function showReplayPicker(host: HTMLElement, watch: (json: string) => Pro
   const wrap = openSheet(
     host,
     "replaysheet",
-    `<h2>🎬 Watch a replay</h2>
-     <p class="sh-sub">Paste a battle record: the <b>.json</b> file an agent battle writes to <code>battles/</code> (<code>llm battledrones run</code>, <code>tools/arena.ts</code>). Or pick the file.</p>
+    `<h2>🎬 Voir une rediffusion</h2>
+     <p class="sh-sub">Colle un enregistrement de bataille : le fichier <b>.json</b> qu'une bataille d'agents écrit dans <code>battles/</code> (<code>llm battledrones run</code>, <code>tools/arena.ts</code>). Ou choisis le fichier.</p>
      <textarea id="replay-json" spellcheck="false" autocomplete="off" placeholder='{"v":1,"map":"riverlands",…}'></textarea>
-     <label class="cta alt replay-file">📂 Choose a file…<input type="file" accept=".json,application/json" hidden></label>
+     <label class="cta alt replay-file">📂 Choisir un fichier…<input type="file" accept=".json,application/json" hidden></label>
      <p class="sh-note replay-error" role="alert" hidden></p>
-     <div class="sh-actions"><button class="cta alt sheet-close">Cancel</button><button class="cta" id="replay-go">▶ Watch</button></div>`
+     <div class="sh-actions"><button class="cta alt sheet-close">Annuler</button><button class="cta" id="replay-go">▶ Regarder</button></div>`
   );
   const text = wrap.querySelector<HTMLTextAreaElement>("#replay-json")!;
   const error = wrap.querySelector<HTMLElement>(".replay-error")!;

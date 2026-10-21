@@ -485,7 +485,7 @@ describe("two phones pairing over PacketAir", () => {
         const s = ph.pairing.state();
         expect(s.phase).toBe("error");
         expect(s.error).toMatchObject({ kind: "version", older });
-        const which = older === "this" ? " (this phone's is older)" : older === "friend" ? " (your friend's is older)" : "";
+        const which = older === "this" ? " (celle de ce téléphone est plus ancienne)" : older === "friend" ? " (celle de ton ami est plus ancienne)" : "";
         expect(s.error!.message).toBe(VERSION_MESSAGE + which);
         expect(s.peer).toMatchObject({ role: ph === d.host ? "guest" : "host" });
         expect(ph.pairing.result()).toBeNull();

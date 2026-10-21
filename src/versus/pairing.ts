@@ -217,9 +217,9 @@ export const DELAY_MAX = 8;
  */
 export const DELAY_MARGIN_MS = 50;
 
-export const VERSION_MESSAGE = "These phones run different versions: reload both";
-export const FAILED_MESSAGE = "Pairing failed: tap to retry";
-export const NOTHING_HEARD_MESSAGE = "Nothing heard yet. One phone taps Host, the other Join";
+export const VERSION_MESSAGE = "Ces téléphones n'ont pas la même version : recharge les deux";
+export const FAILED_MESSAGE = "Échec de l'appairage : touche pour réessayer";
+export const NOTHING_HEARD_MESSAGE = "Rien entendu pour l'instant. Un téléphone touche Héberger, l'autre Rejoindre";
 
 const TYPE_LOBBY = 0b10;
 /** `hold` and `echo` saying nothing usable: no ping heard, or one heard too long ago. */
@@ -1057,7 +1057,7 @@ export class Pairing {
     if (this.versionError) return;
     this.restart(false);
     const older = head.proto === this.proto ? null : head.proto < this.proto ? "friend" : "this";
-    const which = older === "this" ? " (this phone's is older)" : older === "friend" ? " (your friend's is older)" : "";
+    const which = older === "this" ? " (celle de ce téléphone est plus ancienne)" : older === "friend" ? " (celle de ton ami est plus ancienne)" : "";
     this.versionError = { kind: "version", older, message: VERSION_MESSAGE + which };
   }
 

@@ -631,6 +631,11 @@ button {
   text-overflow: ellipsis;
   text-shadow: 0 1px 2px #000;
 }
+/* longer Belle Époque names ("Meudon", "Faucheux", "Montgolfière"): a touch narrower */
+.bb .nm.tight {
+  font-size: 9.5px;
+  letter-spacing: -0.4px;
+}
 .bb .cost {
   position: relative;
   font-size: 11px;
@@ -674,7 +679,7 @@ button {
   }
 }
 .bb.ready::after {
-  content: "PLACE";
+  content: "PLACER";
   position: absolute;
   top: 4px;
   left: 0;
@@ -1162,6 +1167,15 @@ button {
 .logo span {
   color: var(--gold);
   letter-spacing: 9px;
+}
+/* Panache: a Belle Époque serif title in gold */
+.logo.panache {
+  font-family: "Didot", "Bodoni 72", "Playfair Display", Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 8px;
+  color: var(--gold);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85), 0 0 36px rgba(255, 196, 97, 0.35);
 }
 .sub {
   color: #c3cde0;
@@ -4932,6 +4946,10 @@ button {
     font-size: 9.5px;
     letter-spacing: -0.2px;
   }
+  .bb .nm.tight {
+    font-size: 9px;
+    letter-spacing: -0.5px;
+  }
 }
 /* …and on 360–379 px phones too, just (9 × 35 + 8 × 3 ≤ 344) */
 @media (orientation: portrait) and (max-width: 379px) {
@@ -4944,6 +4962,10 @@ button {
   }
   .bb .nm {
     font-size: 9px;
+  }
+  .bb .nm.tight {
+    font-size: 8.5px;
+    letter-spacing: -0.5px;
   }
 }
 /* landscape phones under 400 px tall: the Base tab's nine buttons (five rows) fit the sidebar unscrolled */

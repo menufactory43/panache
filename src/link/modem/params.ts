@@ -48,7 +48,7 @@ export const MIN_RATE: Record<BandPlan, number> = { high: 44100, low: 24000 };
 /** Why a sample rate can't carry a plan, or null when it can. */
 export function rateProblem(sr: number, plan: BandPlan): string | null {
   if (Number.isInteger(sr) && sr % 100 === 0 && sr >= MIN_RATE[plan]) return null;
-  return `This phone's audio runs at ${sr} Hz, which the sound link can't use`;
+  return `L'audio de ce téléphone tourne à ${sr} Hz, inutilisable pour la liaison sonore`;
 }
 
 /** Durations in samples at one rate. */

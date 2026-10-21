@@ -6,7 +6,7 @@
  */
 import { BUILDINGS, ECONOMY, GOLIATH, TERRAIN } from "./balance";
 import { canPlaceBuilding, inBaseRange } from "./economy";
-import { anchoredGoliaths, inGoliathRing, overlapsGoliath } from "./goliath";
+import { UNIT_IN_THE_WAY, anchoredGoliaths, inGoliathRing, overlapsGoliath } from "./goliath";
 import { Terrain, type BuildingKind, type Faction, type World } from "./types";
 import { buildingAtTile, buildingCenter, domainOf, inBounds, terrainAt } from "./world";
 import { hypot } from "./fmath";
@@ -15,23 +15,23 @@ import { hypot } from "./fmath";
 function groundName(w: World, t: Terrain): string {
   switch (t) {
     case Terrain.Water:
-      return w.biome === "volcanic" ? "lava" : "water";
+      return w.biome === "volcanic" ? "la lave" : "l'eau";
     case Terrain.Deep:
-      return "open sea";
+      return "la haute mer";
     case Terrain.Rock:
-      return "rock";
+      return "la roche";
     case Terrain.Rough:
-      return { temperate: "mud", desert: "scree", arctic: "slush", volcanic: "cinders", tropical: "mudflat" }[w.biome];
+      return { temperate: "la boue", desert: "les éboulis", arctic: "la neige fondue", volcanic: "les cendres", tropical: "la vase" }[w.biome];
     case Terrain.Forest:
-      return "woods";
+      return "les bois";
     case Terrain.Scrap:
-      return "scrap";
+      return "le charbon";
     case Terrain.Crystal:
-      return "crystals";
+      return "le radium";
     case Terrain.Bridge:
-      return "a bridge";
+      return "un pont";
     case Terrain.Shallows:
-      return "a ford";
+      return "un gué";
     default:
       return TERRAIN[t].name.toLowerCase();
   }
@@ -65,17 +65,17 @@ export function placementBlocker(
       if (buildingAtTile(w, x, y)) building = true;
       else if (!TERRAIN[terrainAt(w, x, y)].buildable && ground === null) ground = terrainAt(w, x, y);
     }
-  if (offMap) return "Off the map";
+  if (offMap) return "Hors de la carte";
   // the most fundamental problem first: nothing nearby can be fixed by nudging
   if (!inBuildRange(w, faction, tx + size / 2, ty + size / 2) && (kind === "hq" || !inGoliathRing(w, faction, tx, ty, size)))
-    return "Too far from base";
-  if (ground !== null) return `Not on ${groundName(w, ground)}`;
-  if (building) return "Blocked";
+    return "Trop loin de la base";
+  if (ground !== null) return `Impossible sur ${groundName(w, ground)}`;
+  if (building) return "Bloqué";
   for (const u of w.units.values())
     if (domainOf(u) === "ground" && u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size)
-      return "Unit in the way";
-  if (overlapsGoliath(w, tx, ty, size)) return "Unit in the way";
-  return "Blocked"; // a rule this explainer doesn't know about yet
+      return UNIT_IN_THE_WAY;
+  if (overlapsGoliath(w, tx, ty, size)) return UNIT_IN_THE_WAY;
+  return "Bloqué"; // a rule this explainer doesn't know about yet
 }
 
 /**

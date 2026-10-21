@@ -264,7 +264,7 @@ describe("WorkletTransport", () => {
     tr.onError = (m) => errors.push(m);
     from({ t: "error", message: "no", fatal: false });
     tr.node.onprocessorerror?.call(tr.node, new Event("processorerror") as ErrorEvent);
-    expect(errors).toEqual(["no", "the sound link's audio processor failed"]);
+    expect(errors).toEqual(["no", "le processeur audio de la liaison sonore a échoué"]);
   });
 
   it("posts copies of the frames, checks the list where it is made, and posts the spec's messages", () => {
@@ -557,7 +557,7 @@ describe("the worklet's processor", () => {
     const out = new Float32Array(128).fill(1);
     expect(p.process([[new Float32Array(128)]], [[out]])).toBe(true);
     expect(out.every((v) => v === 0)).toBe(true);
-    expect(p.port.posted).toEqual([{ t: "error", message: "This phone's audio runs at 32000 Hz, which the sound link can't use", fatal: true }]);
+    expect(p.port.posted).toEqual([{ t: "error", message: "L'audio de ce téléphone tourne à 32000 Hz, inutilisable pour la liaison sonore", fatal: true }]);
   });
 
   it("takes the louder channel only when the other is over 40 dB quieter, never their sum; plays on every output channel", () => {
@@ -729,7 +729,7 @@ describe("the worklet's processor", () => {
       expect(p.process([[new Float32Array(128).fill(1e-3)]], [[out]])).toBe(true);
       expect(out.every((v) => v === 0)).toBe(true);
     }
-    expect(port.posted).toEqual([{ t: "error", message: "the modem stopped: boom", fatal: true }]);
+    expect(port.posted).toEqual([{ t: "error", message: "le modem s'est arrêté : boom", fatal: true }]);
   });
 
   it("posts the same fatal error for a fault turning what the modem reports into messages, rather than throwing out of process()", () => {
@@ -744,7 +744,7 @@ describe("the worklet's processor", () => {
       expect(p.process([[new Float32Array(128).fill(1e-3)]], [[out]])).toBe(true);
       expect(out.every((v) => v === 0)).toBe(true);
     }
-    expect(port.posted).toEqual([{ t: "error", message: "the modem stopped: boom", fatal: true }]);
+    expect(port.posted).toEqual([{ t: "error", message: "le modem s'est arrêté : boom", fatal: true }]);
   });
 
   it("never touches the modem's shared empty arrays", () => {

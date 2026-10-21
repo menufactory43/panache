@@ -3,6 +3,9 @@
 // + place a building (tap moves the ghost, tapping the ghost builds), queue
 // a Stinger, select it on the canvas, save it as squad 1 and order it around,
 // open an info card, pause/resume. Fails on any console error.
+// The Belle Époque HUD (src/ui/belle-hud.ts, the default) keeps the build bar in a
+// drawer behind 🔨 Construire: the flow opens it first; ?style=original drives the
+// classic bar (the style is read from the page).
 // --side=red plays the same flow as red against a blue AI (/?side=red, SOUND-DUEL.md
 // "Playing red"); every check asks the page which side it plays (window.__bd.player).
 // Usage: node tools/smoke.mjs [width] [height] [--shots] [url] [--side=red]
@@ -39,7 +42,7 @@ const target = new URL(urlArg ?? "http://localhost:8899/");
 if (side === "red") target.searchParams.set("side", "red");
 const url = target.href;
 
-const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((p) => existsSync(p));
+const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find((p) => existsSync(p));
 const browser = await chromium.launch({
   executablePath: exe,
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
@@ -94,16 +97,46 @@ await ff(60);
 const mining = await world(() => [...window.__bd.world.units.values()].some((u) => u.faction === window.__bd.player && u.kind === "harvester" && u.order.type === "harvest"));
 if (!mining) fail("starting harvester is not harvesting");
 
+// the HUD style: Panache's drawer and corner buttons, or the original build bar
+const belle = await world(() => document.documentElement.classList.contains("belle") && document.getElementById("hud").classList.contains("bh"));
+const sheetOpen = () => world(() => document.getElementById("hud").classList.contains("bh-sheet-open"));
+/** Belle: open the build drawer (🔨 Construire) unless it is open. */
+const openDrawer = async () => {
+  if (!belle || (await sheetOpen())) return;
+  await page.tap(".bh-build");
+  await page.waitForTimeout(300); // (the slide-in)
+  if (!(await sheetOpen())) fail("🔨 Construire did not open the build drawer");
+};
+const closeDrawer = async () => {
+  if (!belle || !(await sheetOpen())) return;
+  await page.tap(".bh-handle");
+  await page.waitForTimeout(300);
+  if (await sheetOpen()) fail("the drawer handle did not close the build drawer");
+};
+if (belle) {
+  // the pill opens its panel (relays, speed, sound) and closes again
+  await page.tap(".bh-pill");
+  if (await page.locator(".bh-drop").isHidden()) fail("tapping the pill did not open its panel");
+  if (!(await page.locator(".bh-drop #speed").count())) fail("the speed chip is not in the pill's panel");
+  await page.tap(".bh-pill");
+  if (await page.locator(".bh-drop").isVisible()) fail("tapping the pill again did not close its panel");
+}
+
 // 1. construct a Fab Plant from the build bar (real tap)
+await openDrawer();
 const btn = (name) => page.locator(".bb", { has: page.locator(".nm", { hasText: new RegExp(`^${name}$`) }) });
-await btn("Fab").tap();
+await btn("Forges").tap();
 await ff(2);
 const pending = await world(() => window.__bd.world.factions[window.__bd.player].pending?.kind);
 if (pending !== "fab-plant") fail(`Fab tap did not start construction (pending=${pending})`);
 await ff(110); // 10 s build
-await btn("Fab").tap(); // ready: enter placement mode
+await openDrawer();
+await btn("Forges").tap(); // ready: enter placement mode
 const placing = await world(() => window.__bd.ctrl.placing);
 if (placing !== "fab-plant") fail(`ready Fab tap did not enter placement (placing=${placing})`);
+// (the HUD closes it on its next frame)
+if (belle && !(await page.waitForFunction(() => !document.getElementById("hud").classList.contains("bh-sheet-open"), null, { timeout: 5000 }).then(() => true, () => false)))
+  fail("entering placement did not close the build drawer");
 // tap a valid spot near the HQ, found via the sim's own rules
 const spot = await world(() => {
   const { world: w, cam, toScreen } = window.__bd;
@@ -139,11 +172,14 @@ else {
 await shot("placed");
 
 // 2. queue a Stinger from the Vehicles tab
+await openDrawer();
 await page.locator(".tab[data-tab=ground]").tap();
-await btn("Stinger").tap();
+await btn("Panhard").tap();
 await ff(3);
 const queued = await world(() => [...window.__bd.world.buildings.values()].some((b) => b.kind === "fab-plant" && b.faction === window.__bd.player && b.queue.length > 0));
 if (!queued) fail("Stinger tap did not queue production");
+if (belle && !(await page.waitForFunction(() => document.querySelector(".bh-build .bh-badge")?.textContent === "1", null, { timeout: 5000 }).then(() => true, () => false))) fail("🔨 Construire's badge does not count the queued Stinger");
+await closeDrawer();
 await ff(80);
 const sid = await world(() => [...window.__bd.world.units.values()].find((u) => u.faction === window.__bd.player && u.kind === "stinger")?.id);
 if (!sid) fail("no Stinger was produced");
@@ -192,9 +228,25 @@ if (sid) {
   await shot("selected");
 }
 
+// ⚔ Armée (Belle) / "Toute l'armée" (original): selects the whole army
+await world(() => window.__bd.ctrl.clearSelection());
+await ff(1);
+const armySel = belle ? ".bh-army" : '.chip[data-id="army"]';
+if (await page.locator(armySel).count()) {
+  await page.tap(armySel);
+  await page.waitForTimeout(100);
+  const all = await world(() => {
+    const c = window.__bd.ctrl;
+    return c.armyIds().every((id) => c.selectedUnits.has(id)) && c.selectedUnits.size > 0;
+  });
+  if (!all) fail(`${armySel} did not select the army`);
+  await world(() => window.__bd.ctrl.clearSelection());
+} else fail(`no ${armySel} button`);
+
 // 4. long-press a build button: the info card opens
+await openDrawer();
 await page.locator(".tab[data-tab=air]").tap();
-const wasp = btn("Wasp");
+const wasp = btn("Éole");
 const box = await wasp.boundingBox();
 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 await page.mouse.down();
@@ -203,6 +255,7 @@ await page.mouse.up();
 if (await page.locator("#card").isHidden()) fail("long-press did not open the info card");
 await shot("card");
 await page.locator("#card-x").click();
+await closeDrawer();
 
 // 5. pause and resume
 await page.locator("#btn-menu").tap();

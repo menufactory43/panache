@@ -26,8 +26,8 @@ export interface DailyOp {
 
 const MS_DAY = 86_400_000;
 const EPOCH_DAY = Date.UTC(2026, 0, 1) / MS_DAY;
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+const MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 
 /** The local calendar date as a day index (so "today" flips at local midnight). */
 export function dayIndexOf(d: Date): number {

@@ -63,10 +63,10 @@ export class OpsPresenter {
     this.starsLostSeen |= st.starsLost;
     this.op.stars.forEach((g, i) => {
       const bit = 2 << i;
-      if (lost & bit) this.o.notify(`${starName(i)} lost: ${goalText(g, true).toLowerCase()}`, "bad", home.x, home.y);
+      if (lost & bit) this.o.notify(`${starName(i)} perdue : ${goalText(g, true).toLowerCase()}`, "bad", home.x, home.y);
       if (isAchieveGoal(g) && status.stars[i]!.eval.state === "done" && !(this.starsMetSeen & bit)) {
         this.starsMetSeen |= bit;
-        this.o.notify(`${starName(i)} secured: ${goalText(g, true).toLowerCase()}`, "good", home.x, home.y);
+        this.o.notify(`${starName(i)} acquise : ${goalText(g, true).toLowerCase()}`, "good", home.x, home.y);
       }
     });
     // the protected group shrinking
@@ -78,7 +78,7 @@ export class OpsPresenter {
       this.tagAlive.set(g.tag, alive);
       if (alive < before && alive >= g.min) {
         const at = st.lastTagDeath ?? home;
-        this.o.notify(`⚠ ${g.short ?? "Objective"}: ${alive} of ${ids.length} left — ${g.label.toLowerCase()}`, "bad", at.x, at.y);
+        this.o.notify(`⚠ ${g.short ?? "Objectif"} : ${alive} sur ${ids.length} restants — ${g.label.toLowerCase()}`, "bad", at.x, at.y);
       }
     }
     // countdowns and milestones
@@ -88,11 +88,11 @@ export class OpsPresenter {
         const hold = g.type === "survive";
         if (left === 60 && g.secs > 90)
           this.once(`t60:${g.type}`, () =>
-            announce({ key: "op-timer", text: hold ? "One minute to hold" : "One minute left", sub: this.op.title, tone: hold ? "info" : "bad", priority: 2 })
+            announce({ key: "op-timer", text: hold ? "Tiens encore une minute" : "Plus qu'une minute", sub: this.op.title, tone: hold ? "info" : "bad", priority: 2 })
           );
-        if (left === 15) this.once(`t15:${g.type}`, () => this.o.notify(hold ? "⏱ 15 seconds — hold on!" : "⏱ 15 seconds left!", hold ? "good" : "bad", home.x, home.y));
+        if (left === 15) this.once(`t15:${g.type}`, () => this.o.notify(hold ? "⏱ 15 secondes — tiens bon !" : "⏱ Plus que 15 secondes !", hold ? "good" : "bad", home.x, home.y));
       } else if (g.type === "deliver" && e.progress >= 0.5) {
-        this.once("half", () => this.o.notify(`⚙ Halfway: ${e.value} scrap`, "good", home.x, home.y));
+        this.once("half", () => this.o.notify(`⚙ À mi-chemin : ${e.value} charbon`, "good", home.x, home.y));
       } else if (g.type === "destroy") {
         const n = st.killed[g.kind] ?? 0;
         const key = this.kills.get(this.op.goals.indexOf(g)) ?? 0;
@@ -105,10 +105,10 @@ export class OpsPresenter {
   /** The banner at the finale's flash. */
   endAnnouncement(): Announcement {
     const r = this.w.ops?.result;
-    if (!r) return { key: "op-failed", text: "Op failed", tone: "bad", priority: 0 };
+    if (!r) return { key: "op-failed", text: "Op échouée", tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);
     return r.won
-      ? { key: "op-complete", text: "Op complete", sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
-      : { key: "op-failed", text: "Op failed", sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
+      ? { key: "op-complete", text: "Op réussie", sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
+      : { key: "op-failed", text: "Op échouée", sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
   }
 }

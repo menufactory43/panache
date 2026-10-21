@@ -133,7 +133,7 @@ describe("the island map", () => {
         expect(tiles / 2).toBeLessThanOrEqual(12);
       });
 
-      it("starts each side with a free Condor beside its HQ, its Trooper Squad aboard", () => {
+      it("starts each side with a free Montgolfière beside its HQ, its Trooper Squad aboard", () => {
         for (const f of ["blue", "red"] as const) {
           const [c, ...more] = own(w, f, "condor");
           expect(more).toHaveLength(0);
@@ -151,7 +151,7 @@ describe("the island map", () => {
         expect(rulesOf(w).mutators).toEqual([]);
       });
 
-      it("drops Air War, and doesn't double the Condor under Airborne", () => {
+      it("drops Air War, and doesn't double the Montgolfière under Airborne", () => {
         const aw = createMapWorld(def.id, { mutators: ["airwar", "veterans"] });
         expect(rulesOf(aw).mutators).toEqual(["veterans"]);
         const ab = createMapWorld(def.id, { mutators: ["airborne"] });
@@ -164,7 +164,7 @@ describe("island Uplinks", () => {
   const fresh = () => createMapWorld("archipelago", { objectives: true });
   const centre = (w: World) => w.objectives.uplinks.find((l) => l.x === 54 && l.y === 54)!;
 
-  it("count only robot infantry: aircraft, the Condor and hover tanks neither take nor freeze them", () => {
+  it("count only robot infantry: aircraft, the Montgolfière and hover tanks neither take nor freeze them", () => {
     const w = fresh();
     const l = centre(w);
     const red = (["condor", "scout", "wasp", "mender", "lancer", "stinger"] as const).map((k) => spawnUnit(w, k, "red", l.x + 0.5, l.y));
@@ -207,11 +207,11 @@ describe("island Uplinks", () => {
   });
 });
 
-describe("only a Condor reaches an island", () => {
+describe("only a Montgolfière reaches an island", () => {
   it("no Drop Pod lands on one, even with eyes on it", () => {
     const w = createMapWorld("archipelago", { mutators: ["clearskies"] });
     runTicks(w, 1); // (the fog's first pass)
-    expect(targetBlocker(w, "blue", "droppod", 56.5, 54.5)).toMatch(/islands/);
+    expect(targetBlocker(w, "blue", "droppod", 56.5, 54.5)).toMatch(/île/);
     const b = besideHq(w, "blue");
     expect(targetBlocker(w, "blue", "droppod", b.x + 4, b.y - 8)).toBeNull();
   });
@@ -235,7 +235,7 @@ describe("only a Condor reaches an island", () => {
   });
 });
 
-describe("the free replacement Condor", () => {
+describe("the free replacement Montgolfière", () => {
   const kill = (w: World, u: Unit) => {
     u.hp = 0;
     runTicks(w, 1);
@@ -272,7 +272,7 @@ describe("the free replacement Condor", () => {
     expect(Math.hypot(fresh!.x - route.to.x, fresh!.y - route.to.y)).toBeLessThan(1.5);
   });
 
-  it("brings no squad to a side that already has two, and never while a Condor is being built", () => {
+  it("brings no squad to a side that already has two, and never while a Montgolfière is being built", () => {
     const w = createMapWorld("archipelago");
     const [c] = own(w, "blue", "condor");
     spawnUnit(w, "trooper", "blue", besideHq(w, "blue").x, besideHq(w, "blue").y);
@@ -314,7 +314,7 @@ describe("the free replacement Condor", () => {
 });
 
 describe("island UX", () => {
-  it("a tap on an island with the loaded Condor selected drops its troops there", async () => {
+  it("a tap on an island with the loaded Montgolfière selected drops its troops there", async () => {
     const { Controller } = await import("../src/game/controller");
     const w = createMapWorld("archipelago", { objectives: true });
     const c = new Controller(w);
@@ -333,7 +333,7 @@ describe("island UX", () => {
     const tank = spawnUnit(w, "stinger", "blue", b.x, b.y);
     c.selectUnits([tank.id]);
     c.tapWorld(54.5, 54.5, { kind: "ground" });
-    expect(c.tip).toMatch(/Condor/);
+    expect(c.tip).toMatch(/Montgolfière/);
     expect(c.onIsland(54, 54)).toBe(true);
     expect(c.onIsland(Math.floor(b.x), Math.floor(b.y))).toBe(false);
   });
@@ -342,7 +342,7 @@ describe("island UX", () => {
     const { starsFor, starSecsFor, starLabelsFor } = await import("../src/game/career");
     expect(starSecsFor("archipelago")).toBe(720);
     expect(starSecsFor("riverlands")).toBe(480);
-    expect(starLabelsFor("archipelago")[1]).toBe("Win in under 12:00");
+    expect(starLabelsFor("archipelago")[1]).toBe("Victoire en moins de 12:00");
     const r = { kind: "skirmish" as const, mapId: "archipelago", difficulty: "normal", won: true, secs: 600, buildingsLost: 1, medals: [], mutators: [], daily: null };
     expect(starsFor(r)).toBe(3);
     expect(starsFor({ ...r, mapId: "riverlands" })).toBe(1);
@@ -415,10 +415,10 @@ describe("island taps (review fixes)", () => {
     c.tapWorld(54.5, 54.5, { kind: "enemy", id: foe.id, targetsAir: false });
     expect(c.drainCommands().some((k) => k.type === "attack")).toBe(false);
     expect(c.lastFeedback?.kind).not.toBe("attack");
-    expect(c.tip).toMatch(/Condor/);
+    expect(c.tip).toMatch(/Montgolfière/);
   });
 
-  it("a loaded Condor with an escort, tapped onto an island enemy: the escort attacks, the Condor drops", async () => {
+  it("a loaded Montgolfière with an escort, tapped onto an island enemy: the escort attacks, the Montgolfière drops", async () => {
     const { w, c } = await setup();
     const [condor] = own(w, "blue", "condor");
     const wasp = spawnUnit(w, "wasp", "blue", condor!.x + 1, condor!.y);
@@ -430,7 +430,7 @@ describe("island taps (review fixes)", () => {
     expect(cmds).toContainEqual({ type: "unload", faction: "blue", unitIds: [condor!.id], x: 54.5, y: 54.5 });
   });
 
-  it("tapping our own island garrison with a loaded Condor reinforces it instead of picking it up", async () => {
+  it("tapping our own island garrison with a loaded Montgolfière reinforces it instead of picking it up", async () => {
     const { w, c } = await setup();
     const [condor] = own(w, "blue", "condor");
     const garrison = spawnUnit(w, "rocket-squad", "blue", 54.5, 54.5);
@@ -441,7 +441,7 @@ describe("island taps (review fixes)", () => {
     expect(cmds).toContainEqual({ type: "unload", faction: "blue", unitIds: [condor!.id], x: 54.5, y: 54.5 });
   });
 
-  it("'tap the Condor, then the island' straight away keeps the squad boarding and drops it once aboard", async () => {
+  it("'tap the Montgolfière, then the island' straight away keeps the squad boarding and drops it once aboard", async () => {
     const { w, c } = await setup();
     const [condor] = own(w, "blue", "condor");
     // land the starting squad beside the HQ first

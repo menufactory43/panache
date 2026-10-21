@@ -46,7 +46,7 @@ function armada(side: Faction = "blue") {
   return { w, g, carriers };
 }
 
-describe("arena Goliath modes", () => {
+describe("arena Gargantua modes", () => {
   it.each(["pack_up", "pack"])("anchors and %s through both staging and simulation", (pack) => {
     const { w, g } = field();
     const staged = structuredClone(w);
@@ -74,27 +74,27 @@ describe("arena Goliath modes", () => {
     expect(batch.commands).toEqual([]);
     expect(batch.results).toHaveLength(4);
     for (const result of batch.results) expect(result).toContain("refused:");
-    expect(batch.results[2]).toMatch(/ground|Blocked/i);
-    expect(batch.results[3]).toMatch(/not anchored/i);
+    expect(batch.results[2]).toMatch(/sol|Bloqué/i);
+    expect(batch.results[3]).toMatch(/pas ancré/i);
     expect(g.goliath!.mode).toBe("walking");
 
     const lifted = armada();
     const blocked = parseOrders(lifted.w, "blue", [{ anchor: [lifted.g.id] }], "play");
     expect(blocked.commands).toEqual([]);
-    expect(blocked.results[0]).toMatch(/refused:.*lift/i);
+    expect(blocked.results[0]).toMatch(/refused:.*levage/i);
   });
 
   it("uses the staged mode to reject duplicate anchoring and packing", () => {
     const { w, g } = field();
     const batch = parseOrders(w, "blue", [{ anchor: [g.id] }, { anchor: [g.id] }, { pack_up: [g.id] }, { pack_up: [g.id] }], "play");
     expect(batch.commands.map((c) => c.type)).toEqual(["anchor", "packUp"]);
-    expect(batch.results[1]).toMatch(/refused:.*anchored/i);
-    expect(batch.results[3]).toMatch(/refused:.*packing/i);
+    expect(batch.results[1]).toMatch(/refused:.*ancré/i);
+    expect(batch.results[3]).toMatch(/refused:.*ancre/i);
   });
 });
 
-describe("arena Goliath lifts", () => {
-  it("hooks two own Condors onto a walking Goliath", () => {
+describe("arena Gargantua lifts", () => {
+  it("hooks two own Montgolfières onto a walking Gargantua", () => {
     const { w, g } = field();
     const a = spawnUnit(w, "condor", "blue", 17.5, 18.5);
     const b = spawnUnit(w, "condor", "blue", 23.5, 18.5);
@@ -132,12 +132,12 @@ describe("arena Goliath lifts", () => {
     const d = spawnUnit(base.w, "condor", "blue", 23.5, 18.5);
     const anchoredBatch = parseOrders(base.w, "blue", [{ lift: [c.id, d.id], goliath: base.g.id }], "play");
     expect(anchoredBatch.commands).toEqual([]);
-    expect(anchoredBatch.results[0]).toMatch(/refused:.*pack up/i);
+    expect(anchoredBatch.results[0]).toMatch(/refused:.*lève l'ancre/i);
   });
 
-  it.each(["goliath", "first Condor", "second Condor"])("lands an initial Armada lift by addressing its %s", (member) => {
+  it.each(["goliath", "first Montgolfière", "second Montgolfière"])("lands an initial Armada lift by addressing its %s", (member) => {
     const { w, g, carriers } = armada();
-    const id = member === "goliath" ? g.id : carriers[member === "first Condor" ? 0 : 1]!.id;
+    const id = member === "goliath" ? g.id : carriers[member === "first Montgolfière" ? 0 : 1]!.id;
     const staged = structuredClone(w);
     const batch = accepted(staged, [{ unload: [id] }]);
     expect(batch.commands).toEqual([{ type: "unload", faction: "blue", unitIds: [id] }]);
@@ -174,7 +174,7 @@ describe("arena Goliath lifts", () => {
     expect(sg.goliath!.lift).toMatchObject({ dest: destination, setDown: true });
   });
 
-  it("still unloads ordinary infantry from a Condor", () => {
+  it("still unloads ordinary infantry from a Montgolfière", () => {
     const { w } = field();
     const c = spawnUnit(w, "condor", "blue", 10.5, 10.5);
     const squad = spawnUnit(w, "trooper", "blue", 10.5, 10.5);
@@ -186,7 +186,7 @@ describe("arena Goliath lifts", () => {
     expect(w.units.get(squad.id)!.hp).toBe(UNITS.trooper.hp);
   });
 
-  it("refuses boarding a carrying Condor after staging a move", () => {
+  it("refuses boarding a carrying Montgolfière after staging a move", () => {
     const { w, g, carriers } = armada();
     const carrier = carriers[0]!;
     const squad = spawnUnit(w, "trooper", "blue", carrier.x, carrier.y);
@@ -204,7 +204,7 @@ describe("arena Goliath lifts", () => {
   });
 });
 
-describe("arena Goliath production and placement", () => {
+describe("arena Gargantua production and placement", () => {
   it.each([
     ["harvester", true], ["harvester", false], ["trooper", true], ["trooper", false]
   ] as const)("queues and cancels %s with explicit producer = %s", (kind, explicit) => {
@@ -230,7 +230,7 @@ describe("arena Goliath production and placement", () => {
     expect(w.factions.blue.scrap).toBe(before);
   });
 
-  it("finishes an accepted Goliath production order", () => {
+  it("finishes an accepted Gargantua production order", () => {
     const { w, g } = anchored();
     const batch = accepted(structuredClone(w), [{ produce: "harvester", at: g.id }]);
     step(w, batch.commands);
@@ -254,7 +254,7 @@ describe("arena Goliath production and placement", () => {
     expect(w.factions.blue.scrap).toBe(before);
   });
 
-  it("refuses production and rally at an enemy Goliath", () => {
+  it("refuses production and rally at an enemy Gargantua", () => {
     const { w, enemy } = anchored();
     const batch = parseOrders(w, "blue", [{ produce: "trooper", at: enemy.id }, { rally: enemy.id, to: [25, 25] }], "play");
     expect(batch.commands).toEqual([]);
@@ -263,7 +263,7 @@ describe("arena Goliath production and placement", () => {
     expect(enemy.goliath!.rally).toBeNull();
   });
 
-  it("automatically suggests a legal building spot around the first anchored Goliath with no buildings", () => {
+  it("automatically suggests a legal building spot around the first anchored Gargantua with no buildings", () => {
     const { w } = field();
     const g = spawnUnit(w, "goliath", "blue", 10.5, 30.5);
     expect(w.buildings.size).toBe(0);
@@ -283,7 +283,7 @@ describe("arena Goliath production and placement", () => {
 });
 
 describe("arena lifted target validation", () => {
-  it("treats a carried enemy Goliath as an air target", () => {
+  it("treats a carried enemy Gargantua as an air target", () => {
     const { w } = armada();
     const target = goliathsOf(w, "red")[0]!;
     const ground = spawnUnit(w, "stinger", "blue", 15.5, 15.5);

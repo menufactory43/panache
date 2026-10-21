@@ -99,70 +99,70 @@ export interface BuildingStats extends ArmedStats {
  */
 export const UNITS: Record<UnitKind, UnitStats> = {
   harvester: {
-    name: "Harvester", role: "Mines scrap and crystal. Keep it safe.",
+    name: "Fardier", role: "Extrait charbon et radium. Protège-le.",
     cost: 150, hp: 250, speed: 1.6, sight: 4, domain: "ground", armor: "medium",
     targets: "none", dps: 0, range: 0,
     buildTime: 10, builtAt: "hq", radius: 0.45
   },
   scout: {
-    name: "Scout", role: "Fast flying eyes. Unarmed.",
+    name: "Patrie", role: "Dirigeable de reconnaissance rapide. Non armée.",
     cost: 75, hp: 60, speed: 4.8, sight: 9, domain: "air", armor: "light",
     targets: "none", dps: 0, range: 0,
     buildTime: 4, builtAt: "airpad", radius: 0.3
   },
   stinger: {
-    name: "Stinger", role: "Fast light tank. Beats Flak and Mortars. Can't hit air.",
+    name: "Panhard", role: "Automitrailleuse rapide. Bat la DCA et les Canons de 75. Ne tire pas en l'air.",
     cost: 150, hp: 255, speed: 2.3, sight: 5, domain: "ground", armor: "medium",
     targets: "ground", dps: 22, range: 3.2, shotInterval: 0.6, dmgType: "kinetic", fx: "cannon",
     buildTime: 7, builtAt: "fab-plant", turret: true, radius: 0.38
   },
   "flak-crawler": {
-    name: "Flak Crawler", role: "Anti-air. Shreds drones. Helpless vs ground.",
+    name: "Faucheux", role: "Antiaérien. Déchiquette les aéronefs. Impuissant au sol.",
     cost: 190, hp: 285, speed: 1.9, sight: 6, domain: "ground", armor: "medium",
     targets: "air", dps: 31, range: 5, shotInterval: 0.3, dmgType: "flak", fx: "flak",
     buildTime: 8, builtAt: "fab-plant", turret: true, radius: 0.4
   },
   mortar: {
-    name: "Mortar", role: "Long-range splash artillery. Razes bases. Fragile up close.",
+    name: "Canon de 75", role: "Artillerie à zone longue portée. Rase les bases. Fragile de près.",
     cost: 275, hp: 195, speed: 1.5, sight: 6, domain: "ground", armor: "light",
     targets: "ground", dps: 18, range: 8, minRange: 2.5, shotInterval: 3,
     splash: 1.1, projectileSpeed: 5.5, dmgType: "explosive", fx: "shell",
     buildTime: 10, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.42
   },
   mastodon: {
-    name: "Mastodon", role: "Super-heavy tank. Crushes light armies. Can't hit air.",
+    name: "Creusot", role: "Char super-lourd. Écrase les armées légères. Ne tire pas en l'air.",
     cost: 475, hp: 1050, speed: 1.2, sight: 6, domain: "ground", armor: "heavy",
     targets: "ground", dps: 46, range: 4, shotInterval: 1.2, dmgType: "cannon", fx: "heavy-cannon",
     buildTime: 15, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.55
   },
   lancer: {
-    name: "Lancer", role: "Hover laser tank. Burns through armour, hits air too. Crosses water.",
+    name: "Hydroglisseur", role: "Glisseur à arc électrique. Perce le blindage, touche l'air. Traverse l'eau.",
     cost: 275, hp: 405, speed: 2.5, sight: 6, domain: "ground", armor: "medium",
     hover: true,
     targets: "both", dps: 28, range: 4.5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.65,
     buildTime: 11, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.42
   },
   wasp: {
-    name: "Wasp", role: "Strike drone. Rockets ground targets. Dies to Flak.",
+    name: "Éole", role: "Aéronef d'attaque. Roquettes sur cibles au sol. Craint la DCA.",
     cost: 200, hp: 205, speed: 3.6, sight: 6, domain: "air", armor: "light",
     targets: "ground", dps: 28, range: 3, shotInterval: 1, dmgType: "missile", fx: "rockets",
     buildTime: 8, builtAt: "airpad", radius: 0.35
   },
   raptor: {
-    name: "Raptor", role: "Interceptor. Hunts air units. Can't hit ground.",
+    name: "Blériot", role: "Intercepteur. Chasse les unités aériennes. Ne tire pas au sol.",
     cost: 250, hp: 265, speed: 4.1, sight: 7, domain: "air", armor: "medium",
     targets: "air", dps: 32, range: 4, shotInterval: 0.8, dmgType: "missile", fx: "missile",
     buildTime: 9, builtAt: "airpad", radius: 0.38
   },
   hornet: {
-    name: "Hornet", role: "Heavy bomber. Carpet-bombs ground and bases. Needs escort.",
+    name: "Albatros", role: "Bombardier lourd. Tapis de bombes sur sol et bases. Escorte requise.",
     cost: 375, hp: 505, speed: 2.1, sight: 6, domain: "air", armor: "heavy",
     targets: "ground", dps: 36, range: 1.6, shotInterval: 2, splash: 1.1,
     projectileSpeed: 5, dmgType: "explosive", fx: "bomb",
     buildTime: 14, builtAt: "airpad", requires: "tech-lab", radius: 0.5
   },
   mender: {
-    name: "Mender", role: "Repair drone. Heals nearby units and buildings.",
+    name: "Pasteur", role: "Aéronef de réparation. Soigne unités et bâtiments proches.",
     cost: 150, hp: 180, speed: 3.2, sight: 6, domain: "air", armor: "light",
     targets: "none", dps: 0, range: 3, heal: 10,
     buildTime: 7, builtAt: "airpad", radius: 0.32
@@ -171,7 +171,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // (tuned down from the spec's 225 HP / 18 DPS: cost for cost those beat Stingers by
   // 0.48 in tools/balance.ts duels; Stingers are meant to handle infantry)
   trooper: {
-    name: "Trooper Squad", role: "Cheap rifle bots. Hit ground and air. Take cover in woods.",
+    name: "Escouade de pioupious", role: "Automates fusiliers bon marché. Tirent sol et air. À couvert dans les bois.",
     cost: 100, hp: 190, speed: 1.8, sight: 5, domain: "ground", armor: "infantry",
     targets: "both", dps: 15, range: 3, shotInterval: 0.4, dmgType: "kinetic", fx: "rifle", airMult: 0.5,
     buildTime: 6, builtAt: "assembly-bay", radius: 0.4, squad: 5
@@ -179,20 +179,20 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // (the spec's 180 HP and 0.8× vs air lost to Hornets by 0.59 cost for cost — their bombs
   // splash whole clumps of squads; 210 HP and 1.5× vs air kill them, as the role says)
   "rocket-squad": {
-    name: "Rocket Squad", role: "Anti-armour rockets. Kill Mastodons and Hornets. Weak vs infantry.",
+    name: "Escouade d'artificiers", role: "Roquettes antichar. Tuent Creusot et Albatros. Faibles contre l'infanterie.",
     cost: 175, hp: 210, speed: 1.6, sight: 6, domain: "ground", armor: "infantry",
     targets: "both", dps: 26, range: 4, shotInterval: 1.5, dmgType: "cannon", fx: "rockets", airMult: 1.5,
     buildTime: 9, builtAt: "assembly-bay", radius: 0.4, squad: 3
   },
   sniper: {
-    name: "Sniper Team", role: "Long-range marksmen. Delete infantry. Useless vs vehicles.",
+    name: "Section de chasseurs alpins", role: "Tireurs d'élite longue portée. Effacent l'infanterie. Inutiles contre les véhicules.",
     cost: 200, hp: 120, speed: 1.7, sight: 8, domain: "ground", armor: "infantry",
     // 50 per shot; precision ×3 vs infantry = 150 (about three Trooper robots)
     targets: "ground", dps: 20, range: 7, shotInterval: 2.5, dmgType: "precision", fx: "snipe",
     buildTime: 10, builtAt: "assembly-bay", requires: "tech-lab", radius: 0.35, squad: 2
   },
   condor: {
-    name: "Condor", role: "Dropship. Carries two infantry squads over anything. Unarmed.",
+    name: "Montgolfière", role: "Transport. Emporte deux escouades par-dessus tout. Non armée.",
     cost: 200, hp: 400, speed: 3.6, sight: 6, domain: "air", armor: "medium",
     targets: "none", dps: 0, range: 0,
     buildTime: 9, builtAt: "airpad", radius: 0.5, capacity: 2
@@ -201,7 +201,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // summarise them for estimates and tooltips (every weapon's DPS together,
   // the mortars' reach). Cost is the first one's: each costs GOLIATH.costStep more.
   goliath: {
-    name: "Goliath", role: "Giant walking mech and mobile base. Anchor it to build, train and unload anywhere.",
+    name: "Gargantua", role: "Machine géante qui marche, et base mobile. Ancre-la pour construire, produire et débarquer partout.",
     cost: 1600, hp: 3000, speed: 1.0, sight: 10, domain: "ground", armor: "heavy",
     targets: "both", dps: 125, range: 8,
     buildTime: 60, builtAt: "gantry", radius: 1.0, alwaysVisible: true
@@ -210,53 +210,53 @@ export const UNITS: Record<UnitKind, UnitStats> = {
 
 export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
   hq: {
-    name: "HQ", role: "Command centre. Builds Harvesters, takes scrap. Lose it and every Goliath, lose the game.",
+    name: "GQG", role: "Grand Quartier Général. Produit des Fardiers, reçoit le charbon. Perds-le avec tous tes Gargantuas, et c'est la défaite.",
     cost: 0, hp: 3200, sight: 7, size: 3, buildTime: 0, dropOff: true,
     // point defence: swats early drone raids, leaves ground assaults to real defences
     targets: "air", dps: 9, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "mg"
   },
   "fab-plant": {
-    name: "Fab Plant", role: "Builds ground vehicles.",
+    name: "Forges", role: "Produisent les véhicules terrestres.",
     cost: 300, hp: 1000, sight: 4, size: 2, buildTime: 10,
     targets: "none", dps: 0, range: 0
   },
   airpad: {
-    name: "Airpad", role: "Builds flying drones.",
+    name: "Parc de Chalais-Meudon", role: "Produit les aéronefs.",
     cost: 350, hp: 850, sight: 4, size: 2, buildTime: 12,
     targets: "none", dps: 0, range: 0
   },
   "tech-lab": {
-    name: "Tech Lab", role: "Unlocks Mortar, Mastodon, Lancer, Hornet and Sniper.",
+    name: "Polytechnique", role: "Débloque Canon de 75, Creusot, Hydroglisseur, Albatros et Chasseurs alpins.",
     cost: 450, hp: 800, sight: 4, size: 2, buildTime: 20, requires: ["fab-plant", "airpad", "assembly-bay"],
     targets: "none", dps: 0, range: 0
   },
   depot: {
-    name: "Depot", role: "Forward scrap drop-off. Build it near distant fields.",
+    name: "Halles", role: "Point de dépôt avancé. À bâtir près des gisements éloignés.",
     cost: 250, hp: 800, sight: 4, size: 2, buildTime: 10, dropOff: true,
     targets: "none", dps: 0, range: 0
   },
   turret: {
-    name: "Turret", role: "Autocannon defence. Hits ground and air.",
+    name: "Hotchkiss", role: "Mitrailleuse de défense. Tire sol et air.",
     cost: 225, hp: 650, sight: 6, size: 1, buildTime: 8,
     targets: "both", dps: 26, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "cannon"
   },
   "sam-site": {
-    name: "SAM Site", role: "Long-range anti-air missiles.",
+    name: "Batterie Ruggieri", role: "Missiles antiaériens longue portée.",
     cost: 275, hp: 560, sight: 7, size: 1, buildTime: 9,
     targets: "air", dps: 32, range: 6.5, shotInterval: 1.2, dmgType: "missile", fx: "missile"
   },
   radar: {
-    name: "Radar", role: "Reveals a wide area through the fog.",
+    name: "Tour TSF", role: "Révèle une vaste zone à travers le brouillard.",
     cost: 200, hp: 450, sight: 13, size: 1, buildTime: 8,
     targets: "none", dps: 0, range: 0
   },
   "assembly-bay": {
-    name: "Assembly Bay", role: "Builds robot infantry.",
+    name: "Manufacture", role: "Produit l'infanterie automate.",
     cost: 250, hp: 700, sight: 4, size: 2, buildTime: 15,
     targets: "none", dps: 0, range: 0
   },
   gantry: {
-    name: "Gantry", role: "Builds the Goliath. One per side, and the enemy can always see it.",
+    name: "Galerie des Machines", role: "Construit le Gargantua. Une par camp, toujours visible par l'ennemi.",
     cost: 600, hp: 1200, sight: 5, size: 3, buildTime: 25,
     requiresAll: ["fab-plant", "airpad", "tech-lab", "assembly-bay"], unique: true, alwaysVisible: true,
     targets: "none", dps: 0, range: 0
@@ -293,17 +293,17 @@ export interface TerrainInfo {
 }
 
 export const TERRAIN: Record<Terrain, TerrainInfo> = {
-  [Terrain.Ground]: { name: "Ground", ground: true, hover: true, speed: 1, hoverSpeed: 1, footSpeed: 1, buildable: true, cover: 1 },
-  [Terrain.Rock]: { name: "Rock", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 },
-  [Terrain.Scrap]: { name: "Scrap field", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
-  [Terrain.Water]: { name: "Water", ground: false, hover: true, speed: 0, hoverSpeed: 1, footSpeed: 0, buildable: false, cover: 1 },
-  [Terrain.Road]: { name: "Road", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: true, cover: 1 },
-  [Terrain.Rough]: { name: "Rough ground", ground: true, hover: true, speed: 0.6, hoverSpeed: 1, footSpeed: 1, buildable: false, cover: 1 },
-  [Terrain.Forest]: { name: "Woods", ground: true, hover: true, speed: 0.55, hoverSpeed: 0.6, footSpeed: 1, buildable: false, cover: 0.7 },
-  [Terrain.Crystal]: { name: "Crystal field", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
-  [Terrain.Bridge]: { name: "Bridge", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: false, cover: 1 },
-  [Terrain.Shallows]: { name: "Shallows", ground: true, hover: true, speed: 0.5, hoverSpeed: 1, footSpeed: 0.8, buildable: false, cover: 1 },
-  [Terrain.Deep]: { name: "Open sea", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 }
+  [Terrain.Ground]: { name: "Sol", ground: true, hover: true, speed: 1, hoverSpeed: 1, footSpeed: 1, buildable: true, cover: 1 },
+  [Terrain.Rock]: { name: "Rocher", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 },
+  [Terrain.Scrap]: { name: "Gisement de charbon", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
+  [Terrain.Water]: { name: "Eau", ground: false, hover: true, speed: 0, hoverSpeed: 1, footSpeed: 0, buildable: false, cover: 1 },
+  [Terrain.Road]: { name: "Route", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: true, cover: 1 },
+  [Terrain.Rough]: { name: "Terrain accidenté", ground: true, hover: true, speed: 0.6, hoverSpeed: 1, footSpeed: 1, buildable: false, cover: 1 },
+  [Terrain.Forest]: { name: "Bois", ground: true, hover: true, speed: 0.55, hoverSpeed: 0.6, footSpeed: 1, buildable: false, cover: 0.7 },
+  [Terrain.Crystal]: { name: "Gisement de radium", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
+  [Terrain.Bridge]: { name: "Pont", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: false, cover: 1 },
+  [Terrain.Shallows]: { name: "Hauts-fonds", ground: true, hover: true, speed: 0.5, hoverSpeed: 1, footSpeed: 0.8, buildable: false, cover: 1 },
+  [Terrain.Deep]: { name: "Haute mer", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 }
 };
 
 /**
@@ -571,21 +571,21 @@ export const GOLIATH = {
     // only edged it, −0.14 in tools/balance.ts goliath duels; at 0.9, −0.39,
     // a real answer like Lancers, Wasps and Hornets, and it still beats Troopers.)
     mortars: {
-      name: "Mortars", lostBelow: 0.75,
+      name: "Mortiers", lostBelow: 0.75,
       targets: "ground", dps: 36, range: 8, minRange: 2.5, shotInterval: 1.5,
       splash: 0.9, projectileSpeed: 5.5, dmgType: "explosive", fx: "shell"
     },
     laser: {
-      name: "Eye laser", lostBelow: 0.5,
+      name: "Arc électrique oculaire", lostBelow: 0.5,
       targets: "both", dps: 28, range: 4.5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.65
     },
     // two arm cannons taking turns: a Mastodon's damage, half a shell at a time
     cannons: {
-      name: "Arm cannons", lostBelow: 0.25,
+      name: "Canons de bras", lostBelow: 0.25,
       targets: "ground", dps: 46, range: 4, shotInterval: 0.6, dmgType: "cannon", fx: "heavy-cannon"
     },
     mg: {
-      name: "Machine guns", lostBelow: 0,
+      name: "Mitrailleuses", lostBelow: 0,
       targets: "both", dps: 15, range: 3, shotInterval: 0.4, dmgType: "kinetic", fx: "mg", airMult: 0.5
     }
   } as Record<"mortars" | "laser" | "cannons" | "mg", GoliathWeaponStats>,

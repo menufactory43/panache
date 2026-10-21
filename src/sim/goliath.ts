@@ -6,6 +6,9 @@ import type { Command, Faction, GoliathMode, GoliathWeapon, Unit, UnitKind, Worl
 import { buildingCenter, hqOf, inBounds, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
 import { hypot } from "./fmath";
 
+/** Placement refused because a ground unit stands there (it may move off: callers compare with this). */
+export const UNIT_IN_THE_WAY = "Une unité gêne";
+
 /**
  * The Goliath (GOLIATH.md): a giant walking mech that is also a mobile base.
  *
@@ -160,20 +163,20 @@ export function anchorFootprint(w: World, faction: Faction, x: number, y: number
  */
 export function anchorBlocker(w: World, u: Unit): string | null {
   const g = u.goliath;
-  if (!g) return "Not a Goliath";
-  if (g.lift) return "On a lift";
-  if (g.mode === "anchored" || g.mode === "anchoring") return "Already anchored";
-  if (g.mode === "packing") return "Packing up";
+  if (!g) return "Pas un Gargantua";
+  if (g.lift) return "En cours de levage";
+  if (g.mode === "anchored" || g.mode === "anchoring") return "Déjà ancré";
+  if (g.mode === "packing") return "Levée de l'ancre en cours";
   const { tx, ty, size } = anchorFootprint(w, u.faction, u.x, u.y);
   for (let dy = 0; dy < size; dy++)
     for (let dx = 0; dx < size; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      if (!inBounds(w, x, y)) return "Off the map";
-      if (w.occupancy[y * w.width + x] !== 0) return "Blocked"; // (a building, or another dug-in Goliath)
-      if (!TERRAIN[terrainAt(w, x, y)].buildable) return "Needs open ground";
+      if (!inBounds(w, x, y)) return "Hors de la carte";
+      if (w.occupancy[y * w.width + x] !== 0) return "Bloqué"; // (a building, or another dug-in Goliath)
+      if (!TERRAIN[terrainAt(w, x, y)].buildable) return "Sol dégagé requis";
     }
-  if (blocksObjective(w, tx, ty, size)) return "Blocked";
+  if (blocksObjective(w, tx, ty, size)) return "Bloqué";
   for (const o of w.units.values())
     if (
       o.id !== u.id &&
@@ -182,7 +185,7 @@ export function anchorBlocker(w: World, u: Unit): string | null {
       o.x >= tx && o.x < tx + size &&
       o.y >= ty && o.y < ty + size
     )
-      return "Unit in the way";
+      return UNIT_IN_THE_WAY;
   return null;
 }
 
@@ -200,9 +203,9 @@ export function modeProgress(u: Unit): number {
 /** Why Goliath `u` can't pack up now (null: it can). */
 export function packUpBlocker(u: Unit): string | null {
   const g = u.goliath;
-  if (!g) return "Not a Goliath";
-  if (g.mode === "walking") return "Not anchored";
-  if (g.mode === "packing") return "Packing up";
+  if (!g) return "Pas un Gargantua";
+  if (g.mode === "walking") return "Pas ancré";
+  if (g.mode === "packing") return "Levée de l'ancre en cours";
   return null;
 }
 
@@ -439,14 +442,14 @@ export function anchorBlockedAt(w: World, faction: Faction, x: number, y: number
     for (let dx = 0; dx < size; dx++) {
       const fx = tx + dx;
       const fy = ty + dy;
-      if (!inBounds(w, fx, fy)) return "Off the map";
-      if (w.occupancy[fy * w.width + fx] !== 0) return "Blocked"; // (a building, or another dug-in Goliath)
-      if (!TERRAIN[terrainAt(w, fx, fy)].buildable) return "Needs open ground";
+      if (!inBounds(w, fx, fy)) return "Hors de la carte";
+      if (w.occupancy[fy * w.width + fx] !== 0) return "Bloqué"; // (a building, or another dug-in Goliath)
+      if (!TERRAIN[terrainAt(w, fx, fy)].buildable) return "Sol dégagé requis";
     }
-  if (blocksObjective(w, tx, ty, size)) return "Blocked";
+  if (blocksObjective(w, tx, ty, size)) return "Bloqué";
   for (const o of w.units.values())
     if (o.id !== selfId && UNITS[o.kind].domain === "ground" && !isLifted(o) && o.x >= tx && o.x < tx + size && o.y >= ty && o.y < ty + size)
-      return "Unit in the way";
+      return UNIT_IN_THE_WAY;
   return null;
 }
 

@@ -68,17 +68,17 @@ export interface DuelOverlay {
 }
 
 const STALL_TEXT: Record<StallKind, { text: string; sub: string | null }> = {
-  wait: { text: "Waiting for your friend…", sub: null },
-  load: { text: "Waiting for your friend to load…", sub: null },
-  paused: { text: "Friend paused", sub: "or switched away" },
-  lost: { text: "Signal lost: bring the phones closer", sub: null }
+  wait: { text: "En attente de ton ami…", sub: null },
+  load: { text: "Ton ami charge la partie…", sub: null },
+  paused: { text: "Ton ami a mis en pause", sub: "ou a changé d'appli" },
+  lost: { text: "Signal perdu : rapproche les téléphones", sub: null }
 };
 
 const COVER_TEXT: Record<ReconnectPhase, { text: string; sub: string }> = {
-  lost: { text: "Tap to reconnect the sound link", sub: "The phone stopped its microphone or sound" },
-  trying: { text: "Reconnecting…", sub: "Allow the microphone if asked" },
-  failed: { text: "That didn't work: tap to try again", sub: "Allow the microphone if asked" },
-  settling: { text: "Listening…", sub: "The match goes on in a moment" }
+  lost: { text: "Touche pour reconnecter la liaison sonore", sub: "Le téléphone a coupé son micro ou son son" },
+  trying: { text: "Reconnexion…", sub: "Autorise le micro si demandé" },
+  failed: { text: "Échec : touche pour réessayer", sub: "Autorise le micro si demandé" },
+  settling: { text: "Écoute…", sub: "La partie reprend dans un instant" }
 };
 
 /** The cover's words for a phase: after a failed tap, `why` in place of the generic line when there is one. */
@@ -96,9 +96,9 @@ export function mountDuelOverlay(root: HTMLElement, hooks: OverlayHooks): DuelOv
   stack.dataset.edgeAvoid = "";
   stack.innerHTML = `
     <div class="duel-pill duel-stall" hidden><b></b><small hidden></small><button class="duel-leave" hidden></button></div>
-    <div class="duel-pill duel-small duel-queued" hidden>Orders queued</div>
-    <div class="duel-pill duel-small duel-resigning" hidden>Resigning…</div>
-    <div class="duel-pill duel-small duel-leaving" hidden>Leaving…</div>`;
+    <div class="duel-pill duel-small duel-queued" hidden>Ordres en attente</div>
+    <div class="duel-pill duel-small duel-resigning" hidden>Abandon…</div>
+    <div class="duel-pill duel-small duel-leaving" hidden>Départ…</div>`;
   root.appendChild(stack);
   const cover = document.createElement("div");
   cover.className = "duel-cover";
@@ -107,7 +107,7 @@ export function mountDuelOverlay(root: HTMLElement, hooks: OverlayHooks): DuelOv
     <div class="duel-cover-box" role="button" tabindex="0">
       <span class="duel-cover-icon">🔊</span><b></b><small></small>
     </div>
-    <button class="cta alt warn duel-cover-leave" hidden>Leave (no result)</button>`;
+    <button class="cta alt warn duel-cover-leave" hidden>Quitter (sans résultat)</button>`;
   root.appendChild(cover);
 
   const q = <T extends HTMLElement>(el: HTMLElement, sel: string) => el.querySelector<T>(sel)!;
@@ -134,7 +134,7 @@ export function mountDuelOverlay(root: HTMLElement, hooks: OverlayHooks): DuelOv
       return;
     }
     armedUntil = now + 3000;
-    btn.textContent = "Tap again to leave";
+    btn.textContent = "Touche encore pour quitter";
   };
   stallLeave.addEventListener("click", () => leaveTap(stallLeave));
   coverLeave.addEventListener("click", (e) => {
@@ -160,7 +160,7 @@ export function mountDuelOverlay(root: HTMLElement, hooks: OverlayHooks): DuelOv
         stall.classList.toggle("bad", s.stall.kind === "lost");
       }
       stallLeave.hidden = !s.stall?.leave;
-      if (!armed) stallLeave.textContent = "Leave (no result)";
+      if (!armed) stallLeave.textContent = "Quitter (sans résultat)";
       queued.hidden = !s.queued || s.leaving;
       resigning.hidden = !s.resigning || s.leaving;
       leaving.hidden = !s.leaving;
@@ -172,7 +172,7 @@ export function mountDuelOverlay(root: HTMLElement, hooks: OverlayHooks): DuelOv
         cover.classList.toggle("busy", s.reconnect.phase === "trying" || s.reconnect.phase === "settling");
       }
       coverLeave.hidden = !s.reconnect?.leave;
-      if (!armed) coverLeave.textContent = "Leave (no result)";
+      if (!armed) coverLeave.textContent = "Quitter (sans résultat)";
     },
     destroy() {
       stack.remove();
@@ -204,12 +204,12 @@ export interface DuelReportView {
 }
 
 const SYNC_TEXT: Record<DuelReportView["sync"], { text: string; cls: string }> = {
-  pending: { text: "Checking sync…", cls: "pending" },
-  ok: { text: "In sync ✓", cls: "ok" },
-  unverified: { text: "Not verified", cls: "pending" },
-  desync: { text: "Out of sync: no contest", cls: "bad" },
-  left: { text: "Friend left: no result", cls: "bad" },
-  lost: { text: "You left: no result", cls: "bad" }
+  pending: { text: "Vérification de la synchro…", cls: "pending" },
+  ok: { text: "Synchro OK ✓", cls: "ok" },
+  unverified: { text: "Non vérifié", cls: "pending" },
+  desync: { text: "Désynchronisé : partie nulle", cls: "bad" },
+  left: { text: "Ton ami est parti : sans résultat", cls: "bad" },
+  lost: { text: "Tu es parti : sans résultat", cls: "bad" }
 };
 
 const secs = (ms: number) => (ms < 10_000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms / 1000)} s`);
@@ -219,8 +219,8 @@ const span = (ms: number) => (ms < 1000 ? `${Math.round(ms)} ms` : secs(ms));
 /** The order delay's rows: "Order delay" "620 ms average" and "Slowest order" "1.4 s" ("–" before any order). */
 export function orderRows(o: DuelReportView["link"]["orders"]): [string, string][] {
   return [
-    ["Order delay", o ? `${span(o.meanMs)} average` : "–"],
-    ["Slowest order", o ? span(o.worstMs) : "–"]
+    ["Délai des ordres", o ? `${span(o.meanMs)} en moyenne` : "–"],
+    ["Ordre le plus lent", o ? span(o.worstMs) : "–"]
   ];
 }
 
@@ -231,7 +231,7 @@ function syncLine(v: DuelReportView): string {
 
 /** What changes while the report is up: the end check, the friend back in the lobby, the reconnect. */
 function liveLines(v: DuelReportView): string {
-  const back = v.friendInLobby ? `<p class="duel-back">Your friend is back in the lobby: tap Rematch</p>` : "";
+  const back = v.friendInLobby ? `<p class="duel-back">Ton ami est de retour dans le salon : touche Revanche</p>` : "";
   return syncLine(v) + back + relinkLine(v);
 }
 
@@ -249,8 +249,8 @@ function relinkLine(v: DuelReportView): string {
 function recordLine(v: DuelReportView): string {
   // (a practice link keeps no record)
   return v.record === null
-    ? `<p class="duel-rec">Practice link (no sound): no record kept</p>`
-    : `<p class="duel-rec">Your record: <b>${v.record}</b></p>`;
+    ? `<p class="duel-rec">Liaison d'entraînement (sans son) : aucun bilan enregistré</p>`
+    : `<p class="duel-rec">Ton bilan : <b>${v.record}</b></p>`;
 }
 
 /**
@@ -269,11 +269,11 @@ export function duelReportSection(view: () => DuelReportView, hooks: Pick<Overla
     render: () => {
       const v = view();
       const l = v.link;
-      return `<h3 class="duel-h">🔊 Sound duel</h3>
+      return `<h3 class="duel-h">🔊 Duel sonore</h3>
         <div class="duel-live">${liveLines(v)}${recordLine(v)}</div>
         <table class="duel-link">
-          <tr><td>Packets heard</td><td>${l.good} good · ${l.bad} bad</td></tr>
-          <tr><td>Waiting on the link</td><td>${secs(l.stallMs)}</td></tr>
+          <tr><td>Paquets reçus</td><td>${l.good} bons · ${l.bad} mauvais</td></tr>
+          <tr><td>Attente de la liaison</td><td>${secs(l.stallMs)}</td></tr>
           ${orderRows(l.orders).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
         </table>`;
     },

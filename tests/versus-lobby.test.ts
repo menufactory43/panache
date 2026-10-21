@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("../src/versus/feed", () => ({ VersusFeed: class {} }));
 
 import type { ModemStats } from "../src/link/modem/core";
-import { RigError, RigLink, type MicMode } from "../src/link/rig";
+import { RIG_MESSAGES, RigError, RigLink, type MicMode } from "../src/link/rig";
 import { WorkletTransport } from "../src/link/worklet-transport";
 import type { FromWorklet } from "../src/link/worklet-protocol";
 import { PacketAir } from "../src/link/packet-air";
 import type { BandPlan, BandRole, LinkStats, LinkTransport } from "../src/link/transport";
 import { worldHash } from "../src/sim/checksum";
+import { PLURALS } from "../src/sim/lexicon";
 import type { World } from "../src/sim/types";
 import {
   GAIN_MIN, GAIN_QUIET_MS, GAIN_RISE, GAIN_RISE_MS, GAIN_START, GAIN_STEP, GAIN_STEP_MS, LOUD_MS, LOUD_OWN_SNR_DB, LobbyMachine, QUIET_MS, REMATCH_FALLBACK_MS,
@@ -17,7 +18,7 @@ import {
   type LobbyEnd, type LobbyEnv, type LobbyLink, type LobbyRig
 } from "../src/versus/lobby";
 import { OPENERS, OPENER_IDS } from "../src/sim/openers";
-import { UNITS } from "../src/sim/balance";
+import { BUILDINGS } from "../src/sim/balance";
 import { HeldEnd, LoopFriend, LoopLink, lobbyLatencyFor } from "../src/versus/loop-peer";
 import { NOTHING_HEARD_MS, delayFor, packetMs } from "../src/versus/pairing";
 import { RelayTransport, decodeRelayPacket, encodeRelayPacket, type RelayWindow } from "../src/versus/relay-transport";
@@ -97,49 +98,49 @@ describe("the rematch a report stored", () => {
 describe("the lobby's words", () => {
   it("the 30 s tips: Advanced only where it is offered, and no sound advice on a practice link", () => {
     const sound = tipsText({ practice: null, rematch: false });
-    expect(sound).toMatch(/volume up/);
-    expect(sound).toMatch(/band Low on the host \(Advanced\)/);
+    expect(sound).toMatch(/monte le volume/i);
+    expect(sound).toMatch(/bande Basse sur l'hôte \(Avancé\)/);
     // (a rematch keeps its band, and has no Advanced)
     const rematch = tipsText({ practice: null, rematch: true });
-    expect(rematch).toMatch(/volume up/);
-    expect(rematch).not.toMatch(/Advanced|band Low/);
+    expect(rematch).toMatch(/monte le volume/i);
+    expect(rematch).not.toMatch(/Avancé|bande Basse/);
     for (const practice of ["loop", "relay"] as const)
-      for (const r of [false, true]) expect(tipsText({ practice, rematch: r })).not.toMatch(/volume|silent switch|Bluetooth|Advanced|headphones/i);
+      for (const r of [false, true]) expect(tipsText({ practice, rematch: r })).not.toMatch(/volume|silencieux|Bluetooth|Avancé|écouteurs/i);
   });
 
   it("the route warning: band Low only where it can be taken", () => {
     const view = (rematch: boolean, role: BandRole | null, plan: BandPlan) => ({ rematch, role, prefs: { plan, micMode: "raw" as const } });
-    expect(routeText(view(false, "host", "high"))).toMatch(/or switch the host to band Low\.$/);
-    expect(routeText(view(false, "guest", "high"))).toMatch(/band Low/);
+    expect(routeText(view(false, "host", "high"))).toMatch(/ou passe l'hôte en bande Basse\.$/);
+    expect(routeText(view(false, "guest", "high"))).toMatch(/bande Basse/);
     // (a guest can't tell the host's plan from its prefs: the advice stays)
-    expect(routeText(view(false, "guest", "low"))).toMatch(/band Low/);
+    expect(routeText(view(false, "guest", "low"))).toMatch(/bande Basse/);
     // a rematch keeps its band and has no Advanced; a host on band Low is there already
     for (const v of [view(true, "host", "high"), view(true, "guest", "high"), view(false, "host", "low")]) {
-      expect(routeText(v)).not.toMatch(/band Low|Advanced/);
-      expect(routeText(v)).toMatch(/can't hear its own signal: .* Unplug headphones or turn the volume up\.$/);
+      expect(routeText(v)).not.toMatch(/bande Basse|Avancé/);
+      expect(routeText(v)).toMatch(/n'entend pas son propre signal : .* Débranche les écouteurs ou monte le volume\.$/);
     }
   });
 
   it("the meter's round trip, and on the loop the input delay instead", () => {
     const pairing = (delay: number | null) => ({ config: delay === null ? null : { delay } }) as unknown as NonNullable<Parameters<typeof rttLine>[0]["pairing"]>;
     const meter = (rttMs: number | null) => ({ snrDb: null, good: 0, bad: 0, rxq: 0, peerRxq: null, rttMs });
-    expect(rttLine({ practice: null, pairing: pairing(4), meter: meter(512.4) })).toBe("Round trip 512 ms");
-    expect(rttLine({ practice: null, pairing: null, meter: meter(null) })).toBe("Round trip: measuring…");
-    expect(rttLine({ practice: "relay", pairing: pairing(4), meter: meter(300) })).toBe("Round trip 300 ms");
+    expect(rttLine({ practice: null, pairing: pairing(4), meter: meter(512.4) })).toBe("Aller-retour 512 ms");
+    expect(rttLine({ practice: null, pairing: null, meter: meter(null) })).toBe("Aller-retour : mesure…");
+    expect(rttLine({ practice: "relay", pairing: pairing(4), meter: meter(300) })).toBe("Aller-retour 300 ms");
     // (the loop's friend holds the lobby's packets to force &delay: 2999 ms means nothing there)
-    expect(rttLine({ practice: "loop", pairing: pairing(8), meter: meter(2999) })).toBe("Practice link · input delay 800 ms");
-    expect(rttLine({ practice: "loop", pairing: pairing(null), meter: meter(2999) })).toBe("Practice link");
+    expect(rttLine({ practice: "loop", pairing: pairing(8), meter: meter(2999) })).toBe("Liaison d'entraînement · délai d'entrée 800 ms");
+    expect(rttLine({ practice: "loop", pairing: pairing(null), meter: meter(2999) })).toBe("Liaison d'entraînement");
   });
 
   it("the opener cards say what each gives, from the same data as the single-player picker", () => {
-    expect(openerGives("blitz")).toBe("Fab Plant · 3 Stingers · 2 Harvesters · −100 scrap");
+    expect(openerGives("blitz")).toBe(`${BUILDINGS["fab-plant"].name} · 3 Panhard · 2 Fardiers · −100 charbon`);
     for (const id of OPENER_IDS) {
       const o = OPENERS[id];
       const line = openerGives(id);
-      expect(line).toContain(`${o.harvesters} Harvesters`);
-      for (const k of new Set(o.units)) expect(line).toContain(`${o.units.filter((u) => u === k).length} ${UNITS[k].name}s`);
-      if (o.scrap === 0) expect(line).not.toMatch(/scrap/);
-      else expect(line).toMatch(o.scrap > 0 ? `+${o.scrap} scrap` : `−${-o.scrap} scrap`);
+      expect(line).toContain(`${o.harvesters} Fardiers`);
+      for (const k of new Set(o.units)) expect(line).toContain(`${o.units.filter((u) => u === k).length} ${PLURALS[k]}`);
+      if (o.scrap === 0) expect(line).not.toMatch(/charbon/);
+      else expect(line).toMatch(o.scrap > 0 ? `+${o.scrap} charbon` : `−${-o.scrap} charbon`);
     }
   });
 });
@@ -597,7 +598,7 @@ describe("the lobby's logic", () => {
     await flush();
     const v = b.m.state();
     expect(v.step).toBe("error");
-    expect(v.error).toMatchObject({ kind: "rig", reason: "mic-refused", message: "Microphone refused" });
+    expect(v.error).toMatchObject({ kind: "rig", reason: "mic-refused", message: RIG_MESSAGES["mic-refused"] });
     expect(b.ended).toEqual(["error"]);
     expect(b.guards).toEqual([null]);
     expect(b.m.done).toBe(true);
@@ -677,7 +678,7 @@ describe("the lobby's logic", () => {
       expect(m.state()).toMatchObject({ step: "pairing", route: false, error: null });
       if (way === "error") port.onmessage?.({ data: { t: "error", message: "the modem stopped: boom", fatal: true } });
       else node.onprocessorerror?.();
-      expect(m.state().error).toEqual({ kind: "modem", message: way === "error" ? "the modem stopped: boom" : "the sound link's audio processor failed" });
+      expect(m.state().error).toEqual({ kind: "modem", message: way === "error" ? "the modem stopped: boom" : "le processeur audio de la liaison sonore a échoué" });
       expect(ended).toEqual(["error"]);
       expect(rig.closed).toBe(true);
       expect(link!.isClosed).toBe(true);
@@ -962,7 +963,7 @@ describe("the lobby's logic", () => {
     probe.deaf = false;
     await b.run(3000, () => b.m.state().step === "error");
     const v = b.m.state();
-    expect(v).toMatchObject({ step: "error", error: { kind: "left", message: "Your friend left" }, canBack: false });
+    expect(v).toMatchObject({ step: "error", error: { kind: "left", message: "Ton ami est parti" }, canBack: false });
     expect(b.begun).toEqual([]);
     b.m.cancel();
     expect(b.ended).toEqual(["cancel"]);
@@ -1013,11 +1014,11 @@ describe("the lobby's logic", () => {
     expect(b.m.state().step).toBe("connecting");
     await flush();
     expect(b.m.state()).toMatchObject({ step: "pairing", role: "host", practice: "loop", fixedRole: true });
-    expect(rttLine(b.m.state())).toBe("Practice link");
+    expect(rttLine(b.m.state())).toBe("Liaison d'entraînement");
     await b.run(20_000, () => b.m.state().step === "picking");
     // (the loop's round trip is its friend's hold: the paired view names the input delay agreed instead)
     expect(b.m.state().meter!.rttMs).not.toBeNull();
-    expect(rttLine(b.m.state())).toBe(`Practice link · input delay ${b.m.state().pairing!.config!.delay * 100} ms`);
+    expect(rttLine(b.m.state())).toBe(`Liaison d'entraînement · délai d'entrée ${b.m.state().pairing!.config!.delay * 100} ms`);
     b.m.pick(b.m.state().pairing!.offered[0]!);
     await b.run(20_000, () => b.m.state().step === "started");
     expect(b.begun.length).toBe(1);
@@ -1030,7 +1031,7 @@ describe("the lobby's logic", () => {
     b.m.join();
     await flush();
     await b.run(10_000, () => b.m.state().step === "error");
-    expect(b.m.state()).toMatchObject({ step: "error", error: { kind: "version", message: "These phones run different versions: reload both" }, canBack: false });
+    expect(b.m.state()).toMatchObject({ step: "error", error: { kind: "version", message: "Ces téléphones n'ont pas la même version : recharge les deux" }, canBack: false });
     expect(b.ended).toEqual([]);
     b.m.cancel();
     expect(b.ended).toEqual(["cancel"]);

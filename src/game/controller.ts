@@ -2,7 +2,7 @@ import { BUILDINGS, ECONOMY, GOLIATH, TICK_RATE, UNITS } from "../sim/balance";
 import { paidFor, producerCap, producersOf, type Producer } from "../sim/economy";
 import { anchorBlocker, canWalk, goliathReachAt, unitCost } from "../sim/goliath";
 import { isInfantry, isTransport } from "../sim/infantry";
-import { canCarry, liftBlocker, liftedBy } from "../sim/lift";
+import { LIFT_NEEDS_TWO, LIFT_PACK_FIRST, canCarry, liftBlocker, liftedBy } from "../sim/lift";
 import { placementBlocker, snapPlacement } from "../sim/placement";
 import { POWER_NAMES, powerBlocker, powerCost, powerStatus, type PowerStatus } from "../sim/powers";
 import { carrierOf, freeSeats, isLoaded } from "../sim/transport";
@@ -714,7 +714,7 @@ export class Controller {
       }
       // only anchored Goliaths, and it's beyond their guns: they stay dug in (no rally point at the enemy)
       if ([...this.selectedUnits].every((id) => this.rooted(id))) {
-        this.rootTip("Out of reach: pack up first (G) to go after it");
+        this.rootTip("Hors de portée : lève l'ancre d'abord (G) pour le poursuivre");
         return;
       }
       // none can: treat it as a tap on the ground there (an island drop, or a tip)
@@ -734,7 +734,7 @@ export class Controller {
         const carriers = new Set<number>();
         for (const u of boarding) if (u.order.type === "board") carriers.add(u.order.carrierId);
         this.pendingDrop = { carriers: [...carriers], x: wx, y: wy };
-        this.tip = "Boarding: they'll drop there once they're aboard";
+        this.tip = "Embarquement : largage là-bas une fois à bord";
         this.lastFeedback = { kind: "drop", x: wx, y: wy };
         return;
       }
@@ -752,10 +752,10 @@ export class Controller {
         for (const id of rooted) this.enqueue({ type: "rally", faction: PLAYER, buildingId: id, x: wx, y: wy });
         this.lastFeedback = { kind: "rally", x: wx, y: wy };
         this.forceMove = false;
-        this.rootTip("Rally point set: pack up first (G) to move the Goliath");
+        this.rootTip("Point de ralliement fixé : lève l'ancre d'abord (G) pour déplacer le Gargantua");
         return;
       }
-      if (rooted.length > 0) this.rootTip(`${rooted.length > 1 ? "Anchored Goliaths stay" : "The anchored Goliath stays"} put: pack up first (G)`);
+      if (rooted.length > 0) this.rootTip(`${rooted.length > 1 ? "Les Gargantuas ancrés restent" : "Le Gargantua ancré reste"} en place : lève l'ancre d'abord (G)`);
       const harvesters = ids.filter((id) => w.units.get(id)!.kind === "harvester");
       const rest = ids.filter((id) => w.units.get(id)!.kind !== "harvester");
       const onResource =
@@ -828,7 +828,7 @@ export class Controller {
     if (walking.length > 0) {
       const ok = walking.filter((g) => !anchorBlocker(this.world, g));
       if (ok.length === 0) {
-        this.tip = `Can't anchor here: ${anchorBlocker(this.world, walking[0]!)!.toLowerCase()}`;
+        this.tip = `Impossible d'ancrer ici : ${anchorBlocker(this.world, walking[0]!)!.toLowerCase()}`;
         return null;
       }
       ids = ok.map((g) => g.id);
@@ -903,12 +903,12 @@ export class Controller {
     const hasSquads = this.selectedOwn().some((u) => isInfantry(u.kind));
     const hasGoliath = this.selectedOwn().some((u) => !!u.goliath);
     this.tip = hasCondor
-      ? "That Condor is empty: tap your squads into it first"
+      ? "Cette Montgolfière est vide : fais-y d'abord monter tes escouades"
       : hasSquads
-        ? "Squads can't swim: tap a Condor to board, then tap the island"
+        ? "Les escouades ne nagent pas : touche une Montgolfière pour embarquer, puis l'île"
         : hasGoliath
-          ? "No way across: two empty Condors can lift a Goliath there"
-          : "No way across: only troops flown in by Condor can take islands";
+          ? "Pas de passage : deux Montgolfières vides peuvent y porter un Gargantua"
+          : "Pas de passage : seules les troupes aéroportées en Montgolfière prennent les îles";
   }
 
   // ------------------------------------------------------------ transport --
@@ -1039,10 +1039,10 @@ export class Controller {
     if (why) {
       const free = condors.filter(canCarry).length;
       const loaded = condors.filter((c) => isLoaded(c)).length;
-      if (why === "Needs two empty Condors") {
-        if (free + loaded >= 2) this.tip = "Unload the Condors first";
-        else if (!g.goliath?.lift) this.tip = "Two empty Condors lift a Goliath";
-      } else this.tip = why === "Pack up first" ? "Pack up first (G)" : why;
+      if (why === LIFT_NEEDS_TWO) {
+        if (free + loaded >= 2) this.tip = "Décharge d'abord les Montgolfières";
+        else if (!g.goliath?.lift) this.tip = "Deux Montgolfières vides portent un Gargantua";
+      } else this.tip = why === LIFT_PACK_FIRST ? "Lève l'ancre d'abord (G)" : why;
       return false;
     }
     const pair = condors
@@ -1081,18 +1081,18 @@ export class Controller {
     if (isTransport(tapped.kind) && squads.length > 0) {
       const seats = this.openSeats(tapped, squads);
       if (seats <= 0) {
-        this.tip = `${UNITS[tapped.kind].name} full: unload it first`;
+        this.tip = `${UNITS[tapped.kind].name} plein : décharge-le d'abord`;
         return false; // (selects it, Unload chip and all)
       }
       riders = [...squads].sort((a, b) => dist(a, tapped) - dist(b, tapped) || a.id - b.id).slice(0, seats);
-      if (riders.length < squads.length) this.tip = `Room for ${seats} squad${seats === 1 ? "" : "s"} only`;
+      if (riders.length < squads.length) this.tip = `Place pour ${seats} escouade${seats === 1 ? "" : "s"} seulement`;
       carrier = tapped;
     } else if (isInfantry(tapped.kind) && squads.length === 0) {
       const condors = sel.filter((u) => isTransport(u.kind));
       if (condors.length === 0) return false;
       const open = condors.filter((c) => this.openSeats(c, [tapped]) > 0);
       if (open.length === 0) {
-        this.tip = condors.length > 1 ? "Those Condors are full" : `${UNITS[condors[0]!.kind].name} full: unload it first`;
+        this.tip = condors.length > 1 ? "Ces Montgolfières sont pleines" : `${UNITS[condors[0]!.kind].name} pleine : décharge-la d'abord`;
         return false;
       }
       carrier = open.sort((a, b) => dist(a, tapped) - dist(b, tapped) || a.id - b.id)[0]!;
@@ -1166,8 +1166,8 @@ export class Controller {
     const why = powerBlocker(this.world, PLAYER, p);
     if (why || this.ahead().fired.length === 0) return why;
     const st = this.powerStatus(p);
-    if (st.cooldown > 0) return `${POWER_NAMES[p]} recharging: ${Math.ceil(st.cooldown / TICK_RATE)} s`;
-    if (st.charge < 1) return `${POWER_NAMES[p]} needs ${st.cost} charge (${Math.floor(this.powerMeter())})`;
+    if (st.cooldown > 0) return `${POWER_NAMES[p]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`;
+    if (st.charge < 1) return `${POWER_NAMES[p]} : ${st.cost} de charge requis (${Math.floor(this.powerMeter())})`;
     return null;
   }
 

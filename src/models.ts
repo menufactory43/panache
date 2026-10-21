@@ -777,15 +777,22 @@ class Viewer {
   }
 
   private renderUi(): void {
+    const ANIM_LABEL: Record<string, string> = {
+      Hover: "Surplace", Fly: "Vol", Bank: "Virage", Fire: "Tir", Repair: "Réparation", Wreck: "Épave", Walk: "Marche",
+      Drive: "Rouler", Idle: "Repos", Haul: "Transport", Aim: "Visée", Drop: "Largage", March: "Marche", Fall: "Chute",
+      Stand: "Debout", Anchor: "Ancrage", Damaged: "Endommagé", Reboot: "Redémarrage", Love: "Amour", Sweep: "Balayage",
+      "Build Goliath": "Construire Gargantua", Construct: "Construction", Rubble: "Ruines", Held: "Tenu", Capturing: "Capture",
+      Neutral: "Neutre", Landed: "Posée"
+    };
     const b = (label: string, pressed: boolean, act: string, cls = "") =>
       `<button type="button" data-act="${act}" aria-pressed="${pressed}"${cls ? ` class="${cls}"` : ""}>${label}</button>`;
     this.ui.innerHTML =
-      this.model.anims.map((a) => b(a, a === this.anim, `anim:${a}`)).join("") +
+      this.model.anims.map((a) => b(ANIM_LABEL[a] ?? a, a === this.anim, `anim:${a}`)).join("") +
       `<span class="sep"></span>` +
       (this.model.neutral
         ? ""
-        : b("Blue", this.faction === "blue", "faction:blue") + b("Red", this.faction === "red", "faction:red", "red")) +
-      b("↻ Spin", this.controls.autoRotate, "spin");
+        : b("Bleu", this.faction === "blue", "faction:blue") + b("Rouge", this.faction === "red", "faction:red", "red")) +
+      b("↻ Rotation", this.controls.autoRotate, "spin");
   }
 
   click(act: string): void {
@@ -864,7 +871,7 @@ for (const [tab, t] of Object.entries(TABS) as [Tab, (typeof TABS)[Tab]][]) {
             (k) => `<section class="row" id="${k}">
               ${t.card(k)}
               <div class="viewer" data-kind="${k}">
-                ${renderer ? `<canvas aria-label="${t.name(k)} 3D model"></canvas><div class="hint">Drag to turn · pinch or ⌃-scroll to zoom</div>` : `<p class="nogl">This browser can't show 3D models (WebGL is off or unavailable).</p>`}
+                ${renderer ? `<canvas aria-label="Modèle 3D ${t.name(k)}"></canvas><div class="hint">Glisse pour tourner · pince ou ⌃-molette pour zoomer</div>` : `<p class="nogl">Ce navigateur ne peut pas afficher les modèles 3D (WebGL désactivé ou indisponible).</p>`}
                 <div class="controls"></div>
               </div>
             </section>`

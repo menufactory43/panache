@@ -39,7 +39,7 @@ describe("a watched Last Stand ends on a lament", () => {
     });
     w.winner = "red";
     c.events([], 300);
-    expect(radio.at(-1)).toMatchObject({ key: "defeat", tone: "bad", text: "Base overrun. The HQ has fallen." });
+    expect(radio.at(-1)).toMatchObject({ key: "defeat", tone: "bad", text: "Base submergée. Le GQG est tombé." });
   });
 });
 
@@ -56,8 +56,8 @@ describe("Last Stand wave warnings", () => {
       off();
     }
     expect(seen.map((a) => a.sub)).toEqual([
-      `🤖 Wave 1 from the north-east in 15 s — ${THEME_COUNTERS.swarm}`,
-      `✈ Wave 3 from the north in 15 s · +40 scrap — ${THEME_COUNTERS.air}`
+      `🤖 Vague 1 depuis le nord-est dans 15 s — ${THEME_COUNTERS.swarm}`,
+      `✈ Vague 3 depuis le nord dans 15 s · +40 charbon — ${THEME_COUNTERS.air}`
     ]);
   });
 });

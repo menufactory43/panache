@@ -33,7 +33,7 @@ function carried(w: World, f: Faction, x: number, y: number): { g: Unit; a: Unit
 }
 
 describe("review regressions", () => {
-  it("a harvester bound for the side's only Goliath waits, loaded, while it packs up and moves, then delivers", () => {
+  it("a harvester bound for the side's only Gargantua waits, loaded, while it packs up and moves, then delivers", () => {
     const w = createMapWorld("proving-grounds", { mutators: ["nomads"] });
     const g = goliathsOf(w, "blue")[0]!;
     const h = [...w.units.values()].find((u) => u.faction === "blue" && u.kind === "harvester")!;
@@ -113,7 +113,7 @@ describe("review regressions", () => {
     expect(onHomeLand(n, "blue", island!.x, island!.y)).toBe(false);
   });
 
-  it("a move naming a Goliath before its still-hooking Condors calls the lift off and still moves the Goliath", () => {
+  it("a move naming a Gargantua before its still-hooking Montgolfières calls the lift off and still moves the Gargantua", () => {
     const w = createWorld(40, 40);
     const g = spawnUnit(w, "goliath", "blue", 20, 20);
     const a = spawnUnit(w, "condor", "blue", 10, 10);
@@ -125,7 +125,7 @@ describe("review regressions", () => {
     expect(g.order).toMatchObject({ type: "move", x: 30, y: 30 });
   });
 
-  it("a carried Goliath shot down on the same tick as one of its Condors is credited to its own killer", () => {
+  it("a carried Gargantua shot down on the same tick as one of its Montgolfières is credited to its own killer", () => {
     const w = createWorld(40, 40);
     const { g, a } = carried(w, "blue", 20, 20);
     const shooter = spawnUnit(w, "raptor", "red", 30, 30);
@@ -139,7 +139,7 @@ describe("review regressions", () => {
     expect(death?.killerId).toBe(shooter.id);
   });
 
-  it("a Goliath whose mortars are down gives up an attack on a target across the water beyond its other guns", () => {
+  it("a Gargantua whose mortars are down gives up an attack on a target across the water beyond its other guns", () => {
     const w = createWorld(48, 48);
     w.rules = { ...DEFAULT_RULES, bannedUnits: [], bannedBuildings: [], startUnits: [], mutators: [], fogOff: true };
     spawnBuilding(w, "hq", "blue", 1, 1);
@@ -164,7 +164,7 @@ describe("final review regressions", () => {
     return w;
   }
 
-  it("a tap on an enemy Goliath carried by Condors is a tap on an air target", async () => {
+  it("a tap on an enemy Gargantua carried by Montgolfières is a tap on an air target", async () => {
     const { Controller, hitTest } = await import("../src/game/controller");
     const w = field();
     const { g } = carried(w, "red", 20, 20);
@@ -180,7 +180,7 @@ describe("final review regressions", () => {
     expect(cmds.find((x) => x.type === "attack" && x.unitIds.includes(stinger.id))).toBeUndefined();
   });
 
-  it("an anchored Goliath is only told to attack what its guns reach from where it stands", async () => {
+  it("an anchored Gargantua is only told to attack what its guns reach from where it stands", async () => {
     const { Controller } = await import("../src/game/controller");
     const w = field();
     const g = spawnUnit(w, "goliath", "blue", 13, 13);
@@ -202,7 +202,7 @@ describe("final review regressions", () => {
     expect(c.drainCommands()).toEqual([]);
   });
 
-  it("squads queued on a Goliath that packed up still count, and one can still be cancelled", async () => {
+  it("squads queued on a Gargantua that packed up still count, and one can still be cancelled", async () => {
     const { producersOf, queuesOf } = await import("../src/sim/economy");
     const w = field();
     const g = spawnUnit(w, "goliath", "blue", 13, 13);
@@ -224,22 +224,22 @@ describe("final review regressions", () => {
     expect(w.factions.blue.scrap).toBeGreaterThan(scrap);
   });
 
-  it("under Nomads, with the Goliath on the move, the Harvester's lock says to anchor it, not to build an HQ", async () => {
+  it("under Nomads, with the Gargantua on the move, the Harvester's lock says to anchor it, not to build an HQ", async () => {
     const { unitBlocker } = await import("../src/sim/economy");
     const w = createMapWorld("riverlands", { mutators: ["nomads"] });
     const g = goliathsOf(w, "blue")[0]!;
     expect(unitBlocker(w, "blue", "harvester")).toBeNull();
     step(w, [{ type: "packUp", faction: "blue", unitIds: [g.id] }]);
-    expect(unitBlocker(w, "blue", "harvester")).toBe("Anchor a Goliath");
+    expect(unitBlocker(w, "blue", "harvester")).toBe("Ancre un Gargantua");
     // (an ordinary side that lost its HQ and has no Goliath is still told what it needs)
     const plain = createWorld(40, 40);
     spawnBuilding(plain, "hq", "red", 32, 32);
-    expect(unitBlocker(plain, "blue", "harvester")).toBe(`Needs HQ`);
+    expect(unitBlocker(plain, "blue", "harvester")).toBe(`Requiert GQG`);
   });
 });
 
 describe("final review: integration", () => {
-  it("Archipelago under Nomads: a side that loses its Condor gets a free one at its Goliath", async () => {
+  it("Archipelago under Nomads: a side that loses its Montgolfière gets a free one at its Gargantua", async () => {
     const { LIFELINE, TICK_RATE } = await import("../src/sim/balance");
     const w = createMapWorld("archipelago", { seed: 3, objectives: true, mutators: ["nomads"] });
     const condor = [...w.units.values()].find((u) => u.faction === "blue" && u.kind === "condor")!;
@@ -278,7 +278,7 @@ describe("final review: integration", () => {
     expect(named.size).toBe(victims.length);
   });
 
-  it("Nomads + Veterans: the starting Goliath rolls out at rank 1, like every other combat unit", () => {
+  it("Nomads + Veterans: the starting Gargantua rolls out at rank 1, like every other combat unit", () => {
     const w = createMapWorld("riverlands", { mutators: ["nomads", "veterans"] });
     for (const f of ["blue", "red"] as const) expect(goliathsOf(w, f)[0]!.rank).toBe(1);
   });
