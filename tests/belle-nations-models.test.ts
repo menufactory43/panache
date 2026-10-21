@@ -108,11 +108,11 @@ describe("the nations' buildings (WP5f)", () => {
 });
 
 describe("the nations' squads (WP5d)", () => {
-  it("are no longer placeholders, and keep their stand-ins for voices and portraits", () => {
+  it("are no longer placeholders, and show their own portraits", () => {
     for (const k of SQUADS) {
       expect(ph.PLACEHOLDER_MODEL[k], k).toBeUndefined();
       expect(ph.lookalike(k)).toBe(k);
-      expect(ph.portraitKind(k)).toBe(ph.STAND_IN[k]);
+      expect(ph.portraitKind(k)).toBe(k);
     }
   });
 

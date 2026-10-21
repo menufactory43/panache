@@ -5,7 +5,8 @@
 // dark navy buttons: the shadows lifted and a thin light rim drawn round the silhouette.
 // Usage: npx vite --port 5173, then
 //   node tools/model-portraits.mjs --all          every portrait, blue and red (about 8 minutes)
-//   node tools/model-portraits.mjs lancer hq      just these, blue
+//   node tools/model-portraits.mjs --nations      the nations' units and buildings, blue and red
+//   node tools/model-portraits.mjs lancer hq@empire   just these, blue (hq@empire → hq-empire.webp)
 //     [--faction=red] [--out=public/assets/icons] (a scratch folder, to try a look without touching
 //     the shipped portraits) [--pitch=50] (degrees below the horizon) [--turn=0.6] (rad, clockwise
 //     from nose north) [--head=0] (rad, a building's turret or head turned on its mount)
@@ -20,13 +21,23 @@ const UNITS = [
 ];
 const BUILDINGS = ["hq", "fab-plant", "airpad", "tech-lab", "depot", "turret", "sam-site", "radar", "assembly-bay", "gantry"];
 const OBJECTIVES = ["uplink", "supply-crate"];
+// the nations' own units, defences and their own models of shared buildings (kind@nation, saved as
+// <kind>-<nation>.webp: src/game/three/belle/placeholders.ts portraitKind)
+const NATION_UNITS = [
+  "fourgon", "jamais-contente", "de-dion", "branly", "sapeurs", "zenith",
+  "estafette", "mortier-280", "gyroptere", "epervier", "vulcain", "atelier", "fusiliers", "carabiniers", "titan"
+];
+const NATION_BUILDINGS = [
+  "arsonval", "flak-battery", "fab-plant@republique", "depot@republique", "gantry@republique",
+  "hq@empire", "airpad@empire", "tech-lab@empire", "radar@empire", "assembly-bay@empire"
+];
 
 /** A ¾ showroom view: close to the game camera (47–62°), nose up and to the right, so long hulls lie along the diagonal. */
 const SHOWROOM = { pitch: 50, turn: 0.6, solo: false };
 /** Robots are characters: one of the squad, weapon up, from lower down and turned to face the viewer. */
 const ROBOT = { pitch: 30, turn: 2.5, solo: true };
 const FRAMING = {
-  trooper: ROBOT, "rocket-squad": ROBOT, sniper: ROBOT, goliath: { pitch: 30, turn: 0.6, solo: false },
+  trooper: ROBOT, "rocket-squad": ROBOT, sniper: ROBOT, sapeurs: ROBOT, fusiliers: ROBOT, carabiniers: ROBOT, goliath: { pitch: 30, turn: 0.6, solo: false },
   // (their dishes face north at rest, so from the showroom angle we'd see their backs: turn them to the viewer)
   radar: { ...SHOWROOM, head: 2.6 },
   uplink: { ...SHOWROOM, head: 2.6 }
@@ -50,7 +61,9 @@ const jobs = [];
 if ("all" in opt) {
   for (const k of [...UNITS, ...BUILDINGS, ...OBJECTIVES]) jobs.push({ kind: k, faction: "blue" });
   for (const k of [...UNITS, ...BUILDINGS]) jobs.push({ kind: k, faction: "red" });
-} else for (const k of args.filter((a) => !a.startsWith("--"))) jobs.push({ kind: k, faction: opt.faction ?? "blue" });
+}
+if ("nations" in opt) for (const faction of ["blue", "red"]) for (const k of [...NATION_UNITS, ...NATION_BUILDINGS]) jobs.push({ kind: k, faction });
+if ("all" in opt && !("nations" in opt)) for (const faction of ["blue", "red"]) for (const k of [...NATION_UNITS, ...NATION_BUILDINGS]) jobs.push({ kind: k, faction }); else for (const k of args.filter((a) => !a.startsWith("--"))) jobs.push({ kind: k, faction: opt.faction ?? "blue" });
 
 const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find((p) => existsSync(p));
 const browser = await chromium.launch({
@@ -170,7 +183,7 @@ for (const { kind, faction } of jobs) {
   }, [...shots, { SIZE, FIT, GAMMA, GAIN, RIM_R, RIM, RIM_A }]);
   const dir = faction === "red" ? `${out}/red` : out;
   mkdirSync(dir, { recursive: true });
-  const file = `${dir}/${kind}.webp`;
+  const file = `${dir}/${kind.replace("@", "-")}.webp`;
   writeFileSync(file, Buffer.from(webp.split(",")[1], "base64"));
   console.log(clipped ? `${file} — WARNING: the model touches the edge of the shot, so part of it is cut off` : file);
 }

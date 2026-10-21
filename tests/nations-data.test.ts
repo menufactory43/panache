@@ -314,10 +314,11 @@ describe("placeholders until the models land (WP5)", () => {
       expect(UNITS[base].nation, k).toBeUndefined();
       expect(UNITS[base].domain, k).toBe(UNITS[k].domain);
       expect(!!UNITS[base].squad, k).toBe(!!UNITS[k].squad);
-      expect(portraitKind(k)).toBe(base);
+      // (its HUD portrait is its own since WP5g)
+      expect(portraitKind(k)).toBe(k);
     }
     expect(STAND_IN_BUILDING).toEqual({ arsonval: "turret", "flak-battery": "sam-site" });
-    expect(portraitKind("arsonval")).toBe("turret");
+    expect(portraitKind("arsonval")).toBe("arsonval");
     expect(portraitKind("hq")).toBe("hq");
   });
 

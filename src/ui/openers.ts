@@ -64,7 +64,7 @@ const ICON = (kind: string, side: Faction) => `assets/icons/${side === "red" ? "
 /** What each card promises, as icon pills. */
 function pills(id: OpenerId, side: Faction, words: Words): string {
   const o = OPENERS[id];
-  const items: { icon?: string; label: string; cls?: string }[] = [{ icon: o.building, label: displayName(o.building, words.nation) }];
+  const items: { icon?: string; label: string; cls?: string }[] = [{ icon: portraitKind(o.building, words.nation), label: displayName(o.building, words.nation) }];
   const counts = new Map<UnitKind, number>();
   for (const k of o.units) counts.set(words.kindFor(k), (counts.get(words.kindFor(k)) ?? 0) + 1);
   for (const [k, n] of counts) items.push({ icon: portraitKind(k), label: `${n}× ${UNITS[k].name}` });
@@ -80,14 +80,14 @@ function pills(id: OpenerId, side: Faction, words: Words): string {
     .join("");
 }
 
-/** The hero image cluster: the building with its units stacked in front. */
-function art(id: OpenerId, side: Faction): string {
+/** The hero image cluster: the building with its units stacked in front (the nation's own, in its portraits). */
+function art(id: OpenerId, side: Faction, words: Words): string {
   const o = OPENERS[id];
-  const unit = o.units[0] ?? "harvester";
+  const unit = words.kindFor(o.units[0] ?? "harvester");
   const n = o.units.length || o.harvesters;
   return `<div class="op-art">
-      <img class="op-b" src="${ICON(o.building, side)}" alt="" draggable="false"/>
-      <img class="op-u" src="${ICON(unit, side)}" alt="" draggable="false"/>
+      <img class="op-b" src="${ICON(portraitKind(o.building, words.nation), side)}" alt="" draggable="false"/>
+      <img class="op-u" src="${ICON(portraitKind(unit, words.nation), side)}" alt="" draggable="false"/>
       <span class="op-n">×${n}</span>
     </div>`;
 }
@@ -110,7 +110,7 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
       ${OPENER_IDS.map(
         (id, i) => `
         <button class="op-card op-${id}" data-id="${id}">
-          ${art(id, side)}
+          ${art(id, side, words)}
           <div class="op-text">
             <b class="op-name">${OPENERS[id].name}</b>
             <span class="op-tag">${nationText(OPENERS[id].tagline, id, words)}</span>

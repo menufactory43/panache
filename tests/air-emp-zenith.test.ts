@@ -91,8 +91,8 @@ describe("Empire aircraft and the Zénith (WP5c, WP5e)", () => {
         for (const r of d.rotors) expect(["y", "z"]).toContain(r.axis);
         const s = models.unitScale(k);
         expect(Number.isFinite(s) && s > 0, k).toBe(true);
-        // (§3.4: ≤ 600 a unit, ≤ 4 000 for the Zénith)
-        expect(defTris(d), `${k} triangles`).toBeLessThanOrEqual(k === "zenith" ? 4000 : 600);
+        // (the Belle Époque aircraft's level of detail: ≤ 3 000 a unit, ≤ 4 000 for the Zénith)
+        expect(defTris(d), `${k} triangles`).toBeLessThanOrEqual(k === "zenith" ? 4000 : 3000);
       }
       // the Titan carries squads like the Condor: the same bay ramp (CONDOR_BAY seats, the same lip)
       const t = models.unitDef("titan", f).ramp!;

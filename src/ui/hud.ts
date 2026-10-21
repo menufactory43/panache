@@ -9,7 +9,7 @@ import { liftedBy } from "../sim/lift";
 import { goliathBase, inRoster, nationOf } from "../sim/rules";
 import { displayName } from "../sim/lexicon";
 import { portraitKind } from "../game/three/belle/placeholders";
-import type { BuildingKind, Faction, GoliathWeapon, Nation, QueueItem, Unit, UnitKind, World } from "../sim/types";
+import type { BuildingKind, Faction, GoliathWeapon, Nation, NationOrClassic, QueueItem, Unit, UnitKind, World } from "../sim/types";
 import { hasBuilding } from "../sim/world";
 import { sfx } from "../game/audio";
 import { mapThumbUrl } from "../game/assets";
@@ -297,8 +297,10 @@ export function revealHtml(mapId: string): string {
     </div></div>`;
 }
 
+/** Each side's nation in the match on screen (createHud sets it): a nation's own buildings show its own portraits. */
+let portraitNations: Partial<Record<Faction, NationOrClassic>> = {};
 /** A portrait in a side's paint (ours unless told otherwise): red's units and buildings show red, whoever is looking. */
-const icon = (kind: string, f: Faction = PLAYER) => `assets/icons/${f === "red" ? "red/" : ""}${portraitKind(kind)}.webp`;
+const icon = (kind: string, f: Faction = PLAYER) => `assets/icons/${f === "red" ? "red/" : ""}${portraitKind(kind, portraitNations[f])}.webp`;
 
 export function createHud(api: HudApi): Hud {
   const root = document.getElementById("hud")!;
@@ -368,6 +370,7 @@ export function createHud(api: HudApi): Hud {
   const f = () => w.factions[PLAYER];
   // the drawer holds the player's roster: Classique's, or their nation's (PANACHE-CONCEPTION.md §1.4, §1.6)
   const nation = nationOf(w, PLAYER);
+  portraitNations = { blue: nationOf(w, "blue"), red: nationOf(w, "red") };
   const BUILDABLE = EVERY_BUILDABLE.filter((k) => inRoster(nation, k));
   const ALL_UNITS = EVERY_UNIT.filter((k) => inRoster(nation, k));
   const tabKinds = (t: Tab) => UNIT_TABS.find((u) => u.tab === t)!.kinds.filter((k) => inRoster(nation, k));

@@ -57,6 +57,8 @@ interface UnitView {
   zenith?: ZenithView | null;
   /** Pression des chaudières: next steam puff (ms). */
   steamT?: number;
+  /** Time to its next Réseau TSF glint (ms). */
+  tsfT?: number;
   /** Sim position at the last sync (a squad's death blast is matched against it). */
   sx: number;
   sy: number;
@@ -917,6 +919,14 @@ export class EntityRenderer {
       puffAt.y = gy + (Math.random() - 0.5) * 0.3;
       puffAt.h = v.bh + v.top * 0.8;
       this.fx.steam(puffAt, 1);
+    }
+    // Réseau TSF (WP1 Unit.tsf): a faint blue glint now and then, the wireless reaching it
+    if (u.tsf && (v.tsfT = (v.tsfT ?? Math.random() * 900) - dtMs) <= 0) {
+      v.tsfT = 700 + Math.random() * 600;
+      puffAt.x = gx + (Math.random() - 0.5) * 0.25;
+      puffAt.y = gy + (Math.random() - 0.5) * 0.25;
+      puffAt.h = v.bh + v.top + 0.05;
+      this.fx.tsf(puffAt);
     }
 
     const prevFace = v.face;

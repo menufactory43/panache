@@ -7,7 +7,7 @@ import { TICK_RATE } from "../src/sim/balance";
 import { createMapWorld } from "../src/sim/maps";
 import { waveName } from "../src/sim/modes/survival";
 import { step } from "../src/sim/sim";
-import type { Faction } from "../src/sim/types";
+import type { Faction, Nation } from "../src/sim/types";
 import { buildingCenter, createWorld, hqOf } from "../src/sim/world";
 import { BattleCallouts, speakable } from "../src/game/callouts";
 import { planVoice, voiceKey, voiceLines } from "../src/game/voice-lines";
@@ -93,13 +93,13 @@ describe("voice phrase book", () => {
   });
 
   /** Everything a busy AI-vs-AI battle makes the radio say, as the player or a spectator. */
-  function battleLines(spectator: boolean, seed: number): string[] {
-    const w = createMapWorld("proving-grounds", { seed });
+  function battleLines(spectator: boolean, seed: number, nations?: { blue: Nation; red: Nation }, player: Faction = "blue"): string[] {
+    const w = createMapWorld("proving-grounds", { seed, ...(nations ? { nations } : {}) });
     const ais = { blue: createAiState("rush", "normal", seed + 1), red: createAiState("boom", "normal", seed + 2) };
-    const hq = buildingCenter(hqOf(w, "blue")!);
+    const hq = buildingCenter(hqOf(w, player)!);
     const said: string[] = [];
     const c = new BattleCallouts({
-      world: w, player: "blue", spectator,
+      world: w, player, spectator,
       onScreen: (x, y) => Math.abs(x - hq.x) <= 5 && Math.abs(y - hq.y) <= 8,
       radio: (l) => said.push(l.text),
       announce: (a) => said.push(a.say ?? speakable(a.text))
@@ -117,6 +117,17 @@ describe("voice phrase book", () => {
     const uncovered = [...new Set(said)].filter((t) => !planVoice(t));
     expect(uncovered).toEqual([]);
   }, 120_000);
+
+  it("covers every line a République-against-Empire battle says, from either side and as a spectator", () => {
+    const rep = { blue: "republique", red: "empire" } as const;
+    const said = [...battleLines(false, 4242, rep), ...battleLines(false, 515, rep, "red"), ...battleLines(true, 77, rep)];
+    expect(said.length).toBeGreaterThan(20);
+    const uncovered = [...new Set(said)].filter((t) => !planVoice(t));
+    expect(uncovered).toEqual([]);
+    // (the Empire's HQ is its Citadelle: its lines are recorded too)
+    for (const t of ["Alerte : notre Citadelle est attaquée", "Citadelle Rouge attaquée", "Citadelle ennemie détruite par le Rayon Curie", "Notre Citadelle est tombée"])
+      expect(planVoice(t), t).not.toBeNull();
+  }, 240_000);
 });
 
 describe("recorded announcer", () => {
