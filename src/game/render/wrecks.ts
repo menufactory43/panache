@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { nationOf } from "../../sim/rules";
 import { SALVAGE, TICK_RATE, UNITS } from "../../sim/balance";
 import { isInfantry } from "../../sim/infantry";
 import { incomeOf } from "../../sim/rules";
@@ -251,7 +252,7 @@ export class WreckRenderer {
   private create(r: Wreck): WreckView {
     if (r.pile) return this.createPile(r);
     const air = UNITS[r.kind].domain === "air";
-    const m = instance(unitDef(r.kind, r.faction));
+    const m = instance(unitDef(r.kind, r.faction, nationOf(this.world, r.faction)));
     setVariant(m.root, "burnt");
     const ground = this.v.terrain.surfaceAt(r.x, r.y);
     // a slight twist: it slewed as it died; aircraft come down nose-first and broken
@@ -396,7 +397,7 @@ export class WreckRenderer {
 
   /** An aircraft lost over water or lava: it drops and is swallowed. */
   private sink(kind: UnitKind, faction: Faction, p: UnitPose): void {
-    const m = instance(unitDef(kind, faction));
+    const m = instance(unitDef(kind, faction, nationOf(this.world, faction)));
     setVariant(m.root, "damaged");
     m.root.scale.setScalar(unitScale(kind));
     m.body.rotation.y = -p.face;

@@ -8,6 +8,7 @@ import { Ease } from "../three/tween";
 import { AIR_H, type P3, type View } from "../three/view";
 import { GUN_WEAPON, MOOR_POINTS, ZENITH_TOP, ZenithRig, zenithTeam, type ZenithGun, type ZenithPose } from "../three/zenith";
 import type { Fx } from "./fx";
+import { SUPER, superView } from "../../sim/goliath";
 
 /**
  * The Zénith on the map (render only: it reads the sim and never writes it),
@@ -61,10 +62,22 @@ export interface ZenithSim {
   weapons?: Partial<Record<ZenithWeapon, ZenithWeaponSim>>;
 }
 
-/** A Zénith's sim state as the view reads it: `u.zenith` if WP2 gives it its own, else `u.goliath`, else nothing. */
+/**
+ * A Zénith's sim state as the view reads it: WP2's superView(u) (src/sim/goliath.ts)
+ * — the Goliath's mode machine, its systems keyed by their Zénith id (the sim
+ * keeps them in the Goliath's slots, SUPER.zenith.weaponId) — or nothing yet.
+ */
 export function zenithSim(u: Unit): ZenithSim {
   const own = (u as Unit & { zenith?: ZenithSim }).zenith;
-  return own ?? (u.goliath as ZenithSim | undefined) ?? {};
+  if (own) return own;
+  const g = u.goliath;
+  if (!g) return {};
+  if (!g.weapons) return { mode: g.mode, modeTicks: g.modeTicks };
+  const sv = superView(u)!;
+  const weapons: Partial<Record<ZenithWeapon, ZenithWeaponSim>> = {};
+  for (const w of sv.weapons)
+    weapons[w.id as ZenithWeapon] = { online: w.online, reboot: g.weapons[w.slot].reboot, firedTick: w.firedTick };
+  return { mode: sv.mode, modeTicks: g.modeTicks, weapons };
 }
 
 /** Its mode, and how far through a mooring or a casting off it is (0–1). */
@@ -273,7 +286,8 @@ export class ZenithView {
         fx.sound("packup", this.gx, this.gy);
       }
     } else if (ev.type === "goliathWeapon") {
-      const k = ev.weapon as string as ZenithWeapon;
+      // (the sim names the Goliath's slot: mortars → branly, laser → arc, cannons → bombs, mg → mg)
+      const k = (SYSTEM_GUNS[ev.weapon as string as ZenithWeapon] ? ev.weapon : SUPER.zenith.weaponId(ev.weapon)) as ZenithWeapon;
       const guns = SYSTEM_GUNS[k];
       if (!guns) return;
       for (const g of guns) {

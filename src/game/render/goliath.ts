@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GOLIATH, TICK_RATE, UNITS } from "../../sim/balance";
-import { goliathReach } from "../../sim/goliath";
+import { goliathReach, isSuperKind } from "../../sim/goliath";
+import { unitTicks } from "../../sim/nations";
 import { isStunned } from "../../sim/powers";
 import { rulesOf } from "../../sim/rules";
 import type { Building, Faction, FxEvent, GoliathMode, GoliathWeapon, Unit, WeaponFx, World } from "../../sim/types";
@@ -924,13 +925,13 @@ export class GantryView {
     if (!stunned) this.work += dtMs;
     // ---- build progress, at the frame's fraction of a tick (held still while it's EMP'd)
     const head = b.queue[0];
-    const building = head?.kind === "goliath";
+    const building = !!head && isSuperKind(head.kind);
     if (building) {
       if (head !== this.head) {
         this.head = head;
         this.k = 0;
       }
-      const total = UNITS.goliath.buildTime * TICK_RATE;
+      const total = unitTicks(w, b.faction, head.kind);
       const ahead = stunned ? 0 : rulesOf(w).buildSpeed * (1 - alpha);
       this.k = Math.max(this.k, clamp01(1 - (head.remaining + ahead) / total));
     } else this.head = null;

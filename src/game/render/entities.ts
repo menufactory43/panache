@@ -3,7 +3,8 @@ import { BUILDINGS, ECONOMY, TICK_RATE, UNITS } from "../../sim/balance";
 import { isInfantry, squadAlive } from "../../sim/infantry";
 import { liftedBy } from "../../sim/lift";
 import { nationOf } from "../../sim/rules";
-import type { Building, BuildingKind, Faction, FxEvent, Unit, UnitKind, WeaponFx, World } from "../../sim/types";
+import { buildingMaxHp, isUnpowered } from "../../sim/nations";
+import type { Building, BuildingKind, Faction, FxEvent, Nation, Unit, UnitKind, WeaponFx, World } from "../../sim/types";
 import { baySeats, RIDER_SCALE, SquadRig, type BotKind, type Footprint } from "../three/infantry";
 import { lookalike } from "../three/belle/placeholders";
 import { discMat, eliteUniform, setVariant, type Variant } from "../three/materials";
@@ -13,6 +14,7 @@ import { AIR_H, HOVER_H, type P3, type View } from "../three/view";
 import { Ease } from "../three/tween";
 import type { Fx } from "./fx";
 import { CARRY_CLEAR, GantryView, GoliathView, type GoliathHost } from "./goliath";
+import { ZenithView } from "./zenith";
 import type { GroundGfx } from "../three/ground-gfx";
 import { FlashClock, JUICE } from "../juice";
 
@@ -51,6 +53,10 @@ interface UnitView {
   condor: CondorView | null;
   /** A Goliath's rig and everything it shows (render/goliath.ts; its root is m.root). */
   goliath: GoliathView | null;
+  /** A Zénith's rig and everything it shows (render/zenith.ts; its root is m.root). */
+  zenith?: ZenithView | null;
+  /** Pression des chaudières: next steam puff (ms). */
+  steamT?: number;
   /** Sim position at the last sync (a squad's death blast is matched against it). */
   sx: number;
   sy: number;
@@ -109,6 +115,10 @@ interface BuildingView {
   roof: Float32Array;
   /** A Gantry's build stages, crane and lights (render/goliath.ts). */
   gantry: GantryView | null;
+  /** Unpowered as last seen. */
+  off?: boolean;
+  /** Off the République's power network (WP1 Building.unpowered): the crossed-out lightning over it, made on first need. */
+  noPower?: THREE.Sprite | null;
 }
 
 type View3 = UnitView | BuildingView;
@@ -153,6 +163,47 @@ const CONDOR_LOW = 0.78;
 const NO_RIDERS: readonly Unit[] = [];
 /** A smoke puff's source point, refilled per puff (Fx reads it at once). */
 const puffAt: P3 = { x: 0, y: 0, h: 0 };
+
+/** The "hors réseau" sign: a lightning bolt struck through, one shared material (null until a building needs it). */
+let noPowerMat: THREE.SpriteMaterial | null = null;
+function noPowerSign(root: THREE.Object3D, top: number): THREE.Sprite | null {
+  if (typeof document === "undefined") return null;
+  if (!noPowerMat) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const g = c.getContext("2d");
+    if (!g) return null;
+    g.fillStyle = "rgba(20,16,12,0.7)";
+    g.beginPath();
+    g.arc(32, 32, 29, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#ffd23a";
+    g.strokeStyle = "#5a3a00";
+    g.lineWidth = 2;
+    g.beginPath();
+    for (const [x, y] of [[36, 6], [18, 36], [30, 36], [24, 58], [46, 26], [34, 26], [40, 6]]) g.lineTo(x!, y!);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.strokeStyle = "#e0302a";
+    g.lineWidth = 6;
+    g.lineCap = "round";
+    g.beginPath();
+    g.arc(32, 32, 26, 0, Math.PI * 2);
+    g.moveTo(14, 14);
+    g.lineTo(50, 50);
+    g.stroke();
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    noPowerMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+  }
+  const s = new THREE.Sprite(noPowerMat);
+  s.scale.setScalar(0.7);
+  s.position.set(0, top + 0.55, 0);
+  s.renderOrder = 10;
+  root.add(s);
+  return s;
+}
 
 /** Roof heights over a 3×3 grid across the middle half of each kind of building, found once per kind. */
 const roofs = new Map<ModelDef, Float32Array>();
@@ -260,7 +311,7 @@ export class EntityRenderer {
   /** Squads off the field still on show: robots toppling (wiped out) or hopping aboard. */
   private leaving: { rig: SquadRig; alive: number }[] = [];
   /** Goliaths destroyed, still on show as they topple and sink away. */
-  private toppling: GoliathView[] = [];
+  private toppling: (GoliathView | ZenithView)[] = [];
   /** Robot Love: the two Goliaths in love and where they meet (they walk to meet once their views are up). */
   private lovers: { ids: readonly number[]; x: number; y: number } | null = null;
   /** The world tick at the last sync (a replay seek back rewinds it). */
@@ -363,6 +414,7 @@ export class EntityRenderer {
     if (!v || !v.visible) return null;
     // (a Goliath fires each weapon from its own guns: pods, eye, arm cannons, machine guns)
     if (v.kind === "unit" && v.goliath) return v.goliath.muzzle(fx ?? "mg");
+    if (v.kind === "unit" && v.zenith) return v.zenith.muzzle(fx ?? "mg");
     if (v.kind === "unit" && v.squad) {
       const up = v.squad.standing();
       if (!up.length) return null;
@@ -384,6 +436,10 @@ export class EntityRenderer {
     v.recoil = 1;
     if (v.kind === "unit" && v.goliath) {
       v.goliath.fired(fx ?? "mg");
+      return;
+    }
+    if (v.kind === "unit" && v.zenith) {
+      v.zenith.fired(fx ?? "mg");
       return;
     }
     if (v.kind === "unit" && v.m.turret) v.aim = angle;
@@ -438,7 +494,10 @@ export class EntityRenderer {
       case "goliathWeapon":
       case "goliathLift": {
         const g = this.views.get(ev.id);
-        if (g?.kind === "unit") g.goliath?.onFx(ev);
+        if (g?.kind === "unit") {
+          g.goliath?.onFx(ev);
+          if (ev.type !== "goliathLift") g.zenith?.onFx(ev);
+        }
         break;
       }
     }
@@ -468,6 +527,7 @@ export class EntityRenderer {
       if (!u.goliath) continue;
       const v = this.views.get(u.id);
       if (v?.kind === "unit" && v.goliath && v.visible) v.goliath.marks(g, u, selected.has(u.id), this.isFriendly(u.faction));
+      else if (v?.kind === "unit" && v.zenith && v.visible) v.zenith.marks(g, u, selected.has(u.id), this.isFriendly(u.faction));
     }
   }
 
@@ -520,6 +580,8 @@ export class EntityRenderer {
     this.time += dtMs;
     this.alpha = alpha;
     eliteUniform.value = 0.1 + 0.06 * Math.sin(this.time / 260);
+    // the "hors réseau" signs flicker together, like a failing lamp
+    if (noPowerMat) noPowerMat.opacity = (this.time % 1700) < 140 ? 0.25 : 0.75 + 0.2 * Math.sin(this.time / 90);
     const seen = this.seen;
     seen.clear();
     const turnK = 1 - Math.pow(0.0005, dtMs / 1000); // fast but smooth turning
@@ -579,6 +641,10 @@ export class EntityRenderer {
         // a Goliath topples, slams down and sinks away before it goes
         v.goliath.startFall();
         this.toppling.push(v.goliath);
+      } else if (v.zenith && !rewound) {
+        // a Zénith noses down burning and crashes
+        v.zenith.startFall();
+        this.toppling.push(v.zenith);
       } else {
         this.group.remove(root);
         this.release(v);
@@ -646,6 +712,7 @@ export class EntityRenderer {
     if (v.kind !== "unit") return;
     v.squad?.dispose();
     v.goliath?.dispose();
+    v.zenith?.dispose();
     if (v.condor) {
       v.condor.poolMat.dispose();
       for (const r of v.condor.riders.values()) r.rig.dispose();
@@ -668,9 +735,11 @@ export class EntityRenderer {
 
   private createUnit(u: Unit): UnitView {
     if (isInfantry(u.kind)) return this.createSquad(u);
+    // (the Zénith carries the Goliath's state too, but flies: its own view, before the Goliath's)
+    if (u.kind === "zenith") return this.createZenith(u);
     if (u.goliath) return this.createGoliath(u);
     const stats = UNITS[u.kind];
-    const m = instance(unitDef(u.kind, u.faction));
+    const m = instance(unitDef(u.kind, u.faction, nationOf(this.world, u.faction)));
     m.body.rotation.order = "YXZ";
     this.group.add(m.root);
     const scale = unitScale(u.kind);
@@ -705,14 +774,14 @@ export class EntityRenderer {
 
   /** A robot squad: its rig stands in for a model instance (root and body are the rig's root). */
   private createSquad(u: Unit): UnitView {
-    const rig = new SquadRig(lookalike(u.kind) as BotKind, u.faction, u.id, squadAlive(u));
+    const rig = new SquadRig(lookalike(u.kind) as BotKind, u.faction, u.id, squadAlive(u), this.nationAt(u.faction));
     rig.onImpact = (p, kind) => {
       if (!this.visibleAt(p.x, p.z)) return;
       const at = { x: p.x, y: p.z, h: p.y };
       if (kind === "fall") this.fx.robotDown(at);
       else this.fx.landing(at);
     };
-    const def = unitDef(u.kind, u.faction);
+    const def = unitDef(u.kind, u.faction, nationOf(this.world, u.faction));
     const m: ModelInstance = { root: rig.root, body: rig.root, turret: null, rotors: [], cargo: null, ramp: null, parts: {}, def };
     this.group.add(rig.root);
     const v: UnitView = {
@@ -737,6 +806,35 @@ export class EntityRenderer {
     return v;
   }
 
+  /** The side's nation for its models' colours (undefined in Classique). */
+  private nationAt(f: Faction): Nation | undefined {
+    const n = nationOf(this.world, f);
+    return n === "classique" ? undefined : n;
+  }
+
+  /**
+   * A Zénith: its rig stands in for a model instance (render/zenith.ts). One
+   * that just left its Hangar rises out of it.
+   */
+  private createZenith(u: Unit): UnitView {
+    const gantryId = this.rolledOut.get(u.id);
+    const gantry = gantryId !== undefined ? this.views.get(gantryId) : undefined;
+    const from = gantry?.kind === "building" && gantry.gantry ? gantry.gantry.cradle : null;
+    const zv = new ZenithView(this.host, u, from);
+    const def = unitDef(u.kind, u.faction, nationOf(this.world, u.faction));
+    const m: ModelInstance = { root: zv.root, body: zv.rig.j.body, turret: null, rotors: [], cargo: null, ramp: null, parts: {}, def };
+    this.group.add(zv.root);
+    const v: UnitView = {
+      kind: "unit", m, air: true, hover: false,
+      face: zv.face, aim: u.aim, recoil: 0, lastFired: u.firedTick, phase: 0, dustT: 0,
+      gx: zv.gx, gy: zv.gy, bh: zv.bh, pitch: 0, roll: 0, bank: 0, visible: true, variant: "normal",
+      rank: u.rank, chevronPop: 1, top: zv.top, scale: zv.root.scale.x, squad: null, condor: null, goliath: null, zenith: zv,
+      sx: u.x, sy: u.y
+    };
+    this.views.set(u.id, v);
+    return v;
+  }
+
   /**
    * A Goliath: its posed rig stands in for a model instance. One that just
    * rolled out of a Gantry starts on the cradle and walks off it (no pop-in).
@@ -746,7 +844,7 @@ export class EntityRenderer {
     const gantry = gantryId !== undefined ? this.views.get(gantryId) : undefined;
     const from = gantry?.kind === "building" && gantry.gantry ? gantry.gantry.cradle : null;
     const gv = new GoliathView(this.host, u, from);
-    const def = unitDef(u.kind, u.faction);
+    const def = unitDef(u.kind, u.faction, nationOf(this.world, u.faction));
     const m: ModelInstance = { root: gv.root, body: gv.rig.j.body, turret: null, rotors: [], cargo: null, ramp: null, parts: {}, def };
     this.group.add(gv.root);
     const v: UnitView = {
@@ -776,6 +874,17 @@ export class EntityRenderer {
       this.updateSquad(u, v, gx, gy, dtMs, turnK);
       return;
     }
+    if (v.zenith) {
+      const z = v.zenith;
+      if (visible) this.setVariant(v, this.flashes.active(u.id, performance.now()) ? "flash" : u.rank >= 3 ? "elite" : "normal");
+      z.update(u, gx, gy, dtMs, turnK, this.alpha, visible);
+      v.gx = z.gx;
+      v.gy = z.gy;
+      v.bh = z.bh;
+      v.face = z.face;
+      this.promote(u, v);
+      return;
+    }
     if (v.goliath) {
       const g = v.goliath;
       const love = this.lovers;
@@ -799,7 +908,16 @@ export class EntityRenderer {
     if (!visible) return;
     const t = this.v.terrain;
     const flashing = this.flashes.active(u.id, performance.now());
-    this.setVariant(v, flashing ? "flash" : u.rank >= 3 ? "elite" : "normal");
+    // Pression des chaudières (WP1 Unit.overdrive): boilers glowing, steam venting
+    const boost = u.overdrive !== undefined;
+    this.setVariant(v, flashing ? "flash" : boost ? "warm" : u.rank >= 3 ? "elite" : "normal");
+    if (boost && (v.steamT = (v.steamT ?? 0) - dtMs) <= 0) {
+      v.steamT = 160 + Math.random() * 160;
+      puffAt.x = gx + (Math.random() - 0.5) * 0.3;
+      puffAt.y = gy + (Math.random() - 0.5) * 0.3;
+      puffAt.h = v.bh + v.top * 0.8;
+      this.fx.steam(puffAt, 1);
+    }
 
     const prevFace = v.face;
     v.face += angleDelta(v.face, u.facing) * turnK;
@@ -968,7 +1086,7 @@ export class EntityRenderer {
       const face = ov?.kind === "unit" ? ov.face : o.facing;
       avoid.push({ x: ox, z: oy, fx: Math.sin(face), fz: -Math.cos(face), hl, hw });
     }
-    rig.update({ dt: dtMs, speed, aim: fighting ? 1 : 0, pitch, alive: squadAlive(u), ground: this.groundFn, avoid });
+    rig.update({ dt: dtMs, speed, aim: fighting ? 1 : 0, pitch, alive: squadAlive(u), ground: this.groundFn, avoid, entrenched: u.entrenched ? 1 : 0 });
     if (u.rank > v.rank) {
       v.rank = u.rank;
       v.chevronPop = 0;
@@ -1060,7 +1178,7 @@ export class EntityRenderer {
           c.bay.remove(r.rig.root);
           r.rig.dispose();
         }
-        const rig = new SquadRig(lookalike(p.kind) as BotKind, p.faction, p.id, squadAlive(p));
+        const rig = new SquadRig(lookalike(p.kind) as BotKind, p.faction, p.id, squadAlive(p), this.nationAt(p.faction));
         rig.seat(baySeats(lookalike(p.kind) as BotKind, side, v.scale));
         if (this.boarded.has(p.id)) rig.popIn(300);
         c.bay.add(rig.root);
@@ -1085,7 +1203,7 @@ export class EntityRenderer {
     this.group.add(m.root);
     const v: BuildingView = {
       kind: "building", m, bkind: b.kind, faction: b.faction, face: b.facing, recoil: 0, lastFired: b.firedTick,
-      smokeT: 0, size, tx: b.tx, ty: b.ty, cx, cy, base, visible: true, seen: true, hp: b.hp / BUILDINGS[b.kind].hp,
+      smokeT: 0, size, tx: b.tx, ty: b.ty, cx, cy, base, visible: true, seen: true, hp: b.hp / buildingMaxHp(this.world, b),
       variant: "normal", warmUntil: 0, top: m.def.height, roof: roofOf(m.def, size), gantry: null
     };
     // (the Gantry, and the Goliath taking shape on it, are always in the enemy's sight)
@@ -1117,9 +1235,16 @@ export class EntityRenderer {
     // a remembered enemy building out of sight keeps the health it had when last seen (a Gantry is never out of sight)
     v.seen = friendly || always || this.footprintSeen(v);
     v.gantry?.update(b, dtMs, alpha, visible);
-    if (v.seen) v.hp = b.hp / BUILDINGS[b.kind].hp;
+    if (v.seen) v.hp = b.hp / buildingMaxHp(this.world, b);
     const ratio = v.hp;
-    this.setVariant(v, v.seen && performance.now() < v.warmUntil ? "warm" : ratio < 0.5 ? "damaged" : "normal");
+    // off the power network (seen now: a remembered one keeps how it looked): dimmed, lamps out, the Bobine's arc gone
+    if (v.seen) v.off = isUnpowered(b);
+    const off = !!v.off;
+    const arc = v.m.parts.arc;
+    if (arc) arc.visible = !off;
+    this.setVariant(v, v.seen && performance.now() < v.warmUntil ? "warm" : off ? "unpowered" : ratio < 0.5 ? "damaged" : "normal");
+    if (off && !v.noPower) v.noPower = noPowerSign(v.m.root, v.top);
+    if (v.noPower) v.noPower.visible = off;
     if (v.m.turret) {
       // out of sight it holds its last-seen pose: a radar that swept on (then froze as it died in
       // the fog) or a turret that kept tracking would show what the fog hides. (A shot we're shown
