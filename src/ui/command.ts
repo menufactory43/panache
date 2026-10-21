@@ -14,6 +14,7 @@
  *
  * Rules live in ../game/squads.ts and ../game/advisor.ts (tested).
  */
+import { behaves } from "../sim/nations";
 import { BUILDINGS, GOLIATH, UNITS } from "../sim/balance";
 import { buildingBlocker, unitBlocker } from "../sim/economy";
 import { canWalk } from "../sim/goliath";
@@ -313,7 +314,10 @@ export class CommandUi {
       case "squads": {
         // a real group (two or more, harvesters aside)
         let army = 0;
-        for (const uid of ctrl.selectedUnits) if (w.units.get(uid)?.kind !== "harvester") army++;
+        for (const uid of ctrl.selectedUnits) {
+          const k = w.units.get(uid)?.kind;
+          if (!k || !behaves(k, "harvester")) army++;
+        }
         return army >= 2;
       }
       default:

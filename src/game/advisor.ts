@@ -13,6 +13,7 @@
  * - IdleWatch nudges when a factory has sat idle while the player could
  *   afford something from it.
  */
+import { behaves } from "../sim/nations";
 import { BUILDINGS, UNITS } from "../sim/balance";
 import { unitBlocker } from "../sim/economy";
 import { unitSeenBy } from "../sim/infantry";
@@ -88,7 +89,7 @@ export class EnemyIntel {
     if (t < this.nextScan) return;
     this.nextScan = t + ADVISOR.scanS;
     for (const u of this.w.units.values()) {
-      if (u.faction === this.faction || u.kind === "harvester" || u.kind === "scout") continue;
+      if (u.faction === this.faction || behaves(u.kind, "harvester") || u.kind === "scout") continue;
       if (!unitSeenBy(this.w, this.faction, u)) continue;
       let m = this.seen.get(u.kind);
       if (!m) this.seen.set(u.kind, (m = new Map()));

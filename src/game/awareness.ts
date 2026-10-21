@@ -13,7 +13,10 @@
  * src/game/awareness-view.ts and src/ui/awareness.ts; this file is
  * unit-tested (tests/awareness.test.ts).
  */
-import { BUILDINGS, TICK_RATE, UNITS } from "../sim/balance";
+import { behaves } from "../sim/nations";
+import { BUILDINGS, ROLES, TICK_RATE, UNITS } from "../sim/balance";
+import { pluralName } from "../sim/lexicon";
+import { nationOf } from "../sim/rules";
 import { isAnchored } from "../sim/goliath";
 import { isTransport, unitSeenBy } from "../sim/infantry";
 import { POWER_NAMES } from "../sim/powers";
@@ -257,7 +260,7 @@ export class HeatMap {
           heat = hq ? H.hitHq : H.hitBuilding;
         } else {
           const u = w.units.get(ev.id);
-          const harv = u?.kind === "harvester";
+          const harv = !!u && behaves(u.kind, "harvester");
           // (an anchored Goliath is a base: its arrow says so)
           const base = !!u?.goliath && isAnchored(u);
           cls = base ? 3 : harv ? 2 : 1;
@@ -270,7 +273,7 @@ export class HeatMap {
         // heat where our shooter is (we always know that), not at a target in the fog
         this.add(ev.x, ev.y, 0, H.ownShot);
       } else if (ev.type === "death" && !spectator && ev.unitKind) {
-        if (ev.faction === player) this.add(ev.x, ev.y, ev.unitKind === "harvester" ? 2 : 1, H.ownDeath);
+        if (ev.faction === player) this.add(ev.x, ev.y, behaves(ev.unitKind, "harvester") ? 2 : 1, H.ownDeath);
         else if (ev.killerId !== null && !strike) {
           // (our calldown's kills: we aimed it, so no "Attack" arrow — and never one at our own HQ)
           // a kill heats up where our killer stands (the victim may have been in the fog)
@@ -356,7 +359,7 @@ export class HeatMap {
         x: k.sx / k.w,
         y: k.sy / k.w,
         heat: k.w,
-        label: spectator ? (cls === 4 ? `GQG ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : CLASS_LABEL[cls]!,
+        label: spectator ? (cls === 4 ? `GQG ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : cls === 2 ? pluralName(ROLES[nationOf(this.h.world, this.h.player)].worker, nationOf(this.h.world, this.h.player)) : CLASS_LABEL[cls]!,
         priority: CLASS_PRIORITY[cls]! + Math.min(9, k.w)
       });
     }
@@ -497,7 +500,7 @@ export class InboundWatch {
       }
     for (const u of w.units.values()) {
       if (u.faction !== player) continue;
-      if (u.kind === "harvester") guards.push({ x: u.x, y: u.y, r: 0 });
+      if (behaves(u.kind, "harvester")) guards.push({ x: u.x, y: u.y, r: 0 });
       else if (baseGoliath(w, u)) guards.push({ x: u.x, y: u.y, r: UNITS[u.kind].radius });
     }
     if (guards.length === 0) return [];

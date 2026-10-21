@@ -3,8 +3,8 @@ import { isKnownMapId, mapBansMutator, mapById, type MatchOptions } from "../sim
 import { isRandomMapId } from "../sim/mapgen";
 import { isMutatorId, parseNations, type MutatorId } from "../sim/rules";
 import { opById, type OpDef } from "../sim/ops";
-import type { Faction, Nation } from "../sim/types";
-import { setLocalSide } from "./controller";
+import type { Faction, Nation, NationOrClassic } from "../sim/types";
+import { PLAYER, setLocalSide } from "./controller";
 import type { DailyOp } from "./daily";
 
 /** Skirmish (vs an AI commander), Last Stand (survive endless waves) or the Ops campaign. */
@@ -30,8 +30,17 @@ export const gameMode = {
    * or preview on the menu, and nothing of it shows in the match until it's
    * scouted. Render/UI only: the sim and replays don't change.
    */
-  uncharted: false
+  uncharted: false,
+  /**
+   * The player's nation in skirmish (saved; PANACHE-CONCEPTION.md §1.10):
+   * "classique" plays today's symmetric rules; a nation gives the AI the
+   * other one. `?nations=` in the URL wins.
+   */
+  nation: "classique" as NationOrClassic
 };
+
+/** Set by duelSetup: a duel plays Classique whatever the menu's nation (both phones must agree: WP7). */
+let duelMatch = false;
 
 /** Is the coming match on a generated map played Uncharted (not when watching AI vs AI, an op or the Daily)? */
 export const unchartedMatch = (): boolean =>
@@ -64,6 +73,7 @@ export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Fa
   gameMode.daily = null;
   gameMode.op = null;
   gameMode.uncharted = false;
+  duelMatch = true;
   setLocalSide(cfg.local);
 }
 
@@ -99,9 +109,26 @@ export function matchOptions(): MatchOptions {
     // mutators, and the Daily Op's date seed (everyone plays the same match)
     ...(mutators.length ? { mutators } : {}),
     ...(gameMode.daily ? { seed: gameMode.daily.seed } : {}),
-    // nations (PANACHE-CONCEPTION.md §1.10): skirmish only, from the dev URL until the menu's picker (WP6)
-    ...(!survival && !gameMode.daily && urlNations() ? { nations: urlNations()! } : {})
+    // nations (PANACHE-CONCEPTION.md §1.10): skirmish only (the URL's, or the menu's pick)
+    ...(!survival && !gameMode.daily && !duelMatch && matchNationsPick() ? { nations: matchNationsPick()! } : {})
   };
+}
+
+/** The other nation (the AI's, facing the player's). */
+export const rivalNation = (n: Nation): Nation => (n === "republique" ? "empire" : "republique");
+
+/**
+ * The nations of the coming skirmish, by seat: `?nations=` if given, else the
+ * menu's pick for the player's seat and the other nation for the AI's.
+ * Null: Classique.
+ */
+export function matchNationsPick(): Record<Faction, Nation> | null {
+  const url = urlNations();
+  if (url) return url;
+  const n = gameMode.nation;
+  if (n === "classique") return null;
+  const other: Faction = PLAYER === "blue" ? "red" : "blue";
+  return { [PLAYER]: n, [other]: rivalNation(n) } as Record<Faction, Nation>;
 }
 
 /**
@@ -128,6 +155,7 @@ export function loadSettings(): void {
     if (typeof s.opId === "string" && opById(s.opId)) gameMode.opId = s.opId;
     if (Array.isArray(s.mutators)) gameMode.mutators = s.mutators.filter(isMutatorId);
     gameMode.uncharted = s.uncharted === true;
+    if (s.nation === "classique" || s.nation === "republique" || s.nation === "empire") gameMode.nation = s.nation;
   } catch {
     /* storage unavailable — defaults are fine */
   }
@@ -136,7 +164,7 @@ export function loadSettings(): void {
 export function saveSettings(): void {
   if (gameMode.daily || gameMode.op) return; // the Daily Op's / an op's map and difficulty are not the player's picks
   try {
-    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, uncharted: gameMode.uncharted }));
+    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, uncharted: gameMode.uncharted, nation: gameMode.nation }));
   } catch {
     /* ignore */
   }

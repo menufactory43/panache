@@ -1,6 +1,7 @@
-import { TICK_RATE, UNITS } from "../sim/balance";
-import type { BuildingKind, Faction, FxEvent, PowerKind, UnitKind, World } from "../sim/types";
-import { elides, isFeminine } from "../sim/lexicon";
+import { ROLES, TICK_RATE, UNITS } from "../sim/balance";
+import { behaves } from "../sim/nations";
+import type { BuildingKind, Faction, FxEvent, NationOrClassic, PowerKind, UnitKind, World } from "../sim/types";
+import { displayName, elides, isFeminine, pluralName } from "../sim/lexicon";
 import { buildingCenter, hqOf } from "../sim/world";
 import { CalldownCredit, powerName } from "./calldown-credit";
 
@@ -198,7 +199,7 @@ export class Chronicle {
     const army = { blue: 0, red: 0 };
     const harvesters = { blue: 0, red: 0 };
     for (const u of w.units.values()) {
-      if (u.kind === "harvester") harvesters[u.faction]++;
+      if (behaves(u.kind, "harvester")) harvesters[u.faction]++;
       else army[u.faction] += (UNITS[u.kind].cost * Math.max(0, u.hp)) / UNITS[u.kind].hp;
       // squads riding in a Condor still count toward the army
       for (const p of u.passengers ?? []) army[p.faction] += (UNITS[p.kind].cost * Math.max(0, p.hp)) / UNITS[p.kind].hp;
@@ -596,6 +597,8 @@ export interface TipInput {
   factories: Record<Faction, { total: number; idleRich: number }>;
   /** Goliaths each side started with (Nomads), on top of those built. */
   startGoliaths?: Record<Faction, number>;
+  /** The player's nation (its worker's name in the tips); absent: Classique. */
+  nation?: NationOrClassic;
 }
 
 /** One actionable tip, chosen by simple rules (the most pressing wins). */
@@ -630,14 +633,15 @@ export function pickTip(i: TipInput): string {
   if (squads >= 8 && n(me, "mortar", "hornet", "sniper", "turret") <= 1)
     tips.push({ score: 72, text: `Ils ont aligné ${squads} escouades d'infanterie. Canons de 75, Albatros et Chasseurs alpins déchiquettent l'infanterie automate.` });
 
-  const harvLost = i.deaths.filter((d) => d.faction === me && d.unitKind === "harvester").length;
+  const worker = ROLES[i.nation ?? "classique"].worker;
+  const harvLost = i.deaths.filter((d) => d.faction === me && !!d.unitKind && behaves(d.unitKind, "harvester")).length;
   if (harvLost >= 5)
-    tips.push({ score: 70 + harvLost, text: `Tu as perdu ${harvLost} Fardiers. Une Hotchkiss près des gisements, ou deux escortes, se rentabilise vite.` });
+    tips.push({ score: 70 + harvLost, text: `Tu as perdu ${harvLost} ${pluralName(worker, i.nation)}. Une Hotchkiss près des gisements, ou deux escortes, se rentabilise vite.` });
 
   const late = i.samples.filter((s) => s.t >= 90);
   const avgHarv = late.length ? late.reduce((s, x) => s + x.harvesters[me], 0) / late.length : 4;
   if (i.duration > 240 && avgHarv < 2.5)
-    tips.push({ score: 65, text: `Tu as tourné avec environ ${Math.max(1, Math.round(avgHarv))} Fardier${Math.round(avgHarv) <= 1 ? "" : "s"} presque tout le match. Les revenus gagnent les guerres : vises-en 4 ou plus dès le début.` });
+    tips.push({ score: 65, text: `Tu as tourné avec environ ${Math.max(1, Math.round(avgHarv))} ${Math.round(avgHarv) <= 1 ? displayName(worker, i.nation) : pluralName(worker, i.nation)} presque tout le match. Les revenus gagnent les guerres : vises-en 4 ou plus dès le début.` });
 
   const fac = i.factories[me];
   const idle = fac.total >= 10 ? fac.idleRich / fac.total : 0;
@@ -686,7 +690,7 @@ export function pickTip(i: TipInput): string {
 /** Spectator: one line per commander. */
 export function commanderStory(c: Chronicle, w: World, f: Faction, label: string): string {
   const st = w.factions[f].stats;
-  const kinds = Object.entries(c.built[f]).filter(([k]) => k in UNITS && k !== "harvester");
+  const kinds = Object.entries(c.built[f]).filter(([k]) => k in UNITS && !behaves(k as UnitKind, "harvester"));
   kinds.sort((a, b) => b[1] - a[1]);
   const top = kinds[0];
   let peak = 0;

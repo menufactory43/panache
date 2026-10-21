@@ -1,4 +1,5 @@
 import { BUILDINGS, ECONOMY, GOLIATH, TICK_RATE, UNITS } from "../sim/balance";
+import { behaves, buildingCostFor, buildingMaxHp } from "../sim/nations";
 import { paidFor, producerCap, producersOf, type Producer } from "../sim/economy";
 import { anchorBlocker, canWalk, goliathReachAt, unitCost } from "../sim/goliath";
 import { isInfantry, isTransport } from "../sim/infantry";
@@ -32,7 +33,7 @@ export function setLocalSide(f: Faction): void {
  * harvester, and not an unarmed Condor: it would outrun the army and park
  * alone in the enemy base.
  */
-export const isArmyUnit = (u: Unit): boolean => u.faction === PLAYER && u.kind !== "harvester" && !isTransport(u.kind);
+export const isArmyUnit = (u: Unit): boolean => u.faction === PLAYER && !behaves(u.kind, "harvester") && !isTransport(u.kind);
 
 /**
  * A Goliath dug in where it stands (digging in, or anchored): a move would
@@ -156,7 +157,7 @@ export function buildView(w: World, side: Faction, orders: readonly Command[] | 
             paid += queued[k]!.n > 0 ? queued[k]!.paid : -UNITS[queued[k]!.kind].cost;
             queued.splice(k, 1);
           }
-        scrap += Math.floor(BUILDINGS[b.kind].cost * ECONOMY.sellRefund * (b.hp / BUILDINGS[b.kind].hp) + paid);
+        scrap += Math.floor(buildingCostFor(w, side, b.kind) * ECONOMY.sellRefund * (b.hp / buildingMaxHp(w, b)) + paid);
         closed.add(b.id);
         break;
       }
@@ -289,7 +290,7 @@ export function ordersAhead(w: World, orders: readonly Command[] | null): Orders
         const tx = Math.floor(c.x);
         const ty = Math.floor(c.y);
         if (tx < 0 || ty < 0 || tx >= w.width || ty >= w.height || !isResource(w, tileIndex(w, tx, ty))) break;
-        for (const u of named(c, lifting)) if (u.kind === "harvester") edit(u).order = { type: "harvest", fieldX: tx, fieldY: ty, phase: "toField" };
+        for (const u of named(c, lifting)) if (behaves(u.kind, "harvester")) edit(u).order = { type: "harvest", fieldX: tx, fieldY: ty, phase: "toField" };
         break;
       }
       case "stop":
@@ -756,8 +757,8 @@ export class Controller {
         return;
       }
       if (rooted.length > 0) this.rootTip(`${rooted.length > 1 ? "Les Gargantuas ancrés restent" : "Le Gargantua ancré reste"} en place : lève l'ancre d'abord (G)`);
-      const harvesters = ids.filter((id) => w.units.get(id)!.kind === "harvester");
-      const rest = ids.filter((id) => w.units.get(id)!.kind !== "harvester");
+      const harvesters = ids.filter((id) => behaves(w.units.get(id)!.kind, "harvester"));
+      const rest = ids.filter((id) => !behaves(w.units.get(id)!.kind, "harvester"));
       const onResource =
         tx >= 0 && ty >= 0 && tx < w.width && ty < w.height && isResource(w, tileIndex(w, tx, ty));
       const type = this.forceMove ? "move" : "attackMove";

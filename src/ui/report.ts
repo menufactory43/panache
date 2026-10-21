@@ -1,5 +1,6 @@
 import { UNITS } from "../sim/balance";
 import { mapById } from "../sim/maps";
+import { nationOf } from "../sim/rules";
 import { POWER_KINDS, POWER_NAMES } from "../sim/powers";
 import type { Faction, FactionStats, World } from "../sim/types";
 import {
@@ -418,7 +419,7 @@ function tipHtml(ctx: ReportContext): string | null {
   let tip = pickTip({
     pov: ctx.pov, won: ctx.won, duration: ctx.secs, difficulty: duel ? "" : ctx.enemy.difficulty.toLowerCase(),
     built: c.built, firstBuilt: c.firstBuilt, deaths: c.deaths, samples: c.samples, factories: c.factories,
-    startGoliaths: c.startGoliaths
+    startGoliaths: c.startGoliaths, nation: nationOf(ctx.world, ctx.pov)
   });
   // (a duel's congratulations: there is no harder AI to try)
   if (duel && /\b(AI|IA)\b/.test(tip))

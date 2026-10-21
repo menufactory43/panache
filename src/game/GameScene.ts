@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { behaves, nationKind } from "../sim/nations";
+import { nationOf } from "../sim/rules";
 import { DIFFICULTY, createAiState, tickAi, type AiState } from "../sim/ai/commander";
 import { BUILDINGS, ECONOMY, GOLIATH, TICK_RATE, UNITS } from "../sim/balance";
 import { canPlaceBuilding, nearestReachableResource } from "../sim/economy";
@@ -39,7 +41,7 @@ import { ObjectiveRenderer } from "./render/objectives";
 import { createHud, type DuelHud, type EndOpts, type Hud } from "../ui/hud";
 import { PlacementView } from "./placement-view";
 import { CommandUi } from "../ui/command";
-import { showOpenerPicker } from "../ui/openers";
+import { nationText, showOpenerPicker } from "../ui/openers";
 import { createPowerPanel, type PowerPanel } from "../ui/powers";
 import { createObjectivePill, type ObjectivePill } from "../ui/objectives";
 import { mountCineToggle, type CineToggle } from "../ui/cinecam";
@@ -360,7 +362,7 @@ export class GameScene {
     this.setupInput();
     // the starting harvester gets to work immediately (a duel's openers set every harvester mining already)
     for (const u of this.world.units.values())
-      if (u.faction === PLAYER && u.kind === "harvester" && !gameMode.spectator && !interactive) {
+      if (u.faction === PLAYER && behaves(u.kind, "harvester") && !gameMode.spectator && !interactive) {
         const f = nearestReachableResource(this.world, u.x, u.y, u.faction);
         if (f) this.ctrl.enqueue({ type: "harvest", faction: PLAYER, unitIds: [u.id], x: f.x + 0.5, y: f.y + 0.5 });
       }
@@ -460,6 +462,9 @@ export class GameScene {
         context: `${uncharted ? "Inexplorée" : mapById(gameMode.mapId).name} · contre ${this.ai ? `IA ${this.ai.strategy.label}` : "les vagues"} (${DIFFICULTY[gameMode.difficulty].label})`,
         onPick: (id) => this.startWithOpener(id),
         blocked: (id) => openerBlocked(this.world, PLAYER, id),
+        // (a nation's cards name its own kinds: Fourgons, Jamais-Contente…)
+        nation: nationOf(this.world, PLAYER),
+        kindFor: (k) => nationKind(this.world, PLAYER, k),
         // islands are taken by troops and defended from the air: the Airpad matters most there
         // (not on an Uncharted map: that would tell what it is)
         recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? "Idéal ici : Chalais-Meudon pour plus de Montgolfières" : null)
@@ -613,7 +618,7 @@ export class GameScene {
     }
     sfx.play("build");
     const o = OPENERS[id];
-    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: o.rollout, tone: "good", priority: 1 });
+    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: nationText(o.rollout, id, { nation: nationOf(this.world, PLAYER), kindFor: (k) => nationKind(this.world, PLAYER, k) }), tone: "good", priority: 1 });
     announceRules(this.world); // (queued behind the roll-out)
   }
 
@@ -1264,7 +1269,7 @@ export class GameScene {
     for (const u of w.units.values()) {
       const max = UNITS[u.kind].hp;
       const selected = this.ctrl.selectedUnits.has(u.id);
-      const harvesterLoad = u.kind === "harvester" && u.faction === PLAYER && selected;
+      const harvesterLoad = behaves(u.kind, "harvester") && u.faction === PLAYER && selected;
       if (u.hp >= max && !selected) continue;
       if (!this.entities.isShown(u.id)) continue;
       const p = this.entities.pos(u.id);
@@ -1499,7 +1504,7 @@ export class GameScene {
           return s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1;
         });
         // prefer combat units: a box over the mining line shouldn't grab harvesters
-        const army = inBox.filter((u) => u.kind !== "harvester");
+        const army = inBox.filter((u) => !behaves(u.kind, "harvester"));
         const ids = (army.length > 0 ? army : inBox).map((u) => u.id);
         if (ids.length > 0) this.ctrl.selectUnits(ids);
       },

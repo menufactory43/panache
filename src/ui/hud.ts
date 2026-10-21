@@ -1,5 +1,6 @@
 import { BUILDINGS, ECONOMY, GOLIATH, INFANTRY as INF, LIFELINE, OBJECTIVES, POWERS, TICK_RATE, UNITS } from "../sim/balance";
-import { agree, isFeminine } from "../sim/lexicon";
+import { buildingCostFor, buildingMaxHp, buildingMaxHpOf, nationKind } from "../sim/nations";
+import { agree, isFeminine, pluralName } from "../sim/lexicon";
 import { buildingBlocker, queuesOf, unitBlocker } from "../sim/economy";
 import { Vis } from "../sim/fog";
 import { anchorBlocker, modeProgress, unitCost, weaponReady } from "../sim/goliath";
@@ -191,10 +192,14 @@ function goliathMode(u: Unit): string {
   const g = u.goliath!;
   if (g.lift) return g.lift.phase === "hooking" ? "Montgolfières en accroche…" : "⇡ Aéroporté";
   const pct = `${Math.floor(modeProgress(u) * 20) * 5}%`;
-  if (g.mode === "anchoring") return `⚓ Ancrage ${pct}`;
-  if (g.mode === "packing") return `⇡ Levée ${pct}`;
-  return g.mode === "anchored" ? "⚓ Ancré" : "En marche";
+  const air = flies(u);
+  if (g.mode === "anchoring") return `⚓ ${air ? "Amarrage" : "Ancrage"} ${pct}`;
+  if (g.mode === "packing") return `⇡ ${air ? "Largage" : "Levée"} ${pct}`;
+  return g.mode === "anchored" ? (air ? "⚓ Amarré" : "⚓ Ancré") : air ? "En vol" : "En marche";
 }
+
+/** A super-unit that flies (the Zénith): it moors (amarrer) rather than anchors (ancrer). */
+const flies = (u: Unit): boolean => UNITS[u.kind].domain === "air";
 
 /** One weapon system's state: firing, held (grounded to its machine guns on a lift), rebooting or offline. */
 function weaponState(u: Unit, k: GoliathWeapon): "on" | "held" | "boot" | "off" {
@@ -512,8 +517,10 @@ export function createHud(api: HudApi): Hud {
     const m = MATCHUPS[kind];
     const rows: string[] = [];
     // (a Goliath's price climbs with every one you have: the card shows today's)
-    const cost = isUnit ? unitCost(w, PLAYER, kind as UnitKind) : s.cost;
-    rows.push(`<tr><td>Coût</td><td>${cost}</td><td>PV</td><td>${s.hp}</td></tr>`);
+    // (a nation's buildings: its multipliers, Préfabriqué or Vapeur)
+    const cost = isUnit ? unitCost(w, PLAYER, kind as UnitKind) : buildingCostFor(w, PLAYER, kind as BuildingKind);
+    const hp = isUnit ? s.hp : buildingMaxHpOf(w, PLAYER, kind as BuildingKind);
+    rows.push(`<tr><td>Coût</td><td>${cost}</td><td>PV</td><td>${hp}</td></tr>`);
     /** A Goliath's four weapon systems, in a table of their own after the cost. */
     let weapons = "";
     if (kind === "goliath") {
@@ -645,10 +652,10 @@ export function createHud(api: HudApi): Hud {
       const why = walking.every((g) => anchorBlocker(w, g)) ? anchorBlocker(w, walking[0]!) : null;
       if (why)
         return { id: "anchor", label: `⚠ ${why}`, cls: "anchor bad", on: () => (ctrl.toggleAnchor(), nope("anchor")) };
-      return { id: "anchor", label: "⚓ Ancrer", cls: "anchor go", on: () => ctrl.toggleAnchor() };
+      return { id: "anchor", label: walking.every(flies) ? "⚓ Amarrer" : "⚓ Ancrer", cls: "anchor go", on: () => ctrl.toggleAnchor() };
     }
     if (gs.some((g) => g.goliath!.mode === "anchored"))
-      return { id: "anchor", label: "⇡ Lever l'ancre", cls: "anchor", on: () => ctrl.toggleAnchor() };
+      return { id: "anchor", label: gs.every(flies) ? "⇡ Larguer les amarres" : "⇡ Lever l'ancre", cls: "anchor", on: () => ctrl.toggleAnchor() };
     // digging in or packing up: progress only (the one furthest from done)
     const slow = gs.reduce((a, b) => (modeProgress(b) < modeProgress(a) ? b : a));
     const short = `${slow.goliath!.mode === "packing" ? "⇡" : "⚓"} ${Math.floor(modeProgress(slow) * 20) * 5}%`;
@@ -704,7 +711,7 @@ export function createHud(api: HudApi): Hud {
       : g.queue.length > 0
         ? queueHtml(u.id, g.queue, u.faction)
         : g.mode === "anchored" && !g.lift
-          ? `<span class="hint">${goliathBase(w) ? "Forme Fardiers et escouades" : "Forme des escouades"} · touche la carte pour rallier</span>`
+          ? `<span class="hint">${flies(u) ? "Produit des aéronefs" : goliathBase(w) ? `Forme ${pluralName(nationKind(w, u.faction, "harvester"), nationOf(w, u.faction))} et escouades` : "Forme des escouades"} · touche la carte pour rallier</span>`
           : "";
     const live: Live = { hp: `${Math.ceil(u.hp)} / ${st.hp}`, head: headShare(g.queue), mode: goliathMode(u) };
     // (short landscape screens put the name and the HP line side by side: style.css)
@@ -726,15 +733,17 @@ export function createHud(api: HudApi): Hud {
         // rebuilt only when the queue itself changes: HP and progress tick in
         // place below, so a tap on a queue button (cancel) isn't lost to a rebuild
         key = `b${b.id}:${b.queue.map((x) => x.kind).join(",")}`;
-        live = { hp: `${Math.ceil(b.hp)} / ${st.hp}`, head: headShare(b.queue) };
+        live = { hp: `${Math.ceil(b.hp)} / ${buildingMaxHp(w, b)}`, head: headShare(b.queue) };
         // producers say how to set a rally point here (it used to be a chip; the row needs the room);
         // an outpost (built in a Goliath's ring) that it doesn't count as base
         const rally = isProducer(b.kind);
-        const note = b.outpost
+        const note = b.unpowered
+          ? "Hors du réseau électrique : production et tirs suspendus. Pose une Tour TSF près de lui."
+          : b.outpost
           ? "Avant-poste : n'étend pas la zone de construction"
           : rally && !ctrl.spectator ? "Touche la carte pour fixer un point de ralliement" : st.role;
-        html = `<img class="pi" src="${icon(b.kind, b.faction)}" alt=""/><div class="pt"><b>${st.name}${b.outpost ? ' <span class="outpost">· Avant-poste</span>' : ""}</b>
-          <span class="hp">${Math.ceil(b.hp)} / ${st.hp}</span>
+        html = `<img class="pi" src="${icon(b.kind, b.faction)}" alt=""/><div class="pt"><b>${displayName(b.kind, nationOf(w, b.faction))}${b.outpost ? ' <span class="outpost">· Avant-poste</span>' : ""}</b>
+          <span class="hp">${Math.ceil(b.hp)} / ${buildingMaxHp(w, b)}</span>
           ${b.queue.length ? queueHtml(b.id, b.queue, b.faction) : `<span class="hint">${note}</span>`}</div>`;
       }
     } else if (ctrl.selectedUnits.size > 0) {
@@ -902,6 +911,8 @@ export function createHud(api: HudApi): Hud {
   const mine = (k: string) => [...w.buildings.values()].some((b) => b.faction === PLAYER && b.kind === k);
   const hasFactory = () => mine("fab-plant") || mine("airpad");
   const armySize = () => [...w.units.values()].filter(isArmyUnit).length;
+  /** The player's workers by name: Fardiers, or the République's Fourgons. */
+  const workers = () => pluralName(nationKind(w, PLAYER, "harvester"), nationOf(w, PLAYER));
   /** Move the tutorial on to stage `next`; at 99 it's done for good. */
   function advance(next: number): void {
     hintStage = next;
@@ -927,8 +938,8 @@ export function createHud(api: HudApi): Hud {
       still = () => hasFactory() === factory && armySize() > 0 === army;
       if (factory) {
         msg = army
-          ? "Tes Fardiers minent seuls. Touche une unité (ou ⚔ Toute l'armée), puis la carte pour l'y envoyer."
-          : "Tes Fardiers minent seuls. Produis des chars dans Véhicules, puis touche une unité et la carte pour l'y envoyer.";
+          ? `Tes ${workers()} minent seuls. Touche une unité (ou ⚔ Toute l'armée), puis la carte pour l'y envoyer.`
+          : `Tes ${workers()} minent seuls. Produis des chars dans Véhicules, puis touche une unité et la carte pour l'y envoyer.`;
         next = 2;
       } else {
         msg = BELLE_EPOQUE
@@ -1196,7 +1207,7 @@ export function createHud(api: HudApi): Hud {
     } else if (ctrl.selectedBuilding !== null && !ctrl.spectator) {
       const b = w.buildings.get(ctrl.selectedBuilding);
       if (b && b.kind !== "hq") {
-        const refund = Math.floor(BUILDINGS[b.kind].cost * ECONOMY.sellRefund * (b.hp / BUILDINGS[b.kind].hp));
+        const refund = Math.floor(buildingCostFor(w, b.faction, b.kind) * ECONOMY.sellRefund * (b.hp / buildingMaxHp(w, b)));
         chips.push({ id: "sell", label: `$ Vendre +${refund}`, cls: "warn", on: () => ctrl.sellSelected() });
       }
       chips.push({ id: "clear", label: "✕", on: () => ctrl.clearSelection() });

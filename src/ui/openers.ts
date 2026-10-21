@@ -1,6 +1,8 @@
-import { BUILDINGS, UNITS } from "../sim/balance";
+import { UNITS } from "../sim/balance";
+import { displayName, pluralName } from "../sim/lexicon";
 import { OPENERS, OPENER_IDS, type OpenerId } from "../sim/openers";
-import type { Faction, UnitKind } from "../sim/types";
+import type { Faction, NationOrClassic, UnitKind } from "../sim/types";
+import { portraitKind } from "../game/three/belle/placeholders";
 import { sfx } from "../game/audio";
 import { PLAYER } from "../game/controller";
 import { fullscreen } from "./fullscreen";
@@ -20,18 +22,45 @@ export interface OpenerPickerOptions {
   recommended?(id: OpenerId): string | null;
   /** Whose paint the cards' art is in (default: the side we play, PLAYER). */
   side?: Faction;
+  /** The player's nation (names of its buildings), and the kind it gets for each Classique one (sim/nations.ts nationKind). */
+  nation?: NationOrClassic;
+  kindFor?(kind: UnitKind): UnitKind;
+}
+
+/** How the cards name things for the player's nation: its own kinds for the openers' Classique ones. */
+interface Words {
+  nation: NationOrClassic;
+  kindFor(kind: UnitKind): UnitKind;
+}
+const CLASSIC_WORDS: Words = { nation: "classique", kindFor: (k) => k };
+
+/**
+ * An opener's line in the player's nation's words: "Fardiers" become
+ * "Fourgons", "Panhard" "Jamais-Contente"… (plurals first, then names).
+ */
+export function nationText(text: string, id: OpenerId, words: Words = CLASSIC_WORDS): string {
+  const o = OPENERS[id];
+  const kinds = new Set<UnitKind>(["harvester", ...o.units]);
+  let out = text;
+  for (const k of kinds) {
+    const mine = words.kindFor(k);
+    if (mine === k) continue;
+    out = out.split(pluralName(k)).join(pluralName(mine, words.nation)).split(UNITS[k].name).join(UNITS[mine].name);
+  }
+  return out;
 }
 
 const ICON = (kind: string, side: Faction) => `assets/icons/${side === "red" ? "red/" : ""}${kind}.webp`;
 
 /** What each card promises, as icon pills. */
-function pills(id: OpenerId, side: Faction): string {
+function pills(id: OpenerId, side: Faction, words: Words): string {
   const o = OPENERS[id];
-  const items: { icon?: string; label: string; cls?: string }[] = [{ icon: o.building, label: BUILDINGS[o.building].name }];
+  const items: { icon?: string; label: string; cls?: string }[] = [{ icon: o.building, label: displayName(o.building, words.nation) }];
   const counts = new Map<UnitKind, number>();
-  for (const k of o.units) counts.set(k, (counts.get(k) ?? 0) + 1);
-  for (const [k, n] of counts) items.push({ icon: k, label: `${n}× ${UNITS[k].name}` });
-  items.push({ icon: "harvester", label: `${o.harvesters}× ${UNITS.harvester.name}` });
+  for (const k of o.units) counts.set(words.kindFor(k), (counts.get(words.kindFor(k)) ?? 0) + 1);
+  for (const [k, n] of counts) items.push({ icon: portraitKind(k), label: `${n}× ${UNITS[k].name}` });
+  const worker = words.kindFor("harvester");
+  items.push({ icon: portraitKind(worker), label: `${o.harvesters}× ${UNITS[worker].name}` });
   if (o.scrap > 0) items.push({ label: `+${o.scrap} charbon` });
   if (o.scrap < 0) items.push({ label: `−${-o.scrap} charbon`, cls: "neg" });
   return items
@@ -57,6 +86,7 @@ function art(id: OpenerId, side: Faction): string {
 export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void } {
   const root = document.getElementById("hud")!;
   const side = opts.side ?? PLAYER;
+  const words: Words = { nation: opts.nation ?? "classique", kindFor: opts.kindFor ?? ((k) => k) };
   const el = document.createElement("div");
   el.className = "openers";
   el.innerHTML = `
@@ -72,8 +102,8 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
           ${art(id, side)}
           <div class="op-text">
             <b class="op-name">${OPENERS[id].name}</b>
-            <span class="op-tag">${OPENERS[id].tagline}</span>
-            <div class="op-pills">${pills(id, side)}</div>
+            <span class="op-tag">${nationText(OPENERS[id].tagline, id, words)}</span>
+            <div class="op-pills">${pills(id, side, words)}</div>
           </div>
           <span class="op-key">${i + 1}</span>
         </button>`

@@ -3,13 +3,13 @@ import { BELLE_EPOQUE } from "./game/three/theme";
 import { DIFFICULTY, type Difficulty } from "./sim/ai/commander";
 import { MAPS, isKnownMapId, mapById } from "./sim/maps";
 import { BIOMES, RANDOM_MAP_SIZE, RANDOM_PREFIX, isRandomMapId, parseRandomMapId, randomMapId, rollRandomMapId, seedCode, seedFromText } from "./sim/mapgen";
-import type { Biome } from "./sim/types";
+import type { Biome, NationOrClassic } from "./sim/types";
 import { sfx } from "./game/audio";
 import { music } from "./game/music";
 import { loadTerrainArt, mapThumbUrl } from "./game/assets";
 import { GameScene, type MatchFeed } from "./game/GameScene";
 import { setLocalSide } from "./game/controller";
-import { activeMutators, duelSetup, gameMode, loadSettings, saveSettings, unchartedMatch, type GameType } from "./game/mode";
+import { activeMutators, duelSetup, gameMode, loadSettings, saveSettings, unchartedMatch, urlNations, type GameType } from "./game/mode";
 import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
@@ -332,6 +332,11 @@ function showMenu(linkedMap?: string | null): void {
       <div class="seg" id="diff">
         ${diffs.map((d) => `<button data-d="${d}">${DIFFICULTY[d].label}</button>`).join("")}
       </div>
+      <div class="seg" id="nation" role="radiogroup" aria-label="Nation">
+        <button data-n="classique" role="radio" title="Les règles symétriques : les mêmes unités pour les deux camps">⚖ Classique</button>
+        <button data-n="republique" role="radio" title="La République : rapide, aérienne, électrique. L'IA joue l'Empire.">🐓 République</button>
+        <button data-n="empire" role="radio" title="L'Empire de Carbonie : vapeur, acier, artillerie. L'IA joue la République.">🚂 Empire</button>
+      </div>
       <button class="mutbtn main"></button>
       <button class="cta big" id="play">▶ Jouer</button>
       <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button><button class="cta alt" id="play-online" disabled>🌐 Défier un ami (en ligne)</button></div>
@@ -540,6 +545,12 @@ function showMenu(linkedMap?: string | null): void {
     }
     menu.querySelectorAll<HTMLElement>("#diff button").forEach((el) => el.classList.toggle("on", el.dataset.d === gameMode.difficulty));
     menu.querySelectorAll<HTMLElement>("#gmode button").forEach((el) => el.classList.toggle("on", el.dataset.m === gameMode.mode));
+    // nations: skirmish only (the URL's ?nations= wins and hides the pick)
+    menu.querySelector<HTMLElement>("#nation")!.hidden = gameMode.mode !== "skirmish" || !!urlNations();
+    menu.querySelectorAll<HTMLElement>("#nation button").forEach((el) => {
+      el.classList.toggle("on", el.dataset.n === gameMode.nation);
+      el.setAttribute("aria-checked", String(el.dataset.n === gameMode.nation));
+    });
     const m = mapById(shown);
     const blind = gameMode.uncharted && isRandomMapId(shown);
     menu.querySelector("#blurb")!.textContent = blind ? "Un champ de bataille inconnu. Explore-le pour en découvrir la forme." : m.blurb;
@@ -655,6 +666,14 @@ function showMenu(linkedMap?: string | null): void {
   menu.querySelectorAll<HTMLElement>("#diff button").forEach((el) =>
     el.addEventListener("click", () => {
       gameMode.difficulty = el.dataset.d as Difficulty;
+      saveSettings();
+      sync();
+    })
+  );
+  menu.querySelectorAll<HTMLElement>("#nation button").forEach((el) =>
+    el.addEventListener("click", () => {
+      gameMode.nation = el.dataset.n as NationOrClassic;
+      sfx.play("click", 0.5);
       saveSettings();
       sync();
     })
