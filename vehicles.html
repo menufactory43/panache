@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070a10" />
+    <title>Panache — Véhicules</title>
+    <link rel="icon" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+    <style>
+      :root {
+        --bg: #070a10;
+        --panel: #0d131e;
+        --line: rgba(120, 150, 200, 0.22);
+        --text: #dfe7f5;
+        --dim: #8b98ad;
+        --gold: #ffd66e;
+        --blue: #4c9dff;
+        --green: #7ef29b;
+        --red: #ff7a6a;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        padding: 24px 16px 48px;
+      }
+      main { max-width: 1040px; margin: 0 auto; }
+      header { margin-bottom: 24px; }
+      header h1 { font-size: 28px; letter-spacing: 0.02em; }
+      header p { color: var(--dim); max-width: 64ch; margin-top: 6px; }
+      header a { color: var(--blue); }
+      nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 8px; }
+      nav a {
+        display: flex; align-items: center; gap: 6px;
+        padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 999px;
+        color: var(--text); text-decoration: none; font-size: 13px; background: var(--panel);
+      }
+      nav a:hover { border-color: var(--blue); }
+      nav img { width: 26px; height: 26px; object-fit: contain; }
+      h2.group { margin: 32px 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); }
+      article {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+        padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-margin-top: 16px;
+      }
+      .head { display: flex; gap: 14px; align-items: center; }
+      /* the portraits on the game's build-button card (src/ui/style.css .bb): they're finished for it (ICONS.md) */
+      .head img {
+        width: 88px; height: 88px; flex: none; padding: 6px; object-fit: contain;
+        border: 1px solid #2c3a55; border-radius: 10px;
+        background: radial-gradient(circle at 50% 35%, #22324f 0%, #141d2e 70%);
+      }
+      .head h3 { font-size: 20px; }
+      .role { color: var(--dim); font-size: 14px; }
+      .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+      .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim); }
+      .tag.tech { color: var(--gold); border-color: rgba(255, 214, 110, 0.4); }
+      .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+      .stat { background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 6px 8px; }
+      .stat b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+      .stat span { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+      ul.features { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+      .matchups { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+      .matchups div { border-radius: 8px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); }
+      .matchups h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+      .beats h4 { color: var(--green); }
+      .fears h4 { color: var(--red); }
+      .matchups a { color: var(--text); }
+      .weapon { font-size: 13px; color: var(--dim); }
+      .weapon b { color: var(--text); font-weight: 600; }
+      footer { margin-top: 40px; color: var(--dim); font-size: 13px; }
+      .dmgwrap { overflow-x: auto; }
+      table.dmg { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; min-width: 520px; width: 100%; }
+      table.dmg th, table.dmg td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+      table.dmg thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+      table.dmg tbody th { text-align: left; text-transform: capitalize; }
+      table.dmg tbody th small { display: block; font-weight: 400; color: var(--dim); font-size: 11px; text-transform: none; }
+      table.dmg td.hi { color: var(--green); font-weight: 700; }
+      table.dmg td.lo { color: var(--red); }
+      @media (max-width: 480px) {
+        .head img { width: 64px; height: 64px; padding: 4px; }
+        .matchups { grid-template-columns: 1fr; }
+        /* every armour column on screen at once, infantry included */
+        table.dmg { min-width: 0; font-size: 12px; }
+        table.dmg th, table.dmg td { padding: 6px 3px; }
+        table.dmg thead th { font-size: 9px; letter-spacing: 0.02em; }
+        table.dmg tbody th small { font-size: 10px; }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/vehicles-ChQKJ2lv.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/advisor-B1ggbpOX.js">
+    <link rel="modulepreload" crossorigin href="./assets/unit-info-Do1WInCU.js">
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body>
+    <main>
+      <header>
+        <h1>Panache — Véhicules</h1>
+        <p>
+          Toutes les unités que tu peux déployer — véhicules, infanterie automate, aéronefs et la machine géante Gargantua — ce qu'elles
+          font et contre quoi elles sont efficaces. Les stats sont lues en direct dans les tables d'équilibrage du jeu. <a href="./">Retour au jeu</a> ·
+          <a href="./models.html">Modèles 3D</a>
+        </p>
+        <nav id="nav"></nav>
+      </header>
+      <div id="units"></div>
+      <h2 class="group">Dégâts contre blindage</h2>
+      <div class="dmgwrap" id="damage"></div>
+      <footer>
+        Multiplicateurs de dégâts par seconde selon la classe de blindage&nbsp;; chaque rang ajoute +15&nbsp;% de dégâts et le rang 3 s'auto-répare.
+        Les unités au sol dans les bois subissent 30&nbsp;% de dégâts en moins&nbsp;; les escouades d'infanterie, moitié moins.
+      </footer>
+    </main>
+  </body>
+</html>

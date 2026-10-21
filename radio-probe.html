@@ -1,0 +1,1959 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#070a10" />
+    <title>Battle Drones — Radio Probe</title>
+    <link rel="icon" href="./icons/icon-192.png" />
+    <style>
+      :root {
+        --bg: #070a10;
+        --panel: #0d131e;
+        --panel-2: #111a28;
+        --line: rgba(120, 150, 200, 0.22);
+        --grid: rgba(120, 150, 200, 0.12);
+        --text: #dfe7f5;
+        --dim: #8b98ad;
+        --accent: #4c9dff;
+        --series: #3987e5;
+        --good: #0ca30c;
+        --warn: #fab219;
+        --bad: #d03b3b;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(env(safe-area-inset-bottom, 0px) + 48px);
+      }
+      main { max-width: 760px; margin: 0 auto; display: grid; gap: 16px; }
+      a { color: var(--accent); }
+      h1 { font-size: 26px; letter-spacing: 0.02em; }
+      h2 { font-size: 17px; margin-bottom: 8px; }
+      h3 { font-size: 14px; margin: 14px 0 6px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+      p { max-width: 68ch; }
+      .dim { color: var(--dim); }
+      .small { font-size: 13px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      label.field { display: grid; gap: 4px; font-size: 13px; color: var(--dim); flex: 1 1 200px; }
+      input[type="text"], select {
+        width: 100%; font: inherit; color: var(--text); background: var(--panel-2);
+        border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+      }
+      input[type="range"] { width: 100%; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .chip {
+        font: inherit; font-size: 14px; color: var(--text); background: var(--panel-2);
+        border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+      }
+      .chip[aria-pressed="true"] { border-color: var(--accent); background: rgba(76, 157, 255, 0.16); }
+      .big {
+        flex: 1 1 140px; font: inherit; font-size: 18px; font-weight: 600; color: var(--text);
+        background: var(--panel-2); border: 1px solid var(--accent); border-radius: 12px;
+        padding: 16px 12px; cursor: pointer;
+      }
+      .big small { display: block; font-size: 12px; font-weight: 400; color: var(--dim); margin-top: 2px; }
+      .big:disabled { opacity: 0.45; cursor: default; }
+      button.plain {
+        font: inherit; font-size: 14px; color: var(--text); background: var(--panel-2);
+        border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer;
+      }
+      button.plain:disabled { opacity: 0.45; }
+      details > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+      details[open] > summary { margin-bottom: 8px; }
+      #status { font-size: 16px; font-weight: 600; }
+      #substatus { font-size: 13px; color: var(--dim); min-height: 1.5em; }
+      .meter { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+      .meter > div { height: 100%; width: 0; background: var(--series); border-radius: 4px; transition: width 0.1s; }
+      canvas { display: block; width: 100%; touch-action: pan-y; }
+      .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+      .tile { background: var(--panel-2); border-radius: 10px; padding: 8px 10px; }
+      .tile b { display: block; font-size: 18px; }
+      .tile span { font-size: 12px; color: var(--dim); }
+      .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--dim); margin: 4px 0; }
+      .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+      .tip {
+        position: fixed; z-index: 10; pointer-events: none; max-width: 260px; font-size: 13px;
+        background: #1a2232; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); display: none; white-space: pre-line;
+      }
+      .table-wrap { overflow-x: auto; }
+      table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; width: 100%; }
+      th, td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+      th:first-child, td:first-child { text-align: left; }
+      .runs { display: grid; gap: 6px; }
+      .run {
+        display: flex; gap: 8px; align-items: center; justify-content: space-between;
+        background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+        font-size: 13px; cursor: pointer; text-align: left; color: var(--text); font-family: inherit;
+      }
+      .run[aria-current="true"] { border-color: var(--accent); }
+      .warnbox { border-left: 3px solid var(--warn); padding: 6px 10px; background: rgba(250, 178, 25, 0.08); border-radius: 6px; font-size: 13px; }
+      ol, ul { padding-left: 20px; }
+      li { margin: 3px 0; }
+      textarea { width: 100%; min-height: 120px; font: 12px ui-monospace, monospace; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+    </style>
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+  <body>
+    <main>
+      <header>
+        <h1>Radio Probe</h1>
+        <p class="dim">
+          Measures how well two phones can talk to each other through their speakers and
+          microphones: signal strength in each 1 kHz band from 1 to 21 kHz, real error rates for
+          multi-tone DBPSK/DQPSK, the room's echo, each phone's own harmonics at its own
+          microphone, clock drift and audio latency. It's the first step towards
+          <a href="./">Battle Drones</a> multiplayer over sound.
+        </p>
+      </header>
+
+      <section class="card" id="setup">
+        <h2>This phone</h2>
+        <div class="row">
+          <label class="field">Name it (shows in the results)
+            <input type="text" id="device" autocomplete="off" />
+          </label>
+        </div>
+        <h3>Distance between the phones</h3>
+        <div class="chips" id="distance"></div>
+        <div class="row" style="margin-top: 10px">
+          <label class="field">Notes (room, orientation, noise…)
+            <input type="text" id="notes" autocomplete="off" placeholder="e.g. kitchen table, bottom edges facing" />
+          </label>
+        </div>
+        <details style="margin-top: 12px" id="settings">
+          <summary>Audio settings</summary>
+          <h3>Microphone processing</h3>
+          <div class="chips" id="micmode"></div>
+          <p class="small dim" id="micmode-help"></p>
+          <h3>Microphone while sending</h3>
+          <div class="chips" id="micsend"></div>
+          <p class="small dim">Off sends from the loudspeaker without opening the microphone, to compare iPhone output routing.</p>
+          <div id="session-wrap">
+            <h3>iOS audio session</h3>
+            <div class="chips" id="session"></div>
+            <p class="small dim">Sets <code>navigator.audioSession.type</code> before the microphone opens. Auto uses play-and-record with the microphone and playback without.</p>
+          </div>
+          <h3>Output level <span id="level-val"></span></h3>
+          <input type="range" id="level" min="-24" max="0" step="1" />
+          <p class="small dim">Digital level of the probe. Set the phone's own volume to about 75%: most phones distort above that.</p>
+        </details>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <button class="big" id="btn-listen">Listen<small>this phone receives</small></button>
+          <button class="big" id="btn-send">Send probe<small>13 s of test tones</small></button>
+        </div>
+        <div class="row" style="margin-top: 8px">
+          <button class="plain" id="btn-latency">Latency test (one phone)</button>
+          <button class="plain" id="btn-stop" disabled>Stop</button>
+        </div>
+        <div style="margin-top: 12px">
+          <div id="status">Ready</div>
+          <div id="substatus">Tap Listen on one phone, then Send probe on the other.</div>
+          <div class="meter" style="margin-top: 8px"><div id="progress"></div></div>
+          <canvas id="live" height="70" style="margin-top: 8px" aria-label="Live microphone spectrum"></canvas>
+          <div class="small dim" id="live-label">Microphone level: —</div>
+        </div>
+      </section>
+
+      <section class="card" id="result-card" hidden>
+        <div id="result"></div>
+      </section>
+
+      <section class="card" id="duplex-card" hidden>
+        <div id="duplex"></div>
+      </section>
+
+      <section class="card">
+        <h2>Runs</h2>
+        <div class="row" style="margin-bottom: 8px">
+          <button class="plain" id="btn-copy-all">Copy all results</button>
+          <button class="plain" id="btn-clear">Clear</button>
+        </div>
+        <div class="runs" id="runs"><p class="small dim">No runs yet.</p></div>
+        <textarea id="copy-fallback" hidden readonly></textarea>
+      </section>
+
+      <section class="card">
+        <h2>How to test</h2>
+        <ol class="small">
+          <li>Open this page on both phones. Set both to about 75% volume. On an iPhone, turn the silent switch off.</li>
+          <li>Lay the phones flat on a table 30 cm apart, bottom edges facing. Pick the distance above on both.</li>
+          <li>On phone A tap <b>Listen</b>, then on phone B tap <b>Send probe</b>. Keep quiet for 15 seconds.</li>
+          <li>Swap: B listens, A sends. Each phone now has a send run and a listen run, which unlocks the full-duplex check.</li>
+          <li>Repeat at 10 cm and 60 cm, and once with people talking or music playing.</li>
+          <li>On an iPhone, repeat its send with <i>Microphone while sending: off</i>, and its send and listen with <i>Microphone processing: Voice</i>.</li>
+          <li>Run the <b>Latency test</b> on each phone.</li>
+          <li>Tap <b>Copy all results</b> on each phone and paste them into the chat. <b>WAV</b> downloads keep the raw audio for offline modem work.</li>
+        </ol>
+        <details style="margin-top: 10px">
+          <summary>What the probe plays</summary>
+          <p class="small dim">
+            A 250 ms chirp (1.2–7.5 kHz), half a second of quiet for the noise floor, then twenty
+            1 kHz bands from 1 to 21 kHz. Each band is 16 OFDM symbols (21.3 ms plus a 5.3 ms cyclic
+            prefix, tones every 46.875 Hz) carrying known DQPSK data, so the listener counts real
+            decision errors. A second chirp ends the sequence; the gap between the two gives the clock
+            offset between the phones. The sender records itself, which shows its own harmonics at its
+            own microphone and its loopback latency. Error rates are raw, before any error correction:
+            a rate-½ convolutional code with soft decoding copes with a few percent.
+          </p>
+        </details>
+      </section>
+    </main>
+    <div class="tip" id="tip"></div>
+
+    <script id="probe-core">
+      // =====================================================================
+      // Probe core: the test sequence and its analysis. No DOM in here, so the
+      // tests can load it in Node (tests/radio-probe.test.ts).
+      // =====================================================================
+      const ProbeCore = (() => {
+        "use strict";
+        const VERSION = 1;
+        // OFDM numerology, in seconds so any sample rate can render and read it
+        const DF = 46.875; // tone spacing (48 kHz / 1024)
+        const TU = 1 / DF; // useful symbol, 21.33 ms
+        const TCP = 256 / 48000; // cyclic prefix, 5.33 ms
+        const TW = 64 / 48000; // raised-cosine crossfade between symbols (inside the prefix)
+        const TS = TU + TCP;
+        const SYMBOLS = 16; // per band: a reference symbol, then 15 of DQPSK data
+        const BAND_PERIOD = SYMBOLS * TS + 0.08;
+        const BANDS = [];
+        for (let lo = 1000; lo < 21000; lo += 1000) {
+          const freqs = [];
+          for (let k = Math.ceil(lo / DF + 0.5); k <= Math.floor((lo + 1000) / DF - 0.5); k++) freqs.push(k * DF);
+          BANDS.push({ lo, hi: lo + 1000, freqs, label: `${lo / 1000}–${lo / 1000 + 1} kHz` });
+        }
+        const ALL_FREQS = [];
+        const BAND_OF = [];
+        BANDS.forEach((b, i) => b.freqs.forEach((f) => (ALL_FREQS.push(f), BAND_OF.push(i))));
+
+        const CHIRP = { f0: 1200, f1: 7500, dur: 0.25, edge: 0.005 };
+        const T_S1 = 0.3;
+        const QUIET = [T_S1 + CHIRP.dur + 0.4, T_S1 + CHIRP.dur + 0.97]; // noise floor, after the chirp's echo
+        const T_BANDS = T_S1 + CHIRP.dur + 1.0;
+        const T_S2 = T_BANDS + BANDS.length * BAND_PERIOD + 0.3;
+        const T_END = T_S2 + CHIRP.dur + 0.7;
+        const symStart = (b, m) => T_BANDS + b * BAND_PERIOD + TCP + m * TS; // start of symbol m's FFT window
+        const SPILL_SYMS = [3, 7, 11, 15];
+
+        // latency test: short chirps
+        const CLICK = { f0: 1500, f1: 7000, dur: 0.06, edge: 0.003 };
+        const CLICKS = 8;
+        const CLICK_T0 = 0.2;
+        const CLICK_GAP = 0.6;
+        const CLICK_END = CLICK_T0 + CLICKS * CLICK_GAP + 0.3;
+
+        const db10 = (x) => 10 * Math.log10(x);
+        const db20 = (x) => 20 * Math.log10(x);
+        const wrap = (a) => a - 2 * Math.PI * Math.round(a / (2 * Math.PI));
+
+        function rng(seed) {
+          // mulberry32
+          return () => {
+            seed = (seed + 0x6d2b79f5) | 0;
+            let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+
+        // Each band's phases: Newman phases for the reference symbol (a low
+        // crest factor), then a seeded random DQPSK step per tone per symbol.
+        const plans = [];
+        function plan(b) {
+          if (plans[b]) return plans[b];
+          const n = BANDS[b].freqs.length;
+          const r = rng(0x5eed + 7919 * b);
+          const ph = [Array.from({ length: n }, (_, i) => (Math.PI * i * i) / n)];
+          const dq = [null];
+          for (let m = 1; m < SYMBOLS; m++) {
+            const d = [];
+            const p = [];
+            for (let i = 0; i < n; i++) {
+              const q = Math.floor(r() * 4);
+              d.push(q);
+              p.push(ph[m - 1][i] + (q * Math.PI) / 2);
+            }
+            ph.push(p);
+            dq.push(d);
+          }
+          return (plans[b] = { ph, dq });
+        }
+
+        function chirpAt(c, tau) {
+          if (tau < 0 || tau >= c.dur) return 0;
+          const k = (c.f1 - c.f0) / c.dur;
+          const e = Math.min(1, tau / c.edge, (c.dur - tau) / c.edge);
+          const w = e >= 1 ? 1 : 0.5 - 0.5 * Math.cos(Math.PI * e);
+          return w * Math.sin(2 * Math.PI * (c.f0 * tau + 0.5 * k * tau * tau));
+        }
+
+        function addChirp(out, sr, c, t, amp) {
+          const n1 = Math.min(out.length, Math.ceil((t + c.dur) * sr));
+          for (let n = Math.max(0, Math.ceil(t * sr)); n < n1; n++) out[n] += amp * chirpAt(c, n / sr - t);
+        }
+
+        // The whole probe at sample rate sr. Tones above 47% of sr are left out.
+        // Every band uses the same per-tone amplitude, scaled so the loudest
+        // peak sits at 0.89 of full scale (times `gain`).
+        function render(sr, gain = 1) {
+          const out = new Float32Array(Math.ceil(T_END * sr));
+          for (let b = 0; b < BANDS.length; b++) {
+            const freqs = BANDS[b].freqs;
+            const { ph } = plan(b);
+            for (let m = 0; m < SYMBOLS; m++) {
+              const t0 = symStart(b, m);
+              const a = t0 - TCP;
+              const n0 = Math.ceil(a * sr);
+              const n1 = Math.min(out.length, Math.ceil((t0 + TU + TW) * sr));
+              const len = n1 - n0;
+              if (len <= 0) continue;
+              const acc = new Float64Array(len);
+              for (let i = 0; i < freqs.length; i++) {
+                const f = freqs[i];
+                if (f > 0.47 * sr) continue;
+                const w = (2 * Math.PI * f) / sr;
+                const th = 2 * Math.PI * f * (n0 / sr - t0) + ph[m][i];
+                let cr = Math.cos(th);
+                let ci = Math.sin(th);
+                const wr = Math.cos(w);
+                const wi = Math.sin(w);
+                for (let j = 0; j < len; j++) {
+                  acc[j] += cr;
+                  const nr = cr * wr - ci * wi;
+                  ci = cr * wi + ci * wr;
+                  cr = nr;
+                }
+              }
+              for (let j = 0; j < len; j++) {
+                const t = (n0 + j) / sr;
+                let e = 1;
+                if (t < a + TW) e = 0.5 - 0.5 * Math.cos((Math.PI * (t - a)) / TW);
+                else if (t > t0 + TU) e = 0.5 + 0.5 * Math.cos((Math.PI * (t - t0 - TU)) / TW);
+                out[n0 + j] += e * acc[j];
+              }
+            }
+          }
+          let peak = 0;
+          for (let i = 0; i < out.length; i++) peak = Math.max(peak, Math.abs(out[i]));
+          const toneAmp = peak > 0 ? 0.89 / peak : 0;
+          for (let i = 0; i < out.length; i++) out[i] *= toneAmp * gain;
+          addChirp(out, sr, CHIRP, T_S1, 0.89 * gain);
+          addChirp(out, sr, CHIRP, T_S2, 0.89 * gain);
+          return { samples: out, toneAmp: toneAmp * gain };
+        }
+
+        function renderClicks(sr, gain = 1) {
+          const out = new Float32Array(Math.ceil(CLICK_END * sr));
+          for (let i = 0; i < CLICKS; i++) addChirp(out, sr, CLICK, CLICK_T0 + i * CLICK_GAP, 0.89 * gain);
+          return out;
+        }
+
+        // In-place radix-2 complex FFT (inverse is unscaled).
+        function fft(re, im, inverse) {
+          const n = re.length;
+          for (let i = 1, j = 0; i < n; i++) {
+            let bit = n >> 1;
+            for (; j & bit; bit >>= 1) j ^= bit;
+            j ^= bit;
+            if (i < j) {
+              let t = re[i];
+              re[i] = re[j];
+              re[j] = t;
+              t = im[i];
+              im[i] = im[j];
+              im[j] = t;
+            }
+          }
+          for (let len = 2; len <= n; len <<= 1) {
+            const ang = ((inverse ? 2 : -2) * Math.PI) / len;
+            const half = len >> 1;
+            for (let k = 0; k < half; k++) {
+              const cr = Math.cos(ang * k);
+              const ci = Math.sin(ang * k);
+              for (let i = k; i < n; i += len) {
+                const b = i + half;
+                const tr = re[b] * cr - im[b] * ci;
+                const ti = re[b] * ci + im[b] * cr;
+                re[b] = re[i] - tr;
+                im[b] = im[i] - ti;
+                re[i] += tr;
+                im[i] += ti;
+              }
+            }
+          }
+        }
+
+        // Matched filter for a chirp: correlation with the template, its
+        // spectrum Hann-weighted across the sweep (low range sidelobes, so the
+        // envelope doubles as the room's impulse response) and one-sided
+        // (analytic, so its magnitude is the envelope).
+        const mfPlans = new Map();
+        function mfPlan(sr, c = CHIRP) {
+          const key = `${sr}:${c.f0}:${c.f1}:${c.dur}`;
+          if (mfPlans.has(key)) return mfPlans.get(key);
+          const L = Math.ceil(c.dur * sr);
+          const tpl = new Float32Array(L);
+          for (let i = 0; i < L; i++) tpl[i] = chirpAt(c, i / sr);
+          let N = 1;
+          while (N < 4 * L) N <<= 1;
+          const tr = new Float64Array(N);
+          const ti = new Float64Array(N);
+          tr.set(tpl);
+          fft(tr, ti, false);
+          const hr = new Float64Array(N);
+          const hi = new Float64Array(N);
+          const b0 = (c.f0 * N) / sr;
+          const b1 = (c.f1 * N) / sr;
+          for (let k = Math.ceil(b0); k <= Math.floor(b1) && k < N / 2; k++) {
+            const w = 2 * (0.5 - 0.5 * Math.cos((2 * Math.PI * (k - b0)) / (b1 - b0)));
+            hr[k] = tr[k] * w;
+            hi[k] = -ti[k] * w;
+          }
+          let et = 0;
+          for (let i = 0; i < L; i++) et += tpl[i] * tpl[i];
+          const p = { sr, L, N, hr, hi, et, g0: 1 };
+          p.g0 = mfRun(p, tpl).env[0];
+          mfPlans.set(key, p);
+          return p;
+        }
+
+        // Envelope and normalised coefficient (1 = a clean copy) at every lag
+        // n, where lag n lines the template's start up with x[n].
+        function mfRun(p, x) {
+          const { L, N, hr, hi } = p;
+          const lags = x.length - L + 1;
+          if (lags <= 0) return null;
+          const env = new Float32Array(lags);
+          const coef = new Float32Array(lags);
+          const hop = N - L + 1;
+          const re = new Float64Array(N);
+          const im = new Float64Array(N);
+          for (let s = 0; s < lags; s += hop) {
+            re.fill(0);
+            im.fill(0);
+            const m = Math.min(N, x.length - s);
+            for (let i = 0; i < m; i++) re[i] = x[s + i];
+            fft(re, im, false);
+            for (let k = 0; k < N; k++) {
+              const a = re[k];
+              const b = im[k];
+              re[k] = a * hr[k] - b * hi[k];
+              im[k] = a * hi[k] + b * hr[k];
+            }
+            fft(re, im, true);
+            const cnt = Math.min(hop, lags - s);
+            for (let i = 0; i < cnt; i++) env[s + i] = Math.sqrt(re[i] * re[i] + im[i] * im[i]) / N;
+          }
+          let e = 0;
+          for (let n = 0; n < lags; n++) {
+            if (n % 8192 === 0) {
+              e = 0;
+              for (let i = 0; i < L; i++) e += x[n + i] * x[n + i];
+            }
+            coef[n] = e > 1e-20 ? env[n] / (p.g0 * Math.sqrt(e / p.et)) : 0;
+            if (n + L < x.length) e += x[n + L] * x[n + L] - x[n] * x[n];
+          }
+          return { env, coef };
+        }
+
+        // Local maxima of the envelope where the coefficient clears `thr`, at
+        // least 0.3 s apart, with sub-sample (parabolic) positions.
+        function peaksOf(mf, sr, offset = 0, thr = 0.15) {
+          const { env, coef } = mf;
+          const out = [];
+          const sep = 0.3 * sr;
+          for (let n = 1; n < env.length - 1; n++) {
+            if (coef[n] < thr || env[n] < env[n - 1] || env[n] < env[n + 1]) continue;
+            const y0 = env[n - 1];
+            const y1 = env[n];
+            const y2 = env[n + 1];
+            const den = y0 - 2 * y1 + y2;
+            const d = den < 0 ? (0.5 * (y0 - y2)) / den : 0;
+            const pk = { pos: offset + n + d, env: y1, coef: coef[n] };
+            const last = out[out.length - 1];
+            if (last && pk.pos - last.pos < sep) {
+              if (pk.env > last.env) out[out.length - 1] = pk;
+            } else out.push(pk);
+          }
+          return out;
+        }
+
+        // The start and end chirps: the best-matched pair whose spacing fits
+        // the schedule (to within 1000 ppm).
+        function findPair(peaks, sr) {
+          const want = (T_S2 - T_S1) * sr;
+          const tol = 0.012 * sr;
+          let best = null;
+          for (let j = 0; j < peaks.length; j++)
+            for (let i = 0; i < j; i++) {
+              if (Math.abs(peaks[j].pos - peaks[i].pos - want) > tol) continue;
+              const score = Math.min(peaks[i].coef, peaks[j].coef);
+              if (!best || score >= best.score) best = { a: peaks[i], b: peaks[j], score };
+            }
+          return best;
+        }
+
+        // Listening live: feed it the recording as it grows.
+        class Detector {
+          constructor(sr) {
+            this.sr = sr;
+            this.p = mfPlan(sr);
+            this.done = 0;
+            this.peaks = [];
+            this.pair = null;
+          }
+          update(range, total) {
+            const end = total - this.p.L;
+            if (end - this.done < 0.1 * this.sr) return this.pair;
+            const start = Math.max(0, this.done - Math.round(0.35 * this.sr));
+            const mf = mfRun(this.p, range(start, end + this.p.L));
+            if (!mf) return this.pair;
+            for (const pk of peaksOf(mf, this.sr, start, 0.2)) {
+              const near = this.peaks.findIndex((q) => Math.abs(q.pos - pk.pos) < 0.3 * this.sr);
+              if (near < 0) this.peaks.push(pk);
+              else if (pk.env > this.peaks[near].env) this.peaks[near] = pk;
+            }
+            this.peaks.sort((a, b) => a.pos - b.pos);
+            this.done = end;
+            this.pair = findPair(this.peaks, this.sr);
+            return this.pair;
+          }
+          get strongest() {
+            return this.peaks.reduce((m, p) => (!m || p.coef > m.coef ? p : m), null);
+          }
+        }
+
+        // DFT at given tone frequencies over one useful-symbol window that
+        // starts at sender time t0. map turns sender time into a sample index:
+        // index = p1 + (t − T_S1)·r. out gets (re, im) pairs; a tone of
+        // amplitude A reads |X| = A.
+        function toneDFT(x, map, t0, freqs, out) {
+          const a = map.p1 + (t0 - T_S1) * map.r;
+          const n0 = Math.ceil(a);
+          const M = Math.round(TU * map.r);
+          if (n0 < 0 || n0 + M > x.length) return false;
+          const d = (n0 - a) / map.r;
+          for (let i = 0; i < freqs.length; i++) {
+            const w = (-2 * Math.PI * freqs[i]) / map.r;
+            const th = -2 * Math.PI * freqs[i] * d;
+            let cr = Math.cos(th);
+            let ci = Math.sin(th);
+            const wr = Math.cos(w);
+            const wi = Math.sin(w);
+            let sr = 0;
+            let si = 0;
+            for (let j = 0; j < M; j++) {
+              const v = x[n0 + j];
+              sr += v * cr;
+              si += v * ci;
+              const nr = cr * wr - ci * wi;
+              ci = cr * wi + ci * wr;
+              cr = nr;
+            }
+            out[2 * i] = (2 * sr) / M;
+            out[2 * i + 1] = (2 * si) / M;
+          }
+          return true;
+        }
+
+        // Noise power per tone (every band's tones) from the quiet stretch.
+        function noiseFloor(x, map) {
+          const n = ALL_FREQS.length;
+          const pw = new Float64Array(n);
+          const o = new Float64Array(2 * n);
+          let cnt = 0;
+          for (let t = QUIET[0]; t + TU <= QUIET[1]; t += TU) {
+            if (!toneDFT(x, map, t, ALL_FREQS, o)) continue;
+            for (let j = 0; j < n; j++) pw[j] += o[2 * j] * o[2 * j] + o[2 * j + 1] * o[2 * j + 1];
+            cnt++;
+          }
+          for (let j = 0; j < n; j++) pw[j] = Math.max(pw[j] / Math.max(cnt, 1), 1e-15);
+          return pw;
+        }
+
+        function median(a) {
+          const s = [...a].sort((p, q) => p - q);
+          return s.length ? s[Math.floor(s.length / 2)] : NaN;
+        }
+        function quantile(a, q) {
+          const s = [...a].sort((p, r) => p - r);
+          return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : NaN;
+        }
+
+        // Per band: power SNR (overall, median tone, 10th-percentile tone),
+        // DQPSK decisions against the known data, and the error rates a DBPSK
+        // and a DQPSK modem would see at this signal-to-noise.
+        function analyzeBands(x, map, noise) {
+          const out = [];
+          let fi = 0;
+          for (let b = 0; b < BANDS.length; b++) {
+            const freqs = BANDS[b].freqs;
+            const n = freqs.length;
+            const { dq } = plan(b);
+            const X = [];
+            for (let m = 0; m < SYMBOLS; m++) {
+              const o = new Float64Array(2 * n);
+              if (!toneDFT(x, map, symStart(b, m), freqs, o)) break;
+              X.push(o);
+            }
+            if (X.length < SYMBOLS) {
+              out.push(null);
+              fi += n;
+              continue;
+            }
+            const psig = new Float64Array(n);
+            for (const o of X) for (let i = 0; i < n; i++) psig[i] += (o[2 * i] * o[2 * i] + o[2 * i + 1] * o[2 * i + 1]) / SYMBOLS;
+            const tones = [];
+            let S = 0;
+            let N = 0;
+            let P = 0;
+            for (let i = 0; i < n; i++) {
+              const nz = noise[fi + i];
+              const s = Math.max(psig[i] - nz, 0);
+              S += s;
+              N += nz;
+              P += psig[i];
+              tones.push(db10(Math.max(s, 1e-3 * nz) / nz));
+            }
+            // per tone, the SNR its phase errors imply (differential detection:
+            // error variance ≈ 1/SNR), which counts echo and distortion too
+            const e2 = new Float64Array(n);
+            let errQ = 0;
+            let errB = 0;
+            let cnt = 0;
+            for (let m = 1; m < SYMBOLS; m++) {
+              const a = X[m];
+              const p = X[m - 1];
+              for (let i = 0; i < n; i++) {
+                const dr = a[2 * i] * p[2 * i] + a[2 * i + 1] * p[2 * i + 1];
+                const di = a[2 * i + 1] * p[2 * i] - a[2 * i] * p[2 * i + 1];
+                const e = wrap(Math.atan2(di, dr) - (dq[m][i] * Math.PI) / 2);
+                e2[i] += e * e;
+                if (Math.abs(e) > Math.PI / 4) errQ++;
+                if (Math.abs(e) > Math.PI / 2) errB++;
+                cnt++;
+              }
+            }
+            const phase = Array.from(e2, (v) => db10((SYMBOLS - 1) / Math.max(v, 1e-9)));
+            out.push({
+              snr: db10(Math.max(S, 1e-3 * N) / N),
+              tone50: median(tones),
+              tone10: quantile(tones, 0.1),
+              evm: median(phase),
+              evm10: quantile(phase, 0.1),
+              dbpsk: errB / cnt,
+              dqpsk: errQ / cnt,
+              level: db10(P / n),
+              noise: db10(N / n)
+            });
+            fi += n;
+          }
+          return out;
+        }
+
+        // Mean power per band (dBFS) heard while each band was sent: the
+        // diagonal is the band itself, the rest is harmonics, intermodulation
+        // and splatter. Plus each band's noise floor.
+        function spillMatrix(x, map, noise) {
+          const nb = BANDS.length;
+          const n = ALL_FREQS.length;
+          const o = new Float64Array(2 * n);
+          const abs = [];
+          for (let b = 0; b < nb; b++) {
+            const acc = new Float64Array(nb);
+            let k = 0;
+            for (const m of SPILL_SYMS) {
+              if (!toneDFT(x, map, symStart(b, m), ALL_FREQS, o)) continue;
+              for (let j = 0; j < n; j++) acc[BAND_OF[j]] += o[2 * j] * o[2 * j] + o[2 * j + 1] * o[2 * j + 1];
+              k++;
+            }
+            abs.push(Array.from(acc, (v, y) => (k ? db10(Math.max(v / (k * BANDS[y].freqs.length), 1e-15)) : null)));
+          }
+          const nz = new Float64Array(nb);
+          for (let j = 0; j < n; j++) nz[BAND_OF[j]] += noise[j] / BANDS[BAND_OF[j]].freqs.length;
+          return { abs, noise: Array.from(nz, db10) };
+        }
+
+        // The matched filter's envelope around the direct arrival, as a decay
+        // curve in 0.5 ms bins (dB below the peak), with the times it last
+        // rises above −10/−20/−30/−40 dB and the direct-to-reverberant ratio.
+        function impulse(env, pos, sr, span) {
+          let i0 = Math.round(pos);
+          for (let i = Math.max(0, i0 - 3); i <= Math.min(env.length - 1, i0 + 3); i++) if (env[i] > env[i0]) i0 = i;
+          const peak = env[i0];
+          const binN = 0.0005 * sr;
+          const bins = Math.round(span / 0.0005);
+          const curve = [];
+          for (let k = -10; k < bins; k++) {
+            const a = Math.round(i0 + k * binN);
+            const z = Math.round(i0 + (k + 1) * binN);
+            let m = 0;
+            for (let i = Math.max(0, a); i < Math.min(env.length, z); i++) m = Math.max(m, env[i]);
+            curve.push(m > 0 ? Math.max(-80, db20(m / peak)) : -80);
+          }
+          const after = curve.slice(10);
+          const last = (thr) => {
+            for (let k = after.length - 1; k >= 0; k--) if (after[k] >= thr) return (k + 1) * 0.5;
+            return 0;
+          };
+          let direct = 0;
+          let late = 0;
+          for (let i = Math.max(0, Math.round(i0 - 0.001 * sr)); i < Math.min(env.length, i0 + bins * binN); i++) {
+            const v = env[i] * env[i];
+            if (i <= i0 + 0.0015 * sr) direct += v;
+            else late += v;
+          }
+          return {
+            t10: last(-10),
+            t20: last(-20),
+            t30: last(-30),
+            t40: last(-40),
+            drr: late > 0 ? db10(direct / late) : 99,
+            floor: median(after.slice(-40)),
+            curve
+          };
+        }
+
+        // Everything about one recording of the probe. For the sender's own
+        // recording pass timeAt (sample index → AudioContext time) and tStart
+        // (when the probe was scheduled) to get the loopback latency.
+        function analyze(x, sr, opts = {}) {
+          const p = mfPlan(sr);
+          const mf = mfRun(p, x);
+          if (!mf) return { found: false, why: "The recording is too short." };
+          const peaks = peaksOf(mf, sr);
+          const pair = findPair(peaks, sr);
+          if (!pair) {
+            const best = peaks.reduce((m, q) => (!m || q.coef > m.coef ? q : m), null);
+            return {
+              found: false,
+              why: best && best.coef > 0.3 ? "Heard a chirp, but not both chirps of the probe." : "Didn't hear the probe.",
+              bestCoef: best ? best.coef : 0
+            };
+          }
+          const map = { p1: pair.a.pos, r: (pair.b.pos - pair.a.pos) / (T_S2 - T_S1) };
+          const noise = noiseFloor(x, map);
+          const spill = spillMatrix(x, map, noise);
+          const res = {
+            found: true,
+            coef: [pair.a.coef, pair.b.coef],
+            ppm: (map.r / sr - 1) * 1e6,
+            chirp: db20(pair.a.env / p.g0),
+            bands: analyzeBands(x, map, noise),
+            noise: spill.noise,
+            spill: spill.abs,
+            ir: impulse(mf.env, pair.a.pos, sr, opts.role === "send" ? 0.4 : 0.3)
+          };
+          if (opts.timeAt && opts.tStart != null)
+            res.latency = [
+              (opts.timeAt(pair.a.pos) - (opts.tStart + T_S1)) * 1000,
+              (opts.timeAt(pair.b.pos) - (opts.tStart + T_S2)) * 1000
+            ];
+          res.span = [pair.a.pos, pair.b.pos];
+          return res;
+        }
+
+        // Latency test: when did each short chirp come back?
+        function analyzeLatency(x, sr, timeAt, indexAt, tStart) {
+          const p = mfPlan(sr, CLICK);
+          const mf = mfRun(p, x);
+          const values = [];
+          if (mf)
+            for (let i = 0; i < CLICKS; i++) {
+              const sched = tStart + CLICK_T0 + i * CLICK_GAP;
+              const a = Math.max(0, Math.floor(indexAt(sched)));
+              const z = Math.min(mf.env.length, Math.ceil(indexAt(sched + CLICK_GAP - 0.05)));
+              let best = -1;
+              for (let n = a; n < z; n++) if (mf.coef[n] > 0.3 && (best < 0 || mf.env[n] > mf.env[best])) best = n;
+              if (best >= 0) values.push((timeAt(best) - sched) * 1000);
+            }
+          const mean = values.reduce((s, v) => s + v, 0) / (values.length || 1);
+          const sd = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / (values.length || 1));
+          return { values, heard: values.length, of: CLICKS, mean, sd, min: Math.min(...values), max: Math.max(...values) };
+        }
+
+        // One phone's full-duplex picture, from its own send run (its own
+        // spill into every band) and its listen run (the other phone's signal
+        // and the room noise): the signal-to-interference-plus-noise it would
+        // get listening on band y while sending on band x. Both runs need the
+        // same microphone settings. TDD: how long its own echo takes to fall
+        // 10 dB below the other phone's chirp.
+        function duplex(listen, send) {
+          const nb = BANDS.length;
+          const lin = (d) => Math.pow(10, d / 10);
+          const sinr = [];
+          const pairs = [];
+          for (let x = 0; x < nb; x++) {
+            const row = [];
+            for (let y = 0; y < nb; y++) {
+              if (x === y || listen.spill[y][y] == null || send.spill[x][y] == null) {
+                row.push(null);
+                continue;
+              }
+              const sig = Math.max(lin(listen.spill[y][y]) - lin(listen.noise[y]), 1e-15);
+              const own = Math.max(lin(send.spill[x][y]) - lin(send.noise[y]), 0);
+              const v = db10(sig / (own + lin(listen.noise[y])));
+              row.push(v);
+              pairs.push({ tx: x, rx: y, sinr: v });
+            }
+            sinr.push(row);
+          }
+          pairs.sort((a, b) => b.sinr - a.sinr);
+          const peerRel = listen.chirp - send.chirp;
+          const curve = send.ir.curve.slice(10);
+          let guard = null;
+          for (let k = curve.length - 1; k >= 0; k--)
+            if (curve[k] >= peerRel - 10) {
+              guard = k === curve.length - 1 ? null : (k + 1) * 0.5;
+              break;
+            }
+          if (guard === null && curve.every((v) => v < peerRel - 10)) guard = 0;
+          return { sinr, best: pairs.slice(0, 10), peerRel, guard };
+        }
+
+        // A recording as a 32-bit float WAV file.
+        function wav(samples, sr) {
+          const buf = new ArrayBuffer(44 + samples.length * 4);
+          const v = new DataView(buf);
+          const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+          str(0, "RIFF");
+          v.setUint32(4, 36 + samples.length * 4, true);
+          str(8, "WAVE");
+          str(12, "fmt ");
+          v.setUint32(16, 16, true);
+          v.setUint16(20, 3, true);
+          v.setUint16(22, 1, true);
+          v.setUint32(24, sr, true);
+          v.setUint32(28, sr * 4, true);
+          v.setUint16(32, 4, true);
+          v.setUint16(34, 32, true);
+          str(36, "data");
+          v.setUint32(40, samples.length * 4, true);
+          new Float32Array(buf, 44).set(samples);
+          return buf;
+        }
+
+        return {
+          VERSION, DF, TU, TCP, TS, SYMBOLS, BANDS, ALL_FREQS, CHIRP, CLICK, T_S1, T_S2, T_BANDS, T_END, BAND_PERIOD,
+          CLICK_T0, CLICK_GAP, CLICKS, CLICK_END, QUIET,
+          render, renderClicks, fft, mfPlan, mfRun, peaksOf, findPair, Detector, toneDFT, analyze, analyzeLatency,
+          duplex, wav, chirpAt
+        };
+      })();
+      window.ProbeCore = ProbeCore;
+    </script>
+
+    <script>
+      // =====================================================================
+      // The page: audio plumbing, the three tests, results and charts.
+      // =====================================================================
+      (() => {
+        "use strict";
+        const C = window.ProbeCore;
+        const $ = (s) => document.querySelector(s);
+        const STORE = "battledrones.radioProbe.v1";
+        const prefs = { device: "", distance: "30 cm", notes: "", micMode: "raw", micOnSend: true, session: "auto", levelDb: 0 };
+        let runs = [];
+        const audioById = new Map(); // recordings from this page load, for WAV downloads
+        let current = null; // the test that's running
+        let viewId = null;
+
+        function load() {
+          try {
+            const j = JSON.parse(localStorage.getItem(STORE) || "null");
+            if (j) {
+              Object.assign(prefs, j.prefs || {});
+              runs = Array.isArray(j.runs) ? j.runs : [];
+            }
+          } catch (e) {
+            /* private mode or blocked storage: start fresh */
+          }
+        }
+        function save() {
+          try {
+            localStorage.setItem(STORE, JSON.stringify({ prefs, runs: runs.slice(-40) }));
+          } catch (e) {
+            /* not kept */
+          }
+        }
+
+        function guessDevice() {
+          const ua = navigator.userAgent;
+          let m;
+          let name = "This phone";
+          if ((m = /iPhone OS (\d+)_(\d+)/.exec(ua))) name = `iPhone, iOS ${m[1]}.${m[2]}`;
+          else if ((m = /OS (\d+)_(\d+).*like Mac OS X/.exec(ua)) && /iPad/.test(ua)) name = `iPad, iOS ${m[1]}.${m[2]}`;
+          else if ((m = /Android (\d+(?:\.\d+)?); ([^;)]+)/.exec(ua))) name = m[2].trim() === "K" ? `Android ${m[1]}` : `${m[2].trim()}, Android ${m[1]}`;
+          else if (/Macintosh/.test(ua)) name = navigator.maxTouchPoints > 1 ? "iPad" : "Mac";
+          else if (/Windows/.test(ua)) name = "Windows PC";
+          const browser = /CriOS\//.test(ua) ? "Chrome" : /FxiOS\/|Firefox\//.test(ua) ? "Firefox" : /SamsungBrowser\//.test(ua) ? "Samsung Internet" : /EdgA?\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
+          return browser ? `${name} · ${browser}` : name;
+        }
+
+        // ------------------------------------------------------------ audio ---
+        const WORKLET = `
+class ProbeCapture extends AudioWorkletProcessor {
+  constructor() { super(); this.size = 2048; this.buf = new Float32Array(this.size); this.n = 0; this.t = 0; this.e0 = 0; this.e1 = 0; this.missing = 0; this.ch = 0; }
+  process(inputs) {
+    const inp = inputs[0] || [];
+    const a = inp[0], b = inp[1];
+    const len = a ? a.length : 128;
+    if (!a) this.missing++;
+    this.ch = Math.max(this.ch, inp.length);
+    for (let i = 0; i < len; i++) {
+      if (this.n === 0) this.t = currentTime + i / sampleRate;
+      const va = a ? a[i] : 0, vb = b ? b[i] : 0;
+      this.e0 += va * va; this.e1 += vb * vb;
+      this.buf[this.n++] = va + vb;
+      if (this.n === this.size) {
+        this.port.postMessage({ t: this.t, s: this.buf, e: [this.e0, this.e1], ch: this.ch, missing: this.missing }, [this.buf.buffer]);
+        this.buf = new Float32Array(this.size); this.n = 0; this.e0 = this.e1 = 0; this.missing = 0;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('probe-capture', ProbeCapture);`;
+        let workletUrl = null;
+
+        function constraints(mode) {
+          const sup = navigator.mediaDevices.getSupportedConstraints ? navigator.mediaDevices.getSupportedConstraints() : {};
+          const voice = mode === "voice";
+          const c = { echoCancellation: mode !== "raw", noiseSuppression: voice, autoGainControl: voice, channelCount: { ideal: 1 } };
+          if (sup.voiceIsolation) c.voiceIsolation = voice;
+          return c;
+        }
+
+        // Speaker out, microphone in, and the recording with its AudioContext
+        // timestamps (so the sender knows when its own sound came back).
+        class Rig {
+          constructor() {
+            this.ctx = null;
+            this.stream = null;
+            this.track = null;
+            this.node = null;
+            this.src = null;
+            this.chunks = [];
+            this.total = 0;
+            this.events = [];
+            this.gaps = 0;
+            this.gapMs = 0;
+            this.missing = 0;
+            this.chE = [0, 0];
+            this.chs = 0;
+            this.worklet = false;
+            this.wake = null;
+            this.wakeState = "unsupported";
+            this.t0 = performance.now();
+          }
+          log(what) {
+            this.events.push(`${((performance.now() - this.t0) / 1000).toFixed(1)} s: ${what}`);
+          }
+          // The synchronous part runs inside the tap, which iOS needs to start audio.
+          open(opts) {
+            if (navigator.audioSession && opts.session !== "none") {
+              const type = opts.session === "auto" ? (opts.mic ? "play-and-record" : "playback") : opts.session;
+              try {
+                navigator.audioSession.type = type;
+              } catch (e) {
+                this.log(`audioSession.type: ${e.message}`);
+              }
+            }
+            const AC = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AC({ latencyHint: "interactive" });
+            this.ctx.resume().catch(() => {});
+            const b = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
+            const s = this.ctx.createBufferSource();
+            s.buffer = b;
+            s.connect(this.ctx.destination);
+            s.start();
+            this.ctx.onstatechange = () => this.log(`audio ${this.ctx.state}`);
+            return this.start(opts);
+          }
+          async start(opts) {
+            this.lockScreenOn();
+            if (opts.mic) {
+              if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("This browser can't use the microphone here (it needs HTTPS).");
+              this.stream = await navigator.mediaDevices.getUserMedia({ audio: constraints(opts.micMode) });
+              this.track = this.stream.getAudioTracks()[0];
+              for (const ev of ["ended", "mute", "unmute"]) this.track.addEventListener(ev, () => this.log(`microphone ${ev}`));
+              const src = this.ctx.createMediaStreamSource(this.stream);
+              const sink = this.ctx.createGain();
+              sink.gain.value = 0;
+              sink.connect(this.ctx.destination);
+              try {
+                if (!workletUrl) workletUrl = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+                await this.ctx.audioWorklet.addModule(workletUrl);
+                this.node = new AudioWorkletNode(this.ctx, "probe-capture", {
+                  numberOfInputs: 1,
+                  numberOfOutputs: 1,
+                  outputChannelCount: [1],
+                  channelCount: 2,
+                  channelCountMode: "explicit",
+                  channelInterpretation: "discrete"
+                });
+                this.node.port.onmessage = (e) => this.push(e.data.t, e.data.s, e.data.e, e.data.ch, e.data.missing);
+                this.worklet = true;
+              } catch (err) {
+                // old browsers: timestamps are only approximate here
+                this.log(`no AudioWorklet (${err.message}), using ScriptProcessor`);
+                this.node = this.ctx.createScriptProcessor(2048, 2, 1);
+                this.node.onaudioprocess = (e) => {
+                  const ib = e.inputBuffer;
+                  const a = ib.getChannelData(0);
+                  const b2 = ib.numberOfChannels > 1 ? ib.getChannelData(1) : null;
+                  const out = new Float32Array(a.length);
+                  let e0 = 0;
+                  let e1 = 0;
+                  for (let i = 0; i < a.length; i++) {
+                    const vb = b2 ? b2[i] : 0;
+                    out[i] = a[i] + vb;
+                    e0 += a[i] * a[i];
+                    e1 += vb * vb;
+                  }
+                  this.push(null, out, [e0, e1], ib.numberOfChannels, 0);
+                };
+              }
+              src.connect(this.node);
+              this.node.connect(sink);
+            }
+            await this.ctx.resume();
+            return this;
+          }
+          async lockScreenOn() {
+            if (!("wakeLock" in navigator)) return;
+            try {
+              this.wake = await navigator.wakeLock.request("screen");
+              this.wakeState = "on";
+            } catch (e) {
+              this.wakeState = `refused (${e.name})`;
+            }
+          }
+          push(t, s, e, ch, missing) {
+            const sr = this.ctx.sampleRate;
+            const last = this.chunks[this.chunks.length - 1];
+            if (t === null) t = last ? last.t + last.s.length / sr : this.ctx.currentTime - s.length / sr;
+            else if (last) {
+              // a hole in the capture: keep the timeline by filling it with silence
+              const expect = last.t + last.s.length / sr;
+              const gap = t - expect;
+              if (gap > 1.5 / sr) {
+                const n = Math.min(Math.round(gap * sr), 5 * sr);
+                this.chunks.push({ t: expect, s: new Float32Array(n), n0: this.total });
+                this.total += n;
+                this.gaps++;
+                this.gapMs += gap * 1000;
+                this.log(`capture gap of ${(gap * 1000).toFixed(0)} ms`);
+              }
+            }
+            this.chunks.push({ t, s, n0: this.total });
+            this.total += s.length;
+            this.chE[0] += e[0];
+            this.chE[1] += e[1];
+            this.chs = Math.max(this.chs, ch);
+            this.missing += missing;
+          }
+          find(idx) {
+            let lo = 0;
+            let hi = this.chunks.length - 1;
+            while (lo < hi) {
+              const mid = (lo + hi + 1) >> 1;
+              if (this.chunks[mid].n0 <= idx) lo = mid;
+              else hi = mid - 1;
+            }
+            return lo;
+          }
+          range(a, z) {
+            a = Math.max(0, Math.floor(a));
+            z = Math.min(this.total, Math.ceil(z));
+            const out = new Float32Array(Math.max(0, z - a));
+            if (!this.chunks.length) return out;
+            for (let i = this.find(a); i < this.chunks.length; i++) {
+              const c = this.chunks[i];
+              if (c.n0 >= z) break;
+              const s0 = Math.max(a, c.n0);
+              const s1 = Math.min(z, c.n0 + c.s.length);
+              if (s1 > s0) out.set(c.s.subarray(s0 - c.n0, s1 - c.n0), s0 - a);
+            }
+            return out;
+          }
+          timeAt(idx) {
+            const c = this.chunks[this.find(idx)];
+            return c.t + (idx - c.n0) / this.ctx.sampleRate;
+          }
+          indexAt(t) {
+            let lo = 0;
+            let hi = this.chunks.length - 1;
+            while (lo < hi) {
+              const mid = (lo + hi + 1) >> 1;
+              if (this.chunks[mid].t <= t) lo = mid;
+              else hi = mid - 1;
+            }
+            const c = this.chunks[lo];
+            return c.n0 + (t - c.t) * this.ctx.sampleRate;
+          }
+          play(samples, delay) {
+            const buf = this.ctx.createBuffer(1, samples.length, this.ctx.sampleRate);
+            buf.getChannelData(0).set(samples);
+            this.src = this.ctx.createBufferSource();
+            this.src.buffer = buf;
+            this.src.connect(this.ctx.destination);
+            const t = this.ctx.currentTime + delay;
+            this.src.start(t);
+            return t;
+          }
+          info() {
+            const s = this.track && this.track.getSettings ? this.track.getSettings() : null;
+            return {
+              rate: this.ctx.sampleRate,
+              baseLatency: this.ctx.baseLatency != null ? this.ctx.baseLatency * 1000 : null,
+              outputLatency: this.ctx.outputLatency != null ? this.ctx.outputLatency * 1000 : null,
+              worklet: this.worklet,
+              session: navigator.audioSession ? navigator.audioSession.type : null,
+              mic: s && {
+                sampleRate: s.sampleRate,
+                channelCount: s.channelCount,
+                echoCancellation: s.echoCancellation,
+                noiseSuppression: s.noiseSuppression,
+                autoGainControl: s.autoGainControl,
+                voiceIsolation: s.voiceIsolation,
+                latency: s.latency != null ? s.latency * 1000 : null,
+                label: this.track.label
+              }
+            };
+          }
+          health() {
+            const n = Math.max(1, this.total);
+            return {
+              gaps: this.gaps,
+              gapMs: Math.round(this.gapMs),
+              missingBlocks: this.missing,
+              channels: this.chs,
+              channelLevel: this.chE.map((e) => (e > 0 ? 10 * Math.log10(e / n) : null)),
+              wakeLock: this.wakeState,
+              events: this.events
+            };
+          }
+          async close() {
+            try {
+              if (this.src) this.src.stop();
+            } catch (e) {
+              /* already stopped */
+            }
+            if (this.stream) for (const t of this.stream.getTracks()) t.stop();
+            if (this.node) {
+              try {
+                this.node.disconnect();
+              } catch (e) {
+                /* gone */
+              }
+              if (this.node.port) this.node.port.onmessage = null;
+              this.node.onaudioprocess = null;
+            }
+            if (this.wake) this.wake.release().catch(() => {});
+            try {
+              await this.ctx.close();
+            } catch (e) {
+              /* gone */
+            }
+          }
+        }
+
+        // ------------------------------------------------------------ tests ---
+        const frame = () => new Promise((r) => setTimeout(r, 30));
+
+        function segmentAt(t) {
+          if (t < C.T_S1) return "Starting…";
+          if (t < C.T_S1 + C.CHIRP.dur) return "Start chirp";
+          if (t < C.T_BANDS) return "Quiet: the listener measures the noise floor";
+          const b = Math.floor((t - C.T_BANDS) / C.BAND_PERIOD);
+          if (b < C.BANDS.length) return `Band ${C.BANDS[b].label} (${b + 1} of ${C.BANDS.length})`;
+          if (t < C.T_S2) return "Nearly done";
+          if (t < C.T_S2 + C.CHIRP.dur) return "End chirp";
+          return "Echo tail";
+        }
+
+        function begin(kind, rig) {
+          current = { kind, rig, stopped: false, timer: 0, raf: 0 };
+          for (const b of ["#btn-listen", "#btn-send", "#btn-latency"]) $(b).disabled = true;
+          $("#btn-stop").disabled = false;
+          progress(0);
+          current.raf = requestAnimationFrame(live);
+        }
+        function end() {
+          if (current) {
+            clearTimeout(current.timer);
+            cancelAnimationFrame(current.raf);
+          }
+          current = null;
+          for (const b of ["#btn-listen", "#btn-send", "#btn-latency"]) $(b).disabled = false;
+          $("#btn-stop").disabled = true;
+        }
+        async function fail(rig, err) {
+          await rig.close();
+          end();
+          status("Couldn't start", err && err.name === "NotAllowedError" ? "Microphone permission was refused. Allow it in the browser's site settings and try again." : String((err && err.message) || err));
+        }
+        function status(main, sub = "") {
+          $("#status").textContent = main;
+          $("#substatus").textContent = sub;
+        }
+        function progress(f) {
+          $("#progress").style.width = `${Math.max(0, Math.min(1, f)) * 100}%`;
+        }
+        // wait for `done()` to say yes, checking every `ms`, or until Stop
+        function until(done, ms) {
+          return new Promise((resolve) => {
+            const tick = () => {
+              if (!current || current.stopped || done()) return resolve();
+              current.timer = setTimeout(tick, ms);
+            };
+            tick();
+          });
+        }
+
+        async function runListen() {
+          const rig = new Rig();
+          begin("listen", rig);
+          status("Starting the microphone…");
+          try {
+            await rig.open({ mic: true, micMode: prefs.micMode, session: prefs.session });
+          } catch (e) {
+            return fail(rig, e);
+          }
+          const sr = rig.ctx.sampleRate;
+          const det = new C.Detector(sr);
+          const started = performance.now();
+          let doneAt = null;
+          await until(() => {
+            const pair = det.update((a, z) => rig.range(a, z), rig.total);
+            const secs = (performance.now() - started) / 1000;
+            if (pair) {
+              if (doneAt === null) doneAt = pair.b.pos + 1.2 * sr;
+              progress(1);
+              status("Received the probe", "Finishing…");
+              return rig.total >= doneAt;
+            }
+            const s = det.strongest;
+            if (s && s.coef > 0.3 && (rig.total - s.pos) / sr < C.T_S2 - C.T_S1 + 3) {
+              const into = (rig.total - s.pos) / sr;
+              progress(into / (C.T_S2 - C.T_S1 + 1.2));
+              status("Receiving", `${segmentAt(into + C.T_S1)}`);
+            } else status("Listening", `Now tap Send probe on the other phone · ${secs.toFixed(0)} s`);
+            return secs > 120;
+          }, 300);
+          const pair = det.pair;
+          const a = pair ? pair.a.pos - 0.5 * sr : Math.max(0, rig.total - 30 * sr);
+          const z = pair ? pair.b.pos + 1.2 * sr : rig.total;
+          const x = rig.range(a, z);
+          const info = rig.info();
+          const health = rig.health();
+          await rig.close();
+          status("Analysing…");
+          await frame();
+          const res = C.analyze(x, sr, { role: "listen" });
+          finish("listen", res, info, health, x, sr);
+        }
+
+        async function runSend() {
+          const rig = new Rig();
+          const mic = prefs.micOnSend;
+          begin("send", rig);
+          status("Starting…");
+          try {
+            await rig.open({ mic, micMode: prefs.micMode, session: prefs.session });
+          } catch (e) {
+            return fail(rig, e);
+          }
+          const sr = rig.ctx.sampleRate;
+          const seq = C.render(sr, Math.pow(10, prefs.levelDb / 20));
+          await frame();
+          const tStart = rig.play(seq.samples, 0.4);
+          const wall = performance.now();
+          await until(() => {
+            const t = rig.ctx.currentTime - tStart;
+            progress(t / C.T_END);
+            const secs = (performance.now() - wall) / 1000;
+            if (secs > 2 && rig.ctx.state !== "running") status("Audio didn't start", "Tap Stop and try again.");
+            else status("Sending", segmentAt(t));
+            return t > C.T_END + 0.35 || secs > C.T_END + 8;
+          }, 100);
+          const x = mic ? rig.range(0, rig.total) : null;
+          const timeAt = (i) => rig.timeAt(i);
+          const info = rig.info();
+          const health = rig.health();
+          await rig.close();
+          if (!mic) return finish("send", { found: false, micOff: true, why: "Sent with the microphone off, so there's nothing to analyse on this phone." }, info, health, null, sr);
+          status("Analysing…");
+          await frame();
+          const res = C.analyze(x, sr, { role: "send", timeAt, tStart });
+          finish("send", res, info, health, x, sr);
+        }
+
+        async function runLatency() {
+          const rig = new Rig();
+          begin("latency", rig);
+          status("Starting the microphone…");
+          try {
+            await rig.open({ mic: true, micMode: prefs.micMode, session: prefs.session });
+          } catch (e) {
+            return fail(rig, e);
+          }
+          const sr = rig.ctx.sampleRate;
+          await frame();
+          const tStart = rig.play(C.renderClicks(sr, Math.pow(10, prefs.levelDb / 20)), 0.4);
+          const wall = performance.now();
+          await until(() => {
+            const t = rig.ctx.currentTime - tStart;
+            progress(t / C.CLICK_END);
+            status("Measuring latency", "Eight chirps from this phone to itself");
+            return t > C.CLICK_END + 0.3 || (performance.now() - wall) / 1000 > C.CLICK_END + 6;
+          }, 100);
+          const x = rig.range(0, rig.total);
+          const info = rig.info();
+          const health = rig.health();
+          const res = rig.total ? C.analyzeLatency(x, sr, (i) => rig.timeAt(i), (t) => rig.indexAt(t), tStart) : { heard: 0, of: C.CLICKS, values: [] };
+          await rig.close();
+          finish("latency", res, info, health, x, sr);
+        }
+
+        function finish(kind, res, info, health, x, sr) {
+          const stopped = current && current.stopped;
+          end();
+          const run = round({
+            v: C.VERSION,
+            id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+            kind,
+            at: new Date().toISOString(),
+            device: prefs.device,
+            distance: prefs.distance,
+            notes: prefs.notes,
+            settings: { micMode: prefs.micMode, micOnSend: prefs.micOnSend, session: prefs.session, levelDb: prefs.levelDb },
+            audio: info,
+            health,
+            stopped,
+            ua: navigator.userAgent,
+            result: res
+          });
+          if (run.result.span) delete run.result.span;
+          runs.push(run);
+          save();
+          if (x && x.length) audioById.set(run.id, { x, sr });
+          const ok = kind === "latency" ? res.heard > 0 : res.found;
+          status(ok ? "Done" : "Done, with a problem", ok ? "Results below." : res.why || "The chirps weren't heard.");
+          show(run.id);
+        }
+
+        // ---------------------------------------------------------- numbers ---
+        function round(v) {
+          if (typeof v === "number") {
+            if (!isFinite(v)) return null;
+            const a = Math.abs(v);
+            return a !== 0 && a < 0.1 ? +v.toPrecision(3) : Math.round(v * 10) / 10;
+          }
+          if (Array.isArray(v)) return v.map(round);
+          if (v && typeof v === "object") {
+            const o = {};
+            for (const k of Object.keys(v)) o[k] = round(v[k]);
+            return o;
+          }
+          return v;
+        }
+        // for pasting: the echo curve at 1 ms
+        function exportRun(run) {
+          const r = JSON.parse(JSON.stringify(run));
+          if (r.result && r.result.ir && r.result.ir.curve) {
+            const c = r.result.ir.curve;
+            const out = [];
+            for (let i = 0; i < c.length; i += 2) out.push(Math.round(Math.max(c[i], c[i + 1] ?? -80)));
+            r.result.ir.curve = out;
+            r.result.ir.curveStep = "1 ms from -5 ms";
+          }
+          return r;
+        }
+        const fmtPct = (v) => (v == null ? "—" : v === 0 ? "0%" : v < 0.001 ? "<0.1%" : `${(v * 100).toFixed(v < 0.1 ? 1 : 0)}%`);
+        const fmtDb = (v) => (v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(0)} dB`);
+        // what a modem would see: noise, echo past the cyclic prefix and distortion together
+        const eff = (b) => Math.min(b.snr, b.evm);
+        const fmtPpm = (v) => `${Math.round(v) > 0 ? "+" : ""}${Math.round(v) || 0} ppm`;
+        const verdict = (b) => (!b ? "none" : b.dqpsk <= 0.03 ? "fast" : b.dbpsk <= 0.03 ? "slow" : "fail");
+        const VERDICT = {
+          fast: { color: "--good", glyph: "✓", label: "DQPSK works (≈550 bit/s per kHz)" },
+          slow: { color: "--warn", glyph: "~", label: "DBPSK only (≈250 bit/s per kHz)" },
+          fail: { color: "--bad", glyph: "✗", label: "too many errors" },
+          none: { color: "--grid", glyph: "·", label: "not measured" }
+        };
+
+        // ----------------------------------------------------------- charts ---
+        const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        function canvasIn(box, h) {
+          const cv = document.createElement("canvas");
+          box.append(cv);
+          const w = Math.max(260, box.clientWidth || 320);
+          const dpr = Math.min(window.devicePixelRatio || 1, 3);
+          cv.width = Math.round(w * dpr);
+          cv.height = Math.round(h * dpr);
+          cv.style.height = `${h}px`;
+          const g = cv.getContext("2d");
+          g.scale(dpr, dpr);
+          g.font = "11px system-ui, -apple-system, sans-serif";
+          return { cv, g, w, h };
+        }
+        function hover(cv, hit) {
+          const tip = $("#tip");
+          const show = (e) => {
+            const r = cv.getBoundingClientRect();
+            const text = hit(e.clientX - r.left, e.clientY - r.top);
+            if (!text) {
+              tip.style.display = "none";
+              return;
+            }
+            tip.textContent = text;
+            tip.style.display = "block";
+            const tw = tip.offsetWidth;
+            const th = tip.offsetHeight;
+            let x = e.clientX + 12;
+            let y = e.clientY - th - 14;
+            if (x + tw > window.innerWidth - 8) x = Math.max(8, e.clientX - tw - 12);
+            if (y < 8) y = e.clientY + 18;
+            tip.style.left = `${x}px`;
+            tip.style.top = `${y}px`;
+          };
+          cv.addEventListener("pointermove", show);
+          cv.addEventListener("pointerdown", show);
+          cv.addEventListener("pointerleave", (e) => {
+            if (e.pointerType === "mouse") tip.style.display = "none";
+          });
+        }
+        function rrectTop(g, x, y, w, h, r) {
+          r = Math.min(r, w / 2, h);
+          g.beginPath();
+          g.moveTo(x, y + h);
+          g.lineTo(x, y + r);
+          g.quadraticCurveTo(x, y, x + r, y);
+          g.lineTo(x + w - r, y);
+          g.quadraticCurveTo(x + w, y, x + w, y + r);
+          g.lineTo(x + w, y + h);
+          g.closePath();
+          g.fill();
+        }
+
+        function bandChart(box, bands) {
+          const { cv, g, w, h } = canvasIn(box, 208);
+          const L = 34;
+          const R = 6;
+          const T = 20;
+          const B = 36;
+          const top = Math.max(40, Math.ceil(Math.max(...bands.map((b) => (b ? eff(b) : 0))) / 10) * 10);
+          const y = (v) => T + (h - T - B) * (1 - Math.max(0, Math.min(v, top)) / top);
+          g.strokeStyle = css("--grid");
+          g.fillStyle = css("--dim");
+          g.lineWidth = 1;
+          g.textAlign = "right";
+          g.textBaseline = "middle";
+          for (let v = 0; v <= top; v += 10) {
+            g.beginPath();
+            g.moveTo(L, Math.round(y(v)) + 0.5);
+            g.lineTo(w - R, Math.round(y(v)) + 0.5);
+            g.stroke();
+            g.fillText(`${v}`, L - 6, y(v));
+          }
+          g.textAlign = "left";
+          g.fillText("effective SNR, dB", 2, 7);
+          const bw = (w - L - R) / bands.length;
+          bands.forEach((b, i) => {
+            const v = verdict(b);
+            const x = L + i * bw;
+            g.fillStyle = css(VERDICT[v].color);
+            if (b && eff(b) > 0) rrectTop(g, x + 1, y(eff(b)), bw - 2, y(0) - y(eff(b)), 4);
+            g.fillStyle = css("--dim");
+            g.textAlign = "center";
+            g.fillText(VERDICT[v].glyph, x + bw / 2, h - B + 11);
+            if (i % 2 === 0 || bw > 22) g.fillText(`${C.BANDS[i].lo / 1000}`, x + bw / 2, h - B + 26);
+          });
+          g.textAlign = "right";
+          g.fillText("kHz", L - 6, h - B + 26);
+          hover(cv, (px) => {
+            const i = Math.floor((px - L) / bw);
+            const b = bands[i];
+            if (i < 0 || i >= bands.length) return null;
+            if (!b) return `${C.BANDS[i].label}: not measured`;
+            return `${C.BANDS[i].label}: ${VERDICT[verdict(b)].label}\neffective SNR ${eff(b).toFixed(1)} dB, weakest tones ${b.evm10.toFixed(0)} dB (from the phase errors)\npower SNR ${b.snr.toFixed(1)} dB (weakest tones ${b.tone10.toFixed(0)} dB)\nDBPSK errors ${fmtPct(b.dbpsk)} · DQPSK ${fmtPct(b.dqpsk)}\nsignal ${b.level.toFixed(0)} dBFS · noise ${b.noise.toFixed(0)} dBFS`;
+          });
+        }
+
+        function irChart(box, ir, span, floor) {
+          const { cv, g, w, h } = canvasIn(box, 180);
+          const L = 34;
+          const R = 14;
+          const T = 20;
+          const B = 24;
+          const lo = floor;
+          const t0 = -5;
+          const x = (ms) => L + ((ms - t0) / (span - t0)) * (w - L - R);
+          const y = (d) => T + (h - T - B) * (Math.max(lo, Math.min(0, d)) / lo);
+          g.strokeStyle = css("--grid");
+          g.fillStyle = css("--dim");
+          g.textAlign = "right";
+          g.textBaseline = "middle";
+          for (let d = 0; d >= lo; d -= 10) {
+            g.beginPath();
+            g.moveTo(L, Math.round(y(d)) + 0.5);
+            g.lineTo(w - R, Math.round(y(d)) + 0.5);
+            g.stroke();
+            g.fillText(`${d}`, L - 6, y(d));
+          }
+          g.textAlign = "center";
+          for (let ms = 0; ms <= span; ms += span > 300 ? 100 : 50) g.fillText(`${ms}`, x(ms), h - 10);
+          g.textAlign = "right";
+          g.fillText("ms", L - 6, h - 10);
+          g.textAlign = "left";
+          g.fillText("dB below the direct sound", 2, 7);
+          g.strokeStyle = css("--series");
+          g.lineWidth = 2;
+          g.lineJoin = "round";
+          g.beginPath();
+          ir.curve.forEach((d, k) => {
+            const ms = (k - 10) * 0.5 + 0.25;
+            if (k === 0) g.moveTo(x(ms), y(d));
+            else g.lineTo(x(ms), y(d));
+          });
+          g.stroke();
+          hover(cv, (px) => {
+            const ms = t0 + ((px - L) / (w - L - R)) * (span - t0);
+            const k = Math.round((ms - 0.25) / 0.5) + 10;
+            if (k < 0 || k >= ir.curve.length) return null;
+            return `${ms.toFixed(1)} ms: ${ir.curve[k].toFixed(0)} dB`;
+          });
+        }
+
+        // dark → light blue: near zero recedes into the panel
+        const RAMP = ["#0d366b", "#104281", "#184f95", "#1c5cab", "#256abf", "#2a78d6", "#3987e5", "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4", "#b7d3f6", "#cde2fb"];
+        function rampColor(t) {
+          return RAMP[Math.max(0, Math.min(RAMP.length - 1, Math.round(t * (RAMP.length - 1))))];
+        }
+        function heatmap(box, m, o) {
+          const nb = m.length;
+          const L = 30;
+          const T = 6;
+          const B = 34;
+          const wBox = Math.max(260, box.clientWidth || 320);
+          const cell = Math.floor((Math.min(wBox, 520) - L - 6) / nb);
+          const { cv, g } = canvasIn(box, T + cell * nb + B);
+          g.textBaseline = "middle";
+          for (let r = 0; r < nb; r++)
+            for (let c = 0; c < nb; c++) {
+              const v = m[r][c];
+              const x = L + c * cell;
+              const y = T + r * cell;
+              if (r === c && o.diag) {
+                g.strokeStyle = css("--dim");
+                g.lineWidth = 1;
+                g.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+              }
+              if (v == null || v < o.min + 1) continue;
+              const t = (v - o.min) / (o.max - o.min);
+              g.fillStyle = rampColor(t);
+              g.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+              const glyph = o.glyph ? o.glyph(v) : "";
+              if (glyph && cell >= 11) {
+                g.fillStyle = t > 0.6 ? "#0b1220" : "#eef4ff";
+                g.textAlign = "center";
+                g.fillText(glyph, x + cell / 2, y + cell / 2 + 0.5);
+              }
+            }
+          g.fillStyle = css("--dim");
+          g.textAlign = "right";
+          for (let r = 0; r < nb; r += r === 0 ? 4 : 5) g.fillText(`${C.BANDS[r].lo / 1000}`, L - 5, T + r * cell + cell / 2);
+          g.textAlign = "center";
+          for (let c = 0; c < nb; c += c === 0 ? 4 : 5) g.fillText(`${C.BANDS[c].lo / 1000}`, L + c * cell + cell / 2, T + nb * cell + 10);
+          g.textAlign = "left";
+          g.fillText(o.xLabel, L, T + nb * cell + 26);
+          hover(cv, (px, py) => {
+            const c = Math.floor((px - L) / cell);
+            const r = Math.floor((py - T) / cell);
+            if (r < 0 || c < 0 || r >= nb || c >= nb) return null;
+            return o.tip(r, c, m[r][c]);
+          });
+          const p = document.createElement("p");
+          p.className = "small dim";
+          p.textContent = o.yLabel;
+          box.insertBefore(p, cv);
+        }
+
+        function live() {
+          if (!current) return;
+          const rig = current.rig;
+          const cv = $("#live");
+          const dpr = Math.min(window.devicePixelRatio || 1, 3);
+          const w = cv.clientWidth || 320;
+          const h = 70;
+          if (cv.width !== Math.round(w * dpr)) {
+            cv.width = Math.round(w * dpr);
+            cv.height = Math.round(h * dpr);
+          }
+          const g = cv.getContext("2d");
+          g.setTransform(dpr, 0, 0, dpr, 0, 0);
+          g.clearRect(0, 0, w, h);
+          const N = 2048;
+          if (rig && rig.ctx && rig.total >= N) {
+            const x = rig.range(rig.total - N, rig.total);
+            let e = 0;
+            const re = new Float64Array(N);
+            const im = new Float64Array(N);
+            for (let i = 0; i < N; i++) {
+              e += x[i] * x[i];
+              re[i] = x[i] * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / N));
+            }
+            C.fft(re, im, false);
+            const sr = rig.ctx.sampleRate;
+            const bars = 64;
+            const f0 = 300;
+            const f1 = Math.min(22000, sr / 2);
+            g.fillStyle = css("--series");
+            for (let k = 0; k < bars; k++) {
+              const a = Math.floor(((f0 * Math.pow(f1 / f0, k / bars)) / sr) * N);
+              const z = Math.max(a + 1, Math.floor(((f0 * Math.pow(f1 / f0, (k + 1) / bars)) / sr) * N));
+              let m = 0;
+              for (let i = a; i < z; i++) m = Math.max(m, re[i] * re[i] + im[i] * im[i]);
+              const d = 10 * Math.log10(m / (N * N) + 1e-14) + 6;
+              const bh = Math.max(0, Math.min(1, (d + 100) / 90)) * (h - 14);
+              g.fillRect((k * w) / bars + 1, h - 12 - bh, w / bars - 2, bh);
+            }
+            g.fillStyle = css("--dim");
+            g.font = "10px system-ui, sans-serif";
+            g.textAlign = "left";
+            g.fillText("0.3", 0, h - 2);
+            g.textAlign = "center";
+            for (const f of [1000, 3000, 10000]) g.fillText(`${f / 1000}`, (Math.log(f / f0) / Math.log(f1 / f0)) * w, h - 2);
+            g.textAlign = "right";
+            g.fillText(`${Math.round(f1 / 1000)} kHz`, w, h - 2);
+            const lvl = 10 * Math.log10(e / N + 1e-14);
+            $("#live-label").textContent = `Microphone level: ${lvl.toFixed(0)} dBFS`;
+          } else if (rig && rig.ctx && !rig.stream) $("#live-label").textContent = "Microphone off";
+          current.raf = requestAnimationFrame(live);
+        }
+
+        // ---------------------------------------------------------- results ---
+        function h(tag, attrs = {}, ...kids) {
+          const e = document.createElement(tag);
+          for (const [k, v] of Object.entries(attrs)) {
+            if (k === "class") e.className = v;
+            else if (k === "text") e.textContent = v;
+            else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+            else e.setAttribute(k, v);
+          }
+          for (const k of kids) if (k != null) e.append(k);
+          return e;
+        }
+        const tile = (value, label) => h("div", { class: "tile" }, h("b", { text: value }), h("span", { text: label }));
+        const KIND = { listen: "Listen", send: "Send", latency: "Latency test" };
+        const MICMODE = { raw: "Raw", voice: "Voice", ec: "Echo cancellation only" };
+        const when = (iso) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        function summaryLine(run) {
+          const r = run.result;
+          if (run.kind === "latency") return r.heard ? `${r.mean.toFixed(0)} ms round trip` : "no chirps heard";
+          if (!r.found) return r.micOff ? "sent, microphone off" : "probe not heard";
+          if (run.kind === "send") return `latency ${r.latency[0].toFixed(0)} ms · own spill measured`;
+          const fast = r.bands.filter((b) => verdict(b) === "fast").length;
+          const slow = r.bands.filter((b) => verdict(b) === "slow").length;
+          return `${fast} fast + ${slow} slow bands · ${fmtPpm(r.ppm)}`;
+        }
+
+        function show(id) {
+          viewId = id;
+          const run = runs.find((r) => r.id === id);
+          const card = $("#result-card");
+          const box = $("#result");
+          box.replaceChildren();
+          card.hidden = !run;
+          renderRuns();
+          renderDuplex();
+          if (!run) return;
+          const r = run.result;
+          const set = run.settings;
+          box.append(
+            h("h2", { text: `${KIND[run.kind]} · ${run.device || "this phone"} · ${when(run.at)}` }),
+            h("p", { class: "small dim", text: [run.distance, `mic ${MICMODE[set.micMode] || set.micMode}`, run.kind === "send" && !set.micOnSend ? "mic off while sending" : null, `level ${set.levelDb} dB`, `${run.audio.rate} Hz`, run.audio.session ? `session ${run.audio.session}` : null, run.notes || null].filter(Boolean).join(" · ") })
+          );
+          const tiles = h("div", { class: "tiles", style: "margin-top:10px" });
+          box.append(tiles);
+          if (run.kind === "latency") {
+            if (r.heard) {
+              tiles.append(tile(`${r.mean.toFixed(0)} ms`, `round trip, mean of ${r.heard}/${r.of}`), tile(`${r.min.toFixed(0)}–${r.max.toFixed(0)} ms`, "fastest–slowest"), tile(`±${r.sd.toFixed(1)} ms`, "jitter (sd)"));
+            } else box.append(h("p", { class: "warnbox", text: "None of the chirps came back to the microphone. Is the volume up?" }));
+            if (run.audio.outputLatency != null || run.audio.baseLatency != null) tiles.append(tile(`${(run.audio.outputLatency ?? 0).toFixed(0)} / ${(run.audio.baseLatency ?? 0).toFixed(0)} ms`, "browser's output / base latency"));
+          } else if (!r.found) {
+            box.append(h("p", { class: "warnbox", text: r.micOff ? r.why : `${r.why} Was the other phone sending at the same time? Try the volume up, the phones closer, and on an iPhone the silent switch off.` }));
+          } else if (run.kind === "listen") {
+            const fast = C.BANDS.filter((_, i) => verdict(r.bands[i]) === "fast");
+            const slow = C.BANDS.filter((_, i) => verdict(r.bands[i]) === "slow");
+            const best = r.bands.reduce((m, b, i) => (b && (m < 0 || eff(b) > eff(r.bands[m])) ? i : m), -1);
+            tiles.append(
+              tile(`${fast.length} + ${slow.length}`, "bands fast (DQPSK) + slow (DBPSK)"),
+              tile(best >= 0 ? `${eff(r.bands[best]).toFixed(0)} dB` : "—", best >= 0 ? `best band, ${C.BANDS[best].label}` : "best band"),
+              tile(fmtPpm(r.ppm), "clock offset between the phones"),
+              tile(`${r.ir.t20.toFixed(0)} ms`, "until the echo is 20 dB down"),
+              tile(`${r.ir.drr.toFixed(0)} dB`, "direct sound over echo")
+            );
+            box.append(h("h3", { text: "Signal-to-noise per 1 kHz band" }), h("p", { class: "small dim", text: "Bar height is the effective SNR of the band's median tone, from its measured phase errors: noise, echo and distortion together. Colour comes from the error counts. Echo that outlasts the 5.3 ms cyclic prefix can make a band fail even when its power SNR looks high." }));
+            const legend = h("div", { class: "legend" });
+            for (const v of ["fast", "slow", "fail"]) legend.append(h("span", {}, h("i", { style: `background:var(${VERDICT[v].color})` }), `${VERDICT[v].glyph} ${VERDICT[v].label}`));
+            box.append(legend, h("p", { class: "small dim", text: "Raw error rates of 3% or less, before error correction. Tap a bar for its numbers." }));
+            const chart = h("div");
+            box.append(chart);
+            bandChart(chart, r.bands);
+            const table = h("table");
+            table.append(h("tr", {}, ...["Band", "Effective SNR", "Weakest tones", "Power SNR", "DBPSK err", "DQPSK err", "Signal", "Noise"].map((t) => h("th", { text: t }))));
+            r.bands.forEach((b, i) => table.append(h("tr", {}, h("td", { text: `${VERDICT[verdict(b)].glyph} ${C.BANDS[i].label}` }), ...(b ? [fmtDb(eff(b)), fmtDb(b.evm10), fmtDb(b.snr), fmtPct(b.dbpsk), fmtPct(b.dqpsk), `${b.level.toFixed(0)} dBFS`, `${b.noise.toFixed(0)} dBFS`] : ["—", "—", "—", "—", "—", "—", "—"]).map((t) => h("td", { text: t })))));
+            box.append(h("details", {}, h("summary", { text: "Table" }), h("div", { class: "table-wrap" }, table)));
+            box.append(h("h3", { text: "Room echo" }), h("p", { class: "small dim", text: "The start chirp's impulse response: how fast sound dies away in this room at this distance. It sets the cyclic prefix, and the gap needed if the phones take turns." }));
+            const irBox = h("div");
+            box.append(irBox);
+            irChart(irBox, r.ir, 300, -50);
+            box.append(h("h3", { text: "The other phone's harmonics, as heard here" }));
+            const hm = h("div");
+            box.append(hm);
+            heatmap(hm, r.spill.map((row, x) => row.map((v, y) => (v == null ? null : v - r.noise[y]))), {
+              min: 0,
+              max: 50,
+              diag: true,
+              yLabel: "Rows: the band being sent. Columns: power heard in every band, dB above the noise. The diagonal is the band itself; the rest is distortion.",
+              xLabel: "heard (kHz) →  ·  rows: sent (kHz)",
+              tip: (x, y, v) => `sent ${C.BANDS[x].label}, heard at ${C.BANDS[y].label}: ${v == null ? "—" : fmtDb(v)} above the noise`
+            });
+          } else {
+            tiles.append(
+              tile(`${r.latency[0].toFixed(0)} ms`, "loopback latency (speaker → own mic)"),
+              tile(`${r.chirp.toFixed(0)} dBFS`, "own chirp at own mic"),
+              tile(`${r.ir.t30.toFixed(0)} ms`, "until own echo is 30 dB down"),
+              tile(fmtPpm(r.ppm), "output vs input clock")
+            );
+            box.append(h("h3", { text: "Own spill at own microphone" }));
+            const hm = h("div");
+            box.append(hm);
+            heatmap(hm, r.spill.map((row, x) => row.map((v, y) => (v == null ? null : v - r.noise[y]))), {
+              min: 0,
+              max: 60,
+              diag: true,
+              glyph: null,
+              yLabel: "Rows: the band this phone sends. Columns: what its own microphone picks up in every band, dB above the noise. Off the diagonal is harmonics and intermodulation: a band it can't listen on while sending that row.",
+              xLabel: "heard (kHz) →  ·  rows: sent (kHz)",
+              tip: (x, y, v) => `sending ${C.BANDS[x].label}, own mic at ${C.BANDS[y].label}: ${v == null ? "—" : fmtDb(v)} above the noise`
+            });
+            box.append(h("h3", { text: "Own echo" }), h("p", { class: "small dim", text: "How fast this phone's own sound dies away at its own microphone." }));
+            const irBox = h("div");
+            box.append(irBox);
+            irChart(irBox, r.ir, 400, -60);
+          }
+          const health = run.health;
+          const notes = [];
+          if (health.gaps) notes.push(`${health.gaps} capture gap${health.gaps > 1 ? "s" : ""} (${health.gapMs} ms in all)`);
+          if (health.missingBlocks > 40) notes.push(`${health.missingBlocks} audio blocks (${((health.missingBlocks * 128) / run.audio.rate).toFixed(1)} s) with no microphone input`);
+          if (run.stopped) notes.push("stopped early");
+          if (run.audio.worklet === false && run.audio.mic) notes.push("no AudioWorklet: latency is approximate");
+          if (notes.length) box.append(h("p", { class: "warnbox", style: "margin-top:10px", text: notes.join(" · ") }));
+          const audio = audioById.get(run.id);
+          const stamp = run.at.slice(0, 19).replace(/[:T]/g, "-");
+          const slug = (run.device || "phone").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+          box.append(
+            h(
+              "div",
+              { class: "row", style: "margin-top:12px" },
+              h("button", { class: "plain", text: "Copy this run", onclick: () => copy(JSON.stringify(exportRun(run))) }),
+              h("button", { class: "plain", text: "Download JSON", onclick: () => download(`probe-${run.kind}-${slug}-${stamp}.json`, new Blob([JSON.stringify(run, null, 1)], { type: "application/json" })) }),
+              audio ? h("button", { class: "plain", text: "Download WAV", onclick: () => download(`probe-${run.kind}-${slug}-${stamp}.wav`, new Blob([C.wav(audio.x, audio.sr)], { type: "audio/wav" })) }) : null
+            )
+          );
+          if (health.events.length) box.append(h("details", { style: "margin-top:8px" }, h("summary", { text: "Events" }), h("p", { class: "small dim", text: health.events.join("\n"), style: "white-space:pre-line" })));
+        }
+
+        function renderRuns() {
+          const box = $("#runs");
+          box.replaceChildren();
+          if (!runs.length) {
+            box.append(h("p", { class: "small dim", text: "No runs yet." }));
+            return;
+          }
+          for (const run of [...runs].reverse())
+            box.append(
+              h(
+                "button",
+                { class: "run", "aria-current": String(run.id === viewId), onclick: () => show(run.id) },
+                h("span", {}, h("b", { text: `${KIND[run.kind]} ` }), `${run.distance} · ${MICMODE[run.settings.micMode] || ""} · ${summaryLine(run)}`),
+                h("span", { class: "dim", text: when(run.at) })
+              )
+            );
+        }
+
+        function renderDuplex() {
+          const card = $("#duplex-card");
+          const box = $("#duplex");
+          box.replaceChildren();
+          card.hidden = !runs.length;
+          if (!runs.length) return;
+          const latest = (kind, mode) => [...runs].reverse().find((r) => r.kind === kind && r.result.found && (!mode || r.settings.micMode === mode));
+          const listen = latest("listen");
+          const send = listen && latest("send", listen.settings.micMode);
+          box.append(h("h2", { text: "Full duplex on this phone" }));
+          if (!listen || !send) {
+            box.append(h("p", { class: "small dim", text: "Do one Listen and one Send (with the microphone on, same microphone setting) on this phone to see which pairs of bands it could listen and send on at the same time." }));
+            return;
+          }
+          const d = C.duplex(listen.result, send.result);
+          box.append(
+            h("p", { class: "small dim", text: `From this phone's listen run at ${when(listen.at)} (the other phone's signal, ${listen.distance}) and its send run at ${when(send.at)} (its own sound at its own microphone). Each number is how clean a band the other phone sends in stays while this phone sends in another band. A band plan works when both phones' checks agree.` })
+          );
+          const ul = h("ul", { class: "small" });
+          for (const p of d.best.slice(0, 6)) ul.append(h("li", { text: `${p.sinr >= 15 ? "✓" : p.sinr >= 10 ? "~" : "✗"} send ${C.BANDS[p.tx].label}, listen ${C.BANDS[p.rx].label}: ${p.sinr.toFixed(0)} dB` }));
+          box.append(h("h3", { text: "Best pairs" }), ul);
+          const hm = h("div");
+          box.append(h("h3", { text: "Signal to interference and noise" }), hm);
+          heatmap(hm, d.sinr, {
+            min: 0,
+            max: 40,
+            glyph: (v) => (v >= 15 ? "●" : v >= 10 ? "○" : ""),
+            yLabel: "Rows: the band this phone sends in. Columns: the band it listens to. ● 15 dB or more (DQPSK), ○ 10 dB or more (DBPSK).",
+            xLabel: "listen (kHz) →  ·  rows: send (kHz)",
+            tip: (x, y, v) => (v == null ? "same band" : `send ${C.BANDS[x].label}, listen ${C.BANDS[y].label}: ${v.toFixed(1)} dB`)
+          });
+          box.append(
+            h("h3", { text: "Taking turns instead" }),
+            h("p", {
+              class: "small",
+              text:
+                d.guard === null
+                  ? `This phone's own echo stays within 10 dB of the other phone's chirp (${d.peerRel.toFixed(0)} dB below its own) for the whole 400 ms measured: taking turns needs long gaps here.`
+                  : `The other phone's chirp arrives ${(-d.peerRel).toFixed(0)} dB below this phone's own. Its own echo falls 10 dB below that after ${d.guard.toFixed(0)} ms: the gap each turn would need.`
+            })
+          );
+        }
+
+        // ------------------------------------------------------- utilities ---
+        async function copy(text) {
+          try {
+            await navigator.clipboard.writeText(text);
+            status("Copied", `${(text.length / 1024).toFixed(1)} KB on the clipboard: paste it into the chat.`);
+          } catch (e) {
+            const ta = $("#copy-fallback");
+            ta.hidden = false;
+            ta.value = text;
+            ta.focus();
+            ta.select();
+            status("Copy from the box", "The clipboard isn't available: the results are selected in the box under Runs.");
+          }
+        }
+        function download(name, blob) {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = name;
+          document.body.append(a);
+          a.click();
+          setTimeout(() => {
+            URL.revokeObjectURL(a.href);
+            a.remove();
+          }, 4000);
+        }
+
+        // ---------------------------------------------------------- settings ---
+        function chips(sel, options, key, onPick) {
+          const box = $(sel);
+          box.replaceChildren();
+          for (const [value, label] of options) {
+            const b = h("button", { class: "chip", type: "button", text: label, "aria-pressed": String(prefs[key] === value) });
+            b.addEventListener("click", () => {
+              prefs[key] = value;
+              save();
+              chips(sel, options, key, onPick);
+              if (onPick) onPick();
+            });
+            box.append(b);
+          }
+        }
+        const MICHELP = {
+          raw: "Echo cancellation, noise suppression and auto gain all off: what a modem wants. On an iPhone this may send sound to the quiet earpiece.",
+          voice: "The browser's call processing on. On an iPhone this is Apple's voice processing, which keeps the loudspeaker.",
+          ec: "Only echo cancellation: the one setting Safari honours."
+        };
+        function renderSettings() {
+          chips("#distance", ["10 cm", "30 cm", "60 cm", "1 m", "2 m+"].map((d) => [d, d]), "distance");
+          chips("#micmode", Object.entries(MICMODE), "micMode", renderSettings);
+          $("#micmode-help").textContent = MICHELP[prefs.micMode];
+          chips("#micsend", [[true, "On (records itself)"], [false, "Off"]], "micOnSend");
+          chips("#session", [["auto", "Auto"], ["play-and-record", "play-and-record"], ["playback", "playback"], ["none", "Don't set"]], "session");
+          $("#session-wrap").hidden = !navigator.audioSession;
+          $("#level").value = String(prefs.levelDb);
+          $("#level-val").textContent = `${prefs.levelDb} dB`;
+        }
+
+        function init() {
+          load();
+          if (!prefs.device) prefs.device = guessDevice();
+          $("#device").value = prefs.device;
+          $("#notes").value = prefs.notes;
+          $("#device").addEventListener("input", (e) => ((prefs.device = e.target.value), save()));
+          $("#notes").addEventListener("input", (e) => ((prefs.notes = e.target.value), save()));
+          $("#level").addEventListener("input", (e) => {
+            prefs.levelDb = Number(e.target.value);
+            $("#level-val").textContent = `${prefs.levelDb} dB`;
+            save();
+          });
+          renderSettings();
+          $("#btn-listen").addEventListener("click", () => runListen());
+          $("#btn-send").addEventListener("click", () => runSend());
+          $("#btn-latency").addEventListener("click", () => runLatency());
+          $("#btn-stop").addEventListener("click", () => {
+            if (current) current.stopped = true;
+          });
+          $("#btn-copy-all").addEventListener("click", () => {
+            if (!runs.length) return status("Nothing to copy", "Run a test first.");
+            copy(JSON.stringify({ probe: `battledrones radio-probe v${C.VERSION}`, page: location.href, runs: runs.map(exportRun) }));
+          });
+          $("#btn-clear").addEventListener("click", () => {
+            if (!runs.length || !confirm(`Delete all ${runs.length} runs from this phone?`)) return;
+            runs = [];
+            audioById.clear();
+            save();
+            show(null);
+          });
+          document.addEventListener("visibilitychange", () => current && current.rig && current.rig.log(document.hidden ? "page hidden" : "page visible"));
+          document.addEventListener("pointerdown", (e) => {
+            if (e.target.tagName !== "CANVAS") $("#tip").style.display = "none";
+          });
+          let lastW = window.innerWidth;
+          window.addEventListener("resize", () => {
+            if (Math.abs(window.innerWidth - lastW) < 20) return;
+            lastW = window.innerWidth;
+            if (viewId) show(viewId);
+          });
+          // fill in the phone model where Chrome hides it from the user agent
+          if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues && prefs.device === guessDevice())
+            navigator.userAgentData
+              .getHighEntropyValues(["model", "platformVersion"])
+              .then((v) => {
+                if (v.model && prefs.device === guessDevice()) {
+                  prefs.device = `${v.model}, ${guessDevice()}`;
+                  $("#device").value = prefs.device;
+                  save();
+                }
+              })
+              .catch(() => {});
+          if (!window.isSecureContext) status("Needs HTTPS", "Browsers only allow the microphone on https:// pages (or localhost).");
+          const last = runs[runs.length - 1];
+          show(last ? last.id : null);
+        }
+        init();
+      })();
+    </script>
+  </body>
+</html>
