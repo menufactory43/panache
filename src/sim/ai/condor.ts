@@ -7,6 +7,7 @@ import { dropPoint, isLoaded } from "../transport";
 import type { Command, Faction, Unit, World } from "../types";
 import { buildingCenter, dist } from "../world";
 import type { AiState } from "./commander";
+import { isHealer, isSniper, isTransport, isWorker, kindsOf } from "./roles";
 import { AA_COVER, aaSources, aaStrengthAt, aaWeight, seenEnemies, type Sighting } from "./intel";
 import { cos, sin } from "../fmath";
 
@@ -133,7 +134,8 @@ export function dropsCondors(w: World, faction: Faction, s: AiState): boolean {
   if (w.objectives.uplinks.some((l) => l.infantryOnly)) return false;
   const everyone = infantryArmy(w, faction) || rulesOf(w).startUnits.includes("condor");
   if (s.strategy.name !== "rush" && s.strategy.name !== "balanced" && !everyone) return false;
-  return bannedBy(w, "condor", faction) === null && bannedBy(w, "trooper", faction) === null;
+  const K = kindsOf(w, faction);
+  return bannedBy(w, K.transport, faction) === null && bannedBy(w, K.line, faction) === null;
 }
 
 /**
@@ -224,7 +226,7 @@ export function planCondor(w: World, faction: Faction, s: AiState, ctx: CondorCo
   }
   if (!c) {
     for (const u of w.units.values())
-      if (u.faction === faction && u.kind === "condor" && !lifting(u)) {
+      if (u.faction === faction && isTransport(u.kind) && !lifting(u)) {
         c = u;
         break;
       }
@@ -438,7 +440,7 @@ function recruits(condor: Unit, ctx: CondorContext, n: number): Unit[] {
   return ctx.army
     .filter(
       (u) =>
-        isInfantry(u.kind) && u.kind !== "sniper" && (u.order.type === "idle" || u.order.type === "attackMove") &&
+        isInfantry(u.kind) && !isSniper(u.kind) && (u.order.type === "idle" || u.order.type === "attackMove") &&
         !ctx.used.has(u.id) &&
         u.hp >= UNITS[u.kind].hp * CONDOR_AI.minHp &&
         dist(u.x, u.y, condor.x, condor.y) <= CONDOR_AI.reach && dist(u.x, u.y, ctx.hqC.x, ctx.hqC.y) <= CONDOR_AI.reach
@@ -473,7 +475,7 @@ function planRaiders(w: World, faction: Faction, m: Memo, ctx: CondorContext, cm
   const ids = idle.map((u) => u.id);
   let best: { id: number; d: number } | null = null;
   for (const e of seenEnemies(w, faction)) {
-    if (e.kind !== "harvester") continue;
+    if (!isWorker(e.kind)) continue;
     const d = dist(e.x, e.y, cx, cy);
     if (d <= CONDOR_AI.chase && (!best || d < best.d)) best = { id: e.id, d };
   }
@@ -603,7 +605,7 @@ function planDrop(
   const { covered, clear } = airspace(w, faction, enemies);
   // harvester lines, nearest to us first
   const lines: { x: number; y: number }[] = [];
-  for (const e of enemies) if (e.kind === "harvester") lines.push({ x: e.x, y: e.y }); // (in sight: none is remembered)
+  for (const e of enemies) if (isWorker(e.kind)) lines.push({ x: e.x, y: e.y }); // (in sight: none is remembered)
   for (const kb of knownBuildings(w, faction)) if (kb.kind === "depot") lines.push({ x: kb.tx + 1, y: kb.ty + 1 });
   if (lines.length === 0) {
     // their home field: the mirror image of ours
@@ -641,7 +643,7 @@ function frontDrop(w: World, faction: Faction, c: Unit, ctx: CondorContext, enem
   const { hqC } = ctx;
   const pushing = ctx.army.filter(
     (u) =>
-      u.kind !== "mender" && (u.order.type === "attack" || u.order.type === "attackMove") &&
+      !isHealer(u.kind) && (u.order.type === "attack" || u.order.type === "attackMove") &&
       dist(u.x, u.y, hqC.x, hqC.y) > CONDOR_AI.frontFrom
   );
   let lead: Unit | null = null;

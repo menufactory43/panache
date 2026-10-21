@@ -3,6 +3,7 @@ import { isLifted, repairUrgency } from "../goliath";
 import { isStunned } from "../powers";
 import type { Building, Command, Faction, Unit, World } from "../types";
 import { buildingCenter, dist } from "../world";
+import { isHealer } from "./roles";
 
 /**
  * The commander's Menders. A Mender has no gun, so it is never a wave, a raid
@@ -63,11 +64,13 @@ export function planMenders(
   w?: World
 ): Command[] {
   const cmds: Command[] = [];
-  const menders = army.filter((u) => u.kind === "mender" && !used.has(u.id));
+  const menders = army.filter((u) => isHealer(u.kind) && !used.has(u.id));
   if (menders.length === 0) return cmds;
   // (a Goliath handed in with the army is served as one too)
   const allGoliaths = [...goliaths, ...army.filter((u) => !!u.goliath && !goliaths.includes(u))];
-  const others = army.filter((u) => u.kind !== "mender" && !u.goliath);
+  const others = army.filter((u) => !isHealer(u.kind) && !u.goliath);
+  /** Can mender `m` repair `u`? (An Atelier roulant only what stands on the ground.) */
+  const mends = (m: Unit, u: Unit) => UNITS[m.kind].healTargets !== "ground" || UNITS[u.kind].domain === "ground";
   const company = (u: Unit) =>
     others.reduce((v, o) => (dist(o.x, o.y, u.x, u.y) <= MENDER_AI.company ? v + UNITS[o.kind].cost : v), 0);
   // a lone unit deep in enemy ground (a raider, the last of a wave): not worth following in there
@@ -98,7 +101,7 @@ export function planMenders(
   const free = [...menders];
   const take = (g: Unit, n: number) => {
     const picks = free
-      .filter((m) => dist(m.x, m.y, g.x, g.y) <= MENDER_AI.goliathReach)
+      .filter((m) => dist(m.x, m.y, g.x, g.y) <= MENDER_AI.goliathReach && mends(m, g))
       .sort((a, b) => dist(a.x, a.y, g.x, g.y) - dist(b.x, b.y, g.x, g.y) || a.id - b.id)
       .slice(0, n);
     for (const m of picks) {
@@ -122,6 +125,7 @@ export function planMenders(
     // the wounded first: the worse hurt and the closer, the better
     let best = Infinity;
     for (const u of wounded) {
+      if (!mends(m, u)) continue;
       const d = dist(u.x, u.y, m.x, m.y);
       if (d > MENDER_AI.reach) continue;
       const score = d + hp(u) * 10;
@@ -134,6 +138,7 @@ export function planMenders(
     if (!pick) {
       best = Infinity;
       for (const u of moving) {
+        if (!mends(m, u)) continue;
         const d = dist(u.x, u.y, m.x, m.y);
         if (d < best) {
           best = d;

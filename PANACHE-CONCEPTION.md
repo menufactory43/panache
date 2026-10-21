@@ -1073,3 +1073,52 @@ Crochets attendus des autres lots (non modifiés ici, propriété WP1/WP3) :
    Zénith pour le TSF.
 7. WP3 `ai/commander.ts` : produire `superKindOf(w, camp)` au Gantry (`unit: "goliath"` en dur l. 473), compter
    `unitCost(w, f, superKindOf(...))`.
+
+### 3.8 WP3 — fait
+
+Livré sur `feat/camps-wp3`. Classique vérifié : `classic-hash.test.ts` vert, et 39 configurations IA-contre-IA
+de 7 min (6 cartes × 6 personnalités, 3 difficultés, mutateurs, ouvertures, objectifs, Survie) produisent les
+mêmes hachages et les mêmes commandes avant/après.
+
+Où trouver quoi :
+- `ai/roles.ts` : `aiKinds(nation)` (les emplacements que remplit le commandant, dérivés de `ROLES` ; la ligne
+  `classique` redonne exactement les genres d'avant), `behaves()`/`baseOf()` locaux à l'IA, `buildingFor()`
+  (Rép : `turret` → `arsonval` ; Emp : `sam-site` → `flak-battery`), `isDefence`, réseau électrique vu par
+  l'IA (`needsPower`, `powerSources`, `poweredAt`, `unpoweredBuildings`).
+- `ai/commander.ts` : production par rôle (Forges/Parc/Manufacture : l'Estafette et l'Atelier sortent des Forges),
+  `NATION_STRATEGIES` (`siege`, `volta`), `PERSONALITIES`, `NATION_POOLS`/`poolFor()`, re-tirage dans la
+  réserve de la nation au premier passage quand la personnalité était tirée au hasard ; placement sous réseau
+  (rayons des sources d'abord, sinon une Tour TSF ancrée vers le bâtiment voulu, plafond 6 ; Tour reconstruite
+  près d'un bâtiment éteint ; Station de charge précédée d'une Tour vers son gisement) ; Fourgons envoyés
+  d'abord sur le radium à ≤ 20 cases ; guetteur du Mortier de 280 (`planSpotter` : le premier éclaireur se
+  tient à 6,5 cases de la cible des pièces) ; super-unité = `ROLES.super` à la Galerie/au Hangar ;
+  compteurs `waves`/`firstWaveTick` dans `AiState`.
+- `ai/powers.ts` : pouvoirs filtrés par `POWER_SETS` ; Rayon Curie (règle de l'Obus Méliès, amas ≥ 800) ;
+  Pression (≥ 4 véhicules dans le rayon, vague lancée ou au contact) ; Gaz (colonne ≥ 400 à ≤ 6 cases de
+  ≥ 2 défenses connues, en assaut) ; Ballon-sonde (tir reçu sans tireur visible, sinon toutes les 90 s sur le
+  QG ennemi). Un pouvoir de nation que la sim n'accepte pas (compteur `fired` inchangé) est écarté.
+- `ai/condor.ts`, `ai/airlift.ts`, `ai/menders.ts` : tests de genre remplacés par comportement (transport,
+  tireur d'élite, récolteur, réparateur ; l'Atelier roulant ne suit que les unités au sol).
+- `modes/survival.ts` : vagues par rôle (chaque genre Classique des réserves vaut pour son rôle chez la nation
+  attaquante ; l'artillerie impériale amène des Mortiers de 280 dès la vague 6).
+- `tests/ai-nations.test.ts`.
+
+Écarts, et pourquoi :
+1. `siege`/`volta` ne sont pas dans `STRATEGIES`/`StrategyName` (les outils, le Défi du jour et les tables par
+   personnalité de `ai/goliath.ts` itèrent ces clés : le Défi du jour aurait changé) mais dans
+   `NATION_STRATEGIES` ; leur `name` est la personnalité Classique dont elles empruntent les tables (`siege` →
+   `ironclad`, `volta` → `rush`), leur `id` la leur ; `personalityOf(s)` rend le vrai nom.
+2. Les six personnalités Classique jouent les deux nations quand on les demande ; seules les réserves au hasard
+   suivent le tableau du §1.9.
+3. Sans le `behaves()` de WP1 la sim ne fait récolter que le genre `harvester` : l'IA détecte un genre de
+   récolteur qui reste inactif après un ordre de récolte et cesse d'en construire. Le test donne alors trois
+   Fardiers de remplacement à chaque camp (il le détecte et s'en passe une fois WP1 fusionné).
+4. Le Gargantua/Zénith : `wantGantry`/`wantGoliath` (fichier de WP2) refusent tant que `goliath` est banni,
+   donc la République ne construit pas encore de Hangar ; la commande produit déjà `ROLES.super`.
+5. Ouvertures (`openers.ts`) non adaptées : leurs genres Classique sont bannis en partie « nation », donc pas
+   d'ouverture pour l'IA en nation. Boss de Survie : pas de Gargantua (vague de cœur par rôle seulement).
+
+Mesures (sans les mécaniques de WP1, Fardiers de remplacement) : Rép contre Emp, 20 parties sur 5 cartes,
+chaque nation de chaque côté : Empire 18, République 1, nulle 1 (médiane 9,8 min) — non significatif tant que
+la Rép ne peut pas remplacer ses récolteurs ni profiter de ses multiplicateurs ; miroirs (12 parties chacun) :
+Emp-Emp bleu 6 / rouge 6 (médiane 12,9 min), Rép-Rép 5 / 7 (11,3 min), aucune nulle. À remesurer par WP4.
