@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { tickAi } from "../src/sim/ai/commander";
-import { BUILDINGS, TERRAIN, TICK_RATE } from "../src/sim/balance";
+import { BUILDINGS, TERRAIN, TICK_RATE, UNITS } from "../src/sim/balance";
 import { buildingBlocker, unitBlocker } from "../src/sim/economy";
 import { createMapWorld } from "../src/sim/maps";
 import {
   CAMPAIGN,
   CAMPAIGN_OPEN_AT_START,
   CAMPAIGN_UNLOCKS,
+  DAME_MARCH,
   OPS,
   OPS_OPEN_AT_START,
   TRIALS,
@@ -389,6 +390,35 @@ describe("Campagne de 1900: nations and arsenal (§3.2 WP8)", () => {
     expect(w.ops!.tags.colosse).toHaveLength(1);
     expect(w.units.get(w.ops!.tags.colosse![0]!)!.kind).toBe("goliath");
   });
+
+  it("La Dame de fer: the commander never orders the parade; it marches at DAME_MARCH, the Maréchal's army behind it", () => {
+    const op = opById("dame-de-fer")!;
+    const w = opWorld("dame-de-fer");
+    const red = opAiState(op, 5)!;
+    const parade = new Set([...w.ops!.tags.colosse!, ...w.ops!.tags.parade!]);
+    const [colosse] = w.ops!.tags.colosse!;
+    const home = { x: w.units.get(colosse!)!.x, y: w.units.get(colosse!)!.y };
+    for (let i = 0; i < (DAME_MARCH - 1) * TICK_RATE; i++) {
+      const cmds = tickAi(w, "red", red);
+      for (const c of cmds) if ("unitIds" in c) for (const id of c.unitIds) expect(parade.has(id), `${c.type} ${id}`).toBe(false);
+      step(w, cmds);
+    }
+    // nobody came for it: the Colosse still waits on the bridge road
+    const c = w.units.get(colosse!)!;
+    expect(Math.hypot(c.x - home.x, c.y - home.y)).toBeLessThan(2);
+    expect(w.ops!.events.march).toBeUndefined();
+    const army = [...w.units.values()].filter((u) => u.faction === "red" && UNITS[u.kind].dps > 0).map((u) => u.id);
+    while (w.ops!.events.march === undefined) step(w, tickAi(w, "red", red));
+    // the army on the field falls in behind the Colosse, and is the script's from then on
+    const held = new Set(w.ops!.held);
+    expect(held.size).toBeGreaterThan(parade.size);
+    for (const id of army) if (w.units.has(id)) expect(held.has(id)).toBe(true);
+  });
+
+  it("La Dame de fer ★★: the Citadelle can fall before the Colosse (the raid pilot)", () => {
+    const wins = [1, 2, 3, 4].map((s) => runOp("dame-de-fer", PILOTS["dame-de-fer"]!.raid!, s).result).filter((r) => r?.won && r.stars & 2);
+    expect(wins.length).toBeGreaterThan(0);
+  }, 30_000);
 
   it("reach: the convoy at the tunnel wins Le Col des Aigles", () => {
     const w = opWorld("col-des-aigles");

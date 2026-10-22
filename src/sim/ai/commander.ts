@@ -462,6 +462,34 @@ function rand(s: AiState): number {
  * player. Difficulty only changes its reaction speed and income.
  */
 export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
+  const held = heldBy(w, faction);
+  const cmds = commandAi(w, faction, s, held);
+  return held ? withoutHeld(cmds, held) : cmds;
+}
+
+/** An op's scripted units (ops.ts OpDef.aiHeld: the Colosse's parade) — never this commander's to order. */
+function heldBy(w: World, faction: Faction): Set<number> | null {
+  const ids = w.ops?.enemy === faction ? w.ops.held : undefined;
+  return ids?.length ? new Set(ids) : null;
+}
+
+/** The orders of a decision pass, minus every held unit (orders left with nobody are dropped). */
+function withoutHeld(cmds: Command[], held: Set<number>): Command[] {
+  const out: Command[] = [];
+  for (const c of cmds) {
+    if (c.type === "lift" && held.has(c.goliathId)) continue;
+    if ((c.type === "produce" || c.type === "cancelProduce") && held.has(c.buildingId)) continue;
+    if ("unitIds" in c && c.unitIds.some((id) => held.has(id))) {
+      const unitIds = c.unitIds.filter((id) => !held.has(id));
+      if (unitIds.length) out.push({ ...c, unitIds });
+      continue;
+    }
+    out.push(c);
+  }
+  return out;
+}
+
+function commandAi(w: World, faction: Faction, s: AiState, held: Set<number> | null): Command[] {
   const diff = DIFFICULTY[s.difficulty];
   w.factions[faction].incomeMult = diff.incomeMult;
   // no HQ, no commander — unless a Goliath fights on (a side is beaten only once its HQ and all
@@ -481,7 +509,7 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
   const COMBAT_KINDS = K.combat;
   const INFANTRY_KINDS = K.infantry;
   const f = w.factions[faction];
-  const mine = [...w.units.values()].filter((u) => u.faction === faction);
+  const mine = [...w.units.values()].filter((u) => u.faction === faction && !held?.has(u.id));
   const myBuildings = [...w.buildings.values()].filter((b) => b.faction === faction);
   // (a nation's worker kind the sim won't set mining yet is left out, and not built: see the probe below)
   const nm = nation === "classique" ? null : netMemo(s);

@@ -432,14 +432,16 @@ export const escortPilot =
   };
 
 /** La Dame de fer: hold the Champ-de-Mars, everything (and the Zénith) on the Colosse when it comes. */
-export const towerPilot: PilotFactory = (w0) => {
+export const towerPilot: PilotFactory = (w0) => towerDefence(w0, (army) => (army.length % 3 === 2 ? "branly" : "lancer"));
+
+function towerDefence(w0: World, fab: (army: Unit[]) => UnitKind): Pilot {
   const tower = w0.buildings.get(tagged(w0, "eiffel")[0]!)!;
   const t = buildingCenter(tower);
   const base = scriptPilot({
     build: ["fab-plant", "radar", "turret"],
     anchor: (_w, k) => (k === "turret" || k === "radar" ? { x: t.x + 2, y: t.y - 2 } : { x: 10, y: 46 }),
     harvesters: 5,
-    fab: (_w, army) => (army.length % 3 === 2 ? "branly" : "lancer"),
+    fab: (_w, army) => fab(army),
     air: (_w, army) => (army.filter((u) => behaves(u.kind, "mender")).length < 3 ? "mender" : "wasp"),
     hold: () => ({ x: t.x + 1, y: t.y + 2 }),
     attackAt: Infinity
@@ -457,7 +459,57 @@ export const towerPilot: PilotFactory = (w0) => {
     }
     return cmds;
   };
-};
+}
+
+/**
+ * La Dame de fer for ★★: the tower pilot, plus a raid on the Citadelle while
+ * the parade still waits on the bridge road — the ground army (not Valmont)
+ * crosses the southern ford, goes up the far bank, razes the Citadelle, then
+ * comes home for the Colosse; the Zénith, the Éole and the Bobines hold the Tower.
+ */
+export const towerRaidPilot =
+  (leave: number): PilotFactory =>
+  (w0) => {
+    const base = towerPilot(w0, 0);
+    // (over the southern ford, then up the far bank, wide of the parade on the bridge road)
+    const route: Pt[] = [{ x: 34, y: 42 }, { x: 46, y: 44 }, { x: 52, y: 36 }, { x: 54, y: 24 }, { x: 54, y: 14 }, { x: 52, y: 9 }];
+    let leg = 0;
+    let raiders: Set<number> | null = null;
+    return (w) => {
+      if (w.tick % TICK_RATE !== 0) return base(w);
+      const eHq = hqOf(w, "red");
+      if (!raiders && w.tick >= leave * TICK_RATE) {
+        const hero = new Set(tagged(w, "valmont"));
+        raiders = new Set(
+          [...w.units.values()].filter((u) => u.faction === "blue" && !hero.has(u.id) && UNITS[u.kind].domain === "ground" && UNITS[u.kind].dps > 0 && !UNITS[u.kind].squad).map((u) => u.id)
+        );
+      }
+      const out = !!raiders && !!eHq;
+      const cmds: Command[] = [];
+      for (const c of base(w)) {
+        if ("unitIds" in c && out) {
+          const ids = c.unitIds.filter((id) => !raiders!.has(id));
+          if (ids.length) cmds.push({ ...c, unitIds: ids });
+        } else cmds.push(c);
+      }
+      if (!out) return cmds;
+      const group = [...raiders!].map((id) => w.units.get(id)).filter((u): u is Unit => !!u);
+      if (!group.length) return cmds;
+      const c = centroid(group);
+      if (leg < route.length) {
+        const p = route[leg]!;
+        if (dist(c.x, c.y, p.x, p.y) < 3) leg++;
+        else if (w.tick % (3 * TICK_RATE) === 0) cmds.push({ type: "move", faction: "blue", unitIds: group.map((u) => u.id), x: p.x, y: p.y });
+        if (leg < route.length) return cmds;
+      }
+      // the Hotchkiss and the Batterie first if they're close, then the Citadelle
+      const near = knownBuildings(w, "blue").filter((b) => (b.kind === "turret" || b.kind === "flak-battery") && w.buildings.has(b.id) && dist(b.tx + 0.5, b.ty + 0.5, c.x, c.y) < 6);
+      const target = near[0]?.id ?? eHq!.id;
+      const free = group.filter((u) => !(u.order.type === "attack" && u.order.targetId === target));
+      if (free.length) cmds.push({ type: "attack", faction: "blue", unitIds: free.map((u) => u.id), targetId: target });
+      return cmds;
+    };
+  };
 
 /** The pilots each op is checked with (tests: at least one must complete it). */
 export const PILOTS: Record<string, Record<string, PilotFactory>> = {
@@ -616,7 +668,7 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
   },
   decapitation: { idle: idlePilot, strike: strikePilot },
   "last-light": { idle: idlePilot, defender: defenderPilot },
-  "dame-de-fer": { idle: idlePilot, tower: towerPilot },
+  "dame-de-fer": { idle: idlePilot, tower: towerPilot, raid: towerRaidPilot(115) },
   // ---- the Trials (Classique)
   "bridgehead-classique": {
     idle: idlePilot,

@@ -155,6 +155,8 @@ export interface OpDef {
   dressing?: "paris" | "polygone";
   /** The chapter's still (public/assets/ui/campaign/<art>.webp), shown under the first card. */
   art?: string;
+  /** Tags of enemy units the commander never orders (the op's script moves them: the Colosse's parade). */
+  aiHeld?: string[];
 }
 
 export interface OpResult {
@@ -194,6 +196,8 @@ export interface OpsState {
   landmarks: Record<number, "eiffel">;
   /** A script's one-shot events (name → tick it happened), read by the presenter. */
   events: Record<string, number>;
+  /** Enemy unit ids the commander never orders (OpDef.aiHeld): the script alone moves them. */
+  held?: number[];
   result: OpResult | null;
 }
 
@@ -948,12 +952,14 @@ export const CAMPAIGN: OpDef[] = [
     art: "chap-paris",
     tagline: "Le Colosse marche sur la Tour Eiffel",
     brief:
-      "Paris, 14 juillet. Le Gargantua du Maréchal, « le Colosse », a franchi la Seine et marche sur le Champ-de-Mars. La Tour Eiffel, coiffée d'une antenne TSF, alimente tout le quartier. Le Zénith est prêt, la base aussi, et tous les pouvoirs. Abats le Colosse avant 15:00 — et que la Dame de fer reste debout.",
-    tip: "Le Colosse perd ses armes une à une : frappe-le de loin avec les Branly, le Zénith et le Rayon Curie, tiens-le à distance de la Tour avec les Hydroglisseurs. Les Pasteur réparent le Zénith.",
+      "Paris, 14 juillet. Le Gargantua du Maréchal, « le Colosse », attend sa parade sur la route du pont, de l'autre côté de la Seine. À 2:30, il marche sur le Champ-de-Mars, toute l'armée impériale derrière lui. La Tour Eiffel, coiffée d'une antenne TSF, alimente tout le quartier. Le Zénith est prêt, la base aussi, et tous les pouvoirs. Abats le Colosse avant 15:00 — et que la Dame de fer reste debout.",
+    tip: "Le Colosse perd ses armes une à une : frappe-le de loin avec les Branly, le Zénith et le Rayon Curie, tiens-le à distance de la Tour avec les Hydroglisseurs. Pour la Citadelle, frappe juste avant la parade : passe le gué au sud, remonte l'autre rive, et reviens à temps.",
     map: "riverlands",
     ai: { strategy: "ironclad", difficulty: "hard", tweak: { assaultValue: 2000 } },
     scrap: 2000,
     focus: { x: 22, y: 38 },
+    // the parade is the script's alone: the commander never sends the Colosse ahead on its own
+    aiHeld: ["colosse", "parade"],
     setup(w, o) {
       // the Champ-de-Mars: the Tower stands in the open on our bank, by the bridge
       o.building("blue", "radar", 22, 37, "eiffel", { hpMult: 4, landmark: "eiffel" });
@@ -976,19 +982,34 @@ export const CAMPAIGN: OpDef[] = [
       o.building("red", "fab-plant", 46, 3);
       o.building("red", "turret", 42, 9);
       o.building("red", "flak-battery", 47, 10);
-      // the parade forms up by the Citadelle: the Colosse, its Creusot and an Atelier roulant
-      o.superUnit("red", "goliath", 44, 17, "colosse", { name: "le Colosse", rank: 2 });
-      o.units("red", "mastodon", 3, 41, 19, "parade");
-      o.units("red", "atelier", 1, 46, 19, "parade");
-      w.factions.red.scrap = 1500;
+      // the parade forms up on the road to the bridge, off the Citadelle: the Colosse, four Creusot,
+      // two Canons de 75, two Faucheux and two Ateliers roulants
+      o.superUnit("red", "goliath", 40, 21, "colosse", { name: "le Colosse", rank: 2 });
+      o.units("red", "mastodon", 4, 37, 23, "parade");
+      o.units("red", "mortar", 2, 41, 24, "parade");
+      o.units("red", "flak-crawler", 2, 43, 21, "parade");
+      o.units("red", "atelier", 2, 43, 24, "parade");
+      w.factions.red.scrap = 500;
     },
     script(w, st) {
-      // the parade sets off at MARCH, then keeps marching on the Tower (between fights)
+      // the parade sets off at MARCH — and the Maréchal's whole army falls in behind the Colosse —
+      // then keeps marching on the Tower (between fights); until then it stands by the Galerie
       const tower = (st.tags.eiffel ?? []).map((id) => w.buildings.get(id)).find((b) => !!b);
       if (!tower) return;
       const marching = w.tick >= DAME_MARCH * TICK_RATE;
-      if (marching && st.events.march === undefined) st.events.march = w.tick;
-      for (const id of [...(st.tags.colosse ?? []), ...(st.tags.parade ?? [])]) {
+      if (marching && st.events.march === undefined) {
+        st.events.march = w.tick;
+        const held = new Set(st.held ?? []);
+        for (const u of w.units.values())
+          if (u.faction === st.enemy && !held.has(u.id) && UNITS[u.kind].dps > 0 && !behaves(u.kind, "harvester") && !u.goliath) {
+            (st.tags.parade ??= []).push(u.id);
+            held.add(u.id);
+          }
+        st.held = [...held];
+      }
+      const colosse = (st.tags.colosse ?? []).map((id) => w.units.get(id)).find((u) => !!u);
+      const tc = buildingCenter(tower);
+      for (const id of st.held ?? []) {
         const u = w.units.get(id);
         if (!u) continue;
         if (!marching) {
@@ -996,8 +1017,21 @@ export const CAMPAIGN: OpDef[] = [
           continue;
         }
         if (w.tick % (4 * TICK_RATE) !== 0) continue;
-        const busy = u.order.type === "attack" || u.autoTargetId !== null || (u.goliath && u.goliath.mode !== "walking");
-        if (!busy) u.order = { type: "attack", targetId: tower.id };
+        if (u === colosse) {
+          const busy = u.order.type === "attack" || u.autoTargetId !== null || (u.goliath && u.goliath.mode !== "walking");
+          if (!busy) {
+            u.order = { type: "attack", targetId: tower.id };
+            u.path = null;
+          }
+          continue;
+        }
+        // the escort keeps step with the Colosse, a little ahead of it, fighting whatever it meets
+        if (u.autoTargetId !== null || u.order.type === "attack") continue;
+        const lead = colosse ?? u;
+        const d = Math.max(1, hypot(tc.x - lead.x, tc.y - lead.y));
+        const ahead = Math.min(3, d);
+        u.order = { type: "attackMove", x: lead.x + ((tc.x - lead.x) / d) * ahead, y: lead.y + ((tc.y - lead.y) / d) * ahead };
+        u.path = null;
       }
     },
     goals: [
@@ -1289,6 +1323,7 @@ export function setupOp(w: World, id: string): void {
     }
   };
   op.setup?.(w, helpers);
+  if (op.aiHeld?.length) st.held = op.aiHeld.flatMap((t) => st.tags[t] ?? []);
   // the nations' building HP (and a landmark's multiplier) for everything the setup placed
   if (op.nations) nationStart(w);
   else for (const b of w.buildings.values()) if (b.hpMult) b.hp = BUILDINGS[b.kind].hp * b.hpMult;
