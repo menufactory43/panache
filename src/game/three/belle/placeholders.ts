@@ -7,12 +7,12 @@
  *
  * Kept free of three.js so the sound and UI code can read it too.
  */
-import type { ClassicBuildingKind, ClassicUnitKind, Faction, Nation, NationBuildingKind, NationUnitKind } from "../../../sim/types";
+import type { ClassicBuildingKind, ClassicUnitKind, Faction, Nation, NationBuildingKind, NationOrClassic, NationUnitKind } from "../../../sim/types";
 
 /**
- * The Classique unit that stands in for each new unit: its voice and its HUD
- * portrait (until WP5g records and shoots the kind's own), and the tables
- * written per Classique unit (withStandIns). Every new unit now has a model of
+ * The Classique unit that stands in for each new unit in the tables written
+ * per Classique unit (withStandIns). (Its voice and HUD portrait are the
+ * kind's own since WP5g: voices.ts, portraitKind.) Every new unit now has a model of
  * its own (PLACEHOLDER_MODEL is empty), in both styles: `?style=original`
  * draws the nations' Belle Époque models too.
  */
@@ -50,7 +50,7 @@ export const PLACEHOLDER_MODEL: Partial<Record<NationUnitKind, ClassicUnitKind>>
   Object.entries(STAND_IN).filter(([k]) => !MODELLED.includes(k as NationUnitKind))
 );
 
-/** The Classique building that stands in for each nation-only defence (portraits until WP5g). */
+/** The Classique building that stands in for each nation-only defence (in tables written per Classique building). */
 export const STAND_IN_BUILDING: Record<NationBuildingKind, ClassicBuildingKind> = {
   arsonval: "turret",
   "flak-battery": "sam-site"
@@ -98,6 +98,19 @@ export function withStandIns<T>(table: Record<ClassicUnitKind, T>): Record<Class
   return out;
 }
 
-/** The portrait (assets/icons/<kind>.webp) a kind shows until WP5g draws its own: its stand-in's. */
-export const portraitKind = (k: string): string =>
-  (STAND_IN as Record<string, string>)[k] ?? (STAND_IN_BUILDING as Record<string, string>)[k] ?? k;
+/**
+ * The shared buildings a nation draws its own way (belle/index.ts BE_NATION_BUILDING_MODELS, less the
+ * two nation-only defences): their portraits are shot per nation (tools/model-portraits.mjs kind@nation).
+ */
+export const NATION_PORTRAIT_BUILDINGS: Record<Nation, readonly ClassicBuildingKind[]> = {
+  republique: ["fab-plant", "depot", "gantry"],
+  empire: ["hq", "airpad", "tech-lab", "radar", "assembly-bay"]
+};
+
+/**
+ * The portrait a kind shows (assets/icons/<name>.webp, red/<name>.webp for red): every unit and
+ * nation-only defence its own (WP5g), and a shared building the nation draws its own way its
+ * nation's ("hq-empire": the Citadelle); any other kind the Classique portrait.
+ */
+export const portraitKind = (k: string, nation?: NationOrClassic | null): string =>
+  nation && nation !== "classique" && (NATION_PORTRAIT_BUILDINGS[nation] as readonly string[]).includes(k) ? `${k}-${nation}` : k;

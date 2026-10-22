@@ -1168,9 +1168,8 @@ du Zénith est bâti dans 28 parties, un Zénith ne sort que dans 5 (le fonds de
 Gargantua dans 38. Pas de bogue trouvé derrière : récolte par travailleur comparable (5 min, un seul : Fourgon 2 880,
 Fardier 3 100), aucun blocage de production. C'est le chantier de WP4.
 
-Restes : portraits et voix des nouveaux genres (WP5g ; toujours ceux des doublures), art des cartes d'ouverture,
-« GQG attaqué » pour la Citadelle, `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne
-reconnaît que la Patrie comme éclaireur, aucun repère visuel du Réseau TSF.
+Restes : `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne reconnaît que la Patrie comme
+éclaireur.
 
 ### 3.10 WP4 — Mesures
 
@@ -1306,3 +1305,15 @@ Creusot ; les impériales coûtent 60–100 % de leur valeur aux groupes républ
 - L'IA du Titan charge `UNITS.condor.capacity` (2) au lieu de 3 (`ai/airlift.ts`, `ai/condor.ts`) et le levage par deux
   Titans n'est jamais tenté (`canLift` teste la Montgolfière) ; corriger avantagera l'Empire sur l'Archipel.
 - Duel Zénith–Gargantua hors cible (ci-dessus) ; personnalités Rép rush, Emp airswarm/ironclad sous 35 %.
+
+### 3.11 WP5g — Art — fait
+
+Branche `feat/camps-art`. Les 7 véhicules terrestres et les 4 aéronefs de l'Empire repris au niveau de détail des
+premiers modèles Belle Époque (1 900 à 3 250 triangles ; plafonds des tests 3 300 au sol, 3 000 en l'air) ; Vulcain
+(cigare court, dos d'équipe coupé de bandes de fer, 2 moteurs, queue cruciforme) et Titan (long ballon tout d'équipe,
+4 moteurs, double dérive) distincts vus de dessus. Portraits de toutes les unités et de tous les bâtiments des nations,
+bleu et rouge (`model-portraits.mjs --nations` ; bâtiment partagé dessiné par la nation : `hq@empire` → `hq-empire.webp`,
+`portraitKind(kind, nation)`), dans le tiroir, les fiches et les cartes d'ouverture. Voix : 206 répliques nouvelles
+(unités, bâtiments sous leur nom de nation, pouvoirs, Citadelle, Zénith) ; « Alerte : notre Citadelle est attaquée ».
+Cris d'unités propres aux 15 genres, sons `arcShell`, `heavyShell`, `arcBolt`, `flak47`, `zenithDrone` ; lueur bleue
+discrète des unités relayées par le Réseau TSF.

@@ -15,7 +15,7 @@
  */
 import { behaves } from "../sim/nations";
 import { BUILDINGS, ROLES, TICK_RATE, UNITS } from "../sim/balance";
-import { pluralName } from "../sim/lexicon";
+import { agree, displayName, pluralName } from "../sim/lexicon";
 import { nationOf } from "../sim/rules";
 import { isAnchored } from "../sim/goliath";
 import { isTransport, unitSeenBy } from "../sim/infantry";
@@ -359,7 +359,7 @@ export class HeatMap {
         x: k.sx / k.w,
         y: k.sy / k.w,
         heat: k.w,
-        label: spectator ? (cls === 4 ? `GQG ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : cls === 2 ? pluralName(ROLES[nationOf(this.h.world, this.h.player)].worker, nationOf(this.h.world, this.h.player)) : CLASS_LABEL[cls]!,
+        label: spectator ? (cls === 4 ? `${displayName("hq", nationOf(this.h.world, k.hq!))} ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : cls === 2 ? pluralName(ROLES[nationOf(this.h.world, this.h.player)].worker, nationOf(this.h.world, this.h.player)) : CLASS_LABEL[cls]!,
         priority: CLASS_PRIORITY[cls]! + Math.min(9, k.w)
       });
     }
@@ -670,11 +670,11 @@ export class TempoGuard {
         }
         if (w.buildings.get(ev.id)?.kind !== "hq") continue;
         // HQ hits are tracked at any speed, so speeding up mid-siege doesn't snap back
-        if (t - this.lastHqHit > TEMPO.hqQuietS) hq ??= { cause: "hq", note: "GQG attaqué", x: ev.x, y: ev.y };
+        if (t - this.lastHqHit > TEMPO.hqQuietS) hq ??= { cause: "hq", note: `${displayName("hq", nationOf(w, player))} ${agree("hq", "attaqué", nationOf(w, player))}`, x: ev.x, y: ev.y };
         this.lastHqHit = t;
       } else if (ev.type === "calldown" && ev.faction !== player && !calldown) {
         if (calldownThreatens(w, player, ev.x, ev.y, ev.radius))
-          calldown = { cause: "calldown", note: `${POWER_NAMES[ev.power]} ${ev.power === "emp" ? "ennemie" : "ennemi"} en approche`, x: ev.x, y: ev.y };
+          calldown = { cause: "calldown", note: `${POWER_NAMES[ev.power]} ${agree(ev.power, "ennemi")} en approche`, x: ev.x, y: ev.y };
       }
     }
     if (!fast) return null;

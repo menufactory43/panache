@@ -308,6 +308,9 @@ export class ZenithView {
    * Pose it for this frame: (gx, gy) is its interpolated sim position,
    * `alpha` how far between ticks the frame falls.
    */
+  /** Time to the engines' next drone (ms). */
+  private droneMs = 0;
+
   update(u: Unit, gx: number, gy: number, dtMs: number, turnK: number, alpha: number, visible: boolean): void {
     const w = this.host.world;
     const sec = dtMs / 1000;
@@ -326,6 +329,12 @@ export class ZenithView {
     const moved = Math.hypot(gx - this.gx, gy - this.gy);
     this.gx = gx;
     this.gy = gy;
+    // its four engines drone on as it flies (a 2.4 s phrase, overlapped; earshot fades it off-screen)
+    this.droneMs -= dtMs;
+    if (visible && this.droneMs <= 0 && this.moor < 0.5) {
+      this.droneMs = 2000;
+      this.host.fx.sound("zenithDrone", gx, gy, moved > 0.001 ? 0.9 : 0.6);
+    }
     const prevFace = this.face;
     // (a ship this size turns slowly)
     this.face += angleDelta(this.face, u.facing) * turnK * 0.45;

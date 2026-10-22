@@ -101,8 +101,33 @@ export interface BelleVoiceSpec extends VoiceSpec {
   family: BelleFamily;
 }
 
-// (the nations' new units speak with their stand-ins' voices until WP5g gives them their own)
-export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = withStandIns<BelleVoiceSpec>({
+/**
+ * The nations' own voices (PANACHE-CONCEPTION.md §1.11, WP5g). The République
+ * hums and crackles (electric arcs, a nickel horn, an airship's soft drone);
+ * the Empire chuffs, clanks and roars (steam whistles pitched low, boilers,
+ * heavy airship engines, the automatons' coarser escapement).
+ */
+const BELLE_NATION_VOICES: Partial<Record<UnitKind, BelleVoiceSpec>> = {
+  // République
+  fourgon: { family: "arc", f0: 90, wave: "square", formants: [900, 1800], q: 2, syl: 110, dry: 0.5, gain: 0.85 },
+  "jamais-contente": { family: "arc", f0: 180, wave: "square", formants: [1800, 3200], q: 2, syl: 60, dry: 0.45, gain: 0.9 },
+  "de-dion": { family: "horn", f0: 400, wave: "sawtooth", formants: [1000, 2100], q: 3, syl: 65, dry: 0.3, gain: 0.95 },
+  branly: { family: "arc", f0: 70, wave: "square", formants: [700, 1600], q: 2, syl: 125, dry: 0.4, gain: 1.05 },
+  sapeurs: { family: "clock", f0: 1180, wave: "triangle", formants: [3000, 4600], q: 4, syl: 60, dry: 1, partial: 2.4, gain: 0.58 },
+  zenith: { family: "balloon", f0: 82, wave: "triangle", formants: [420, 950], q: 4, syl: 150, dry: 1, fm: { hz: 5, depth: 0.4 }, gain: 1.15 },
+  // Empire
+  estafette: { family: "steam", f0: 720, wave: "sine", formants: [800, 1700], q: 5, syl: 60, dry: 1, gain: 0.38 },
+  "mortier-280": { family: "steam", f0: 200, wave: "sine", formants: [420, 820], q: 6, syl: 160, dry: 1, gain: 0.45 },
+  gyroptere: { family: "prop", f0: 120, wave: "sawtooth", formants: [800, 1700], q: 2, syl: 80, dry: 1, fm: { hz: 16, depth: 0.55 }, gain: 1.1 },
+  epervier: { family: "prop", f0: 170, wave: "sawtooth", formants: [900, 1900], q: 2, syl: 60, dry: 1, fm: { hz: 30, depth: 0.5 }, gain: 1.05 },
+  vulcain: { family: "balloon", f0: 85, wave: "sawtooth", formants: [450, 900], q: 3, syl: 135, dry: 1, fm: { hz: 11, depth: 0.4 }, gain: 1.1 },
+  atelier: { family: "steam", f0: 430, wave: "sine", formants: [550, 1200], q: 5, syl: 120, dry: 1, gain: 0.42 },
+  fusiliers: { family: "clock", f0: 880, wave: "triangle", formants: [2000, 3400], q: 4, syl: 65, dry: 1, partial: 2.92, gain: 0.62 },
+  carabiniers: { family: "clock", f0: 620, wave: "triangle", formants: [1800, 3000], q: 4, syl: 140, dry: 1, partial: 2.92, gain: 0.8 },
+  titan: { family: "balloon", f0: 72, wave: "sawtooth", formants: [380, 820], q: 3, syl: 160, dry: 1, fm: { hz: 6, depth: 0.45 }, gain: 1.15 }
+};
+
+export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = { ...withStandIns<BelleVoiceSpec>({
   harvester: { family: "steam", f0: 560, wave: "sine", formants: [600, 1400], q: 5, syl: 110, dry: 1, gain: 0.42 },
   scout: { family: "balloon", f0: 150, wave: "triangle", formants: [700, 1500], q: 4, syl: 90, dry: 1, fm: { hz: 9, depth: 0.45 }, gain: 0.75 },
   stinger: { family: "horn", f0: 330, wave: "sawtooth", formants: [900, 1800], q: 3, syl: 70, dry: 0.3, gain: 1.0 },
@@ -119,7 +144,7 @@ export const BELLE_VOICES: Record<UnitKind, BelleVoiceSpec> = withStandIns<Belle
   sniper: { family: "clock", f0: 740, wave: "triangle", formants: [2200, 3400], q: 4, syl: 135, dry: 1, partial: 2.76, gain: 0.78 },
   condor: { family: "balloon", f0: 110, wave: "triangle", formants: [500, 1100], q: 4, syl: 120, dry: 1, fm: { hz: 7, depth: 0.45 }, gain: 1.0 },
   goliath: { family: "steam", f0: 175, wave: "sine", formants: [380, 780], q: 6, syl: 165, dry: 1, gain: 0.4 }
-});
+}), ...BELLE_NATION_VOICES };
 
 /** The voices in play: the Belle Époque ones when that theme is on. */
 export const ACTIVE_VOICES: Record<UnitKind, VoiceSpec> = BELLE_EPOQUE ? BELLE_VOICES : VOICES;

@@ -1,5 +1,6 @@
 import type { Announcement } from "./announce";
-import type { Faction } from "../sim/types";
+import type { Faction, NationOrClassic } from "../sim/types";
+import { agree, displayName } from "../sim/lexicon";
 import type { Fx } from "./render/fx";
 import { Ease } from "./three/tween";
 import type { View } from "./three/view";
@@ -194,6 +195,8 @@ export function finaleBanner(o: {
   spectator: boolean;
   x: number;
   y: number;
+  /** Each side's nation (the Empire's HQ is its Citadelle); absent: Classique. */
+  nations?: Partial<Record<Faction, NationOrClassic>>;
 }): Announcement {
   const { x, y } = o;
   if (o.cause === "resign") {
@@ -208,10 +211,14 @@ export function finaleBanner(o: {
   if (o.winner === "draw" || o.cause === "love")
     return { key: "draw", text: "💘 Ils sont tombés amoureux", sub: "Match nul", tone: "good", priority: 0, x, y, say: "Ils sont tombés amoureux. Match nul." };
   const loser = o.winner === "blue" ? "Rouge" : "Bleu";
-  const what = o.cause === "goliath" ? "Gargantua" : "GQG";
-  if (o.spectator) return { key: "hq-destroyed", text: `${what} ${loser} détruit`, sub: `${loser === "Rouge" ? "Bleu" : "Rouge"} l'emporte`, tone: "epic", priority: 0, x, y };
-  if (o.winner === o.player) return { key: "victory", text: `${what} ennemi détruit`, sub: "Victoire", tone: "epic", priority: 0, x, y };
-  return { key: "defeat", text: o.cause === "goliath" ? "Notre dernier Gargantua est tombé" : "Notre GQG est tombé", sub: "Défaite", tone: "bad", priority: 0, x, y };
+  // (the loser's HQ by its nation's name: "Citadelle Rouge détruite", "Notre Citadelle est tombée")
+  const n = o.nations?.[o.winner === "blue" ? "red" : "blue"];
+  const hq = o.cause === "goliath" ? null : displayName("hq", n);
+  const what = hq ?? "Gargantua";
+  const g = (word: string) => (hq ? agree("hq", word, n) : word);
+  if (o.spectator) return { key: "hq-destroyed", text: `${what} ${loser} ${g("détruit")}`, sub: `${loser === "Rouge" ? "Bleu" : "Rouge"} l'emporte`, tone: "epic", priority: 0, x, y };
+  if (o.winner === o.player) return { key: "victory", text: `${what} ${g("ennemi")} ${g("détruit")}`, sub: "Victoire", tone: "epic", priority: 0, x, y };
+  return { key: "defeat", text: o.cause === "goliath" ? "Notre dernier Gargantua est tombé" : `Notre ${what} est ${g("tombé")}`, sub: "Défaite", tone: "bad", priority: 0, x, y };
 }
 
 /** Zoom the finale settles at: a push-in, but never further out than `atLeast`. */

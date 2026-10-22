@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { behaves, nationKind } from "../sim/nations";
 import { nationOf } from "../sim/rules";
+import { agree, displayName } from "../sim/lexicon";
 import { DIFFICULTY, createAiState, tickAi, type AiState } from "../sim/ai/commander";
 import { BUILDINGS, ECONOMY, GOLIATH, ROLES, TICK_RATE, UNITS } from "../sim/balance";
 import { canPlaceBuilding, nearestReachableResource } from "../sim/economy";
@@ -933,7 +934,7 @@ export class GameScene {
             ? this.ops.endAnnouncement()
             : this.survival && !love
             ? { key: "base-overrun", text: "Base submergée", sub: "Le GQG est tombé", tone: "bad", priority: 0, x: at.x, y: at.y }
-            : finaleBanner({ cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y })
+            : finaleBanner({ cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y, nations: { blue: nationOf(this.world, "blue"), red: nationOf(this.world, "red") } })
         );
       },
       onDone: () => {
@@ -1037,7 +1038,7 @@ export class GameScene {
         break;
       }
       case "shot": {
-        // (the nations' new shells are drawn as the Mortar's until WP5g gives them their own: fxLookalike)
+        // (the nations' new shells are drawn as the Mortar's; render/fx.ts voices them by their gun: the Branly's zap-boum, the 280's boom)
         if (ev.fx === "arc-shell" || ev.fx === "heavy-shell") ev = { ...ev, fx: "shell" };
         const src = w.units.get(ev.sourceId) ?? w.buildings.get(ev.sourceId);
         // (a Goliath is always seen: its guns flash even in the fog)
@@ -1102,7 +1103,7 @@ export class GameScene {
             const goliath = !!hitUnit?.goliath;
             // (a drop to 1× for this attack already put "Speed 1× — HQ under attack" in the ticker)
             if (!(hq && this.aware.slowedFor("hq")) && !(goliath && this.aware.slowedFor("goliath")))
-              this.hud.alert(hq ? "GQG attaqué !" : goliath ? `${UNITS[hitUnit!.kind].name} attaqué !` : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
+              this.hud.alert(hq ? `${displayName("hq", nationOf(w, PLAYER))} ${agree("hq", "attaqué", nationOf(w, PLAYER))} !` : goliath ? `${UNITS[hitUnit!.kind].name} attaqué !` : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
           }
         }
         this.hud.ping(ev.x, ev.y);

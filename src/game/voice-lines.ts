@@ -19,15 +19,15 @@
  * a Last Stand past wave 30) fall back to the browser's speech synthesis.
  */
 import { BUILDINGS, UNITS } from "../sim/balance";
-import { agree } from "../sim/lexicon";
+import { agree, displayName } from "../sim/lexicon";
 import { OPENERS, OPENER_IDS } from "../sim/openers";
 import { OPS } from "../sim/ops";
 import { POWER_NAMES } from "../sim/powers";
 import { THEME_NAMES } from "../sim/modes/survival";
-import type { BuildingKind, Faction, GoliathWeapon, PowerKind, UnitKind } from "../sim/types";
+import type { BuildingKind, Faction, GoliathWeapon, NationOrClassic, PowerKind, UnitKind } from "../sim/types";
 import type { AnnounceTone } from "./announce";
 import { powerPhrase } from "./calldown-credit";
-import { CALLOUTS, GOLIATH_WORD, SHORT, SIDE, listWords, speakable } from "./callouts";
+import { CALLOUTS, GOLIATH_WORD, SHORT, SIDE, ZENITH_WORD, listWords, speakable, zenithLine } from "./callouts";
 import { finaleBanner } from "./finale";
 import { raidAdvice } from "./awareness";
 import { CALLSIGNS } from "./heroes";
@@ -73,10 +73,15 @@ export function voiceFile(key: string): string {
   return `${slug.slice(0, 72)}.mp3`;
 }
 
-// (Classique's kinds and powers: the nations' lines and clips are WP5g's, PANACHE-CONCEPTION.md §1.11)
-const UNIT_KINDS = (Object.keys(UNITS) as UnitKind[]).filter((k) => !UNITS[k].nation);
-const BUILDING_KINDS = (Object.keys(BUILDINGS) as BuildingKind[]).filter((k) => k !== "hq" && !BUILDINGS[k].nation);
-const POWERS: PowerKind[] = ["barrage", "emp", "droppod", "hammer"];
+// Every kind and power, the nations' too (PANACHE-CONCEPTION.md §1.11, WP5g); buildings by every name a nation gives them
+const UNIT_KINDS = Object.keys(UNITS) as UnitKind[];
+const BUILDING_KINDS = (Object.keys(BUILDINGS) as BuildingKind[]).filter((k) => k !== "hq");
+const POWERS = Object.keys(POWER_NAMES) as PowerKind[];
+const NATIONS: NationOrClassic[] = ["classique", "republique", "empire"];
+/** A building's name and agreement as each nation says it (deduplicated: most kinds keep their Classique name). */
+const BUILDING_NAMES = BUILDING_KINDS.flatMap((b) =>
+  NATIONS.map((n) => ({ b, n, name: displayName(b, n) })).filter((x, i, all) => all.findIndex((y) => y.name === x.name) === i)
+);
 const SIDES: Faction[] = ["blue", "red"];
 const WEAPONS = (Object.keys(GOLIATH_WORD) as GoliathWeapon[]).filter((k) => !!GOLIATH_WORD[k]);
 
@@ -129,17 +134,16 @@ function build(): VoiceLine[] {
   line("Premier sang", "epic", true);
   line("Coup en plein au but !", "good"); // (the "Coup au but !" banner: said in full, the short form comes out garbled)
   // buildings: ours lost, theirs destroyed
-  for (const b of BUILDING_KINDS) {
-    const n = BUILDINGS[b].name;
-    line(`Bâtiment perdu : ${n}`, "bad", true);
-    line(`${n} ${agree(b, "ennemi")} ${agree(b, "détruit")}`, "good", true);
+  for (const { b, n, name } of BUILDING_NAMES) {
+    line(`Bâtiment perdu : ${name}`, "bad", n === "classique");
+    line(`${name} ${agree(b, "ennemi", n)} ${agree(b, "détruit", n)}`, "good", n === "classique");
   }
   // units: kills (plain and elite), losses (plain and veteran)
   for (const k of UNIT_KINDS) {
     if (k === "goliath") continue;
     for (const elite of [false, true]) {
       const l = `${label(k)}${elite ? " d'élite" : ""}`;
-      line(`${l} ${agree(k, "ennemi")} ${agree(k, "détruit")}`, "good", !elite);
+      line(`${l} ${agree(k, "ennemi")} ${agree(k, "détruit")}`, "good", !elite && !UNITS[k].nation);
     }
     if (k !== "harvester") {
       line(`${name(k)} ${agree(k, "perdu")}`, "bad");
@@ -149,6 +153,21 @@ function build(): VoiceLine[] {
   // the HQ and Goliaths
   line("Notre GQG est tombé", "bad", true);
   line("GQG ennemi détruit", "epic", true);
+  // the Empire's HQ is its Citadelle: the same lines in the feminine
+  {
+    const c = displayName("hq", "empire");
+    const g = (w: string) => agree("hq", w, "empire");
+    line(`Alerte : notre ${c} est ${g("attaqué")}`, "bad");
+    line(`Notre ${c} est ${g("tombé")}`, "bad");
+    line(`${c} ${g("ennemi")} ${g("détruit")}`, "epic");
+    line(`${c} ${g("ennemi")} ${g("détruit")}. Victoire !`, "epic");
+    line(`Notre ${c} est ${g("tombé")}. Mission échouée.`, "bad");
+    add(`${c} ${g("ennemi")} ${g("détruit")}`, "epic", "head");
+    for (const f of SIDES) {
+      line(`${c} ${SIDE[f]} ${g("attaqué")}`, "bad");
+      line(`${c} ${SIDE[f]} ${g("détruit")}`, "epic");
+    }
+  }
   line("Gargantua ennemi détruit", "epic", true);
   line("Gargantua d'élite ennemi détruit", "epic");
   line("Gargantua perdu", "bad", true);
@@ -165,15 +184,16 @@ function build(): VoiceLine[] {
   line("Gargantua ennemi en vol", "bad");
   line("Gargantua ennemi lâché !", "good");
   // weapon systems: one system is a whole line; several at once are pieced together
-  for (const w of WEAPONS) {
-    const what = GOLIATH_WORD[w]!;
-    line(`Gargantua : ${what} hors ligne`, "bad");
-    line(`Gargantua : ${what} de nouveau en ligne`, "good");
-    line(`Gargantua ennemi : ${what} hors service !`, "good");
-    line(`Gargantua ennemi : ${what} de nouveau en ligne`, "bad");
-    for (const f of SIDES) line(`Gargantua ${SIDE[f]} : ${what} hors service`, "info");
+  // (the Zénith's own systems, its lines reworded: "Zénith : canons Branly hors ligne")
+  for (const [what, say] of WEAPONS.flatMap((w) => [[GOLIATH_WORD[w]!, (s: string) => s], [ZENITH_WORD[w]!, zenithLine]] as const)) {
+    line(say(`Gargantua : ${what} hors ligne`), "bad");
+    line(say(`Gargantua : ${what} de nouveau en ligne`), "good");
+    line(say(`Gargantua ennemi : ${what} hors service !`), "good");
+    line(say(`Gargantua ennemi : ${what} de nouveau en ligne`), "bad");
+    for (const f of SIDES) line(say(`Gargantua ${SIDE[f]} : ${what} hors service`), "info");
   }
-  for (const ws of arrangements(WEAPONS)) if (ws.length > 1) add(listWords(ws.map((w) => GOLIATH_WORD[w]!)), "info", "mid");
+  for (const words of [GOLIATH_WORD, ZENITH_WORD])
+    for (const ws of arrangements(WEAPONS)) if (ws.length > 1) add(listWords(ws.map((w) => words[w]!)), "info", "mid");
   for (const h of ["Gargantua :", "Gargantua ennemi :", ...SIDES.map((f) => `Gargantua ${SIDE[f]} :`)]) add(h, "info", "head");
   for (const t of ["hors ligne", "hors service", "de nouveau en ligne"]) add(t, "info", "tail");
   // the end
@@ -222,7 +242,7 @@ function build(): VoiceLine[] {
     for (const n of names) add(n, "info", "head");
     if (k !== "goliath") add(`${label(k)} d'élite`, "info", "head");
   }
-  for (const b of BUILDING_KINDS) add(BUILDINGS[b].name, "info", "head");
+  for (const { name } of BUILDING_NAMES) add(name, "info", "head");
   for (const t of ["détruit", "détruite", "détruites", "abattu", "abattue", "abattues", "promu", "promue", "promu élite", "promue élite"])
     add(t, "info", "tail");
 
@@ -261,10 +281,20 @@ function build(): VoiceLine[] {
   // the finale's result banner, every way a match ends
   for (const cause of ["hq", "goliath", "resign", "love"] as const)
     for (const winner of ["blue", "red", "draw"] as const)
-      for (const spectator of [false, true]) {
-        const b = finaleBanner({ cause, winner, player: "blue", spectator, x: 0, y: 0 });
-        banner(b.say ?? b.text, b.tone ?? "info", true);
-      }
+      for (const spectator of [false, true])
+        for (const n of NATIONS) {
+          const b = finaleBanner({ cause, winner, player: "blue", spectator, x: 0, y: 0, nations: { blue: n, red: n } });
+          banner(b.say ?? b.text, b.tone ?? "info", n === "classique");
+        }
+  // the Zénith: every Gargantua line as the République's airship says it (callouts.ts zenithLine)
+  // (not the Gargantua's weapon systems: the Zénith has its own, above)
+  const gWords = new RegExp(`: (${Object.values(GOLIATH_WORD).join("|")})`);
+  for (const l of [...out.values()]) {
+    // (nor what a Zénith never does: be lifted and dropped, flood a Last Stand base, or the Gantry's lines)
+    if (gWords.test(l.text) || /lâché|en vol|chute|submergée|Galerie/.test(l.text)) continue;
+    const z = zenithLine(l.text);
+    if (z !== l.text) add(z, l.tone, l.part);
+  }
   return [...out.values()];
 }
 
