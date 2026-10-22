@@ -434,3 +434,18 @@ describe("determinism and symmetry", () => {
       });
     });
 });
+
+describe("menders and the fallen", () => {
+  it("an Atelier roulant never brings back a unit or building killed this tick (≤ 0 HP)", () => {
+    const w = arena("republique", "empire");
+    spawnUnit(w, "atelier", "red", 20.5, 20.5);
+    const dying = spawnUnit(w, "stinger", "red", 21.5, 20.5);
+    dying.hp = 0;
+    const hurt = spawnUnit(w, "stinger", "red", 20.5, 21.5);
+    hurt.hp = 10;
+    run(w, 1);
+    expect(w.units.has(dying.id)).toBe(false);
+    run(w, TICK_RATE);
+    expect(w.units.get(hurt.id)!.hp).toBeGreaterThan(10);
+  });
+});

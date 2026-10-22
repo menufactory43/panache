@@ -274,8 +274,24 @@ export const GOLIATH_AI = {
   huntWeak: 0.8,
   /** …no more often than this (s) per Goliath; units that can hit them go for its Menders first, this many each. */
   huntEvery: 12,
-  medicHunters: 2
+  medicHunters: 2,
+  /**
+   * The end game in a nations match (Classique: none): once the enemy's HQ has fallen, its last
+   * super-unit is all that keeps it in the game (a Zénith moored over an island, a Gargantua dug in
+   * on one) — every idle unit that can hit it goes, from anywhere, with no edge asked for (WP4's
+   * Archipelago draws), and the airpads keep this many interceptors for a Zénith.
+   */
+  finishInterceptors: 8
 };
+
+/** A nations side whose enemy has lost its HQ: hunt its super-unit down (GOLIATH_AI.finishInterceptors). */
+export function finishingOff(w: World, faction: Faction): boolean {
+  const foe: Faction = faction === "blue" ? "red" : "blue";
+  // (not in a campaign mission: their enemies are tuned as they are, and some start with no HQ)
+  if (w.ops || nationOf(w, faction) === "classique") return false;
+  for (const b of w.buildings.values()) if (b.faction === foe && b.kind === "hq") return false;
+  return true;
+}
 
 type P = { x: number; y: number };
 type Phase = "muster" | "march" | "lift" | "dig" | "hold" | "pack" | "siege" | "retreat" | "guard";
@@ -1936,11 +1952,12 @@ export function huntGoliaths(w: World, faction: Faction, s: AiState, ctx: HuntCo
   if (ctx.threatened) return cmds;
   const known = knownBuildings(w, faction);
   const foes = ctx.seen.filter((e) => !!e.goliath).sort(byId);
+  const finish = finishingOff(w, faction);
   for (const e of foes) {
     const h = m.hunts.get(e.id);
     if (h && w.tick - h.tick < GOLIATH_AI.huntEvery * TICK_RATE) continue;
     const homeGuns = dist(e.x, e.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y) < GOLIATH_AI.enemyHome && underGuns(known, e, 1);
-    if (homeGuns && ctx.mode !== "assault") continue;
+    if (homeGuns && ctx.mode !== "assault" && !finish) continue;
     const lifted = isLifted(e);
     const carriers = lifted ? e.goliath!.lift!.carriers.map((id) => w.units.get(id)).filter((c): c is Unit => !!c) : [];
     // a carried Goliath: down its weaker Condor (over water, that's the Goliath too)
@@ -1949,11 +1966,11 @@ export function huntGoliaths(w: World, faction: Faction, s: AiState, ctx: HuntCo
     const escortValue = ctx.seen.reduce((v, o) => (o.id !== e.id && !o.goliath && UNITS[o.kind].dps > 0 && dist(o.x, o.y, e.x, e.y) <= 6 ? v + UNITS[o.kind].cost : v), 0);
     let need = (lifted ? UNITS.condor.cost * 2 : threatValue(e) + escortValue) * GOLIATH_AI.huntEdge;
     if (weaponsDown(e).length > 0) need *= GOLIATH_AI.huntWeak;
-    need = Math.max(need, GOLIATH_AI.huntMin);
+    need = finish ? 0 : Math.max(need, GOLIATH_AI.huntMin);
     const armour = UNITS[mark.kind].armor;
     const able = ctx.army
-      .filter((u) => !ctx.used.has(u.id) && u.order.type === "idle" && !isHealer(u.kind))
-      .filter((u) => dist(u.x, u.y, e.x, e.y) <= GOLIATH_AI.huntReach)
+      .filter((u) => !ctx.used.has(u.id) && (u.order.type === "idle" || (finish && u.order.type === "attackMove")) && !isHealer(u.kind))
+      .filter((u) => finish || dist(u.x, u.y, e.x, e.y) <= GOLIATH_AI.huntReach)
       .sort((a, b) => dist(a.x, a.y, e.x, e.y) - dist(b.x, b.y, e.x, e.y) || a.id - b.id);
     // its Menders first (a mended Goliath never goes down): a couple of units that can hit each
     const menders = lifted
@@ -1979,13 +1996,13 @@ export function huntGoliaths(w: World, faction: Faction, s: AiState, ctx: HuntCo
     let v = 0;
     const onIt: number[] = [];
     for (const u of able) {
-      if (v >= need) break;
+      if (v >= need && !finish) break;
       if (taken.has(u.id) || effectivenessVs(u.kind, armour, domain) < USELESS || !engageable(w, u, mark.id)) continue;
       onIt.push(u.id);
       strike.push(u);
       v += UNITS[u.kind].cost;
     }
-    if (v < need) continue;
+    if (v < need || onIt.length === 0) continue;
     for (const [id, ids] of onMender) cmds.push({ type: "attack", faction, unitIds: ids, targetId: id });
     cmds.push({ type: "attack", faction, unitIds: onIt, targetId: mark.id });
     for (const u of strike) ctx.used.add(u.id);

@@ -8,7 +8,7 @@ import { isStunned } from "./powers";
 import { leaveWreck, scatterGantry } from "./salvage";
 import { bailOut, canBailOut } from "./transport";
 import { Terrain, type ArmorClass, type Building, type Domain, type Faction, type TargetDomain, type Unit, type World } from "./types";
-import { rulesOf } from "./rules";
+import { nationOf, rulesOf } from "./rules";
 import { buildingCenter, canGetWithin, distToBuilding, domainOf, hqOf, moveClassOf, removeBuilding, terrainAt } from "./world";
 import { atan2, hypot } from "./fmath";
 
@@ -331,8 +331,12 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
   let best: { id: number; x: number; y: number; d: number; unit: boolean } | null = null;
   let bestScore = Infinity;
   const groundOnly = stats.healTargets === "ground"; // (the Atelier roulant: no aircraft)
+  // (a nation's menders never touch the fallen: a unit or building killed earlier this tick sits at ≤ 0 HP
+  // until cleanupDeaths, and a repair there brought it back. Classique keeps its old order, bit for bit.)
+  const spareDead = nationOf(w, u.faction) !== "classique";
   for (const o of w.units.values()) {
     if (o.faction !== u.faction || o.id === u.id || o.hp >= UNITS[o.kind].hp) continue;
+    if (spareDead && o.hp <= 0) continue;
     if (groundOnly && unitDomain(o) === "air") continue;
     if (!canRepair(u.kind, o)) continue; // (the Zénith: Pasteur only, goliath.ts SUPER.zenith.repairedBy)
     if (o.goliath && isStunned(w, o.id)) continue; // an EMP blocks repair on a Goliath while it lasts
@@ -348,6 +352,7 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
   for (const b of w.buildings.values()) {
     const max = buildingMaxHp(w, b);
     if (b.faction !== u.faction || b.hp >= max) continue;
+    if (spareDead && b.hp <= 0) continue;
     const d = distToBuilding(b, u.x, u.y);
     if (d > reach) continue;
     const s = d + 2 + (b.hp / max) * 3;

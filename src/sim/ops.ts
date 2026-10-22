@@ -225,7 +225,7 @@ export const TRIALS: OpDef[] = [
     tagline: "Tiens le passage du fleuve face à un Rush",
     brief:
       "Nous tenons l'extrémité ouest du pont des Terres fluviales : deux Hotchkiss, des Halles sur le gisement de radium et une escouade de Panhard. Le commandant Rush de Rouge veut ce passage. Tiens-le 4:00.",
-    tip: "Panhard et Hotchkiss déchiquettent les chars légers du Rush. Bâtis vite des Forges et envoie des renforts par la route jusqu'au pont.",
+    tip: "Panhard et Hotchkiss déchiquettent les autos blindées du Rush. Bâtis vite des Forges et envoie des renforts par la route jusqu'au pont.",
     map: "riverlands",
     // bigger waves than a stock Rush: it masses ~1,200 scrap of tanks before each push
     // (and the four harvesters this op was tuned against: skirmish Rush now keeps five)
@@ -644,7 +644,7 @@ export const CAMPAIGN: OpDef[] = [
       { type: "maxLosses", n: 1, buildings: true }
     ],
     cards: {
-      before: ["Les Alpes. Une colonne d'acier descend vers la vallée.", "Ferrand : « Le laser aime l'acier épais. »", "Tenez six minutes. Les secours arrivent."],
+      before: ["Les Alpes. Une colonne d'acier descend vers la vallée.", "Ferrand : « L'arc électrique aime l'acier épais. »", "Tenez six minutes. Les secours arrivent."],
       win: "La colonne recule dans la neige.",
       lose: "Les Creusot passent le col. La vallée est perdue."
     }
@@ -693,8 +693,10 @@ export const CAMPAIGN: OpDef[] = [
       "Le convoi de radium de Marguerite Sablon — trois Fourgons à la cale pleine — doit passer le col jusqu'au tunnel ferroviaire, au nord-ouest. Des Hotchkiss impériales en embuscade et des Fusiliers retranchés barrent la route. Escorte au moins deux Fourgons au tunnel avant 8:00.",
     tip: "Ne fais pas avancer les Fourgons avant l'escorte : Valmont et les Jamais-Contente nettoient chaque Hotchkiss, le Pasteur répare, puis le convoi suit. Un Canon Branly déloge les Fusiliers retranchés de loin.",
     map: "frostbite",
-    ai: { strategy: "boom", difficulty: "normal", tweak: { harassGroup: 2, assaultValue: 1800 } },
-    rules: { enemyPowerBans: ["hammer"] },
+    // (after WP4 — Empire queues two deep, one more Fardier — the stock Boom took the GQG by 3:30: 1/3 for
+    // the escort pilot; revenue 80 % and a later assault bring it back to 6/6, idle still lost)
+    ai: { strategy: "boom", difficulty: "normal", tweak: { harassGroup: 2, assaultValue: 2400 } },
+    rules: { enemyPowerBans: ["hammer"], enemyIncome: 0.8 },
     focus: { x: 8, y: 34 },
     setup(w, o) {
       for (const id of o.units("blue", "fourgon", 3, 7, 35, "convoi")) {
@@ -778,7 +780,8 @@ export const CAMPAIGN: OpDef[] = [
     tip: "Les combats durent quelques secondes : n'échange jamais au compte-gouttes. Deux Bobines et une Ruggieri te donnent le temps de masser une armée — puis tout sur la Citadelle.",
     map: "dune-sea",
     ai: { strategy: "rush", difficulty: "hard", tweak: { harvesters: 4 } },
-    rules: { mutators: ["glass", "rapidfab"] },
+    // (enemyIncome: after WP4 the Empire's double queues out-built the scripted general, 0/3; at 80 % 6/6)
+    rules: { mutators: ["glass", "rapidfab"], enemyIncome: 0.8 },
     goals: [{ type: "destroyHq" }, { type: "within", secs: 360 }],
     stars: [
       { type: "maxLosses", n: 0, buildings: true },
@@ -848,7 +851,8 @@ export const CAMPAIGN: OpDef[] = [
     tip: "La barre du haut annonce la prochaine vague : prépare la riposte. Le Zénith arrive après la cinquième vague — garde-le près des Tours TSF et des Pasteur.",
     map: "riverlands",
     ai: "survival",
-    survival: { difficulty: "normal", firstWave: 45, interval: 40 },
+    // (interval 43, was 40: after WP4 the defender pilot held 9/12 seeds; 11/12 now — ★★★ moved with it)
+    survival: { difficulty: "normal", firstWave: 45, interval: 43 },
     scrap: 1200,
     setup(_w, o) {
       o.building("blue", "radar", 9, 41);
@@ -872,7 +876,7 @@ export const CAMPAIGN: OpDef[] = [
     goals: [{ type: "waves", count: 10 }],
     stars: [
       { type: "maxLosses", n: 2, buildings: true },
-      { type: "within", secs: 420 }
+      { type: "within", secs: 450 }
     ],
     cards: {
       before: ["Les faubourgs. Paris voit déjà la fumée.", "Ferrand : « Le Zénith sera prêt. Tenez ! »", "Dix vagues avant l'aube."],

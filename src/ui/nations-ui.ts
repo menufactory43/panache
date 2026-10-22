@@ -4,7 +4,7 @@
  * screen's flavour lines. Shared by the menu's nation picker, the HUD pill and
  * the end screens. Render side only: no sim state.
  */
-import { NATIONS, UNITS } from "../sim/balance";
+import { ECONOMY, NATIONS, UNITS } from "../sim/balance";
 import type { BuildingKind, Nation, NationOrClassic, UnitKind } from "../sim/types";
 import { portraitKind } from "../game/three/belle/placeholders";
 
@@ -30,18 +30,20 @@ export interface NationCard {
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** 1.25 → "1,25" (balance numbers as the menu writes them). */
+const fr = (x: number): string => String(Math.round(x * 100) / 100).replace(".", ",");
 
 export const NATION_CARDS: Record<Nation, NationCard> = {
   republique: {
     title: cap(NATIONS.republique.name),
     line: "Ingénieurs, aviateurs et savants : rapide, aérienne, électrique, fragile.",
-    mechanics: ["Réseau électrique du GQG et des Tours TSF", "Bâtiments préfabriqués, vite produits", "Radium payé ×1,5"],
+    mechanics: ["Réseau électrique du GQG et des Tours TSF", "Bâtiments préfabriqués, vite produits", `Radium payé ×${fr(NATIONS.republique.radiumValue / ECONOMY.crystalValue)}`],
     signature: ["zenith", "jamais-contente", "wasp"]
   },
   empire: {
     title: cap(NATIONS.empire.name),
     line: "Charbon, vapeur et acier : lent, blindé, l'artillerie la plus longue.",
-    mechanics: ["Usines à vapeur : deux unités à la fois", "L'infanterie se retranche", "Charbon extrait +15 %"],
+    mechanics: ["Usines à vapeur : deux unités à la fois", "L'infanterie se retranche", `Charbon extrait +${Math.round((NATIONS.empire.coalRate - 1) * 100)} %`],
     signature: ["goliath", "mortier-280", "mastodon"]
   }
 };

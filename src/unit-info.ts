@@ -57,7 +57,7 @@ export const FEATURES: Record<UnitKind, string[]> = {
     "Tombe vite face aux Faucheux, aux Blériot et aux Batteries Ruggieri."
   ],
   raptor: [
-    "Intercepteur de supériorité aérienne : des missiles rapides qui chassent les autres appareils.",
+    "Intercepteur de supériorité aérienne : des fusées rapides qui chassent les autres appareils.",
     "Contre les Éole, Albatros et Pasteur.",
     "Ne peut rien attaquer au sol."
   ],
@@ -505,7 +505,7 @@ const BUILDING_FEATURES: Record<BuildingKind, string[]> = {
     `Obus cinétiques : moins efficaces contre les blindés lourds (×${DAMAGE_VS.kinetic.heavy}), les Creusot s'en moquent.`
   ],
   "sam-site": [
-    `Missiles antiaériens longue portée, jusqu'à ${BUILDINGS["sam-site"].range} cases : plus loin que l'arme de n'importe quel appareil.`,
+    `Fusées antiaériennes longue portée, jusqu'à ${BUILDINGS["sam-site"].range} cases : plus loin que l'arme de n'importe quel appareil.`,
     "Ne peut rien viser au sol : chars et artillerie passent sous son nez.",
     "Associe-la à une Hotchkiss pour couvrir les deux."
   ],
@@ -530,7 +530,7 @@ const BUILDING_FEATURES: Record<BuildingKind, string[]> = {
 const NATION_BUILDING_FEATURES: Record<Nation, Partial<Record<BuildingKind, string[]>>> = {
   republique: {
     "sam-site": [
-      `Missiles antiaériens longue portée, jusqu'à ${fmt(BUILDINGS["sam-site"].range)} cases : plus loin que l'arme de n'importe quel appareil.`,
+      `Fusées antiaériennes longue portée, jusqu'à ${fmt(BUILDINGS["sam-site"].range)} cases : plus loin que l'arme de n'importe quel appareil.`,
       "Ne peut rien viser au sol : associe-la à une Bobine d'Arsonval pour couvrir les deux."
     ],
     "fab-plant": [

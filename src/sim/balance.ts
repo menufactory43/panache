@@ -377,7 +377,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     targets: "both", dps: 26, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "cannon"
   },
   "sam-site": {
-    name: "Batterie Ruggieri", role: "Missiles antiaériens longue portée.",
+    name: "Batterie Ruggieri", role: "Fusées antiaériennes longue portée.",
     cost: 275, hp: 560, sight: 7, size: 1, buildTime: 9,
     targets: "air", dps: 32, range: 6.5, shotInterval: 1.2, dmgType: "missile", fx: "missile"
   },

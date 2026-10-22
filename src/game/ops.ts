@@ -157,7 +157,7 @@ export class OpsPresenter {
   endAnnouncement(): Announcement {
     const r = this.w.ops?.result;
     const camp = isCampaignOp(this.op);
-    // (the Trials keep the recorded « Op réussie / échouée »; the campaign's lines are not recorded yet)
+    // (the Trials keep « Op réussie / échouée », the campaign says « Mission »)
     const name = camp ? "Mission" : "Op";
     if (!r) return { key: "op-failed", text: `${name} échouée`, tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);

@@ -37,6 +37,7 @@ import {
   goliathFund,
   goliathHarvest,
   goliathHolds,
+  finishingOff,
   huntGoliaths,
   liftCondors,
   liftWantsCondors,
@@ -778,7 +779,9 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
       const airWar = bannedBy(w, "fab-plant", faction) !== null; // (or an op's "air only")
       const airOnly = s.strategy.airOnly || airWar;
       // (island relays: the air war over the islands decides who holds them)
-      const wantRaptors = Math.min(airWar ? 5 : airOnly ? 7 : airlifts ? AIRLIFT.raptors : 4, Math.ceil(s.seenAir * 0.6));
+      let wantRaptors = Math.min(airWar ? 5 : airOnly ? 7 : airlifts ? AIRLIFT.raptors : 4, Math.ceil(s.seenAir * 0.6));
+      // (a nations end game: the enemy's HQ is down and a Zénith flies on — interceptors finish it, ai/goliath.ts)
+      if (finishingOff(w, faction) && seen.some((e) => e.goliath && domainOf(e) === "air")) wantRaptors = Math.max(wantRaptors, GOLIATH_AI.finishInterceptors);
       // (Condors on, or held for, a Goliath's lift aren't the drop plan's or the airlift's)
       const condors = have(K.transport) - liftHeld.size;
       let kind: UnitKind;

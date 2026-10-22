@@ -3737,44 +3737,28 @@
    "file": "tete-de-pont.mp3"
   },
   {
-   "key": "lune des moissons",
-   "text": "Lune des moissons",
+   "key": "la caravane du radium",
+   "text": "La Caravane du radium",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "lune-des-moissons.mp3"
+   "file": "la-caravane-du-radium.mp3"
   },
   {
-   "key": "décapitation",
-   "text": "Décapitation",
+   "key": "les côtes de granit",
+   "text": "Les Côtes de granit",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "decapitation.mp3"
+   "file": "les-cotes-de-granit.mp3"
   },
   {
-   "key": "avoirs gelés",
-   "text": "Avoirs gelés",
+   "key": "pendant ce temps en carbonie",
+   "text": "Pendant ce temps, en Carbonie",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "avoirs-geles.mp3"
-  },
-  {
-   "key": "pirates du ciel",
-   "text": "Pirates du ciel",
-   "tone": "info",
-   "part": "line",
-   "core": false,
-   "file": "pirates-du-ciel.mp3"
-  },
-  {
-   "key": "mâchoire de verre",
-   "text": "Mâchoire de verre",
-   "tone": "info",
-   "part": "line",
-   "core": false,
-   "file": "machoire-de-verre.mp3"
+   "file": "pendant-ce-temps-en-carbonie.mp3"
   },
   {
    "key": "marée d acier",
@@ -3785,12 +3769,76 @@
    "file": "maree-d-acier.mp3"
   },
   {
+   "key": "avoirs gelés",
+   "text": "Avoirs gelés",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "avoirs-geles.mp3"
+  },
+  {
+   "key": "le col des aigles",
+   "text": "Le Col des Aigles",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "le-col-des-aigles.mp3"
+  },
+  {
+   "key": "pirates du ciel",
+   "text": "Pirates du ciel",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "pirates-du-ciel.mp3"
+  },
+  {
+   "key": "l orage de radium",
+   "text": "L'Orage de radium",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "l-orage-de-radium.mp3"
+  },
+  {
+   "key": "décapitation",
+   "text": "Décapitation",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "decapitation.mp3"
+  },
+  {
    "key": "dernière lueur",
    "text": "Dernière lueur",
    "tone": "info",
    "part": "line",
    "core": false,
    "file": "derniere-lueur.mp3"
+  },
+  {
+   "key": "la dame de fer",
+   "text": "La Dame de fer",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "la-dame-de-fer.mp3"
+  },
+  {
+   "key": "lune des moissons",
+   "text": "Lune des moissons",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "lune-des-moissons.mp3"
+  },
+  {
+   "key": "mâchoire de verre",
+   "text": "Mâchoire de verre",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "machoire-de-verre.mp3"
   },
   {
    "key": "tiens encore une minute",
@@ -3823,6 +3871,38 @@
    "part": "line",
    "core": false,
    "file": "op-echouee.mp3"
+  },
+  {
+   "key": "mission réussie",
+   "text": "Mission réussie",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "mission-reussie.mp3"
+  },
+  {
+   "key": "mission échouée",
+   "text": "Mission échouée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "mission-echouee.mp3"
+  },
+  {
+   "key": "ferrand l a fini",
+   "text": "Ferrand l'a fini !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ferrand-l-a-fini.mp3"
+  },
+  {
+   "key": "le colosse se met en marche",
+   "text": "Le Colosse se met en marche !",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "le-colosse-se-met-en-marche.mp3"
   },
   {
    "key": "raid aérien",
