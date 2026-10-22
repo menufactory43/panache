@@ -56,6 +56,8 @@ export const RIVAL_PICKS: readonly RivalPick[] = ["opposite", "random", "same"];
  * telling the same.)
  */
 let duelMatch: { nations: Partial<Record<Faction, Nation>> | null } | null = null;
+/** Is the coming (or running) match a duel? */
+export const isDuelMatch = (): boolean => duelMatch !== null;
 
 /** Is the coming match on a generated map played Uncharted (not when watching AI vs AI, an op or the Daily)? */
 export const unchartedMatch = (): boolean =>

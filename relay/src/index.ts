@@ -9,6 +9,9 @@
 // courts, un débit borné, et seules la page publiée et le développement local sont admis (salon.ts).
 // Hibernation : entre deux messages le salon ne tourne pas, et le « ping » du jeu reçoit son « pong » sans le réveiller.
 //
+// Il tient aussi les statistiques du jeu (README.md « Statistiques ») : des compteurs par jour de ce qui est joué,
+// jamais de qui (stats.ts) ; POST /stat?e=partie:escarmouche les additionne, GET /stats?jours=30 les lit.
+//
 // Mise en ligne : voir relay/README.md (npx wrangler deploy depuis ce dossier).
 
 import { DurableObject } from "cloudflare:workers";
@@ -16,10 +19,15 @@ import {
   FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
   type Etat, type Role
 } from "./salon";
+import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
 
 interface Env {
   SALON: DurableObjectNamespace<Salon>;
+  STATS: DurableObjectNamespace<Stats>;
 }
+
+/** Seule la page publiée compte (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
+const PAGE_PUBLIEE = "https://menufactory43.github.io";
 
 const VIDE: Etat = { cree: null, hote: null, invite: null };
 
@@ -27,6 +35,12 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/") return new Response("Panache — relais du duel en ligne", { headers: { "content-type": "text/plain; charset=utf-8" } });
+    if (url.pathname === "/stat" && req.method === "POST") {
+      const e = url.searchParams.get("e");
+      if (req.headers.get("Origin") !== PAGE_PUBLIEE || !evenementAdmis(e)) return new Response(null, { status: 204 });
+      return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
+    }
+    if (url.pathname === "/stats" && req.method === "GET") return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
     const code = codeDe(url.pathname);
     if (!code) return new Response("introuvable", { status: 404 });
     if (!origineAdmise(req.headers.get("Origin"))) return new Response("origine refusée", { status: 403 });
@@ -154,5 +168,32 @@ export class Salon extends DurableObject<Env> {
     if (!perime(e, branches, now)) return void (await this.reveil(e, branches));
     for (const w of this.ctx.getWebSockets()) fermer(w, FERME.expire, "salon expiré");
     await this.ctx.storage.deleteAll();
+  }
+}
+
+/** Les compteurs du jeu : un seul objet, une clé « jour|événement » par compteur, les plus vieux jours effacés. */
+export class Stats extends DurableObject<Env> {
+  async fetch(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    const now = Date.now();
+    if (req.method === "POST") {
+      const e = url.searchParams.get("e")!;
+      const cle = cleDe(jourDe(now), e);
+      await this.ctx.storage.put(cle, ((await this.ctx.storage.get<number>(cle)) ?? 0) + 1);
+      if ((await this.ctx.storage.getAlarm()) === null) await this.ctx.storage.setAlarm(now + 86_400_000);
+      return new Response(null, { status: 204 });
+    }
+    const jours = joursDepuis(now, Number(url.searchParams.get("jours") ?? 30));
+    const lus = await this.ctx.storage.list<number>({ start: `${jours[0]}|`, end: `${jours[jours.length - 1]}|~` });
+    return new Response(JSON.stringify(parJour(lus), null, 1), {
+      headers: { "content-type": "application/json; charset=utf-8", "access-control-allow-origin": "*", "cache-control": "no-store" }
+    });
+  }
+
+  /** Le ménage, une fois par jour tant qu'il y a des compteurs. */
+  async alarm(): Promise<void> {
+    const vieux = await this.ctx.storage.list({ end: `${limiteMenage(Date.now())}|` });
+    if (vieux.size) await this.ctx.storage.delete([...vieux.keys()].slice(0, 128));
+    await this.ctx.storage.setAlarm(Date.now() + 86_400_000);
   }
 }

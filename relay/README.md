@@ -32,6 +32,21 @@ wss://panache-relais.meffysto.workers.dev/salon/ABCD?role=hote|invite&cle=<clé>
 La logique des salons est dans `src/salon.ts`, en fonctions pures testées sous Node (`tests/online.test.ts` à la
 racine) ; `src/index.ts` l'applique aux WebSockets et au stockage du Durable Object.
 
+## Statistiques
+
+Le relais compte aussi ce qui se joue, jamais qui : des compteurs par jour, sans identifiant, adresse ni cookie
+(`src/stats.ts`, le Durable Object `Stats` dans `src/index.ts`, côté jeu `src/game/stats.ts`).
+
+- **Envoi** : `POST /stat?e=<événement>` (un `navigator.sendBeacon` du jeu), compté seulement s'il vient de la page
+  publiée (`Origin: https://menufactory43.github.io`) : le serveur de développement, un aperçu local et les robots
+  (smoke test, outils) n'envoient rien ou ne comptent pas.
+- **Événements** : `partie:<genre>` au lancement (`escarmouche`, `survie`, `campagne`, `epreuve`, `jour`,
+  `instruction`, `ia`, `duel`), `nation:<nation>` pour une escarmouche, `fin:<genre>[:victoire|defaite|nul]` à la fin
+  d'une partie jouée.
+- **Lecture** : `GET /stats?jours=30` (JSON par jour, public : ce ne sont que des totaux), par exemple
+  `curl -s https://panache-relais.meffysto.workers.dev/stats?jours=7`.
+- **Ménage** : 120 jours gardés. Coût : une requête et une ligne écrite par événement.
+
 ## Mettre en ligne
 
 Le jeton Cloudflare est celui de famcrawl (fnox) ; il ne va que dans l'environnement du processus :

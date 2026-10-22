@@ -4,6 +4,7 @@ import { MUTATORS, makeRules, rulesOf, strategyFits } from "../sim/rules";
 import type { Faction, World } from "../sim/types";
 import { announce } from "./announce";
 import { settleMatch, type Settlement } from "./career";
+import { matchKind, track } from "./stats";
 import { activeMutators, gameMode } from "./mode";
 
 /**
@@ -55,10 +56,19 @@ export function announceRules(w: World): void {
   });
 }
 
+/** The worlds whose end was counted (game/stats.ts). */
+const counted = new WeakSet<World>();
+
 /** Bank the finished match in the career (spectators never do). */
 export function settleCareer(w: World, pov: Faction): Settlement | null {
   if (gameMode.spectator) return null;
   const d = gameMode.daily;
+  // (once per world, as the career: the end screen asks again)
+  if (!counted.has(w)) {
+    counted.add(w);
+    const issue = w.survival && !w.ops ? "" : w.winner === pov ? ":victoire" : w.winner === "draw" ? ":nul" : ":defaite";
+    track(`fin:${matchKind()}${issue}`);
+  }
   return settleMatch(w, {
     pov,
     difficulty: w.survival?.difficulty ?? gameMode.difficulty,

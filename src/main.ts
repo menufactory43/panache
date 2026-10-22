@@ -30,6 +30,7 @@ import { openMapPreview } from "./ui/map-preview";
 import { mountTitle } from "./ui/title";
 import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
+import { countVisit, matchKind, track } from "./game/stats";
 // (types only: the sound duel's code is a lazily loaded chunk, reached through loadDuel() alone)
 import type * as DuelLobby from "./versus/lobby";
 import type { VersusFeed } from "./versus/feed";
@@ -759,6 +760,12 @@ function showMenu(linkedMap?: string | null): void {
     offMute();
     offUpdate();
     menu.remove();
+    // the anonymous counters (game/stats.ts): a replay is watched, not played
+    if (!(spectator && feed)) {
+      const kind = matchKind();
+      track(`partie:${kind}`);
+      if (kind === "escarmouche") track(`nation:${gameMode.nation}`);
+    }
     void startGame(feed);
   };
   const play = () => {
@@ -1168,3 +1175,4 @@ else {
   }
   showMenu(linkedMap);
 }
+countVisit();
