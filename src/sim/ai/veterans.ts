@@ -47,7 +47,7 @@ export function veteranRetreats(
   w?: World
 ): Command[] {
   const cmds: Command[] = [];
-  const menders = army.filter((u) => u.kind === "mender");
+  const menders = army.filter((u) => behaves(u.kind, "mender"));
   const resting: Unit[] = [];
   for (const u of army) {
     // (already spoken for: e.g. dodging a reticle — it heads home once clear)

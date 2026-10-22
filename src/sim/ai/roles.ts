@@ -242,5 +242,15 @@ export const isAirStriker = (kind: UnitKind): boolean =>
 export const isInterceptor = (kind: UnitKind): boolean =>
   UNITS[kind].domain === "air" && UNITS[kind].targets === "air" && UNITS[kind].dps > 0;
 
+/**
+ * A gun: artillery that can't fire up close (Mortar; Canon Branly, Mortier de 280).
+ * It never garrisons, captures nor hunts: it dies in a brawl.
+ */
+export const isGun = (kind: UnitKind): boolean => UNITS[kind].minRange !== undefined && !behaves(kind, "goliath");
+
+/** Units an Uplink run or a garrison never takes: healers, guns, scouts, marksmen (Classique: Mender, Mortar, Scout, Sniper). */
+export const noObjectiveDuty = (kind: UnitKind): boolean =>
+  isHealer(kind) || isGun(kind) || kind === "scout" || kind === "estafette" || behaves(kind, "sniper");
+
 /** A marksman squad (Sniper Team; Carabiniers). */
 export const isSniper = (kind: UnitKind): boolean => behaves(kind, "sniper");

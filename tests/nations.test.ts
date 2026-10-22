@@ -103,18 +103,18 @@ describe("economy multipliers", () => {
     expect(w.factions.blue.scrap).toBeGreaterThan(before);
   });
 
-  it("radium pays the République ×1.5, coal comes 15 % faster for the Empire", () => {
+  it("radium pays the République ×1.25 (WP4: 2.0), coal comes 15 % faster for the Empire", () => {
     const w = arena("republique", "empire");
-    expect(radiumValue(w, "blue")).toBe(2.4);
+    expect(radiumValue(w, "blue")).toBe(2.0);
     expect(radiumValue(w, "red")).toBe(ECONOMY.crystalValue);
     expect(harvestRate(w, "red", false)).toBeCloseTo(ECONOMY.harvestRate * 1.15, 9);
     expect(harvestRate(w, "red", true)).toBe(ECONOMY.harvestRate);
-    // a Fourgon digging radium: 2.4 scrap in the hold per unit mined
+    // a Fourgon digging radium: 2.0 scrap in the hold per unit mined
     setTerrain(w, 20, 20, Terrain.Crystal);
     const f = spawnUnit(w, "fourgon", "blue", 20.5, 20.5);
     f.order = { type: "harvest", fieldX: 20, fieldY: 20, phase: "harvesting" };
     run(w, 10);
-    expect(f.cargo).toBeCloseTo(10 * (ECONOMY.harvestRate / TICK_RATE) * 2.4, 6);
+    expect(f.cargo).toBeCloseTo(10 * (ECONOMY.harvestRate / TICK_RATE) * 2.0, 6);
   });
 
   it("buildings cost, take and hold the nation's multiples; units take its build time", () => {
@@ -225,7 +225,7 @@ describe("Réseau TSF", () => {
 });
 
 describe("Tranchées", () => {
-  it("an Empire squad standing still digs in after 3 s, not before, and takes ×0.7", () => {
+  it("an Empire squad standing still digs in after 3 s, not before, and takes its trench multiple (×0.9)", () => {
     const w = arena("republique", "empire");
     const fus = spawnUnit(w, "fusiliers", "red", 25.5, 25.5);
     const ref = spawnUnit(w, "trooper", "blue", 20.5, 25.5);

@@ -109,9 +109,9 @@ describe("the nations' data", () => {
   });
 
   it("has the nations' numbers (§1.2) and the Zénith's weapons (§1.5)", () => {
-    expect(NATIONS.republique).toMatchObject({ radiumValue: 2.4, buildingCost: 0.85, unitTime: 0.85, parallel: 1, towerCost: 150 });
+    expect(NATIONS.republique).toMatchObject({ radiumValue: 2.0, buildingCost: 0.85, unitTime: 0.85, parallel: 1, towerCost: 150 });
     expect(NATIONS.empire).toMatchObject({ coalRate: 1.15, buildingHp: 1.25, unitTime: 1.3, parallel: 2 });
-    expect(NATIONS.empire.trench).toEqual({ still: 3, mult: 0.7, redoubtRadius: 2.5 });
+    expect(NATIONS.empire.trench).toEqual({ still: 3, mult: 0.9, redoubtRadius: 2.5 });
     expect(Object.keys(ZENITH.weapons)).toEqual(["branly", "arc", "bombs", "mg"]);
     expect(Object.values(ZENITH.weapons).map((x) => x.lostBelow)).toEqual([0.75, 0.5, 0.25, 0]);
     expect(ZENITH.trains).toEqual(["wasp", "raptor", "mender", "scout"]);

@@ -21,16 +21,19 @@
 // draws, win rates, value built by group (infantry / Condor / air /
 // vehicles), Condor drops by destination, island Uplink captures, retakes and
 // crewed time, deaths near Uplinks, and the cost.
-import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { cpus } from "node:os";
 import * as balance from "../src/sim/balance";
-import { STRATEGIES, type StrategyName } from "../src/sim/ai/commander";
+import { NATION_AI, NATION_POOLS, NATION_STRATEGIES, STRATEGIES, type PersonalityName, type StrategyName } from "../src/sim/ai/commander";
 import { CONDOR_AI } from "../src/sim/ai/condor";
+import { OBJECTIVE_AI } from "../src/sim/ai/objectives";
 import { GOLIATH_AI } from "../src/sim/ai/goliath";
 import { MENDER_AI } from "../src/sim/ai/menders";
 import { AIRLIFT } from "../src/sim/ai/airlift";
 import { MAPS } from "../src/sim/maps";
-import type { Faction } from "../src/sim/types";
-import { playMatch, type Match, type UnitGroup } from "./pacing-match";
+import type { Faction, Nation, UnitKind } from "../src/sim/types";
+import { playMatch, type KindTally, type Match, type UnitGroup } from "./pacing-match";
 import type { Difficulty } from "../src/sim/ai/commander";
 
 const SIDES: Faction[] = ["blue", "red"];
@@ -42,7 +45,7 @@ function arg(name: string): string | undefined {
 
 function applyTune(json: string | undefined): void {
   if (!json) return;
-  const roots: Record<string, unknown> = { ...balance, STRATEGIES, CONDOR_AI, GOLIATH_AI, MENDER_AI, AIRLIFT, MAP: Object.fromEntries(MAPS.map((m) => [m.id, m])) };
+  const roots: Record<string, unknown> = { ...balance, STRATEGIES, NATION_STRATEGIES, NATION_AI, OBJECTIVE_AI, CONDOR_AI, GOLIATH_AI, MENDER_AI, AIRLIFT, MAP: Object.fromEntries(MAPS.map((m) => [m.id, m])) };
   for (const [path, v] of Object.entries(JSON.parse(json) as Record<string, unknown>)) {
     const parts = path.split(".");
     let o = roots as Record<string, unknown>;
@@ -53,10 +56,77 @@ function applyTune(json: string | undefined): void {
   }
 }
 
-function run(): void {
+/** `--jobs N`: run the panel as N shard processes at once (default: one per core), then join their files. */
+async function runJobs(out: string, jobs: number): Promise<void> {
+  const rest = process.argv.slice(4).filter((a, i, all) => a !== "--jobs" && all[i - 1] !== "--jobs");
+  const parts = Array.from({ length: jobs }, (_, i) => `${out}.part${i}`);
+  const t0 = Date.now();
+  await Promise.all(
+    parts.map(
+      (part, i) =>
+        new Promise<void>((ok, fail) => {
+          const c = spawn(process.execPath, [new URL("../node_modules/vite-node/vite-node.mjs", import.meta.url).pathname, "tools/pacing.ts", "run", part, ...rest, "--shard", `${i}/${jobs}`], { stdio: ["ignore", "ignore", "inherit"] });
+          c.on("exit", (code) => (code === 0 ? ok() : fail(new Error(`shard ${i} exited ${code}`))));
+        })
+    )
+  );
+  writeFileSync(out, parts.map((p) => readFileSync(p, "utf8")).join(""));
+  for (const p of parts) unlinkSync(p);
+  console.error(`${readFileSync(out, "utf8").split("\n").filter(Boolean).length} matches in ${((Date.now() - t0) / 1000).toFixed(0)} s on ${jobs} processes`);
+}
+
+const NATION_ALIAS: Record<string, Nation> = { rep: "republique", republique: "republique", emp: "empire", empire: "empire" };
+
+/**
+ * A nations panel (§1.8): `--nations rep-emp` plays every République personality
+ * of the pool against every Empire one, the République on each side in turn, on
+ * every map, `--seeds` times; `rep-rep` / `emp-emp` play the mirrors (every
+ * ordered pair of the nation's pool, the same personality included).
+ * `--pairs balanced/balanced,volta/siege` keeps only those pairings (first the
+ * blue nation's personality in a mirror, the République's otherwise).
+ */
+function runNations(out: string, spec: string): void {
+  const [a, b] = spec.split("-").map((x) => NATION_ALIAS[x]) as [Nation, Nation];
+  if (!a || !b) throw new Error(`--nations rep-emp | rep-rep | emp-emp (not ${spec})`);
+  const seeds = Number(arg("--seeds") ?? 1);
+  const [shard, shards] = (arg("--shard") ?? "0/1").split("/").map(Number) as [number, number];
+  const maps = arg("--maps")?.split(",") ?? MAPS.map((x) => x.id);
+  const difficulty = (arg("--difficulty") ?? "normal") as Difficulty;
+  const cap = Number(arg("--cap") ?? 25);
+  const pairs = arg("--pairs")?.split(",").map((p) => p.split("/") as [PersonalityName, PersonalityName]);
+  const poolA = NATION_POOLS[a][difficulty];
+  const poolB = NATION_POOLS[b][difficulty];
+  const seats: Faction[] = a === b ? ["blue"] : ["blue", "red"];
+  writeFileSync(out, "");
+  let idx = 0;
+  for (let s = 0; s < seeds; s++)
+    for (const map of maps)
+      for (const seatA of seats)
+        for (const pa of poolA)
+          for (const pb of poolB) {
+            const job = idx++;
+            if (pairs && !pairs.some(([x, y]) => x === pa && y === pb)) continue;
+            if (job % shards !== shard) continue;
+            const seatB: Faction = seatA === "blue" ? "red" : "blue";
+            const nations = { [seatA]: a, [seatB]: b } as Record<Faction, Nation>;
+            const pers = { [seatA]: pa, [seatB]: pb } as Record<Faction, PersonalityName>;
+            const m = playMatch(map, pers.blue, pers.red, 9000 + job * 17 + s * 1013, 21 + job * 2 + s * 7919, {
+              difficulty, timing: true, nations, capMin: cap,
+              noOpeners: process.argv.includes("--no-openers") || process.argv.includes("--bare"),
+              noObjectives: process.argv.includes("--no-objectives") || process.argv.includes("--bare")
+            });
+            appendFileSync(out, JSON.stringify(m) + "\n");
+          }
+}
+
+async function run(): Promise<void> {
   const out = process.argv[3];
   if (!out) throw new Error("usage: pacing.ts run <out.jsonl> [--seeds N] [--shard i/n] [--maps a,b] [--tune JSON]");
+  const jobs = arg("--jobs");
+  if (jobs !== undefined && !arg("--shard")) return runJobs(out, Number(jobs) || cpus().length);
   applyTune(arg("--tune"));
+  const nations = arg("--nations");
+  if (nations) return runNations(out, nations);
   const seeds = Number(arg("--seeds") ?? 1);
   const [shard, shards] = (arg("--shard") ?? "0/1").split("/").map(Number) as [number, number];
   const maps = arg("--maps")?.split(",") ?? MAPS.map((x) => x.id);
@@ -207,6 +277,149 @@ function perMap(d: Match[], map: string): void {
     console.log(`  cost: ${Math.round(q(perf.map((p) => p.msPerMin), 0.5))} ms per sim-minute (median; max ${Math.max(...perf.map((p) => p.msPerMin))}), worst tick ${Math.max(...perf.map((p) => p.worstTick))} ms`);
 }
 
-if (process.argv[2] === "run") run();
-else if (process.argv[2] === "summary") summary();
-else console.log("usage: pacing.ts run <out.jsonl> [--seeds N] [--shard i/n] [--maps a,b] [--tune JSON] | summary <files...>");
+
+// ------------------------------------------------------- nations summary ---
+
+/** Wilson 95% interval of k successes in n, as "p% [lo–hi]". */
+export function wilson(k: number, n: number): string {
+  if (!n) return "-";
+  const z = 1.96;
+  const p = k / n;
+  const d = 1 + (z * z) / n;
+  const c = (p + (z * z) / (2 * n)) / d;
+  const h = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d;
+  return `${Math.round(100 * p)}% [${Math.round(100 * (c - h))}–${Math.round(100 * (c + h))}] (n=${n})`;
+}
+
+const SHORT: Record<Nation, string> = { republique: "Rép", empire: "Emp" };
+
+/**
+ * `summary --nations <files>`: wins by nation (Wilson 95% intervals), by map,
+ * by seat, by personality, red's share in mirrors; army value, harvest and
+ * workers by minute; super-unit timing; every kind's tallies (built, lost,
+ * value its killing blows took).
+ */
+function nationsSummary(): void {
+  const files = process.argv.slice(3).filter((a) => !a.startsWith("--"));
+  const d: Match[] = files.flatMap((f) => readFileSync(f, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Match)).filter((x) => x.nat);
+  const q = (a: number[], p: number) => {
+    const s = [...a].sort((x, y) => x - y);
+    return s.length ? s[Math.min(s.length - 1, Math.floor(p * s.length))]! : NaN;
+  };
+  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
+  const mmss = (x: number | null) => (x === null || isNaN(x) ? "-" : `${Math.floor(x / 60)}:${String(Math.round(x % 60)).padStart(2, "0")}`);
+  const nationOfSide = (x: Match, f: Faction) => x.nat!.nations[f];
+  const winnerNation = (x: Match) => (x.winner === "draw" ? "draw" : nationOfSide(x, x.winner));
+  const seatOf = (x: Match, n: Nation): Faction => (x.nat!.nations.blue === n ? "blue" : "red");
+  const mixed = d.filter((x) => x.nat!.nations.blue !== x.nat!.nations.red);
+  const mirrors = d.filter((x) => x.nat!.nations.blue === x.nat!.nations.red);
+  const len = d.map((x) => x.min * 60);
+  console.log(`matches ${d.length} (${mixed.length} Rép-Emp, ${mirrors.length} mirrors); draws ${d.filter((x) => x.winner === "draw").length}; ` +
+    `length median ${mmss(q(len, 0.5))} (p10 ${mmss(q(len, 0.1))}, p90 ${mmss(q(len, 0.9))})`);
+  const repShare = (xs: Match[]) => {
+    const dec = xs.filter((x) => x.winner !== "draw");
+    return wilson(dec.filter((x) => winnerNation(x) === "republique").length, dec.length) + (xs.length > dec.length ? ` +${xs.length - dec.length} draws` : "");
+  };
+  if (mixed.length) {
+    console.log(`\nRépublique's share of decided Rép-Emp games: ${repShare(mixed)}`);
+    const mixedLen = mixed.map((x) => x.min * 60);
+    console.log(`  length median ${mmss(q(mixedLen, 0.5))} (p10 ${mmss(q(mixedLen, 0.1))}, p90 ${mmss(q(mixedLen, 0.9))})`);
+    console.log("  by map:");
+    for (const m of [...new Set(mixed.map((x) => x.map))]) {
+      const xs = mixed.filter((x) => x.map === m);
+      console.log(`    ${m.padEnd(16)} ${repShare(xs)}, median ${mmss(q(xs.map((x) => x.min * 60), 0.5))}`);
+    }
+    console.log("  by the République's seat:");
+    for (const f of SIDES) console.log(`    ${f.padEnd(5)} ${repShare(mixed.filter((x) => seatOf(x, "republique") === f))}`);
+    for (const n of ["republique", "empire"] as Nation[]) {
+      console.log(`  ${SHORT[n]} personalities (vs the other's whole pool), own win share:`);
+      const pers = [...new Set(mixed.map((x) => x[seatOf(x, n)]))];
+      for (const p of pers) {
+        const xs = mixed.filter((x) => x[seatOf(x, n)] === p && x.winner !== "draw");
+        console.log(`    ${p.padEnd(10)} ${wilson(xs.filter((x) => winnerNation(x) === n).length, xs.length)}`);
+      }
+    }
+    const pairs = [...new Set(mixed.map((x) => `${x[seatOf(x, "republique")]}/${x[seatOf(x, "empire")]}`))];
+    if (pairs.length <= 40) {
+      console.log("  pairings (Rép/Emp): Rép wins–Emp wins–draws");
+      console.log("    " + pairs.map((p) => {
+        const xs = mixed.filter((x) => `${x[seatOf(x, "republique")]}/${x[seatOf(x, "empire")]}` === p);
+        return `${p} ${xs.filter((x) => winnerNation(x) === "republique").length}–${xs.filter((x) => winnerNation(x) === "empire").length}–${xs.filter((x) => x.winner === "draw").length}`;
+      }).join(", "));
+    }
+  }
+  if (mirrors.length) {
+    for (const n of ["republique", "empire"] as Nation[]) {
+      const xs = mirrors.filter((x) => x.nat!.nations.blue === n);
+      if (!xs.length) continue;
+      const dec = xs.filter((x) => x.winner !== "draw");
+      console.log(`\n${SHORT[n]}-${SHORT[n]} mirror: red's share ${wilson(dec.filter((x) => x.winner === "red").length, dec.length)}, draws ${xs.length - dec.length}, median ${mmss(q(xs.map((x) => x.min * 60), 0.5))}`);
+      for (const m of [...new Set(xs.map((x) => x.map))]) {
+        const ys = xs.filter((x) => x.map === m && x.winner !== "draw");
+        console.log(`    ${m.padEnd(16)} red ${wilson(ys.filter((x) => x.winner === "red").length, ys.length)}`);
+      }
+    }
+  }
+  // curves and super-units, by nation (every side of every match)
+  const sides = d.flatMap((x) => SIDES.map((f) => ({ x, f, n: nationOfSide(x, f), won: x.winner === f })));
+  const at = (series: number[], m: number) => series[m - 1];
+  for (const n of ["republique", "empire"] as Nation[]) {
+    const ss = sides.filter((s) => s.n === n);
+    if (!ss.length) continue;
+    console.log(`\n== ${SHORT[n]} (${ss.length} sides)`);
+    const curve = (name: string, get: (s: (typeof ss)[number]) => number[]) =>
+      console.log(`  ${name.padEnd(9)} ` + [2, 4, 6, 8, 10, 12, 15].map((m) => {
+        const v = ss.map((s) => at(get(s), m)).filter((v): v is number => v !== undefined);
+        return `${m}:00 ${v.length ? Math.round(q(v, 0.5)) : "-"}`;
+      }).join("  "));
+    curve("army", (s) => s.x.nat!.army[s.f]);
+    curve("harvest", (s) => s.x.nat!.harvest[s.f]);
+    curve("workers", (s) => s.x.nat!.workers[s.f]);
+    curve("base", (s) => s.x.nat!.base[s.f]);
+    curve("bank", (s) => s.x.nat!.bank[s.f]);
+    const sup = ss.filter((s) => s.x.nat!.superAt[s.f] !== null);
+    const gan = ss.filter((s) => s.x.nat!.gantryAt[s.f] !== null);
+    console.log(`  super-unit fielded in ${Math.round((100 * sup.length) / ss.length)}% of sides (first at median ${mmss(q(sup.map((s) => s.x.nat!.superAt[s.f]!), 0.5))}), ` +
+      `Gantry in ${Math.round((100 * gan.length) / ss.length)}% (median ${mmss(q(gan.map((s) => s.x.nat!.gantryAt[s.f]!), 0.5))}); ` +
+      `side with one won ${Math.round((100 * sup.filter((s) => s.won).length) / Math.max(1, sup.length))}%`);
+    const long = ss.filter((s) => s.x.min >= 12);
+    console.log(`  in matches of 12+ min (${long.length}): super-unit in ${Math.round((100 * long.filter((s) => s.x.nat!.superAt[s.f] !== null).length) / Math.max(1, long.length))}%`);
+    const fw = ss.map((s) => s.x.nat!.firstWave[s.f]).filter((v): v is number => v !== null);
+    console.log(`  first wave median ${mmss(q(fw, 0.5))} (none in ${ss.length - fw.length}), waves per match ${mean(ss.map((s) => s.x.nat!.waves[s.f])).toFixed(1)}; ` +
+      `radium share of digging ${Math.round(100 * mean(ss.map((s) => s.x.nat!.radiumShare[s.f])))}%; dark building-seconds ${Math.round(mean(ss.map((s) => s.x.nat!.darkSecs[s.f])))}`);
+    const fb = (k: string) => {
+      const v = ss.map((s) => (s.x.nat!.firstBuilt[s.f] as Record<string, number>)[k]).filter((v): v is number => v !== undefined);
+      return `${k} ${mmss(q(v, 0.5))} (${Math.round((100 * v.length) / ss.length)}%)`;
+    };
+    console.log("  first built (median): " + ["fab-plant", "airpad", "assembly-bay", "tech-lab", "depot", "radar", "gantry"].map(fb).join(", "));
+    const pw: Record<string, number> = {};
+    for (const s of ss) for (const [k, v] of Object.entries(s.x.nat!.powers[s.f])) pw[k] = (pw[k] ?? 0) + v;
+    console.log("  calldowns per match: " + Object.entries(pw).map(([k, v]) => `${k} ${(v / ss.length).toFixed(1)}`).join(", "));
+    // per kind
+    const tot: Partial<Record<UnitKind, KindTally>> = {};
+    for (const s of ss)
+      for (const [k, t] of Object.entries(s.x.nat!.kinds[s.f]) as [UnitKind, KindTally][]) {
+        const a = (tot[k] ??= { built: 0, spent: 0, lost: 0, killedUnits: 0, killedBuildings: 0 });
+        a.built += t.built; a.spent += t.spent; a.lost += t.lost; a.killedUnits += t.killedUnits; a.killedBuildings += t.killedBuildings;
+      }
+    console.log("  kind            built/match  spent/match  lost%   kills(units)/spent  kills(bldg)/spent  units killed/value lost");
+    for (const [k, t] of (Object.entries(tot) as [UnitKind, KindTally][]).sort((a, b) => b[1].spent - a[1].spent)) {
+      const lostValue = t.lost * balance.UNITS[k].cost;
+      console.log(`  ${k.padEnd(16)} ${(t.built / ss.length).toFixed(2).padStart(9)}  ${Math.round(t.spent / ss.length).toString().padStart(11)}  ${(t.built ? Math.round((100 * t.lost) / t.built) : 0).toString().padStart(5)}%  ` +
+        `${(t.spent ? t.killedUnits / t.spent : 0).toFixed(2).padStart(18)}  ${(t.spent ? t.killedBuildings / t.spent : 0).toFixed(2).padStart(17)}  ${(lostValue ? t.killedUnits / lostValue : 0).toFixed(2).padStart(22)}`);
+    }
+  }
+  // the army lead at 6:00 and who won
+  const lead6 = mixed.filter((x) => x.nat!.army.blue[5] !== undefined && x.winner !== "draw");
+  if (lead6.length) {
+    const ahead = lead6.filter((x) => (x.nat!.army.blue[5]! > x.nat!.army.red[5]! ? "blue" : "red") === x.winner).length;
+    const repAhead = lead6.filter((x) => x.nat!.army[seatOf(x, "republique")][5]! > x.nat!.army[seatOf(x, "empire")][5]!).length;
+    console.log(`\narmy ahead at 6:00 went on to win ${Math.round((100 * ahead) / lead6.length)}% (n=${lead6.length}); the République was ahead at 6:00 in ${Math.round((100 * repAhead) / lead6.length)}%`);
+  }
+  const perf = d.filter((x) => x.perf).map((x) => x.perf!.msPerMin);
+  if (perf.length) console.log(`cost: ${Math.round(q(perf, 0.5))} ms per sim-minute (median)`);
+}
+
+if (process.argv[2] === "run") void run();
+else if (process.argv[2] === "summary") (process.argv.includes("--nations") ? nationsSummary : summary)();
+else console.log("usage: pacing.ts run <out.jsonl> [--seeds N] [--shard i/n] [--maps a,b] [--tune JSON] [--nations rep-emp|rep-rep|emp-emp] [--pairs a/b,…] [--jobs N] | summary [--nations] <files...>");

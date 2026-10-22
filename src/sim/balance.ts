@@ -247,14 +247,16 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   "de-dion": {
     name: "Autocanon De Dion", role: "Antiaérien rapide à tir de barrage. Impuissant au sol.",
     nation: "republique",
-    cost: 175, hp: 230, speed: 2.4, sight: 7, domain: "ground", armor: "light",
+    // (230 HP lost to cost-equal Vulcains, −0.26 in tools/balance.ts duels --nations: anti-air beaten by the bomber it answers)
+    cost: 175, hp: 260, speed: 2.4, sight: 7, domain: "ground", armor: "light",
     targets: "air", dps: 29, range: 5.5, shotInterval: 0.25, dmgType: "flak", fx: "flak",
     buildTime: 7, builtAt: "fab-plant", turret: true, radius: 0.38
   },
   branly: {
     name: "Canon Branly", role: "Canon électromagnétique : obus rapides, longue portée. Fragile de près.",
     nation: "republique",
-    cost: 260, hp: 170, speed: 1.8, sight: 6, domain: "ground", armor: "light",
+    // (170 HP: 0.44 units killed per value lost in AI-vs-AI panels, the République's worst gun)
+    cost: 260, hp: 200, speed: 1.8, sight: 6, domain: "ground", armor: "light",
     targets: "ground", dps: 17, range: 8.5, minRange: 2.5, shotInterval: 2.5,
     splash: 0.8, projectileSpeed: 9, dmgType: "explosive", fx: "arc-shell",
     buildTime: 9, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.4
@@ -852,7 +854,9 @@ export const NATIONS: Record<Nation, NationStats> = {
   republique: {
     name: "la République", short: "République",
     // economy
-    radiumValue: 2.4, // Classique ECONOMY.crystalValue = 1.6 (×1.5)
+    // Classique ECONOMY.crystalValue = 1.6 (×1.25; at ×1.5 = 2.4 the radium maps — Terres fluviales,
+    // Engelure — went 70–80% to the République in tools/pacing.ts --nations panels, WP4)
+    radiumValue: 2.0,
     coalRate: 1.0,
     // Préfabriqué
     buildingCost: 0.85, buildingTime: 0.75, buildingHp: 0.8,
@@ -870,7 +874,9 @@ export const NATIONS: Record<Nation, NationStats> = {
     buildingCost: 1.1, buildingTime: 1.15, buildingHp: 1.25,
     unitTime: 1.3,
     parallel: 2,
-    trench: { still: 3, mult: 0.7, redoubtRadius: 2.5 }
+    // (×0.7 made dug-in Fusiliers unshiftable on the Archipelago's island relays: 16–23% for the République
+    // there in tools/pacing.ts --nations panels; ×1, i.e. no trench, 46%)
+    trench: { still: 3, mult: 0.9, redoubtRadius: 2.5 }
   }
 };
 
