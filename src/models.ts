@@ -935,7 +935,9 @@ const ARMY_LINE: Record<Army, string> = {
   republique: "Ingénieurs, aviateurs et savants : rapide, aérien, nombreux, électrique, fragile. Ses bâtiments doivent être alimentés par le GQG ou une Tour TSF.",
   empire: "Charbon, vapeur et acier : lent, blindé, l'artillerie la plus longue, des positions qu'on ne déloge pas. Chaque usine fabrique deux unités à la fois."
 };
-const icon = (k: string): string => `./assets/icons/${portraitKind(k)}.webp`;
+/** A kind's portrait in its army's paint: the Empire wears the red set (as the menu's picker), and its own HQ the Citadelle. */
+const icon = (k: string, n: Army = "classique"): string =>
+  `./assets/icons/${n === "empire" && k !== "supply-crate" && k !== "uplink" ? "red/" : ""}${portraitKind(k, n)}.webp`;
 const crest = (n: Army): string => (n === "classique" ? "" : `<img class="crest" src="./assets/ui/crest-${n}.webp" alt="" />`);
 
 /** The page's two tabs: units and buildings, each its groups and rows of card and viewer, per army. */
@@ -966,7 +968,7 @@ for (const [tab, t] of Object.entries(TABS) as [Tab, (typeof TABS)[Tab]][]) {
     const kinds = groups.flatMap((g) => g.kinds as string[]);
     return `<section class="army ${n}" data-army="${n}">
       <div class="armyhead">${crest(n)}<div><h2>${ARMY_TITLE[n]}</h2><p>${ARMY_LINE[n]}</p></div></div>
-      <nav>${kinds.map((k) => `<a href="#${rowId(k, n)}"><img src="${k === "eiffel" ? icon("radar") : icon(k)}" alt="" />${t.name(k, n)}</a>`).join("")}</nav>
+      <nav>${kinds.map((k) => `<a href="#${rowId(k, n)}"><img src="${k === "eiffel" ? icon("radar", n) : icon(k, n)}" alt="" />${t.name(k, n)}</a>`).join("")}</nav>
       ${groups
         .map(
           (g) =>

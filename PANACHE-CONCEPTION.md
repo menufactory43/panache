@@ -1330,7 +1330,7 @@ blason dans la pastille du HUD, écran de fin avec blasons et ligne de nation ; 
 (contres contre l'autre nation, règle de nation) et `unit-info.ts` complet ; « Citadelle attaquée » ; conseiller
 (Estafette = éclaireur) ; rayon du Réseau électrique au placement et refus « Hors du réseau : près du GQG ou d'une
 Tour TSF » ; noms de nation du placement (« Placer Garage électrique Jeantaud ») ; `models.html` filtre Nation.
-Restes : portraits et art des cartes d'ouverture aux couleurs de nation (WP5g), page des modèles hors style Belle.
+Restes : page des modèles hors style Belle (portraits aux couleurs de nation : faits, §3.11 et §3.14).
 
 ### 3.13 WP8 — Campagne — fait
 
@@ -1352,3 +1352,52 @@ Batterie de 47 sur l'île du centre (sinon gagné en 2 min aux Éole). M4 : garn
 Réglages provisoires (Empire bien plus fort avant WP4) à revoir après l'équilibrage : M3 (assault 3600, revenu
 70 %), M6 (gagné par une ruée à 1:30 ; trop dur dès qu'on défend la base), M9 (Difficile tenu 2/3), M11 (2/3),
 M12 (combat ~2–3 min), Obus Méliès interdit à l'ennemi en M3 et M7.
+
+### 3.14 Intégration finale — fait
+
+Sur `feat/camps` : fusions de `feat/camps-bal`, `-art`, `-ui`, `-camp` dans cet ordre, `tsc` et `vitest` verts après
+chacune. Conflits : `awareness.ts` (libellé du GQG par nation : version de l'interface, qui contient celle de l'art),
+`arena/record.ts` (deux champs `nations` : un seul, partiel, celui que lit la relecture), `art/catalog.py` (blasons et
+plans de chapitre gardés), ce document (notes de chaque lot en §3.10–3.13 ; restes de §3.9 repris de l'art).
+
+**Corrections croisées**
+- Voix : les 6 titres de mission nouveaux, « Mission réussie / échouée », « Ferrand l'a fini ! », « Le Colosse se met
+  en marche ! » (10 répliques, `voice-lines.ts` lit à nouveau `OPS` entier ; 618 → 628 lignes au manifeste, aucune manquante).
+- Textes : « L'arc électrique aime l'acier épais » (M5), « autos blindées » (épreuve du pont), fusées pour le Blériot et
+  la Batterie Ruggieri ; le sélecteur lit le radium (×1,25 depuis WP4, il disait ×1,5) et le charbon dans `NATIONS`.
+- Portraits : `models.html` en Empire montre le jeu rouge (Citadelle comprise), comme le sélecteur, le HUD et les fins.
+- Atelier roulant (et Pasteur) d'une nation : ne répare plus une unité ou un bâtiment tombé à 0 PV dans le tick (il le
+  ressuscitait avant `cleanupDeaths`) ; Classique inchangé (`classic-hash` vert), test `nations.test.ts`.
+- IA des nations en escarmouche (`ai/goliath.ts` `finishingOff`, pas en campagne) : le QG ennemi tombé, toute unité libre
+  qui peut la toucher chasse sa dernière super-unité, de partout, et les aérodromes gardent 8 chasseurs contre un Zénith.
+  Archipel 44 → 42 nulles sur 120 : seules 3 nulles sur 44 étaient un QG tombé ; les autres sont des impasses d'îles,
+  QG debout et mines vides à 25:00. Essayé et écarté : le Titan chargé à 3 (`UNITS.titan.capacity`) — Rép 11 % sur
+  l'Archipel, pas moins de nulles.
+
+**Campagne après WP4** (`npx vite-node tools/ops.ts campaign 3`, idle sur 2 graines) : M7 était à 1/3 (Boom impérial au
+GQG vers 3:30), M9 à 0/3 (le général scripté débordé), M11 à 1/3. Réglages : M7 revenu ennemi 80 % et assaut à 2 400
+(6/6 sur 6 graines), M9 revenu ennemi 80 % (6/6), M11 vagues toutes les 43 s au lieu de 40 (11/12 ; ★★★ « en 7:30 »).
+| Mission | Pilote | Gagné | | Mission | Pilote | Gagné |
+|---|---|---|---|---|---|---|
+| M1 bridgehead | holder | 3/3 | | M7 col-des-aigles | escort | 3/3 |
+| M2 harvest-moon | miner | 3/3 | | M8 sky-pirates | raider | 3/3 |
+| M3 granit | raider | 3/3 | | M9 glass-jaw | general | 3/3 |
+| M4 carbonie | gunner | 3/3 | | M10 decapitation | strike | 3/3 |
+| M5 iron-tide | holder | 3/3 | | M11 last-light | defender | 2/3 |
+| M6 frozen-assets | rusher | 3/3 | | M12 dame-de-fer | tower | 3/3 |
+Pilote immobile : perdu partout (0/2). Épreuves Classique identiques à `feat/camps-camp`.
+
+**Équilibre final** (`pacing.ts run --nations rep-emp --seeds 2 --jobs 10`, 720 parties, 386 s) : République **52 %
+[48–55]** (n = 643 décidées), 77 nulles (10,7 %, dont 52 sur l'Archipel) ; durée médiane 11:11. Par carte : Terrain
+d'essai 37 %, Terres fluviales 75 %, Mer de dunes 43 %, Engelure 60 %, Cendres 59 %, Archipel 28 % (+52 nulles). Siège
+de la Rép bleu 53 % / rouge 50 %. Super-unité alignée : Zénith 48 % des camps (7:19), Gargantua 43 % (7:56). Armée à
+6:00 (médianes) 2 800 / 2 380 ; récolte à 4:00 11 600 / 9 700.
+
+Vérifications : `tsc`, `vitest` (92 fichiers, 1 729 tests), `npm run build`, `smoke.mjs` 390×844, 844×390,
+1280×800 rouge et `?style=original` (aperçu) : OK. En jeu (Chrome sans tête) : sélecteur à blasons, escarmouche
+République contre Empire jusqu'à la fin (2:25), cartons et début de la mission 1, feuille du duel en ligne, `models.html`
+par nation ; aucune erreur de console.
+
+Restes : Terres fluviales (75 %) et Archipel (28 %, nulles) hors cible ; impasses d'îles à traiter par l'IA de
+transport (Titan, levage à deux) avec un nouveau panel ; M11 à 2/3 sur les graines 1–3 (11/12 sur 12).
+
