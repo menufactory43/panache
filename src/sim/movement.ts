@@ -2,6 +2,7 @@ import { BUILDINGS, TERRAIN, TICK_RATE, UNITS } from "./balance";
 import { canWalk, goliathReachAt, isLifted } from "./goliath";
 import { crushes, isInfantry, tickCrush } from "./infantry";
 import { speedMult } from "./nations";
+import { nextLeg, sweepsPast } from "./route";
 import { Terrain, type Faction, type Unit, type World } from "./types";
 import { domainOf, inBounds, moveClassOf, passable, regionAt, regionLabels, terrainMult, terrainSpeed, type LandClass, type MoveClass } from "./world";
 import { atan2, cos, hypot, sin } from "./fmath";
@@ -368,7 +369,14 @@ export function tickMovement(w: World, pausedIds: Set<number>, spots: Map<number
     if (pausedIds.has(u.id)) continue;
     if (!canWalk(u)) continue; // a Goliath digging in, anchored, packing up or on a lift (its order waits)
     if (o.type === "move" || o.type === "attackMove") {
-      if (moveUnitToward(w, u, o.x, o.y)) u.order = { type: "idle" };
+      // a route drawn on the map: sweep through its corners, on to the next point (route.ts)
+      if (sweepsPast(u)) nextLeg(u);
+      const g = u.order as typeof o;
+      if (moveUnitToward(w, u, g.x, g.y)) {
+        // (no path there at all: its goal stays set; a route or patrol through it would search again every tick)
+        if (u.path === null && u.pathGoal !== null && u.route) delete u.route;
+        if (!nextLeg(u)) u.order = { type: "idle" };
+      }
     } else if (o.type === "attack") {
       const p = approachPoint(w, u, o.targetId);
       if (!p) {

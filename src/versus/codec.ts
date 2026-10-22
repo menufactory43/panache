@@ -16,7 +16,8 @@
  *
  *   type   5  index into COMMAND_TYPES
  *   then by type:
- *     move, attackMove, harvest:     units, x, y
+ *     move, attackMove, harvest,
+ *     waypoint, patrol:              units, x, y
  *     attack:                        units, id(targetId)
  *     stop, anchor, packUp:          units
  *     produce, cancelProduce:        id(buildingId), unitKind 5
@@ -50,7 +51,7 @@
  */
 import type { BuildingKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
 
-export const CODEC_VERSION = 2;
+export const CODEC_VERSION = 3;
 
 /** A split piece is at most this many bits, so any command fits in an empty turn. */
 export const C_MAX = 96;
@@ -62,7 +63,9 @@ const UE_MAX = 2 ** (UE_ZEROS_MAX + 1) - 2;
 
 export const COMMAND_TYPES = [
   "move", "attackMove", "attack", "harvest", "stop", "produce", "cancelProduce", "startBuilding", "cancelBuilding",
-  "placeBuilding", "sell", "rally", "callWave", "calldown", "board", "unload", "anchor", "packUp", "lift", "resign"
+  "placeBuilding", "sell", "rally", "callWave", "calldown", "board", "unload", "anchor", "packUp", "lift", "resign",
+  // routes and patrols (sim/route.ts, CODEC_VERSION 3): after the rest, whose codes don't move
+  "waypoint", "patrol"
 ] as const satisfies readonly Command["type"][];
 
 export const UNIT_KINDS = [
@@ -90,7 +93,7 @@ const POWER_BITS = 3;
  * its table: one added to the sim and not here fails tsc on this line (add it,
  * and bump CODEC_VERSION). The nations' kinds came with LOBBY_PROTO 2
  * (PANACHE-CONCEPTION.md §1.10, WP7), after Classique's: CODEC_VERSION 2, the
- * power field 3 bits.
+ * power field 3 bits. Routes' waypoint and patrol: CODEC_VERSION 3.
  */
 export const TABLES_COMPLETE: [
   | Exclude<Command["type"], (typeof COMMAND_TYPES)[number]>
@@ -255,7 +258,9 @@ function canonical(c: Command, ctx: CanonContext): Command | null {
   switch (c.type) {
     case "move":
     case "attackMove":
-    case "harvest": {
+    case "harvest":
+    case "waypoint":
+    case "patrol": {
       const unitIds = unitList(c.unitIds);
       const x = point(c.x, W);
       const y = point(c.y, H);
@@ -326,7 +331,7 @@ function canonical(c: Command, ctx: CanonContext): Command | null {
 }
 
 /** Unit-list commands the sim applies unit by unit, so splitting one changes nothing. */
-const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload"]);
+const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload", "waypoint", "patrol"]);
 
 /**
  * Canonical commands for one issued command: none (dropped), one, or — for a
@@ -401,6 +406,8 @@ export function encodeCommand(wr: BitWriter, c: Command, map: MapSize, prev: rea
     case "move":
     case "attackMove":
     case "harvest":
+    case "waypoint":
+    case "patrol":
       writeUnits(wr, c.unitIds, prev);
       writePoint(wr, c.x, c.y, map);
       return c.unitIds;
@@ -537,7 +544,9 @@ export function decodeCommand(
   switch (type) {
     case "move":
     case "attackMove":
-    case "harvest": {
+    case "harvest":
+    case "waypoint":
+    case "patrol": {
       const unitIds = readUnits(rd, prev);
       const x = readCoord(rd, map.width);
       const y = readCoord(rd, map.height);

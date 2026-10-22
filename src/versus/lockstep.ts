@@ -179,7 +179,7 @@
  *  - a resign goes to the front of the queue: it lands D ticks later, as the
  *    spec says, whatever is waiting;
  *  - a newer move or attackMove replaces queued (not yet sealed) move,
- *    attackMove, attack, harvest and stop orders, a newer attack replaces
+ *    attackMove, attack, harvest, stop, waypoint and patrol orders, a newer attack replaces
  *    queued attacks, and a newer stop queued stops, when it names every unit
  *    of the queued one and nothing queued in between names any of them. The
  *    sim gives each named unit the newer order outright, so the queued one
@@ -440,14 +440,15 @@ interface Sealed {
 const other = (f: Faction): Faction => (f === "blue" ? "red" : "blue");
 
 type CommandType = Command["type"];
-const MOVE_REPLACES: ReadonlySet<CommandType> = new Set(["move", "attackMove", "attack", "harvest", "stop"]);
+const MOVE_REPLACES: ReadonlySet<CommandType> = new Set(["move", "attackMove", "attack", "harvest", "stop", "waypoint", "patrol"]);
 /**
  * The queued orders a newer one of each type replaces outright, unit by unit
  * (sim.ts applyCommand). A move or attackMove resets everything those set:
- * the order, the path, the auto-target, a lift's destination, and it packs an
- * anchored Goliath up. An attack sets less than a move (no auto-target reset,
- * nothing for a unit on a lift), so it replaces only attacks, and a stop (no
- * pack-up) only stops. A harvest replaces nothing: the sim skips it off a
+ * the order, the path, the auto-target, a lift's destination, a route's
+ * waypoints or a patrol (sim/route.ts), and it packs an anchored Goliath up.
+ * A waypoint or patrol replaces nothing: it adds to the order before it. An
+ * attack sets less than a move (no auto-target reset, nothing for a unit on a
+ * lift), so it replaces only attacks, and a stop (no pack-up) only stops. A harvest replaces nothing: the sim skips it off a
  * resource field or for a unit that isn't a harvester.
  */
 const REPLACES: Partial<Record<CommandType, ReadonlySet<CommandType>>> = {

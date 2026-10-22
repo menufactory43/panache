@@ -268,6 +268,21 @@ export interface Unit {
   free?: boolean;
   /** Goliath only: its modes, weapon systems, training queue and lift (goliath.ts). Absent on every other unit. */
   goliath?: GoliathState;
+  /**
+   * Waypoints queued behind the unit's move or attack-move (route.ts): a
+   * route drawn on the map, or a patrol. Absent when there are none.
+   */
+  route?: UnitRoute;
+}
+
+/** Legs still to go after the current move or attack-move (route.ts). */
+export interface UnitRoute {
+  /** The next points, in order. */
+  pts: { x: number; y: number }[];
+  /** Plain moves (the route began with a move: ⚑ Repli), else attack-moves. */
+  move: boolean;
+  /** A patrol: each point reached goes back on the end, so the unit goes round for ever. */
+  loop: boolean;
 }
 
 export interface QueueItem {
@@ -888,4 +903,16 @@ export type Command =
    */
   | { type: "lift"; faction: Faction; unitIds: number[]; goliathId: number }
   /** `faction` gives up: the other side wins on this tick (a sound duel's Resign, SOUND-DUEL.md). */
-  | { type: "resign"; faction: Faction };
+  | { type: "resign"; faction: Faction }
+  /**
+   * Queue (x, y) behind each unit's move or attack-move, of the same kind; a
+   * unit on neither sets off for it now (route.ts). A route drawn on the map
+   * is a move or attackMove to its first point, then one of these per point.
+   */
+  | { type: "waypoint"; faction: Faction; unitIds: number[]; x: number; y: number }
+  /**
+   * Patrol: queue (x, y) like a waypoint, then go round the route for ever,
+   * attack-moving. A unit with no move under way patrols between where it
+   * stands and (x, y) (route.ts).
+   */
+  | { type: "patrol"; faction: Faction; unitIds: number[]; x: number; y: number };

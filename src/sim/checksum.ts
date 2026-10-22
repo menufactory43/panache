@@ -62,7 +62,29 @@ export function worldHash(w: World): string {
   for (const l of w.objectives.uplinks) h.num(l.progress);
   h.str(w.winner ?? "-");
   if (w.nation) nationHash(h, w);
+  routeHash(h, w);
   return h.hex();
+}
+
+/**
+ * Routes and patrols (route.ts), folded in only for the units that have one:
+ * records from before routes never do, so their hashes stay what they were.
+ */
+function routeHash(h: Fnv, w: World): void {
+  let any = false;
+  for (const u of w.units.values()) if (u.route) any = true;
+  if (!any) return;
+  for (const id of [...w.units.keys()].sort((a, b) => a - b)) {
+    const r = w.units.get(id)!.route;
+    if (!r) continue;
+    h.num(id);
+    h.num(r.pts.length);
+    h.num((r.loop ? 2 : 0) + (r.move ? 1 : 0));
+    for (const p of r.pts) {
+      h.num(p.x);
+      h.num(p.y);
+    }
+  }
 }
 
 /**

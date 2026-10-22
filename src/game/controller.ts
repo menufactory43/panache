@@ -286,6 +286,13 @@ export function ordersAhead(w: World, orders: readonly Command[] | null): Orders
       case "attack":
         for (const u of named(c, lifting)) edit(u).order = { type: "attack", targetId: c.targetId };
         break;
+      case "waypoint":
+      case "patrol":
+        // (route.ts: one on a move already under way queues behind it; one that isn't sets off now)
+        for (const u of named(c, lifting))
+          if (u.order.type !== "move" && u.order.type !== "attackMove")
+            edit(u).order = { type: behaves(u.kind, "harvester") ? "move" : "attackMove", x: c.x, y: c.y };
+        break;
       case "harvest": {
         const tx = Math.floor(c.x);
         const ty = Math.floor(c.y);
@@ -384,6 +391,8 @@ function sameOrder(a: Command, b: Command): boolean {
     case "attackMove":
     case "harvest":
     case "unload":
+    case "waypoint":
+    case "patrol":
       return samePoint(a, b as typeof a);
     case "attack":
       return b.type === a.type && a.targetId === b.targetId;

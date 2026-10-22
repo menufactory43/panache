@@ -18,6 +18,7 @@ import { tickOps } from "./ops";
 import { tickObjectives } from "./objectives";
 import { applyCalldown, chargePowers, tickPowers } from "./powers";
 import { tickSalvage } from "./salvage";
+import { applyRouteCommand, dropRoutes } from "./route";
 import { applyTransportCommand, tickTransport } from "./transport";
 import type { Command, World } from "./types";
 import { isResource, tileIndex } from "./world";
@@ -59,6 +60,7 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
   // a Goliath whose lift this command called off takes the order it ignored earlier this tick, as it would have
   // had that order named its Condors too; then this command applies as usual (lift.ts HeldLiftOrders)
   if (held) for (const [id, order] of held.freed.splice(0)) applyCommand(w, { ...order, unitIds: [id] });
+  dropRoutes(w, c); // a new order replaces a route drawn or a patrol (route.ts)
   switch (c.type) {
     case "move":
     case "attackMove":
@@ -117,6 +119,10 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
       break;
     case "lift":
       applyLiftCommand(w, c);
+      break;
+    case "waypoint":
+    case "patrol":
+      applyRouteCommand(w, c, lifting);
       break;
     case "callWave":
       callWaveEarly(w, c.faction);

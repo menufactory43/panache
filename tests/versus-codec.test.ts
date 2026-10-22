@@ -100,6 +100,8 @@ function handWritten(): Sample[] {
       add({ type: "move", faction: f, unitIds: [5, 3, 3, 9], x, y }, ctx);
       add({ type: "attackMove", faction: f, unitIds: [TOP, 0], x, y }, ctx);
       add({ type: "harvest", faction: f, unitIds: [17], x, y }, ctx);
+      add({ type: "waypoint", faction: f, unitIds: [8, 2], x, y }, ctx);
+      add({ type: "patrol", faction: f, unitIds: [TOP], x, y }, ctx);
       add({ type: "rally", faction: f, buildingId: TOP, x, y }, ctx);
       add({ type: "unload", faction: f, unitIds: [40, 41], x, y }, ctx);
       for (const power of POWER_KINDS) add({ type: "calldown", faction: f, power, x, y }, ctx);
@@ -125,6 +127,7 @@ function handWritten(): Sample[] {
     // long lists, split into pieces
     const many = Array.from({ length: 30 }, (_, i) => 400 + i * 37);
     add({ type: "attackMove", faction: f, unitIds: [...many].reverse(), x: 20.1234, y: 9.87 }, ctx);
+    add({ type: "waypoint", faction: f, unitIds: many, x: 3.3, y: 4.4 }, ctx);
     add({ type: "board", faction: f, unitIds: many, carrierId: 1000 }, ctx);
     add({ type: "unload", faction: f, unitIds: many }, ctx);
     add({ type: "stop", faction: f, unitIds: Array.from({ length: 200 }, (_, i) => i * 1000 + 7) }, ctx);
@@ -434,9 +437,12 @@ describe("the command codec", () => {
 
   it("has complete, explicit tables", () => {
     expect(TABLES_COMPLETE).toBe(true);
-    expect(CODEC_VERSION).toBe(2);
+    expect(CODEC_VERSION).toBe(3);
     expect(new Set(COMMAND_TYPES).size).toBe(COMMAND_TYPES.length);
-    expect(COMMAND_TYPES.length).toBe(20);
+    expect(COMMAND_TYPES.length).toBe(22);
+    // (routes came with CODEC_VERSION 3, after the rest: the older codes don't move)
+    expect(COMMAND_TYPES.indexOf("resign")).toBe(19);
+    expect(COMMAND_TYPES.slice(20)).toEqual(["waypoint", "patrol"]);
     // every kind, Classique's first in their old order (LOBBY_PROTO 2 brought the nations', PANACHE-CONCEPTION.md §1.10)
     const classicUnits = Object.keys(UNITS).filter((k) => !UNITS[k as keyof typeof UNITS].nation);
     const classicBuildings = Object.keys(BUILDINGS).filter((k) => !BUILDINGS[k as keyof typeof BUILDINGS].nation);
