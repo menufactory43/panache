@@ -33,6 +33,20 @@ export interface GestureCallbacks {
   onPinch(scale: number, cx: number, cy: number): void;
   onRightClick(x: number, y: number): void;
   onWheel(deltaY: number, x: number, y: number): void;
+  /**
+   * Does a one-finger drag that starts at (x, y) draw a route (on a selected
+   * unit, say)? Asked for touch and pen only, as the drag leaves the slop
+   * radius; while it says yes, holding still there never turns into a box.
+   * Without it, drags never draw routes.
+   */
+  routeFrom?(x: number, y: number): boolean;
+  /** Should the next one-finger drag be a box at once (the ▢ Cadre toggle), touch or not? */
+  boxNow?(): boolean;
+  /** A route drawn with one finger: starts at the down point, then follows the finger. */
+  onRouteStart?(x: number, y: number): void;
+  onRouteMove?(x: number, y: number): void;
+  /** The route ended at (x, y); `released` as for onBoxEnd (false: cut short, no order). */
+  onRouteEnd?(x: number, y: number, released: boolean): void;
 }
 
 export const TAP_SLOP_PX = 8;
@@ -88,7 +102,7 @@ export function isHoldRelease(x0: number, y0: number, x1: number, y1: number): b
   return Math.hypot(x1 - x0, y1 - y0) <= TAP_SLOP_PX;
 }
 
-type Mode = "idle" | "pending" | "pan" | "box" | "multi" | "mousepan";
+type Mode = "idle" | "pending" | "pan" | "box" | "route" | "multi" | "mousepan";
 
 interface Tracked {
   id: number;
@@ -152,7 +166,16 @@ export class GestureRecognizer {
       case "pending": {
         const moved = Math.hypot(p.x - this.downX, p.y - this.downY) > TAP_SLOP_PX;
         if (!moved) break;
-        if (now - this.downTime >= HOLD_DELAY_MS || this.downType === "mouse") {
+        if (this.cb.boxNow?.()) {
+          this.mode = "box";
+          this.cb.onBoxStart(this.downX, this.downY);
+          this.cb.onBoxMove(p.x, p.y);
+        } else if (this.routes()) {
+          // a drag from a selected unit draws its route (GameScene says where one starts)
+          this.mode = "route";
+          this.cb.onRouteStart?.(this.downX, this.downY);
+          this.cb.onRouteMove?.(p.x, p.y);
+        } else if (now - this.downTime >= HOLD_DELAY_MS || this.downType === "mouse") {
           // mouse drags box-select immediately; touch only after the hold
           this.mode = "box";
           this.cb.onBoxStart(this.downX, this.downY);
@@ -173,6 +196,11 @@ export class GestureRecognizer {
         break;
       case "box":
         this.cb.onBoxMove(p.x, p.y);
+        this.lastX = p.x;
+        this.lastY = p.y;
+        break;
+      case "route":
+        this.cb.onRouteMove?.(p.x, p.y);
         this.lastX = p.x;
         this.lastY = p.y;
         break;
@@ -226,6 +254,10 @@ export class GestureRecognizer {
         this.cb.onBoxEnd(p.x, p.y, true);
         this.mode = "idle";
         break;
+      case "route":
+        this.cb.onRouteEnd?.(p.x, p.y, true);
+        this.mode = "idle";
+        break;
       case "pan":
       case "mousepan":
         this.cb.onPanEnd?.();
@@ -245,7 +277,7 @@ export class GestureRecognizer {
 
   cancel(p: GesturePointer): void {
     if (!this.pointers.delete(p.id)) return;
-    if (this.mode === "box") this.cb.onBoxEnd(this.lastX, this.lastY, false);
+    this.cutShort();
     this.mode = this.pointers.size >= 2 ? "multi" : "idle";
   }
 
@@ -260,7 +292,7 @@ export class GestureRecognizer {
     let gone = false;
     for (const id of ids) gone = this.pointers.delete(id) || gone;
     if (!gone) return;
-    if (this.mode === "box") this.cb.onBoxEnd(this.lastX, this.lastY, false);
+    this.cutShort();
     const rest = [...this.pointers.values()];
     this.pointers.clear();
     this.mode = "idle";
@@ -273,6 +305,7 @@ export class GestureRecognizer {
    * pointers are ignored; the next down starts afresh.
    */
   reset(): void {
+    if (this.mode === "route") this.cb.onRouteEnd?.(this.lastX, this.lastY, false); // (the line goes; no order)
     this.pointers.clear();
     this.mode = "idle";
     this.pinchActive = false;
@@ -286,15 +319,27 @@ export class GestureRecognizer {
 
   /** Call every frame: fires the long-press box start while holding still. */
   tick(now: number): void {
-    if (this.mode === "pending" && this.downType !== "mouse" && now - this.downTime >= HOLD_DELAY_MS) {
+    // (a finger resting on a selected unit is about to draw its route: no box under it)
+    if (this.mode === "pending" && this.downType !== "mouse" && now - this.downTime >= HOLD_DELAY_MS && !this.routes()) {
       this.mode = "box";
       this.cb.onBoxStart(this.downX, this.downY);
       if (navigator.vibrate) navigator.vibrate(10);
     }
   }
 
-  private enterMulti(): void {
+  /** Does a drag from the down point draw a route? (touch and pen only: the mouse has its right button) */
+  private routes(): boolean {
+    return this.downType !== "mouse" && !!this.cb.routeFrom?.(this.downX, this.downY);
+  }
+
+  /** A box or route in progress ends unreleased: cut short, nothing selected or ordered. */
+  private cutShort(): void {
     if (this.mode === "box") this.cb.onBoxEnd(this.lastX, this.lastY, false);
+    if (this.mode === "route") this.cb.onRouteEnd?.(this.lastX, this.lastY, false);
+  }
+
+  private enterMulti(): void {
+    this.cutShort();
     this.mode = "multi";
     const [a, b] = [...this.pointers.values()];
     if (a && b) {

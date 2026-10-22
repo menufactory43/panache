@@ -54,6 +54,7 @@ import { Stage } from "./three/stage";
 import { Terrain3D, type TerrainArt } from "./three/terrain";
 import { Particles } from "./three/particles";
 import { GroundGfx } from "./three/ground-gfx";
+import { RouteSketch, drawQueuedRoute } from "./route-view";
 import { Tweens } from "./three/tween";
 import { AIR_H, type P3, type View } from "./three/view";
 
@@ -171,6 +172,8 @@ export class GameScene {
   private objPill: ObjectivePill | null = null;
   private gest!: GestureRecognizer;
   private boxRect: { x0: number; y0: number; x1: number; y1: number } | null = null;
+  /** A route being drawn from the selection with one finger, then its waypoints fading (route-view.ts). */
+  private sketch = new RouteSketch();
   /** This frame's order waypoints (one per shared target), reused: no per-frame garbage. */
   private waypoints: { key: number; x: number; y: number; col: number }[] = [];
   /** This frame's rank chevrons (x, y, scale per chevron), reused. */
@@ -1046,6 +1049,8 @@ export class GameScene {
         : 0x7ef29b;
       this.fx.marker(fb.x, fb.y, tint);
       sfx.play("click", 0.6);
+      // a short buzz under the thumb: the order went (a double one for a patrol; none on iOS Safari, which has no vibrate)
+      if (typeof navigator.vibrate === "function") navigator.vibrate(fb.route === "patrol" ? [12, 60, 12] : fb.route ? 18 : fb.kind === "attack" ? 14 : 8);
       voices.order(fb.kind, this.ctrl.selectedUnits, this.world);
     }
   }
@@ -1232,6 +1237,7 @@ export class GameScene {
     const w = this.world;
     const marks = this.waypoints;
     let nMarks = 0;
+    const routes = new Set<string>();
     for (const id of this.ctrl.selectedUnits) {
       const u = w.units.get(id);
       const p = this.entities.pos(id);
@@ -1295,7 +1301,10 @@ export class GameScene {
       const d = Math.hypot(dx, dy);
       const stop = WAYPOINT_PX * g.px(mk.x, mk.y);
       if (d > stop) g.lineStyle(1.2, col, 0.35, 0).lineBetween(p.gx, p.gy, mk.x - (dx / d) * stop, mk.y - (dy / d) * stop);
+      // the rest of a route drawn, or a patrol's round, beyond that waypoint
+      if (u.route) drawQueuedRoute(g, u, col, routes);
     }
+    this.sketch.draw(this.view.over, performance.now(), this.ctrl.forceMove);
     for (let i = 0; i < nMarks; i++) {
       const mk = marks[i]!;
       const px = g.px(mk.x, mk.y);
@@ -1507,6 +1516,25 @@ export class GameScene {
     return best;
   }
 
+  /**
+   * Does a one-finger drag from screen point (sx, sy) draw a route? When it
+   * starts on (or within a thumb of) a unit of the player's selection, and
+   * nothing else owns the map: a placement, an armed calldown, a spectator.
+   */
+  private routeStartsAt(sx: number, sy: number): boolean {
+    const ctrl = this.ctrl;
+    if (ctrl.selectedUnits.size === 0 || ctrl.placing || ctrl.spectator || ctrl.boxNext || this.powerUi?.targeting) return false;
+    const rig = this.stage.rig;
+    for (const id of ctrl.selectedUnits) {
+      const u = this.world.units.get(id);
+      const p = u?.faction === PLAYER ? this.entities.pos(id) : null;
+      if (!p) continue;
+      const s = rig.project(p.x, p.y, (p.h + p.top) / 2);
+      if (Math.hypot(s.x - sx, s.y - sy) <= Math.max(30, (UNITS[u!.kind].radius * 1.3) / rig.worldPerPx(p.x, p.y))) return true;
+    }
+    return false;
+  }
+
   private setupInput(): void {
     const rig = this.stage.rig;
     /** Shift was held on the click that fires a tap: it adds or removes a unit. */
@@ -1531,6 +1559,7 @@ export class GameScene {
       },
       onBoxStart: (sx, sy) => {
         this.boxRect = { x0: sx, y0: sy, x1: sx, y1: sy };
+        this.ctrl.boxNext = false; // (▢ Cadre: one box per tap)
       },
       onBoxMove: (sx, sy) => {
         if (this.boxRect) {
@@ -1599,7 +1628,16 @@ export class GameScene {
         if (hit.kind === "ownUnit" || hit.kind === "ownBuilding") hit = { kind: "ground" };
         this.ctrl.tapWorld(p.x, p.y, hit);
       },
-      onWheel: (deltaY, sx, sy) => this.zoomBy(deltaY > 0 ? 0.85 : 1.18, sx, sy)
+      onWheel: (deltaY, sx, sy) => this.zoomBy(deltaY > 0 ? 0.85 : 1.18, sx, sy),
+      // a drag from a selected unit draws the selection's route (route-view.ts, Controller.routeSelected)
+      routeFrom: (sx, sy) => this.routeStartsAt(sx, sy),
+      boxNow: () => this.ctrl.boxNext,
+      onRouteStart: (sx, sy) => this.sketch.start(this.worldAt(sx, sy)),
+      onRouteMove: (sx, sy) => this.sketch.move(this.worldAt(sx, sy)),
+      onRouteEnd: (sx, sy, released) => {
+        const plan = this.sketch.end(released ? this.worldAt(sx, sy) : null, released, performance.now(), this.ctrl.forceMove);
+        if (plan && this.ctrl.routeSelected(plan.points, plan.loop)) this.command?.seen("route");
+      }
     });
 
     const canvas = this.stage.canvas;

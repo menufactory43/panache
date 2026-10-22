@@ -277,3 +277,113 @@ describe("mouse gestures", () => {
     expect(cb.onWheel).toHaveBeenCalledWith(-120, 300, 200);
   });
 });
+
+describe("routes and the ▢ Cadre toggle", () => {
+  /** A selected unit sits within 30 px of (100, 100). */
+  const onUnit = (x: number, y: number) => Math.hypot(x - 100, y - 100) <= 30;
+  let cb: ReturnType<typeof makeCallbacks> & {
+    routeFrom: ReturnType<typeof vi.fn>;
+    boxNow: ReturnType<typeof vi.fn>;
+    onRouteStart: ReturnType<typeof vi.fn>;
+    onRouteMove: ReturnType<typeof vi.fn>;
+    onRouteEnd: ReturnType<typeof vi.fn>;
+    onPanEnd: ReturnType<typeof vi.fn>;
+  };
+  let g: GestureRecognizer;
+  beforeEach(() => {
+    cb = {
+      ...makeCallbacks(),
+      routeFrom: vi.fn(onUnit),
+      boxNow: vi.fn(() => false),
+      onRouteStart: vi.fn(),
+      onRouteMove: vi.fn(),
+      onRouteEnd: vi.fn(),
+      onPanEnd: vi.fn()
+    };
+    g = new GestureRecognizer(cb);
+  });
+
+  it("a drag that starts on a selected unit draws a route, not a pan", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.move(touch(1, 130, 110), 60);
+    g.move(touch(1, 200, 160), 120);
+    g.up(touch(1, 210, 170), 200);
+    expect(cb.onRouteStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.onRouteMove.mock.calls).toEqual([[130, 110], [200, 160]]);
+    expect(cb.onRouteEnd).toHaveBeenCalledWith(210, 170, true);
+    expect(cb.onPan).not.toHaveBeenCalled();
+    expect(cb.onBoxStart).not.toHaveBeenCalled();
+  });
+
+  it("a drag elsewhere still pans", () => {
+    g.down(touch(1, 300, 300), 0);
+    g.move(touch(1, 340, 300), 60);
+    g.up(touch(1, 340, 300), 100);
+    expect(cb.onPan).toHaveBeenCalledWith(40, 0);
+    expect(cb.onRouteStart).not.toHaveBeenCalled();
+  });
+
+  it("a finger resting on a selected unit never becomes a box, and still draws once it moves", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.tick(400);
+    expect(cb.onBoxStart).not.toHaveBeenCalled();
+    g.move(touch(1, 160, 100), 450);
+    expect(cb.onRouteStart).toHaveBeenCalledWith(100, 100);
+  });
+
+  it("a long press on a selected unit released in place is still the hold release (a drop, an aimed calldown)", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.tick(400);
+    g.up(touch(1, 101, 100), 500);
+    expect(cb.onBoxStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.onBoxEnd).toHaveBeenCalledWith(101, 100, true);
+    expect(isHoldRelease(100, 100, 101, 100)).toBe(true);
+  });
+
+  it("a tap on a selected unit is still a tap", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.up(touch(1, 102, 101), 90);
+    expect(cb.onTap).toHaveBeenCalledWith(102, 101, "touch");
+    expect(cb.onRouteStart).not.toHaveBeenCalled();
+  });
+
+  it("a second finger cuts the route short (no order) and pinches", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.move(touch(1, 150, 100), 50);
+    g.down(touch(2, 300, 300), 80);
+    expect(cb.onRouteEnd).toHaveBeenCalledWith(150, 100, false);
+    g.move(touch(2, 340, 340), 120);
+    expect(cb.onPan).toHaveBeenCalled();
+  });
+
+  it("a cancelled pointer and reset() end a route unreleased", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.move(touch(1, 150, 100), 50);
+    g.cancel(touch(1, 150, 100));
+    expect(cb.onRouteEnd).toHaveBeenLastCalledWith(150, 100, false);
+    g.down(touch(1, 100, 100), 200);
+    g.move(touch(1, 170, 100), 250);
+    g.reset();
+    expect(cb.onRouteEnd).toHaveBeenLastCalledWith(170, 100, false);
+    expect(cb.onRouteEnd).toHaveBeenCalledTimes(2);
+  });
+
+  it("the mouse never draws routes: its left drag stays a box", () => {
+    g.down(mouse(100, 100), 0);
+    g.move(mouse(160, 140), 30);
+    expect(cb.onBoxStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.routeFrom).not.toHaveBeenCalled();
+  });
+
+  it("▢ Cadre armed: the next drag is a box at once, even from a selected unit", () => {
+    cb.boxNow.mockReturnValue(true);
+    g.down(touch(1, 100, 100), 0);
+    g.move(touch(1, 180, 160), 40);
+    expect(cb.onBoxStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.onBoxMove).toHaveBeenCalledWith(180, 160);
+    g.up(touch(1, 180, 160), 90);
+    expect(cb.onBoxEnd).toHaveBeenCalledWith(180, 160, true);
+    expect(cb.onRouteStart).not.toHaveBeenCalled();
+    expect(cb.onPan).not.toHaveBeenCalled();
+  });
+});

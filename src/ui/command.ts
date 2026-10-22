@@ -5,12 +5,15 @@
  *   selection, tap to select, double-tap to fly there. Each shows the
  *   dominant unit's icon, a count and a health bar, and flashes red while
  *   a member is being hit.
+ * - Role chips after them: Infanterie, Blindés, Aviation (the whole army of
+ *   that role, ../game/roles.ts), shown once the army has two roles or more;
+ *   tap to select, double-tap to fly there.
  * - Build advisor badges: an amber ⚔ on build buttons that counter enemies
  *   you've seen (and on their tab), and an "idle" tag on the Vehicles /
  *   Infantry / Aircraft tab when a factory sits idle while you can afford
  *   its units.
- * - One-time hints that teach the squad gesture, infantry, the Condor, the
- *   Goliath's anchor and the two-Condor lift.
+ * - One-time hints that teach the squad gesture, drawing a route, the role
+ *   chips, infantry, the Condor, the Goliath's anchor and the two-Condor lift.
  *
  * Rules live in ../game/squads.ts and ../game/advisor.ts (tested).
  */
@@ -24,6 +27,7 @@ import type { BuildingKind, Faction, FxEvent, UnitKind, World } from "../sim/typ
 import { sfx } from "../game/audio";
 import { PLAYER, type Controller } from "../game/controller";
 import { SQUAD } from "../game/squads";
+import { ROLES, leadKind, type Role } from "../game/roles";
 import { ADVISOR, COUNTERS, EnemyIntel, FACTORY_TAB, IdleWatch, adviceNote, counterAdvice, type FactoryTab } from "../game/advisor";
 import { HINTS, type HintOffer } from "../game/hints";
 import { portraitKind } from "../game/three/belle/placeholders";
@@ -67,12 +71,22 @@ const DEFENCES = (Object.keys(COUNTERS) as (UnitKind | BuildingKind)[]).filter((
 
 /** One-time tips offered when the selection calls for them (CommandUi.update). */
 const SELECTION_HINTS: [string, string][] = [
+  ["route", "Route : pose le doigt sur tes unités sélectionnées et trace leur chemin sur la carte. Reviens à ton point de départ pour une patrouille."],
+  ["roles", "Infanterie, Blindés, Aviation : touche pour prendre toute l'armée de ce type, double-touche pour y aller."],
   ["squads", "Escouades : maintiens 1, 2 ou 3 pour enregistrer la sélection. Touche pour la sélectionner, double-touche pour y aller."],
   ["infantry", "L'infanterie traverse les bois à pleine vitesse et y subit moitié moins de dégâts. Tiens-la loin des Creusot : ils l'écrasent."],
   ["condor", "Montgolfière : sélectionne des escouades, puis touche la Montgolfière pour les embarquer. Appui long sur la carte (ou touche une île) pour les y larguer, ou touche ⇣ Larguer."],
   ["goliath", `⚓ Ancre-le (G) pour prendre le charbon, former des escouades et construire à ${GOLIATH.buildRing} cases. Lève l'ancre pour bouger.`],
   ["lift", "Deux Montgolfières vides soulèvent un Gargantua : touche ton Gargantua pour l'accrocher, puis appui long là où le poser."]
 ];
+
+interface RoleEl {
+  role: Role;
+  btn: HTMLButtonElement;
+  img: HTMLImageElement;
+  count: HTMLElement;
+  key: string;
+}
 
 interface SquadEl {
   btn: HTMLButtonElement;
@@ -90,6 +104,11 @@ export class CommandUi {
   private row: HTMLElement | null = null;
   private squadsEl: HTMLElement | null = null;
   private chips: SquadEl[] = [];
+  private rolesEl: HTMLElement | null = null;
+  private roleChips: RoleEl[] = [];
+  private roleTap = new Map<Role, number>();
+  private rolesKey = "";
+  private rolesSel: ReadonlySet<number> | null = null;
   private lastTap: number[] = Array.from({ length: SQUAD.slots }, () => -Infinity);
   private badgeAt = -Infinity;
   /** When each build option's counter badge lit (wall ms), for the fresh pulse. */
@@ -122,10 +141,16 @@ export class CommandUi {
     const squads = document.createElement("div");
     squads.className = "squads";
     squads.dataset.edgeAvoid = "";
-    row.append(squads, chipsEl);
+    const roles = document.createElement("div");
+    roles.className = "roles";
+    roles.dataset.edgeAvoid = "";
+    roles.hidden = true;
+    row.append(squads, roles, chipsEl);
     this.row = row;
     this.squadsEl = squads;
+    this.rolesEl = roles;
     for (let i = 0; i < SQUAD.slots; i++) this.chips.push(this.makeSquad(i, squads));
+    for (const r of ROLES) this.roleChips.push(this.makeRole(r, roles));
 
     for (const t of TABS) {
       const tab = this.h.root.querySelector<HTMLElement>(`.tab[data-tab="${t}"]`);
@@ -195,7 +220,44 @@ export class CommandUi {
     };
   }
 
+  private makeRole(r: (typeof ROLES)[number], parent: HTMLElement): RoleEl {
+    const btn = document.createElement("button");
+    btn.className = "rl";
+    btn.dataset.role = r.id;
+    btn.title = `${r.label} : touche pour toute l'armée de ce type, double-touche pour y aller`;
+    btn.innerHTML = `<img class="rli" alt="" draggable="false" /><span class="rlc"></span><span class="rll">${r.label}</span>`;
+    btn.hidden = true;
+    btn.addEventListener("click", () => this.tapRole(r.id));
+    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+    parent.appendChild(btn);
+    return { role: r.id, btn, img: btn.querySelector<HTMLImageElement>(".rli")!, count: btn.querySelector<HTMLElement>(".rlc")!, key: "" };
+  }
+
   // ------------------------------------------------------------- actions --
+
+  /** Select the whole army of one role; a second tap soon after flies the camera to it. */
+  tapRole(role: Role): void {
+    const ctrl = this.h.ctrl;
+    if (this.h.spectator || ctrl.placing) return;
+    const n = ctrl.selectRole(role);
+    if (n === 0) return;
+    sfx.play("click", 0.5);
+    if (navigator.vibrate) navigator.vibrate(8);
+    this.seen("roles");
+    const now = performance.now();
+    if (now - (this.roleTap.get(role) ?? -Infinity) < SQUAD.doubleTapMs) {
+      const w = this.h.world;
+      let x = 0;
+      let y = 0;
+      for (const id of ctrl.selectedUnits) {
+        const u = w.units.get(id)!;
+        x += u.x;
+        y += u.y;
+      }
+      this.h.glideTo(x / n, y / n);
+      this.roleTap.delete(role);
+    } else this.roleTap.set(role, now);
+  }
 
   /** Save the current selection as squad i (or clear it when nothing is selected). */
   assign(i: number): void {
@@ -259,7 +321,8 @@ export class CommandUi {
     return adviceNote(counterAdvice(this.h.world, PLAYER, this.intel, kind, this.simT));
   }
 
-  private seen(id: string): void {
+  /** Hint `id` needn't be taught any more: the player has just done it (a route drawn, say). */
+  seen(id: string): void {
     if (this.hints.has(id)) return;
     this.hints.add(id);
     try {
@@ -311,6 +374,15 @@ export class CommandUi {
         return ctrl.goliathsSelected().length > 0;
       case "lift":
         return this.liftMoment();
+      case "route":
+        // a fighting unit selected (harvesters only drive)
+        for (const uid of ctrl.selectedUnits) {
+          const k = w.units.get(uid)?.kind;
+          if (k && !behaves(k, "harvester")) return true;
+        }
+        return false;
+      case "roles":
+        return !!this.rolesEl && !this.rolesEl.hidden && this.rolesEl.isConnected && this.rolesEl.getClientRects().length > 0;
       case "squads": {
         // a real group (two or more, harvesters aside)
         let army = 0;
@@ -378,6 +450,7 @@ export class CommandUi {
     // squads hide while placing (the ✓ Place chip needs the row)
     const show = !ctrl.placing;
     if (this.squadsEl!.hidden === show) this.squadsEl!.hidden = !show;
+    this.updateRoles(show);
     if (show) {
       for (let i = 0; i < this.chips.length; i++) {
         const c = this.chips[i]!;
@@ -409,6 +482,39 @@ export class CommandUi {
     if (now - this.badgeAt >= BADGE_MS) {
       this.badgeAt = now;
       this.badges(now);
+    }
+  }
+
+  /** The role chips: each with its role's lead portrait and count, the row shown once two roles have units. */
+  private updateRoles(show: boolean): void {
+    const ctrl = this.h.ctrl;
+    const w = this.h.world;
+    const groups = show ? ctrl.roleIds() : null;
+    const used = groups ? ROLES.filter((r) => groups[r.id].length > 0).length : 0;
+    const visible = !!groups && used >= 2;
+    const sel = ctrl.selectedUnits;
+    const keys = visible ? ROLES.map((r) => groups![r.id].length) : [];
+    const key = `${visible}|${keys.join(",")}|${sel.size}`;
+    // (the "on" state follows the selection: a new selection is a new set, a unit taken out changes its size)
+    if (key === this.rolesKey && sel === this.rolesSel) return;
+    this.rolesKey = key;
+    this.rolesSel = sel;
+    if (this.rolesEl!.hidden === visible) this.rolesEl!.hidden = !visible;
+    if (!visible) return;
+    for (const c of this.roleChips) {
+      const ids = groups![c.role];
+      const on = ids.length > 0 && ids.length === sel.size && ids.every((id) => sel.has(id));
+      const kind = ids.length ? leadKind(ids.map((id) => w.units.get(id)!)) : null;
+      const k = `${ids.length}:${kind}:${on}`;
+      if (k === c.key) continue;
+      c.key = k;
+      c.btn.hidden = ids.length === 0;
+      c.btn.classList.toggle("on", on);
+      c.count.textContent = String(ids.length);
+      if (kind) {
+        const src = icon(kind);
+        if (!c.img.src.endsWith(src)) c.img.src = src;
+      }
     }
   }
 

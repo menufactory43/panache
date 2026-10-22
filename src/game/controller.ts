@@ -11,6 +11,8 @@ import type { BuildingKind, Command, Faction, GoliathMode, PendingBuilding, Powe
 import { buildingAtTile, distToBuilding, domainOf, isResource, moveClassOf, onHomeLand, regionAt, tileIndex } from "../sim/world";
 import { engageable } from "../sim/combat";
 import { Squads } from "./squads";
+import { roleGroups, type Role } from "./roles";
+import type { Pt } from "./route-draw";
 
 /**
  * The side this device commands, and the other one. Live bindings: every
@@ -370,6 +372,8 @@ export type TapFeedback = {
   kind: "move" | "attack" | "harvest" | "rally" | "place" | "board" | "drop" | "anchor";
   x: number;
   y: number;
+  /** A route drawn ("route") or a patrol ("patrol"), not a tap: its own buzz. */
+  route?: "route" | "patrol";
 } | null;
 
 /** The same point, as the codec gives it back (snapped to the centre of its 1/16-tile cell); both missing counts too. */
@@ -422,6 +426,8 @@ export class Controller {
   placing: BuildingKind | null = null;
   /** Next ground tap issues a plain move (retreat) instead of attack-move. */
   forceMove = false;
+  /** ▢ Cadre: the next one-finger drag on the map is a box select, no hold needed. */
+  boxNext = false;
   /** Debug: render fog of war (display-only — the sim always keeps fog). */
   showFog = true;
   /** Spectator (AI vs AI): taps may inspect but never command. */
@@ -604,6 +610,19 @@ export class Controller {
   /** Select every combat unit the player owns (anchored Goliaths aside). */
   selectArmy(): void {
     this.selectUnits(this.armyIds());
+  }
+
+  /** ⚔ Armée split by role (roles.ts): Infanterie, Blindés, Aviation. */
+  roleIds(): Record<Role, number[]> {
+    const w = this.world;
+    return roleGroups(this.armyIds().map((id) => w.units.get(id)!));
+  }
+
+  /** Select the whole army of one role. Returns how many. */
+  selectRole(role: Role): number {
+    const ids = this.roleIds()[role];
+    if (ids.length > 0) this.selectUnits(ids);
+    return ids.length;
   }
 
   /**
@@ -792,6 +811,41 @@ export class Controller {
         this.lastFeedback = { kind: "rally", x: wx, y: wy };
       } else this.clearSelection();
     }
+  }
+
+  /**
+   * A route drawn from the selection (GameScene, route-draw.ts planRoute):
+   * the units take its points in turn, attack-moving (plain moves with
+   * ⚑ Repli; harvesters always just drive), and with `loop` go round it for
+   * ever, fighting what they meet (a patrol). A lift flies straight to the
+   * last point; anchored Goliaths stay dug in. False when nothing could go.
+   */
+  routeSelected(points: readonly Pt[], loop: boolean): boolean {
+    const w = this.world;
+    if (this.spectator || this.placing || points.length === 0 || this.selectedUnits.size === 0) return false;
+    this.pendingDrop = null;
+    const end = points[points.length - 1]!;
+    const lifting = this.orderLifts(end.x, end.y, false);
+    const ids = [...this.selectedUnits].filter((id) => w.units.has(id) && !lifting.has(id) && !this.rooted(id));
+    if (ids.length === 0 && lifting.size === 0) {
+      this.rootTip("Le Gargantua ancré reste en place : lève l'ancre d'abord (G)");
+      return false;
+    }
+    const harvesters = ids.filter((id) => behaves(w.units.get(id)!.kind, "harvester"));
+    const rest = ids.filter((id) => !harvesters.includes(id));
+    const send = (unitIds: number[], first: "move" | "attackMove", patrol: boolean) => {
+      if (unitIds.length === 0) return;
+      const [p0, ...more] = points as [Pt, ...Pt[]];
+      this.enqueue({ type: first, faction: PLAYER, unitIds, x: p0.x, y: p0.y });
+      more.forEach((p, i) =>
+        this.enqueue({ type: patrol && i === more.length - 1 ? "patrol" : "waypoint", faction: PLAYER, unitIds, x: p.x, y: p.y })
+      );
+    };
+    send(rest, this.forceMove && !loop ? "move" : "attackMove", loop);
+    send(harvesters, "move", false); // (no guns: they never patrol)
+    this.forceMove = false;
+    this.lastFeedback = { kind: "move", x: end.x, y: end.y, route: loop ? "patrol" : "route" };
+    return true;
   }
 
   /** ■ Stop: the selection halts (a lift hovers; one still hooking on is called off). */
