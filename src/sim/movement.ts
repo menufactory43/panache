@@ -33,6 +33,61 @@ function stepCost(w: World, idx: number, mc: MoveClass): number {
   return 1 / (terrainMult(TERRAIN[w.terrain[idx] as Terrain], mc) || 1);
 }
 
+/** A pocket smaller than this (tiles) is "enclosed": see inPocket. */
+const POCKET_TILES = 48;
+/** inPocket's flood: a generation stamp per tile (no clearing) and its queue, reused. */
+let pocketSeen: Uint32Array | null = null;
+let pocketGen = 0;
+const pocketQueue: number[] = [];
+
+/**
+ * Is tile (x, y) in a small pocket that buildings (or terrain) close off from
+ * the rest of the map, and that the start tile isn't in? A flood of at most
+ * POCKET_TILES tiles from it, moving as A* does (no cutting corners): it runs
+ * dry before that only inside such a pocket. regionLabels knows the terrain
+ * alone, so without this a goal walled in by buildings (a tight base) passes
+ * for reachable, and A* floods the whole map, every tick, to learn it isn't.
+ */
+function inPocket(w: World, x: number, y: number, startIdx: number, pass: (x: number, y: number) => boolean): boolean {
+  const W = w.width;
+  const n = W * w.height;
+  if (!pocketSeen || pocketSeen.length < n) {
+    pocketSeen = new Uint32Array(n);
+    pocketGen = 0;
+  }
+  if (++pocketGen >= 0xffffffff) {
+    pocketSeen.fill(0);
+    pocketGen = 1;
+  }
+  const seen = pocketSeen;
+  const gen = pocketGen;
+  const q = pocketQueue;
+  q.length = 0;
+  const first = y * W + x;
+  seen[first] = gen;
+  q.push(first);
+  for (let head = 0; head < q.length; head++) {
+    if (q.length >= POCKET_TILES) return false;
+    const cur = q[head]!;
+    if (cur === startIdx) return false;
+    const cx = cur % W;
+    const cy = Math.floor(cur / W);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = cx + dx;
+        const ny = cy + dy;
+        if (!pass(nx, ny)) continue;
+        if (dx !== 0 && dy !== 0 && (!pass(cx + dx, cy) || !pass(cx, cy + dy))) continue;
+        const ni = ny * W + nx;
+        if (seen[ni] === gen) continue;
+        seen[ni] = gen;
+        q.push(ni);
+      }
+  }
+  return true;
+}
+
 /** A* working arrays, grown to the largest map seen and reused by every search. */
 let scratch: { g: Float32Array; from: Int32Array; seen: Uint32Array; shut: Uint32Array; gen: number } | null = null;
 
@@ -70,10 +125,13 @@ export function findPath(
   const region = mc === "air" ? 0 : regionAt(w, sx, sy, mc);
   const labels = region ? regionLabels(w, mc as LandClass) : null;
   const ok = (x: number, y: number) => pass(x, y) && (!labels || labels[y * w.width + x] === region);
+  const startIdx0 = sy * w.width + sx;
+  // a tile we could really stand on: in our region, and not in a pocket walled off by buildings (inPocket)
+  const reachable = (x: number, y: number) => ok(x, y) && (mc === "air" || !inPocket(w, x, y, startIdx0, pass));
   // If the goal tile itself is blocked or cut off, walk to the nearest tile
   // we can reach around it (spiral search, small radius), preferring ones
   // nearer to us; nothing in reach gives up at once instead of flooding.
-  if (!ok(gx, gy)) {
+  if (!reachable(gx, gy)) {
     let found: { x: number; y: number } | null = null;
     for (let r = 1; r <= 6 && !found; r++) {
       let bestD = Infinity;
@@ -84,7 +142,7 @@ export function findPath(
           if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
           if (!ok(gx + dx, gy + dy)) continue;
           const d = hypot(gx + dx - sx, gy + dy - sy);
-          if (d < bestD) {
+          if (d < bestD && reachable(gx + dx, gy + dy)) {
             bestD = d;
             found = { x: gx + dx, y: gy + dy };
           }
@@ -325,10 +383,13 @@ export function tickMovement(w: World, pausedIds: Set<number>, spots: Map<number
         moveUnitToward(w, u, p.x + (u.x - p.x) * k, p.y + (u.y - p.y) * k);
       } else if (moveUnitToward(w, u, p.x, p.y) && d > reachFor(w, u, o.targetId)) {
         // (combat pauses it once in range.) Got as close as the ground allows and still out of
-        // range of a target across the water: give it up, so the unit fights what it can reach
+        // range of a target across the water, or no path at all (moveUnitToward found none: its
+        // goal stays set): give it up for a while, so the unit fights what it can reach instead of
+        // searching the whole map again every tick
         const mc = moveClassOf(u.kind);
         const here = regionAt(w, Math.floor(u.x), Math.floor(u.y), mc);
-        if (here && regionAt(w, Math.floor(p.x), Math.floor(p.y), mc) !== here) {
+        const noPath = u.path === null && u.pathGoal !== null;
+        if (noPath || (here && regionAt(w, Math.floor(p.x), Math.floor(p.y), mc) !== here)) {
           u.ignore = { id: o.targetId, until: w.tick + IGNORE_TICKS };
           u.order = { type: "idle" };
         }
