@@ -1,5 +1,7 @@
 import { UNITS } from "../sim/balance";
 import { mapById } from "../sim/maps";
+import { nationOf } from "../sim/rules";
+import { crestImg, endLine } from "./nations-ui";
 import { POWER_KINDS, POWER_NAMES } from "../sim/powers";
 import type { Faction, FactionStats, World } from "../sim/types";
 import {
@@ -15,6 +17,7 @@ import {
   type Sample
 } from "../game/chronicle";
 import { callsignOf, killsLabel, stars } from "../game/heroes";
+import { portraitKind } from "../game/three/belle/placeholders";
 
 /**
  * The after-action report: the end screen of a skirmish. It tells the
@@ -89,7 +92,7 @@ export function addReportSection(s: ReportSection): () => void {
 }
 
 /** A portrait in its side's paint (the red ones are shot from the red models). */
-const icon = (kind: string, f: Faction) => `assets/icons/${f === "red" ? "red/" : ""}${kind}.webp`;
+const icon = (kind: string, f: Faction) => `assets/icons/${f === "red" ? "red/" : ""}${portraitKind(kind)}.webp`;
 const short = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)));
 const sideName = (f: Faction, ctx: ReportOpts) =>
   ctx.spectator ? (f === "blue" ? "Bleu" : "Rouge") : f === ctx.pov ? "Toi" : ctx.opponent ? "Ami" : "Ennemi";
@@ -244,7 +247,35 @@ export function headline(o: { winner: Faction | "draw" | null; pov: Faction; spe
   return { title: won ? "VICTOIRE" : "DÉFAITE", cls: won ? "win" : "lose", note: null };
 }
 
+/**
+ * A nations match's crests over the verdict (the player's large, the foe's
+ * small; a spectator: both alike). Empty in Classique.
+ */
+export function nationHeadHtml(w: World, pov: Faction, spectator: boolean): string {
+  const blue = nationOf(w, "blue");
+  const red = nationOf(w, "red");
+  if (blue === "classique" && red === "classique") return "";
+  const me = spectator ? "blue" : pov;
+  const them: Faction = me === "blue" ? "red" : "blue";
+  const mine = nationOf(w, me);
+  const foe = nationOf(w, them);
+  const crests = `<div class="aar-crests${spectator ? " both" : ""}">${crestImg(mine, `aar-crest mine nat-${mine}`)}<span class="aar-vs">contre</span>${crestImg(foe, `aar-crest foe nat-${foe}`)}</div>`;
+  return crests;
+}
+
+/** The line under the verdict in the player's nation's voice (none in Classique, for a spectator, or without a winner). */
+export function nationLineHtml(w: World, winner: Faction | "draw" | null, pov: Faction, spectator: boolean): string {
+  if (spectator || winner === null || winner === "draw") return "";
+  const them: Faction = pov === "blue" ? "red" : "blue";
+  const line = endLine(nationOf(w, pov), winner === pov, nationOf(w, them));
+  return line ? `<p class="aar-natline">${escapeHtml(line)}</p>` : "";
+}
+
 function headHtml(ctx: ReportContext): string {
+  return nationHeadHtml(ctx.world, ctx.pov, ctx.spectator) + headCore(ctx) + nationLineHtml(ctx.world, ctx.winner, ctx.pov, ctx.spectator);
+}
+
+function headCore(ctx: ReportContext): string {
   if (ctx.head) return `<h1 class="${ctx.head.cls}">${escapeHtml(ctx.head.title)}</h1><p class="time">${escapeHtml(ctx.head.sub)}</p>`;
   const spec = ctx.spectator;
   const h = headline({ winner: ctx.winner, pov: ctx.pov, spectator: spec, love: !!ctx.world.love });
@@ -417,7 +448,7 @@ function tipHtml(ctx: ReportContext): string | null {
   let tip = pickTip({
     pov: ctx.pov, won: ctx.won, duration: ctx.secs, difficulty: duel ? "" : ctx.enemy.difficulty.toLowerCase(),
     built: c.built, firstBuilt: c.firstBuilt, deaths: c.deaths, samples: c.samples, factories: c.factories,
-    startGoliaths: c.startGoliaths
+    startGoliaths: c.startGoliaths, nation: nationOf(ctx.world, ctx.pov)
   });
   // (a duel's congratulations: there is no harder AI to try)
   if (duel && /\b(AI|IA)\b/.test(tip))

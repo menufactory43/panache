@@ -232,3 +232,113 @@ html.belle .duel-meter { background: rgba(14, 9, 4, 0.75); }
 html.belle .duel-codein { border-color: var(--line-hi); color: #f6e2b0; }
 html.belle .duel-bigcode { font-family: var(--serif); letter-spacing: 16px; color: #f0c770; text-shadow: 0 1px 0 #6b4a17, 0 3px 6px rgba(0, 0, 0, 0.6); }
 html.belle .duel-or { font-family: var(--serif); }
+
+/* the nation picker on the Host / Join step (LOBBY_PROTO 2), and the paired view's nations line */
+.duel-nation { margin: 10px 0 6px; }
+.duel-nats { display: grid; grid-template-columns: 1fr 1fr 0.78fr; gap: 8px; }
+.duel-nat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 4px 9px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+.duel-nat:active { transform: scale(0.97); }
+.duel-nat b { font-size: 15px; line-height: 1.1; }
+.duel-nat small { font-size: 11px; line-height: 1.2; color: var(--dim); font-weight: 600; }
+.duel-nat .duel-crest { width: 52px; height: 52px; }
+.duel-nat.nat-classique .duel-crest { width: 40px; height: 40px; font-size: 26px; margin: 6px 0; }
+.duel-nats:has(.on) .duel-nat:not(.on) { opacity: 0.62; }
+.duel-nat.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 4px 14px rgba(0, 0, 0, 0.4); opacity: 1; }
+.duel-nat.nat-republique.on { background: linear-gradient(180deg, rgba(31, 63, 138, 0.75), rgba(18, 38, 79, 0.85)); }
+.duel-nat.nat-empire.on { background: linear-gradient(180deg, rgba(122, 31, 43, 0.75), rgba(67, 16, 24, 0.88)); }
+.duel-nat.nat-classique.on { background: linear-gradient(180deg, rgba(90, 70, 40, 0.7), rgba(48, 36, 20, 0.85)); }
+.duel-natnote { margin: 6px 2px 0; font-size: 12px; line-height: 1.35; color: var(--dim); }
+.duel-crest { display: inline-block; width: 28px; height: 28px; object-fit: contain; flex: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55)); }
+.duel-crest.classique {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-hi);
+  background: radial-gradient(circle at 40% 35%, #5a4426, #2a1d0f);
+  color: #f0d79a;
+  font-size: 15px;
+  line-height: 1;
+}
+.duel-nations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 8px 0 2px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+}
+.duel-nations .dn-side { display: inline-flex; align-items: center; gap: 6px; }
+.duel-nations .dn-vs { color: var(--dim); font-style: italic; font-size: 13px; }
+
+/* the Belle Époque sheet itself: walnut, brass rules, cream text, serif titles (src/ui/belle.css) */
+html.belle .duelsheet {
+  background:
+    linear-gradient(180deg, rgba(255, 220, 150, 0.06), transparent 120px),
+    radial-gradient(120% 60% at 50% 0%, #2c1f10, #1a1209 70%);
+  border: 1px solid rgba(233, 187, 94, 0.55);
+  border-bottom: none;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 230, 170, 0.18);
+}
+html.belle .duelsheet h2 {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #f6e2b0;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, var(--gold) 15%, #fff1c8 50%, var(--gold) 85%, transparent) 1;
+}
+html.belle .duelsheet h3 { font-family: var(--serif); color: #f0c770; letter-spacing: 0.4px; }
+html.belle .duelsheet .sh-sub { color: #e2d3b0; font-family: var(--serif); font-style: italic; }
+html.belle .duelsheet .sh-note,
+html.belle .duel-lbl,
+html.belle .duel-natnote { color: #b8a787; }
+html.belle .duel-lbl { font-family: var(--serif); font-size: 14px; font-style: italic; letter-spacing: 0.3px; }
+html.belle .duel-status { font-family: var(--serif); color: #f2e8d0; }
+html.belle .duel-paired { color: #c9dc8a; font-family: var(--serif); }
+html.belle .duel-map b { font-family: var(--serif); color: #f6e2b0; }
+html.belle .duel-mut { background: rgba(233, 187, 94, 0.1); border-color: rgba(233, 187, 94, 0.3); color: #f2e8d0; }
+html.belle .duel-noise { background: rgba(122, 31, 43, 0.35); border-color: #c99a45; color: #f7e6c4; }
+html.belle .duel-practice { border-color: var(--line-hi); color: var(--gold); }
+html.belle .duel-hint { background: rgba(233, 187, 94, 0.1); border-color: rgba(233, 187, 94, 0.4); color: #f2e8d0; }
+html.belle .duel-warn { background: rgba(122, 31, 43, 0.35); border-color: rgba(229, 122, 100, 0.55); color: #ffd9cc; }
+html.belle .duel-adv { background: rgba(14, 9, 4, 0.6); border-color: var(--line); }
+html.belle .duel-adv summary { font-family: var(--serif); font-style: italic; color: #d9c49a; }
+html.belle .dm-bar { background: #2a1d10; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6); }
+html.belle .dm-bar.good i { background: linear-gradient(90deg, #8fae4a, #c9dc8a); }
+html.belle .dm-bar.fair i { background: linear-gradient(90deg, #b7863a, #f0c770); }
+html.belle .dm-bar.poor i { background: linear-gradient(90deg, #7a1f2b, #e57a64); }
+html.belle .duel-go { font-family: var(--serif); font-style: italic; color: #f0c770; text-shadow: 0 2px 0 #6b4a17, 0 0 24px rgba(240, 199, 112, 0.45); }
+html.belle .duel-err { color: #f2a08e; font-family: var(--serif); }
+html.belle .duel-copied { color: #c9dc8a; }
+html.belle .duel-codein::placeholder { color: rgba(242, 232, 208, 0.18); }
+html.belle .duel-nat { background: linear-gradient(180deg, rgba(58, 40, 22, 0.9), rgba(34, 23, 12, 0.92)); border-color: var(--line-hi); box-shadow: var(--lift); }
+html.belle .duel-nat b { font-family: var(--serif); color: #f6e2b0; }
+html.belle .duel-nat.on b { color: #fff4d6; }
+html.belle .duel-nat.on small { color: #e6d6b2; }
+html.belle .duel-nations { background: rgba(14, 9, 4, 0.6); border-color: var(--line-hi); }
+html.belle .duel-nations b { font-family: var(--serif); color: #f6e2b0; }
+html.belle .duelsheet .op-card { background: linear-gradient(180deg, rgba(58, 40, 22, 0.94), rgba(34, 23, 12, 0.94)); border-top-color: var(--line-hi); }
+html.belle .duelsheet .op-name { font-family: var(--serif); color: #f6e2b0; }
+/* (one crest and its sentence: the sentence wraps beside the crest, not under it) */
+.duel-nations > span:not(.dn-side):not(.dn-vs) { flex: 1 1 0; min-width: 0; line-height: 1.3; }

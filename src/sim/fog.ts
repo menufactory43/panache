@@ -1,5 +1,6 @@
 import { BUILDINGS, OBJECTIVES, UNITS } from "./balance";
 import type { Building, BuildingKind, Faction, World } from "./types";
+import { sightBonus } from "./nations";
 import { rulesOf } from "./rules";
 import { inBounds } from "./world";
 
@@ -59,6 +60,21 @@ function stamp(w: World, vis: Uint8Array, cx: number, cy: number, radius: number
     }
 }
 
+/** A gas cloud: the tiles under it drop out of sight (explored, not visible). */
+function veil(w: World, vis: Uint8Array, cx: number, cy: number, radius: number): void {
+  const r2 = radius * radius;
+  const x0 = Math.max(0, Math.floor(cx - radius));
+  const x1 = Math.min(w.width - 1, Math.ceil(cx + radius));
+  const y0 = Math.max(0, Math.floor(cy - radius));
+  const y1 = Math.min(w.height - 1, Math.ceil(cy + radius));
+  for (let ty = y0; ty <= y1; ty++)
+    for (let tx = x0; tx <= x1; tx++) {
+      const dx = tx + 0.5 - cx;
+      const dy = ty + 0.5 - cy;
+      if (dx * dx + dy * dy <= r2 && vis[ty * w.width + tx] === Vis.Visible) vis[ty * w.width + tx] = Vis.Explored;
+    }
+}
+
 function footprintVisible(w: World, f: Faction, b: { kind: BuildingKind; tx: number; ty: number }): boolean {
   const size = BUILDINGS[b.kind].size;
   for (let dy = 0; dy < size; dy++)
@@ -75,7 +91,7 @@ export function tickFog(w: World): void {
     for (let i = 0; i < fog.vis.length; i++)
       if (fog.vis[i] === Vis.Visible) fog.vis[i] = Vis.Explored;
     for (const u of w.units.values())
-      if (u.faction === f) stamp(w, fog.vis, u.x, u.y, UNITS[u.kind].sight);
+      if (u.faction === f) stamp(w, fog.vis, u.x, u.y, u.tsf ? UNITS[u.kind].sight + sightBonus(u) : UNITS[u.kind].sight);
     for (const b of w.buildings.values())
       if (b.faction === f) {
         const size = BUILDINGS[b.kind].size;
@@ -83,8 +99,13 @@ export function tickFog(w: World): void {
       }
     for (const l of w.objectives.uplinks)
       if (l.owner === f) stamp(w, fog.vis, l.x, l.y, OBJECTIVES.uplink.sight); // a held Uplink sees around it
+    const ns = w.nation;
+    // Ballon-sonde: its area is in sight (nations.ts)
+    if (ns) for (const z of ns.reveals) if (z.faction === f) stamp(w, fog.vis, z.x, z.y, z.radius);
     // Clear Skies mutator: everything is in sight for both sides
     if (rulesOf(w).fogOff) fog.vis.fill(Vis.Visible);
+    // Gaz de houille: the other side's clouds are not, whatever else sees there
+    if (ns) for (const z of ns.clouds) if (z.faction !== f) veil(w, fog.vis, z.x, z.y, z.radius);
     // memory: record enemy buildings whose footprint we can see now (a Gantry: always)
     for (const b of w.buildings.values())
       if (b.faction !== f && (BUILDINGS[b.kind].alwaysVisible || footprintVisible(w, f, b)))

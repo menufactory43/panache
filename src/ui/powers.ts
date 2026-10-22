@@ -52,14 +52,23 @@ const COLOR: Record<PowerKind, string> = {
   barrage: "#ffc93c",
   emp: "#7fe3ff",
   droppod: "#6eb0ff",
-  hammer: "#ff8a3c"
+  hammer: "#ff8a3c",
+  // the nations' powers (PANACHE-CONCEPTION.md §1.7; their panel is WP6)
+  sonde: "#e8e0c8",
+  curie: "#9fffd0",
+  gaz: "#b0b0a0",
+  pression: "#ff9c4a"
 };
 
 const ABOUT: Record<PowerKind, string> = {
   barrage: `${POWER_NAMES.barrage} : 3 salves tombent dans le cercle ${POWERS.barrage.telegraph} s après l'appel. Touche unités terrestres et bâtiments. Coût ${POWERS.barrage.cost}, recharge ${POWERS.barrage.cooldown} s.`,
   emp: `${POWER_NAMES.emp} : unités et bâtiments ennemis du cercle gelés ${POWERS.emp.stun} s (ni mouvement, ni tir, ni production). Coût ${POWERS.emp.cost}, recharge ${POWERS.emp.cooldown} s.`,
   droppod: `${POWER_NAMES.droppod} : 2 Panhard + un Faucheux atterrissent là où tu as la vue (2 Hydroglisseurs + Faucheux avec Polytechnique). Coût ${POWERS.droppod.cost}, recharge ${POWERS.droppod.cooldown} s.`,
-  hammer: `${POWER_NAMES.hammer} : l'obus tombe de la Lune après ${POWERS.hammer.telegraph} s d'alerte. Détruit les unités ; les bâtiments perdent ${POWERS.hammer.buildingDamage} PV. Dispo à ${POWERS.hammer.unlock / 60}:00, puis toutes les ${POWERS.hammer.cooldown / 60} min.`
+  hammer: `${POWER_NAMES.hammer} : l'obus tombe de la Lune après ${POWERS.hammer.telegraph} s d'alerte. Détruit les unités ; les bâtiments perdent ${POWERS.hammer.buildingDamage} PV. Dispo à ${POWERS.hammer.unlock / 60}:00, puis toutes les ${POWERS.hammer.cooldown / 60} min.`,
+  sonde: `${POWER_NAMES.sonde} : révèle la zone ${POWERS.sonde.duration} s, tireurs dissimulés compris. Coût ${POWERS.sonde.cost}, recharge ${POWERS.sonde.cooldown} s.`,
+  curie: `${POWER_NAMES.curie} : frappe tardive ; les bâtiments perdent ${POWERS.curie.buildingDamage} PV. Dispo à ${POWERS.curie.unlock / 60}:00, puis toutes les ${POWERS.curie.cooldown / 60} min.`,
+  gaz: `${POWER_NAMES.gaz} : un nuage de ${POWERS.gaz.duration} s où l'ennemi ne voit rien. Coût ${POWERS.gaz.cost}, recharge ${POWERS.gaz.cooldown} s.`,
+  pression: `${POWER_NAMES.pression} : véhicules impériaux plus rapides et plus cadencés ${POWERS.pression.duration} s, puis surchauffe ${POWERS.pression.overheat} s. Coût ${POWERS.pression.cost}, recharge ${POWERS.pression.cooldown} s.`
 };
 
 /** Inline icons (24×24, currentColor): crisp at any DPR, no emoji fonts needed. */
@@ -67,7 +76,12 @@ const ICON: Record<PowerKind, string> = {
   barrage: `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="15" r="6.5"/><path d="M12 11.5v7M8.5 15h7"/></g><g fill="currentColor"><path d="M5.2 1.5l2.6 0.3-1 5.2-1.4-0.2z"/><path d="M11 0.5h2.4l-0.4 5.6h-1.6z"/><path d="M16.6 1.8l2.6-0.3-0.3 5.3-1.5 0.2z"/></g></svg>`,
   emp: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.2"/><path fill="currentColor" d="M13.6 2.8 6.4 13.2h4.4l-1.6 8 7.4-10.6h-4.5z"/></svg>`,
   droppod: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.5c-3 0-4.6-2.6-4.6-6.2L8 4.5h8l.6 6.8c0 3.6-1.6 6.2-4.6 6.2z"/><path fill="currentColor" d="M7.4 3h9.2v2H7.4z" opacity=".7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M3 21.5h18M5 18.5l-1.5 2M19 18.5l1.5 2"/></svg>`,
-  hammer: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.3 0h3.4l-.6 13.5h-2.2z" opacity=".85"/><path fill="currentColor" d="M12 12.2l1.7 3.4 3.8-1.2-2.2 3.3 3.3 2.1-4-.1-.6 3.9-2-3.4-2 3.4-.6-3.9-4 .1 3.3-2.1-2.2-3.3 3.8 1.2z"/></svg>`
+  hammer: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.3 0h3.4l-.6 13.5h-2.2z" opacity=".85"/><path fill="currentColor" d="M12 12.2l1.7 3.4 3.8-1.2-2.2 3.3 3.3 2.1-4-.1-.6 3.9-2-3.4-2 3.4-.6-3.9-4 .1 3.3-2.1-2.2-3.3 3.8 1.2z"/></svg>`,
+  // (the nations' powers borrow the icon of the Classique power in their slot until WP6)
+  get sonde() { return ICON.emp; },
+  get curie() { return ICON.hammer; },
+  get gaz() { return ICON.barrage; },
+  get pression() { return ICON.droppod; }
 };
 
 /** "2× Éole + Blériot" */

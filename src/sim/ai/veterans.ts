@@ -1,6 +1,7 @@
 import { UNITS } from "../balance";
 import type { Command, Faction, Unit, World } from "../types";
 import { canGetWithin, dist, moveClassOf, onHomeLand } from "../world";
+import { behaves } from "./roles";
 
 /**
  * The AI values its veterans the way a player would: a ranked unit that is
@@ -23,9 +24,9 @@ export const VETERAN_RETREAT = {
 export function isWoundedVeteran(u: Unit): boolean {
   return (
     u.rank >= VETERAN_RETREAT.minRank &&
-    u.kind !== "mender" &&
-    u.kind !== "harvester" &&
-    u.kind !== "goliath" && // (its own planner backs it off: ai/goliath.ts)
+    !behaves(u.kind, "mender") &&
+    !behaves(u.kind, "harvester") &&
+    !behaves(u.kind, "goliath") && // (its own planner backs it off: ai/goliath.ts)
     u.hp < UNITS[u.kind].hp * VETERAN_RETREAT.hpFrac
   );
 }
@@ -46,7 +47,7 @@ export function veteranRetreats(
   w?: World
 ): Command[] {
   const cmds: Command[] = [];
-  const menders = army.filter((u) => u.kind === "mender");
+  const menders = army.filter((u) => behaves(u.kind, "mender"));
   const resting: Unit[] = [];
   for (const u of army) {
     // (already spoken for: e.g. dodging a reticle — it heads home once clear)

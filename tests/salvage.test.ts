@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { behaves } from "../src/sim/nations";
 import { createAiState, tickAi } from "../src/sim/ai/commander";
 import { planSalvage } from "../src/sim/ai/salvage";
 import { SALVAGE, TICK_RATE, UNITS } from "../src/sim/balance";
@@ -52,7 +53,8 @@ describe("wrecks", () => {
     expect(wreckValue("harvester")).toBe(0);
     // every other vehicle leaves a hull; robot infantry leave nothing either
     for (const k of Object.keys(UNITS) as UnitKind[])
-      if (k !== "harvester") expect(wreckValue(k) > 0).toBe(!isInfantry(k));
+      if (!behaves(k, "harvester")) expect(wreckValue(k) > 0).toBe(!isInfantry(k));
+    expect(wreckValue("fourgon")).toBe(0); // (a harvester by its base)
   });
 
   it("aircraft wrecks land where they die, nudged onto the nearest passable ground", () => {

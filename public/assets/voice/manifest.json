@@ -177,6 +177,22 @@
    "file": "obus-capsule-ennemi.mp3"
   },
   {
+   "key": "rayon curie en approche",
+   "text": "Rayon Curie en approche !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "rayon-curie-en-approche.mp3"
+  },
+  {
+   "key": "gaz de houille en approche",
+   "text": "Gaz de houille en approche !",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "gaz-de-houille-en-approche.mp3"
+  },
+  {
    "key": "carnage",
    "text": "Carnage",
    "tone": "epic",
@@ -215,6 +231,38 @@
    "part": "line",
    "core": false,
    "file": "obus-melies-carnage.mp3"
+  },
+  {
+   "key": "ballon sonde carnage",
+   "text": "Ballon-sonde : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "ballon-sonde-carnage.mp3"
+  },
+  {
+   "key": "rayon curie carnage",
+   "text": "Rayon Curie : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "rayon-curie-carnage.mp3"
+  },
+  {
+   "key": "gaz de houille carnage",
+   "text": "Gaz de houille : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "gaz-de-houille-carnage.mp3"
+  },
+  {
+   "key": "pression des chaudières carnage",
+   "text": "Pression des chaudières : carnage",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "pression-des-chaudieres-carnage.mp3"
   },
   {
    "key": "triplé",
@@ -257,6 +305,38 @@
    "file": "obus-melies-triple.mp3"
   },
   {
+   "key": "ballon sonde triplé",
+   "text": "Ballon-sonde : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ballon-sonde-triple.mp3"
+  },
+  {
+   "key": "rayon curie triplé",
+   "text": "Rayon Curie : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "rayon-curie-triple.mp3"
+  },
+  {
+   "key": "gaz de houille triplé",
+   "text": "Gaz de houille : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gaz-de-houille-triple.mp3"
+  },
+  {
+   "key": "pression des chaudières triplé",
+   "text": "Pression des chaudières : triplé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "pression-des-chaudieres-triple.mp3"
+  },
+  {
    "key": "doublé",
    "text": "Doublé",
    "tone": "good",
@@ -297,6 +377,38 @@
    "file": "obus-melies-double.mp3"
   },
   {
+   "key": "ballon sonde doublé",
+   "text": "Ballon-sonde : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ballon-sonde-double.mp3"
+  },
+  {
+   "key": "rayon curie doublé",
+   "text": "Rayon Curie : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "rayon-curie-double.mp3"
+  },
+  {
+   "key": "gaz de houille doublé",
+   "text": "Gaz de houille : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gaz-de-houille-double.mp3"
+  },
+  {
+   "key": "pression des chaudières doublé",
+   "text": "Pression des chaudières : doublé",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "pression-des-chaudieres-double.mp3"
+  },
+  {
    "key": "premier sang",
    "text": "Premier sang",
    "tone": "epic",
@@ -329,6 +441,22 @@
    "file": "forges-ennemies-detruites.mp3"
   },
   {
+   "key": "bâtiment perdu garage électrique jeantaud",
+   "text": "Bâtiment perdu : Garage électrique Jeantaud",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-garage-electrique-jeantaud.mp3"
+  },
+  {
+   "key": "garage électrique jeantaud ennemi détruit",
+   "text": "Garage électrique Jeantaud ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "garage-electrique-jeantaud-ennemi-detruit.mp3"
+  },
+  {
    "key": "bâtiment perdu parc de chalais meudon",
    "text": "Bâtiment perdu : Parc de Chalais-Meudon",
    "tone": "bad",
@@ -343,6 +471,22 @@
    "part": "line",
    "core": true,
    "file": "parc-de-chalais-meudon-ennemi-detruit.mp3"
+  },
+  {
+   "key": "bâtiment perdu aérodrome à vapeur",
+   "text": "Bâtiment perdu : Aérodrome à vapeur",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-aerodrome-a-vapeur.mp3"
+  },
+  {
+   "key": "aérodrome à vapeur ennemi détruit",
+   "text": "Aérodrome à vapeur ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "aerodrome-a-vapeur-ennemi-detruit.mp3"
   },
   {
    "key": "bâtiment perdu polytechnique",
@@ -361,6 +505,22 @@
    "file": "polytechnique-ennemie-detruite.mp3"
   },
   {
+   "key": "bâtiment perdu haut fourneau",
+   "text": "Bâtiment perdu : Haut-fourneau",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-haut-fourneau.mp3"
+  },
+  {
+   "key": "haut fourneau ennemi détruit",
+   "text": "Haut-fourneau ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "haut-fourneau-ennemi-detruit.mp3"
+  },
+  {
    "key": "bâtiment perdu halles",
    "text": "Bâtiment perdu : Halles",
    "tone": "bad",
@@ -375,6 +535,22 @@
    "part": "line",
    "core": true,
    "file": "halles-ennemies-detruites.mp3"
+  },
+  {
+   "key": "bâtiment perdu station de charge",
+   "text": "Bâtiment perdu : Station de charge",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-station-de-charge.mp3"
+  },
+  {
+   "key": "station de charge ennemie détruite",
+   "text": "Station de charge ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "station-de-charge-ennemie-detruite.mp3"
   },
   {
    "key": "bâtiment perdu hotchkiss",
@@ -425,6 +601,22 @@
    "file": "tour-tsf-ennemie-detruite.mp3"
   },
   {
+   "key": "bâtiment perdu ballon captif",
+   "text": "Bâtiment perdu : Ballon captif",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-ballon-captif.mp3"
+  },
+  {
+   "key": "ballon captif ennemi détruit",
+   "text": "Ballon captif ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ballon-captif-ennemi-detruit.mp3"
+  },
+  {
    "key": "bâtiment perdu manufacture",
    "text": "Bâtiment perdu : Manufacture",
    "tone": "bad",
@@ -441,6 +633,22 @@
    "file": "manufacture-ennemie-detruite.mp3"
   },
   {
+   "key": "bâtiment perdu caserne atelier",
+   "text": "Bâtiment perdu : Caserne-atelier",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-caserne-atelier.mp3"
+  },
+  {
+   "key": "caserne atelier ennemie détruite",
+   "text": "Caserne-atelier ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "caserne-atelier-ennemie-detruite.mp3"
+  },
+  {
    "key": "bâtiment perdu galerie des machines",
    "text": "Bâtiment perdu : Galerie des Machines",
    "tone": "bad",
@@ -455,6 +663,54 @@
    "part": "line",
    "core": true,
    "file": "galerie-des-machines-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu hangar du zénith",
+   "text": "Bâtiment perdu : Hangar du Zénith",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "batiment-perdu-hangar-du-zenith.mp3"
+  },
+  {
+   "key": "hangar du zénith ennemi détruit",
+   "text": "Hangar du Zénith ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "hangar-du-zenith-ennemi-detruit.mp3"
+  },
+  {
+   "key": "bâtiment perdu bobine d arsonval",
+   "text": "Bâtiment perdu : Bobine d'Arsonval",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-bobine-d-arsonval.mp3"
+  },
+  {
+   "key": "bobine d arsonval ennemie détruite",
+   "text": "Bobine d'Arsonval ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "bobine-d-arsonval-ennemie-detruite.mp3"
+  },
+  {
+   "key": "bâtiment perdu batterie de 47",
+   "text": "Bâtiment perdu : Batterie de 47",
+   "tone": "bad",
+   "part": "line",
+   "core": true,
+   "file": "batiment-perdu-batterie-de-47.mp3"
+  },
+  {
+   "key": "batterie de 47 ennemie détruite",
+   "text": "Batterie de 47 ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": true,
+   "file": "batterie-de-47-ennemie-detruite.mp3"
   },
   {
    "key": "fardier ennemi détruit",
@@ -921,6 +1177,486 @@
    "file": "montgolfiere-veterane-perdue.mp3"
   },
   {
+   "key": "fourgon jeantaud ennemi détruit",
+   "text": "Fourgon Jeantaud ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "fourgon-jeantaud-ennemi-detruit.mp3"
+  },
+  {
+   "key": "fourgon jeantaud d élite ennemi détruit",
+   "text": "Fourgon Jeantaud d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "fourgon-jeantaud-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "fourgon jeantaud perdu",
+   "text": "Fourgon Jeantaud perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "fourgon-jeantaud-perdu.mp3"
+  },
+  {
+   "key": "fourgon jeantaud vétéran perdu",
+   "text": "Fourgon Jeantaud vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "fourgon-jeantaud-veteran-perdu.mp3"
+  },
+  {
+   "key": "jamais contente ennemie détruite",
+   "text": "Jamais-Contente ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "jamais-contente-ennemie-detruite.mp3"
+  },
+  {
+   "key": "jamais contente d élite ennemie détruite",
+   "text": "Jamais-Contente d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "jamais-contente-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "jamais contente perdue",
+   "text": "Jamais-Contente perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "jamais-contente-perdue.mp3"
+  },
+  {
+   "key": "jamais contente vétérane perdue",
+   "text": "Jamais-Contente vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "jamais-contente-veterane-perdue.mp3"
+  },
+  {
+   "key": "autocanon de dion ennemi détruit",
+   "text": "Autocanon De Dion ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "autocanon-de-dion-ennemi-detruit.mp3"
+  },
+  {
+   "key": "autocanon de dion d élite ennemi détruit",
+   "text": "Autocanon De Dion d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "autocanon-de-dion-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "autocanon de dion perdu",
+   "text": "Autocanon De Dion perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "autocanon-de-dion-perdu.mp3"
+  },
+  {
+   "key": "autocanon de dion vétéran perdu",
+   "text": "Autocanon De Dion vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "autocanon-de-dion-veteran-perdu.mp3"
+  },
+  {
+   "key": "canon branly ennemi détruit",
+   "text": "Canon Branly ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "canon-branly-ennemi-detruit.mp3"
+  },
+  {
+   "key": "canon branly d élite ennemi détruit",
+   "text": "Canon Branly d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "canon-branly-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "canon branly perdu",
+   "text": "Canon Branly perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "canon-branly-perdu.mp3"
+  },
+  {
+   "key": "canon branly vétéran perdu",
+   "text": "Canon Branly vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "canon-branly-veteran-perdu.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens ennemie détruite",
+   "text": "Escouade de sapeurs-électriciens ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens d élite ennemie détruite",
+   "text": "Escouade de sapeurs-électriciens d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens perdue",
+   "text": "Escouade de sapeurs-électriciens perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens-perdue.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens vétérane perdue",
+   "text": "Escouade de sapeurs-électriciens vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens-veterane-perdue.mp3"
+  },
+  {
+   "key": "zénith ennemi détruit",
+   "text": "Zénith ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-detruit.mp3"
+  },
+  {
+   "key": "zénith d élite ennemi détruit",
+   "text": "Zénith d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "zénith perdu",
+   "text": "Zénith perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-perdu.mp3"
+  },
+  {
+   "key": "zénith vétéran perdu",
+   "text": "Zénith vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-veteran-perdu.mp3"
+  },
+  {
+   "key": "estafette ennemie détruite",
+   "text": "Estafette ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "estafette-ennemie-detruite.mp3"
+  },
+  {
+   "key": "estafette d élite ennemie détruite",
+   "text": "Estafette d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "estafette-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "estafette perdue",
+   "text": "Estafette perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "estafette-perdue.mp3"
+  },
+  {
+   "key": "estafette vétérane perdue",
+   "text": "Estafette vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "estafette-veterane-perdue.mp3"
+  },
+  {
+   "key": "mortier de 280 ennemi détruit",
+   "text": "Mortier de 280 ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "mortier-de-280-ennemi-detruit.mp3"
+  },
+  {
+   "key": "mortier de 280 d élite ennemi détruit",
+   "text": "Mortier de 280 d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "mortier-de-280-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "mortier de 280 perdu",
+   "text": "Mortier de 280 perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "mortier-de-280-perdu.mp3"
+  },
+  {
+   "key": "mortier de 280 vétéran perdu",
+   "text": "Mortier de 280 vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "mortier-de-280-veteran-perdu.mp3"
+  },
+  {
+   "key": "gyroptère ennemi détruit",
+   "text": "Gyroptère ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gyroptere-ennemi-detruit.mp3"
+  },
+  {
+   "key": "gyroptère d élite ennemi détruit",
+   "text": "Gyroptère d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "gyroptere-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "gyroptère perdu",
+   "text": "Gyroptère perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gyroptere-perdu.mp3"
+  },
+  {
+   "key": "gyroptère vétéran perdu",
+   "text": "Gyroptère vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "gyroptere-veteran-perdu.mp3"
+  },
+  {
+   "key": "épervier ennemi détruit",
+   "text": "Épervier ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "epervier-ennemi-detruit.mp3"
+  },
+  {
+   "key": "épervier d élite ennemi détruit",
+   "text": "Épervier d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "epervier-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "épervier perdu",
+   "text": "Épervier perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "epervier-perdu.mp3"
+  },
+  {
+   "key": "épervier vétéran perdu",
+   "text": "Épervier vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "epervier-veteran-perdu.mp3"
+  },
+  {
+   "key": "vulcain ennemi détruit",
+   "text": "Vulcain ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vulcain-ennemi-detruit.mp3"
+  },
+  {
+   "key": "vulcain d élite ennemi détruit",
+   "text": "Vulcain d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "vulcain-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "vulcain perdu",
+   "text": "Vulcain perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "vulcain-perdu.mp3"
+  },
+  {
+   "key": "vulcain vétéran perdu",
+   "text": "Vulcain vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "vulcain-veteran-perdu.mp3"
+  },
+  {
+   "key": "atelier roulant ennemi détruit",
+   "text": "Atelier roulant ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "atelier-roulant-ennemi-detruit.mp3"
+  },
+  {
+   "key": "atelier roulant d élite ennemi détruit",
+   "text": "Atelier roulant d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "atelier-roulant-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "atelier roulant perdu",
+   "text": "Atelier roulant perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "atelier-roulant-perdu.mp3"
+  },
+  {
+   "key": "atelier roulant vétéran perdu",
+   "text": "Atelier roulant vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "atelier-roulant-veteran-perdu.mp3"
+  },
+  {
+   "key": "escouade de fusiliers ennemie détruite",
+   "text": "Escouade de fusiliers ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-fusiliers-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de fusiliers d élite ennemie détruite",
+   "text": "Escouade de fusiliers d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-fusiliers-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "escouade de fusiliers perdue",
+   "text": "Escouade de fusiliers perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-fusiliers-perdue.mp3"
+  },
+  {
+   "key": "escouade de fusiliers vétérane perdue",
+   "text": "Escouade de fusiliers vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "escouade-de-fusiliers-veterane-perdue.mp3"
+  },
+  {
+   "key": "section de carabiniers ennemie détruite",
+   "text": "Section de carabiniers ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "section-de-carabiniers-ennemie-detruite.mp3"
+  },
+  {
+   "key": "section de carabiniers d élite ennemie détruite",
+   "text": "Section de carabiniers d'élite ennemie détruite",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "section-de-carabiniers-d-elite-ennemie-detruite.mp3"
+  },
+  {
+   "key": "section de carabiniers perdue",
+   "text": "Section de carabiniers perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "section-de-carabiniers-perdue.mp3"
+  },
+  {
+   "key": "section de carabiniers vétérane perdue",
+   "text": "Section de carabiniers vétérane perdue",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "section-de-carabiniers-veterane-perdue.mp3"
+  },
+  {
+   "key": "titan ennemi détruit",
+   "text": "Titan ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "titan-ennemi-detruit.mp3"
+  },
+  {
+   "key": "titan d élite ennemi détruit",
+   "text": "Titan d'élite ennemi détruit",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "titan-d-elite-ennemi-detruit.mp3"
+  },
+  {
+   "key": "titan perdu",
+   "text": "Titan perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "titan-perdu.mp3"
+  },
+  {
+   "key": "titan vétéran perdu",
+   "text": "Titan vétéran perdu",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "titan-veteran-perdu.mp3"
+  },
+  {
    "key": "notre gqg est tombé",
    "text": "Notre GQG est tombé",
    "tone": "bad",
@@ -935,6 +1671,78 @@
    "part": "line",
    "core": true,
    "file": "gqg-ennemi-detruit.mp3"
+  },
+  {
+   "key": "alerte notre citadelle est attaquée",
+   "text": "Alerte : notre Citadelle est attaquée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "alerte-notre-citadelle-est-attaquee.mp3"
+  },
+  {
+   "key": "notre citadelle est tombée",
+   "text": "Notre Citadelle est tombée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "notre-citadelle-est-tombee.mp3"
+  },
+  {
+   "key": "citadelle ennemie détruite",
+   "text": "Citadelle ennemie détruite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-ennemie-detruite.mp3"
+  },
+  {
+   "key": "citadelle ennemie détruite victoire",
+   "text": "Citadelle ennemie détruite. Victoire !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-ennemie-detruite-victoire.mp3"
+  },
+  {
+   "key": "notre citadelle est tombée mission échouée",
+   "text": "Notre Citadelle est tombée. Mission échouée.",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "notre-citadelle-est-tombee-mission-echouee.mp3"
+  },
+  {
+   "key": "citadelle bleu attaquée",
+   "text": "Citadelle Bleu attaquée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-bleu-attaquee.mp3"
+  },
+  {
+   "key": "citadelle bleu détruite",
+   "text": "Citadelle Bleu détruite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-bleu-detruite.mp3"
+  },
+  {
+   "key": "citadelle rouge attaquée",
+   "text": "Citadelle Rouge attaquée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-rouge-attaquee.mp3"
+  },
+  {
+   "key": "citadelle rouge détruite",
+   "text": "Citadelle Rouge détruite",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "citadelle-rouge-detruite.mp3"
   },
   {
    "key": "gargantua ennemi détruit",
@@ -1105,6 +1913,54 @@
    "file": "gargantua-rouge-mortiers-hors-service.mp3"
   },
   {
+   "key": "zénith canons branly hors ligne",
+   "text": "Zénith : canons Branly hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-canons-branly-hors-ligne.mp3"
+  },
+  {
+   "key": "zénith canons branly de nouveau en ligne",
+   "text": "Zénith : canons Branly de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-canons-branly-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith ennemi canons branly hors service",
+   "text": "Zénith ennemi : canons Branly hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-canons-branly-hors-service.mp3"
+  },
+  {
+   "key": "zénith ennemi canons branly de nouveau en ligne",
+   "text": "Zénith ennemi : canons Branly de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-canons-branly-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith bleu canons branly hors service",
+   "text": "Zénith Bleu : canons Branly hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-canons-branly-hors-service.mp3"
+  },
+  {
+   "key": "zénith rouge canons branly hors service",
+   "text": "Zénith Rouge : canons Branly hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-canons-branly-hors-service.mp3"
+  },
+  {
    "key": "gargantua arc électrique hors ligne",
    "text": "Gargantua : arc électrique hors ligne",
    "tone": "bad",
@@ -1153,6 +2009,54 @@
    "file": "gargantua-rouge-arc-electrique-hors-service.mp3"
   },
   {
+   "key": "zénith arc de proue hors ligne",
+   "text": "Zénith : arc de proue hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-arc-de-proue-hors-ligne.mp3"
+  },
+  {
+   "key": "zénith arc de proue de nouveau en ligne",
+   "text": "Zénith : arc de proue de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-arc-de-proue-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith ennemi arc de proue hors service",
+   "text": "Zénith ennemi : arc de proue hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-arc-de-proue-hors-service.mp3"
+  },
+  {
+   "key": "zénith ennemi arc de proue de nouveau en ligne",
+   "text": "Zénith ennemi : arc de proue de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-arc-de-proue-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith bleu arc de proue hors service",
+   "text": "Zénith Bleu : arc de proue hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-arc-de-proue-hors-service.mp3"
+  },
+  {
+   "key": "zénith rouge arc de proue hors service",
+   "text": "Zénith Rouge : arc de proue hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-arc-de-proue-hors-service.mp3"
+  },
+  {
    "key": "gargantua canons hors ligne",
    "text": "Gargantua : canons hors ligne",
    "tone": "bad",
@@ -1199,6 +2103,54 @@
    "part": "line",
    "core": false,
    "file": "gargantua-rouge-canons-hors-service.mp3"
+  },
+  {
+   "key": "zénith soute à bombes hors ligne",
+   "text": "Zénith : soute à bombes hors ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-soute-a-bombes-hors-ligne.mp3"
+  },
+  {
+   "key": "zénith soute à bombes de nouveau en ligne",
+   "text": "Zénith : soute à bombes de nouveau en ligne",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-soute-a-bombes-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith ennemi soute à bombes hors service",
+   "text": "Zénith ennemi : soute à bombes hors service !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-soute-a-bombes-hors-service.mp3"
+  },
+  {
+   "key": "zénith ennemi soute à bombes de nouveau en ligne",
+   "text": "Zénith ennemi : soute à bombes de nouveau en ligne",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-soute-a-bombes-de-nouveau-en-ligne.mp3"
+  },
+  {
+   "key": "zénith bleu soute à bombes hors service",
+   "text": "Zénith Bleu : soute à bombes hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-soute-a-bombes-hors-service.mp3"
+  },
+  {
+   "key": "zénith rouge soute à bombes hors service",
+   "text": "Zénith Rouge : soute à bombes hors service",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-soute-a-bombes-hors-service.mp3"
   },
   {
    "key": "mortiers et arc électrique",
@@ -1295,6 +2247,102 @@
    "part": "mid",
    "core": false,
    "file": "canons-arc-electrique-et-mortiers.mp3"
+  },
+  {
+   "key": "canons branly et arc de proue",
+   "text": "canons Branly et arc de proue",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-branly-et-arc-de-proue.mp3"
+  },
+  {
+   "key": "canons branly arc de proue et soute à bombes",
+   "text": "canons Branly, arc de proue et soute à bombes",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-branly-arc-de-proue-et-soute-a-bombes.mp3"
+  },
+  {
+   "key": "canons branly et soute à bombes",
+   "text": "canons Branly et soute à bombes",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-branly-et-soute-a-bombes.mp3"
+  },
+  {
+   "key": "canons branly soute à bombes et arc de proue",
+   "text": "canons Branly, soute à bombes et arc de proue",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "canons-branly-soute-a-bombes-et-arc-de-proue.mp3"
+  },
+  {
+   "key": "arc de proue et canons branly",
+   "text": "arc de proue et canons Branly",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-de-proue-et-canons-branly.mp3"
+  },
+  {
+   "key": "arc de proue canons branly et soute à bombes",
+   "text": "arc de proue, canons Branly et soute à bombes",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-de-proue-canons-branly-et-soute-a-bombes.mp3"
+  },
+  {
+   "key": "arc de proue et soute à bombes",
+   "text": "arc de proue et soute à bombes",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-de-proue-et-soute-a-bombes.mp3"
+  },
+  {
+   "key": "arc de proue soute à bombes et canons branly",
+   "text": "arc de proue, soute à bombes et canons Branly",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "arc-de-proue-soute-a-bombes-et-canons-branly.mp3"
+  },
+  {
+   "key": "soute à bombes et canons branly",
+   "text": "soute à bombes et canons Branly",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "soute-a-bombes-et-canons-branly.mp3"
+  },
+  {
+   "key": "soute à bombes canons branly et arc de proue",
+   "text": "soute à bombes, canons Branly et arc de proue",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "soute-a-bombes-canons-branly-et-arc-de-proue.mp3"
+  },
+  {
+   "key": "soute à bombes et arc de proue",
+   "text": "soute à bombes et arc de proue",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "soute-a-bombes-et-arc-de-proue.mp3"
+  },
+  {
+   "key": "soute à bombes arc de proue et canons branly",
+   "text": "soute à bombes, arc de proue et canons Branly",
+   "tone": "info",
+   "part": "mid",
+   "core": false,
+   "file": "soute-a-bombes-arc-de-proue-et-canons-branly.mp3"
   },
   {
    "key": "gargantua",
@@ -1447,6 +2495,38 @@
    "part": "tail",
    "core": false,
    "file": "par-l-obus-melies.mp3"
+  },
+  {
+   "key": "par un ballon sonde",
+   "text": "par un Ballon-sonde",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-un-ballon-sonde.mp3"
+  },
+  {
+   "key": "par le rayon curie",
+   "text": "par le Rayon Curie",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-le-rayon-curie.mp3"
+  },
+  {
+   "key": "par le gaz de houille",
+   "text": "par le Gaz de houille",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-le-gaz-de-houille.mp3"
+  },
+  {
+   "key": "par la pression des chaudières",
+   "text": "par la Pression des chaudières",
+   "tone": "good",
+   "part": "tail",
+   "core": false,
+   "file": "par-la-pression-des-chaudieres.mp3"
   },
   {
    "key": "gqg bleu attaqué",
@@ -2081,12 +3161,260 @@
    "file": "montgolfiere-d-elite.mp3"
   },
   {
+   "key": "fourgon jeantaud",
+   "text": "Fourgon Jeantaud",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "fourgon-jeantaud.mp3"
+  },
+  {
+   "key": "fourgon jeantaud d élite",
+   "text": "Fourgon Jeantaud d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "fourgon-jeantaud-d-elite.mp3"
+  },
+  {
+   "key": "jamais contente",
+   "text": "Jamais-Contente",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "jamais-contente.mp3"
+  },
+  {
+   "key": "jamais contente d élite",
+   "text": "Jamais-Contente d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "jamais-contente-d-elite.mp3"
+  },
+  {
+   "key": "autocanon de dion",
+   "text": "Autocanon De Dion",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "autocanon-de-dion.mp3"
+  },
+  {
+   "key": "autocanon de dion d élite",
+   "text": "Autocanon De Dion d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "autocanon-de-dion-d-elite.mp3"
+  },
+  {
+   "key": "canon branly",
+   "text": "Canon Branly",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "canon-branly.mp3"
+  },
+  {
+   "key": "canon branly d élite",
+   "text": "Canon Branly d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "canon-branly-d-elite.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens",
+   "text": "Escouade de sapeurs-électriciens",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens.mp3"
+  },
+  {
+   "key": "escouade de sapeurs électriciens d élite",
+   "text": "Escouade de sapeurs-électriciens d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-sapeurs-electriciens-d-elite.mp3"
+  },
+  {
+   "key": "zénith",
+   "text": "Zénith",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "zenith.mp3"
+  },
+  {
+   "key": "zénith d élite",
+   "text": "Zénith d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "zenith-d-elite.mp3"
+  },
+  {
+   "key": "estafette",
+   "text": "Estafette",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "estafette.mp3"
+  },
+  {
+   "key": "estafette d élite",
+   "text": "Estafette d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "estafette-d-elite.mp3"
+  },
+  {
+   "key": "mortier de 280",
+   "text": "Mortier de 280",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "mortier-de-280.mp3"
+  },
+  {
+   "key": "mortier de 280 d élite",
+   "text": "Mortier de 280 d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "mortier-de-280-d-elite.mp3"
+  },
+  {
+   "key": "gyroptère",
+   "text": "Gyroptère",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gyroptere.mp3"
+  },
+  {
+   "key": "gyroptère d élite",
+   "text": "Gyroptère d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "gyroptere-d-elite.mp3"
+  },
+  {
+   "key": "épervier",
+   "text": "Épervier",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "epervier.mp3"
+  },
+  {
+   "key": "épervier d élite",
+   "text": "Épervier d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "epervier-d-elite.mp3"
+  },
+  {
+   "key": "vulcain",
+   "text": "Vulcain",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "vulcain.mp3"
+  },
+  {
+   "key": "vulcain d élite",
+   "text": "Vulcain d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "vulcain-d-elite.mp3"
+  },
+  {
+   "key": "atelier roulant",
+   "text": "Atelier roulant",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "atelier-roulant.mp3"
+  },
+  {
+   "key": "atelier roulant d élite",
+   "text": "Atelier roulant d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "atelier-roulant-d-elite.mp3"
+  },
+  {
+   "key": "escouade de fusiliers",
+   "text": "Escouade de fusiliers",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-fusiliers.mp3"
+  },
+  {
+   "key": "escouade de fusiliers d élite",
+   "text": "Escouade de fusiliers d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "escouade-de-fusiliers-d-elite.mp3"
+  },
+  {
+   "key": "section de carabiniers",
+   "text": "Section de carabiniers",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "section-de-carabiniers.mp3"
+  },
+  {
+   "key": "section de carabiniers d élite",
+   "text": "Section de carabiniers d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "section-de-carabiniers-d-elite.mp3"
+  },
+  {
+   "key": "titan",
+   "text": "Titan",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "titan.mp3"
+  },
+  {
+   "key": "titan d élite",
+   "text": "Titan d'élite",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "titan-d-elite.mp3"
+  },
+  {
    "key": "forges",
    "text": "Forges",
    "tone": "info",
    "part": "head",
    "core": false,
    "file": "forges.mp3"
+  },
+  {
+   "key": "garage électrique jeantaud",
+   "text": "Garage électrique Jeantaud",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "garage-electrique-jeantaud.mp3"
   },
   {
    "key": "parc de chalais meudon",
@@ -2097,6 +3425,14 @@
    "file": "parc-de-chalais-meudon.mp3"
   },
   {
+   "key": "aérodrome à vapeur",
+   "text": "Aérodrome à vapeur",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "aerodrome-a-vapeur.mp3"
+  },
+  {
    "key": "polytechnique",
    "text": "Polytechnique",
    "tone": "info",
@@ -2105,12 +3441,28 @@
    "file": "polytechnique.mp3"
   },
   {
+   "key": "haut fourneau",
+   "text": "Haut-fourneau",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "haut-fourneau.mp3"
+  },
+  {
    "key": "halles",
    "text": "Halles",
    "tone": "info",
    "part": "head",
    "core": false,
    "file": "halles.mp3"
+  },
+  {
+   "key": "station de charge",
+   "text": "Station de charge",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "station-de-charge.mp3"
   },
   {
    "key": "hotchkiss",
@@ -2137,6 +3489,14 @@
    "file": "tour-tsf.mp3"
   },
   {
+   "key": "ballon captif",
+   "text": "Ballon captif",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "ballon-captif.mp3"
+  },
+  {
    "key": "manufacture",
    "text": "Manufacture",
    "tone": "info",
@@ -2145,12 +3505,44 @@
    "file": "manufacture.mp3"
   },
   {
+   "key": "caserne atelier",
+   "text": "Caserne-atelier",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "caserne-atelier.mp3"
+  },
+  {
    "key": "galerie des machines",
    "text": "Galerie des Machines",
    "tone": "info",
    "part": "head",
    "core": false,
    "file": "galerie-des-machines.mp3"
+  },
+  {
+   "key": "hangar du zénith",
+   "text": "Hangar du Zénith",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "hangar-du-zenith.mp3"
+  },
+  {
+   "key": "bobine d arsonval",
+   "text": "Bobine d'Arsonval",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "bobine-d-arsonval.mp3"
+  },
+  {
+   "key": "batterie de 47",
+   "text": "Batterie de 47",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "batterie-de-47.mp3"
   },
   {
    "key": "détruit",
@@ -2345,44 +3737,28 @@
    "file": "tete-de-pont.mp3"
   },
   {
-   "key": "lune des moissons",
-   "text": "Lune des moissons",
+   "key": "la caravane du radium",
+   "text": "La Caravane du radium",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "lune-des-moissons.mp3"
+   "file": "la-caravane-du-radium.mp3"
   },
   {
-   "key": "décapitation",
-   "text": "Décapitation",
+   "key": "les côtes de granit",
+   "text": "Les Côtes de granit",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "decapitation.mp3"
+   "file": "les-cotes-de-granit.mp3"
   },
   {
-   "key": "avoirs gelés",
-   "text": "Avoirs gelés",
+   "key": "pendant ce temps en carbonie",
+   "text": "Pendant ce temps, en Carbonie",
    "tone": "info",
    "part": "line",
    "core": false,
-   "file": "avoirs-geles.mp3"
-  },
-  {
-   "key": "pirates du ciel",
-   "text": "Pirates du ciel",
-   "tone": "info",
-   "part": "line",
-   "core": false,
-   "file": "pirates-du-ciel.mp3"
-  },
-  {
-   "key": "mâchoire de verre",
-   "text": "Mâchoire de verre",
-   "tone": "info",
-   "part": "line",
-   "core": false,
-   "file": "machoire-de-verre.mp3"
+   "file": "pendant-ce-temps-en-carbonie.mp3"
   },
   {
    "key": "marée d acier",
@@ -2393,12 +3769,76 @@
    "file": "maree-d-acier.mp3"
   },
   {
+   "key": "avoirs gelés",
+   "text": "Avoirs gelés",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "avoirs-geles.mp3"
+  },
+  {
+   "key": "le col des aigles",
+   "text": "Le Col des Aigles",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "le-col-des-aigles.mp3"
+  },
+  {
+   "key": "pirates du ciel",
+   "text": "Pirates du ciel",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "pirates-du-ciel.mp3"
+  },
+  {
+   "key": "l orage de radium",
+   "text": "L'Orage de radium",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "l-orage-de-radium.mp3"
+  },
+  {
+   "key": "décapitation",
+   "text": "Décapitation",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "decapitation.mp3"
+  },
+  {
    "key": "dernière lueur",
    "text": "Dernière lueur",
    "tone": "info",
    "part": "line",
    "core": false,
    "file": "derniere-lueur.mp3"
+  },
+  {
+   "key": "la dame de fer",
+   "text": "La Dame de fer",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "la-dame-de-fer.mp3"
+  },
+  {
+   "key": "lune des moissons",
+   "text": "Lune des moissons",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "lune-des-moissons.mp3"
+  },
+  {
+   "key": "mâchoire de verre",
+   "text": "Mâchoire de verre",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "machoire-de-verre.mp3"
   },
   {
    "key": "tiens encore une minute",
@@ -2431,6 +3871,38 @@
    "part": "line",
    "core": false,
    "file": "op-echouee.mp3"
+  },
+  {
+   "key": "mission réussie",
+   "text": "Mission réussie",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "mission-reussie.mp3"
+  },
+  {
+   "key": "mission échouée",
+   "text": "Mission échouée",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "mission-echouee.mp3"
+  },
+  {
+   "key": "ferrand l a fini",
+   "text": "Ferrand l'a fini !",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "ferrand-l-a-fini.mp3"
+  },
+  {
+   "key": "le colosse se met en marche",
+   "text": "Le Colosse se met en marche !",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "le-colosse-se-met-en-marche.mp3"
   },
   {
    "key": "raid aérien",
@@ -3287,6 +4759,270 @@
    "part": "line",
    "core": true,
    "file": "double-abandon.mp3"
+  },
+  {
+   "key": "notre zénith est attaqué",
+   "text": "Notre Zénith est attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "notre-zenith-est-attaque.mp3"
+  },
+  {
+   "key": "zénith ennemi en production",
+   "text": "Zénith ennemi en production",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-en-production.mp3"
+  },
+  {
+   "key": "zénith ennemi presque terminé",
+   "text": "Zénith ennemi presque terminé",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-presque-termine.mp3"
+  },
+  {
+   "key": "zénith prêt",
+   "text": "Zénith prêt",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-pret.mp3"
+  },
+  {
+   "key": "zénith ennemi sur le terrain",
+   "text": "Zénith ennemi sur le terrain",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-sur-le-terrain.mp3"
+  },
+  {
+   "key": "zénith amarré",
+   "text": "Zénith amarré",
+   "tone": "good",
+   "part": "line",
+   "core": false,
+   "file": "zenith-amarre.mp3"
+  },
+  {
+   "key": "zénith ennemi en amarrage",
+   "text": "Zénith ennemi en amarrage",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-en-amarrage.mp3"
+  },
+  {
+   "key": "zénith ennemi largue les amarres",
+   "text": "Zénith ennemi largue les amarres",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-largue-les-amarres.mp3"
+  },
+  {
+   "key": "zénith ennemi",
+   "text": "Zénith ennemi :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "zenith-ennemi.mp3"
+  },
+  {
+   "key": "zénith bleu",
+   "text": "Zénith Bleu :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "zenith-bleu.mp3"
+  },
+  {
+   "key": "zénith rouge",
+   "text": "Zénith Rouge :",
+   "tone": "info",
+   "part": "head",
+   "core": false,
+   "file": "zenith-rouge.mp3"
+  },
+  {
+   "key": "dernier zénith ennemi détruit victoire",
+   "text": "Dernier Zénith ennemi détruit. Victoire !",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "dernier-zenith-ennemi-detruit-victoire.mp3"
+  },
+  {
+   "key": "notre dernier zénith est tombé mission échouée",
+   "text": "Notre dernier Zénith est tombé. Mission échouée.",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "notre-dernier-zenith-est-tombe-mission-echouee.mp3"
+  },
+  {
+   "key": "zénith bleu attaqué",
+   "text": "Zénith Bleu attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-attaque.mp3"
+  },
+  {
+   "key": "zénith bleu en production",
+   "text": "Zénith Bleu en production",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-en-production.mp3"
+  },
+  {
+   "key": "zénith bleu presque terminé",
+   "text": "Zénith Bleu presque terminé",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-presque-termine.mp3"
+  },
+  {
+   "key": "zénith bleu sur le terrain",
+   "text": "Zénith Bleu sur le terrain",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-sur-le-terrain.mp3"
+  },
+  {
+   "key": "zénith bleu en amarrage",
+   "text": "Zénith Bleu en amarrage",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-en-amarrage.mp3"
+  },
+  {
+   "key": "dernier zénith bleu détruit",
+   "text": "Dernier Zénith Bleu détruit.",
+   "tone": "epic",
+   "part": "head",
+   "core": false,
+   "file": "dernier-zenith-bleu-detruit.mp3"
+  },
+  {
+   "key": "zénith bleu abattu",
+   "text": "Zénith Bleu abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-abattu.mp3"
+  },
+  {
+   "key": "zénith d élite bleu abattu",
+   "text": "Zénith d'élite Bleu abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-d-elite-bleu-abattu.mp3"
+  },
+  {
+   "key": "zénith rouge attaqué",
+   "text": "Zénith Rouge attaqué",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-attaque.mp3"
+  },
+  {
+   "key": "zénith rouge en production",
+   "text": "Zénith Rouge en production",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-en-production.mp3"
+  },
+  {
+   "key": "zénith rouge presque terminé",
+   "text": "Zénith Rouge presque terminé",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-presque-termine.mp3"
+  },
+  {
+   "key": "zénith rouge sur le terrain",
+   "text": "Zénith Rouge sur le terrain",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-sur-le-terrain.mp3"
+  },
+  {
+   "key": "zénith rouge en amarrage",
+   "text": "Zénith Rouge en amarrage",
+   "tone": "info",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-en-amarrage.mp3"
+  },
+  {
+   "key": "dernier zénith rouge détruit",
+   "text": "Dernier Zénith Rouge détruit.",
+   "tone": "epic",
+   "part": "head",
+   "core": false,
+   "file": "dernier-zenith-rouge-detruit.mp3"
+  },
+  {
+   "key": "zénith rouge abattu",
+   "text": "Zénith Rouge abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-abattu.mp3"
+  },
+  {
+   "key": "zénith d élite rouge abattu",
+   "text": "Zénith d'élite Rouge abattu",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-d-elite-rouge-abattu.mp3"
+  },
+  {
+   "key": "zénith ennemi en approche",
+   "text": "Zénith ennemi en approche",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "zenith-ennemi-en-approche.mp3"
+  },
+  {
+   "key": "zénith rouge détruit",
+   "text": "Zénith Rouge détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-rouge-detruit.mp3"
+  },
+  {
+   "key": "notre dernier zénith est tombé",
+   "text": "Notre dernier Zénith est tombé",
+   "tone": "bad",
+   "part": "line",
+   "core": false,
+   "file": "notre-dernier-zenith-est-tombe.mp3"
+  },
+  {
+   "key": "zénith bleu détruit",
+   "text": "Zénith Bleu détruit",
+   "tone": "epic",
+   "part": "line",
+   "core": false,
+   "file": "zenith-bleu-detruit.mp3"
   }
  ]
 }

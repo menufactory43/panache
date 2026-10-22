@@ -3,13 +3,15 @@ import { BELLE_EPOQUE } from "./game/three/theme";
 import { DIFFICULTY, type Difficulty } from "./sim/ai/commander";
 import { MAPS, isKnownMapId, mapById } from "./sim/maps";
 import { BIOMES, RANDOM_MAP_SIZE, RANDOM_PREFIX, isRandomMapId, parseRandomMapId, randomMapId, rollRandomMapId, seedCode, seedFromText } from "./sim/mapgen";
-import type { Biome } from "./sim/types";
+import type { Biome, NationOrClassic } from "./sim/types";
 import { sfx } from "./game/audio";
 import { music } from "./game/music";
 import { loadTerrainArt, mapThumbUrl } from "./game/assets";
 import { GameScene, type MatchFeed } from "./game/GameScene";
 import { setLocalSide } from "./game/controller";
-import { activeMutators, duelSetup, gameMode, loadSettings, saveSettings, unchartedMatch, type GameType } from "./game/mode";
+import { activeMutators, duelSetup, gameMode, loadSettings, saveSettings, unchartedMatch, urlNations, type GameType, type RivalPick } from "./game/mode";
+import { NATION_IDS, UNITS } from "./sim/balance";
+import { NATION_CARDS, crestImg, nationIcon } from "./ui/nations-ui";
 import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
@@ -335,6 +337,32 @@ function showMenu(linkedMap?: string | null): void {
       <div class="seg" id="diff">
         ${diffs.map((d) => `<button data-d="${d}">${DIFFICULTY[d].label}</button>`).join("")}
       </div>
+      <div class="natpick" id="nation">
+        <p class="np-head">Ta nation</p>
+        <div class="np-cards" role="radiogroup" aria-label="Nation">
+          ${NATION_IDS.map((n) => {
+            const c = NATION_CARDS[n];
+            return `<button class="npcard nat-${n}" data-n="${n}" role="radio">
+              ${crestImg(n, "np-crest")}
+              <span class="np-txt">
+                <b class="np-name">${c.title}</b>
+                <i class="np-line">${c.line}</i>
+                <span class="np-mech">${c.mechanics.map((m) => `<span>${m}</span>`).join("")}</span>
+              </span>
+              <span class="np-units">${c.signature.map((k) => `<span class="np-unit"><img src="${nationIcon(k, n)}" alt="" draggable="false"/><small>${UNITS[k].name.replace(/^Escouade de |^Section de /, "")}</small></span>`).join("")}</span>
+            </button>`;
+          }).join("")}
+        </div>
+        <div class="np-foot">
+          <button class="npclassic" data-n="classique" role="radio">⚖ Classique <small>les mêmes unités des deux côtés</small></button>
+          <div class="seg np-rival" id="rival" role="radiogroup" aria-label="Nation de l'adversaire">
+            <span class="np-rl">Adversaire</span>
+            <button data-r="opposite" role="radio" title="L'IA joue l'autre nation">Nation adverse</button>
+            <button data-r="random" role="radio" title="L'IA tire sa nation au sort à chaque partie">🎲 Au hasard</button>
+            <button data-r="same" role="radio" title="L'IA joue ta nation : un miroir">Miroir</button>
+          </div>
+        </div>
+      </div>
       <button class="mutbtn main"></button>
       <button class="cta big" id="play">▶ Jouer</button>
       <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button><button class="cta alt" id="play-online" disabled>🌐 Défier un ami (en ligne)</button></div>
@@ -544,6 +572,18 @@ function showMenu(linkedMap?: string | null): void {
     }
     menu.querySelectorAll<HTMLElement>("#diff button").forEach((el) => el.classList.toggle("on", el.dataset.d === gameMode.difficulty));
     menu.querySelectorAll<HTMLElement>("#gmode button").forEach((el) => el.classList.toggle("on", el.dataset.m === gameMode.mode));
+    // nations: skirmish only (the URL's ?nations= wins and hides the pick)
+    menu.querySelector<HTMLElement>("#nation")!.hidden = gameMode.mode !== "skirmish" || !!urlNations();
+    menu.querySelectorAll<HTMLElement>("#nation [data-n]").forEach((el) => {
+      el.classList.toggle("on", el.dataset.n === gameMode.nation);
+      el.setAttribute("aria-checked", String(el.dataset.n === gameMode.nation));
+    });
+    // the AI's nation: only with one of the player's
+    menu.querySelector<HTMLElement>("#rival")!.hidden = gameMode.nation === "classique";
+    menu.querySelectorAll<HTMLElement>("#rival button").forEach((el) => {
+      el.classList.toggle("on", el.dataset.r === gameMode.rival);
+      el.setAttribute("aria-checked", String(el.dataset.r === gameMode.rival));
+    });
     const m = mapById(shown);
     const blind = gameMode.uncharted && isRandomMapId(shown);
     menu.querySelector("#blurb")!.textContent = blind ? "Un champ de bataille inconnu. Explore-le pour en découvrir la forme." : m.blurb;
@@ -659,6 +699,22 @@ function showMenu(linkedMap?: string | null): void {
   menu.querySelectorAll<HTMLElement>("#diff button").forEach((el) =>
     el.addEventListener("click", () => {
       gameMode.difficulty = el.dataset.d as Difficulty;
+      saveSettings();
+      sync();
+    })
+  );
+  menu.querySelectorAll<HTMLElement>("#nation [data-n]").forEach((el) =>
+    el.addEventListener("click", () => {
+      gameMode.nation = el.dataset.n as NationOrClassic;
+      sfx.play("click", 0.5);
+      saveSettings();
+      sync();
+    })
+  );
+  menu.querySelectorAll<HTMLElement>("#rival button").forEach((el) =>
+    el.addEventListener("click", () => {
+      gameMode.rival = el.dataset.r as RivalPick;
+      sfx.play("click", 0.5);
       saveSettings();
       sync();
     })

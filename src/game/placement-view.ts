@@ -13,6 +13,8 @@
 import { BUILDINGS } from "../sim/balance";
 import { anchoredGoliaths, inGoliathRing } from "../sim/goliath";
 import { inBuildRange, suggestPlacement } from "../sim/placement";
+import { needsPower, onGrid, powerSources } from "../sim/nations";
+import { nationOf } from "../sim/rules";
 import type { BuildingKind, Faction, World } from "../sim/types";
 import { sfx } from "./audio";
 import { setVariant } from "./three/materials";
@@ -48,6 +50,8 @@ const ZONE = 0x7ef29b;
 const RING = 0x5aa8ff;
 const GOOD = 0x37d67a;
 const BAD = 0xe25555;
+/** The Réseau électrique's tint (an electric blue-white). */
+const POWER = 0x8fd3ff;
 /** Finger slop around the ghost that still counts as touching it (CSS px). */
 const GHOST_SLOP_PX = 14;
 /** A press on the ghost that moves less than this is a tap (CSS px). */
@@ -117,7 +121,9 @@ export class PlacementView {
     this.h.ctrl.placeAt = s ?? { tx: Math.round(c.x - size / 2), ty: Math.round(c.y - size / 2) };
     if (s && !this.h.inView(s.tx + size / 2, s.ty + size / 2)) this.h.glideTo(s.tx + size / 2, s.ty + size / 2);
     this.pulse = 0;
-    if (this.lastType !== "mouse")
+    if (onGrid(this.h.world, PLAYER) && needsPower(kind))
+      this.h.hint("power", "Réseau électrique : un bâtiment de la République doit toucher le cercle d'un GQG ou d'une Tour TSF. Hors réseau, il s'arrête.");
+    else if (this.lastType !== "mouse")
       this.h.hint("place", "Touche la carte (ou glisse) pour déplacer le fantôme, puis touche-le ou ✓ Placer pour bâtir.");
   }
 
@@ -242,16 +248,22 @@ export class PlacementView {
     // where you may build: the build-range zone, tinted (an anchored Goliath's ring in team
     // blue: outposts), with a soft glow under a crisp rounded outline
     const g = v.over;
-    const z = this.buildZone(w, kind);
-    g.fillStyle(ZONE, 0.08);
-    for (let i = 0; i < z.runs.length; i += 3) g.fillRect(z.runs[i]!, z.runs[i + 1]!, z.runs[i + 2]!, 1);
-    g.fillStyle(RING, 0.14);
-    for (let i = 0; i < z.ring.length; i += 3) g.fillRect(z.ring[i]!, z.ring[i + 1]!, z.ring[i + 2]!, 1);
-    g.lineStyle(7, ZONE, 0.12, 0);
-    for (const loop of z.loops) g.strokePoints(loop, true);
-    g.lineStyle(2, ZONE, 0.8);
-    for (const loop of z.loops) g.strokePoints(loop, true);
     const size = BUILDINGS[kind].size;
+    // the République's Réseau électrique replaces the base range (PANACHE-CONCEPTION.md §1.2): its
+    // sources' radii, the footprint must reach one (a GQG and a Tour TSF go up by the base range)
+    const grid = onGrid(w, PLAYER) && needsPower(kind);
+    if (grid) this.drawPower(w, at.tx, at.ty, size);
+    else {
+      const z = this.buildZone(w, kind);
+      g.fillStyle(ZONE, 0.08);
+      for (let i = 0; i < z.runs.length; i += 3) g.fillRect(z.runs[i]!, z.runs[i + 1]!, z.runs[i + 2]!, 1);
+      g.fillStyle(RING, 0.14);
+      for (let i = 0; i < z.ring.length; i += 3) g.fillRect(z.ring[i]!, z.ring[i + 1]!, z.ring[i + 2]!, 1);
+      g.lineStyle(7, ZONE, 0.12, 0);
+      for (const loop of z.loops) g.strokePoints(loop, true);
+      g.lineStyle(2, ZONE, 0.8);
+      for (const loop of z.loops) g.strokePoints(loop, true);
+    }
     const why = this.h.ctrl.placementProblem();
     const ok = why === null;
     const k = this.shake < SHAKE_MS ? 1 - this.shake / SHAKE_MS : 0;
@@ -262,7 +274,7 @@ export class PlacementView {
     const y = at.ty;
     if (!this.ghost || this.ghostKind !== kind) {
       if (this.ghost) v.scene.remove(this.ghost.root);
-      this.ghost = instance(buildingDef(kind, PLAYER), false);
+      this.ghost = instance(buildingDef(kind, PLAYER, nationOf(this.h.world, PLAYER)), false);
       this.ghost.root.renderOrder = 21;
       this.ghost.root.traverse((o) => (o.renderOrder = 21));
       this.ghostKind = kind;
@@ -326,6 +338,48 @@ export class PlacementView {
       if (r.width > 0 && r.height > 0) this.rails.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom });
     });
     return this.rails;
+  }
+
+  /**
+   * The Réseau électrique while placing a République building: each source's
+   * radius (GQG hqRadius, Tour TSF and moored Zénith towerRadius) as a soft
+   * electric disc with a crisp rim and a pylon dot, and, when the ghost is
+   * fed, a spark line from the nearest feeding source to it.
+   */
+  private drawPower(w: World, tx: number, ty: number, size: number): void {
+    const g = this.h.view.over;
+    const sources = powerSources(w, PLAYER);
+    const breathe = 0.5 + 0.5 * Math.sin(this.pulse / 320);
+    for (const s of sources) {
+      g.fillStyle(POWER, 0.07).fillCircle(s.x, s.y, s.radius);
+      g.lineStyle(7, POWER, 0.12, 0).strokeCircle(s.x, s.y, s.radius);
+      g.lineStyle(2, POWER, 0.6 + 0.3 * breathe).strokeCircle(s.x, s.y, s.radius);
+      g.fillStyle(POWER, 0.9).fillCircle(s.x, s.y, 0.22);
+    }
+    // the feed: a zigzag to the nearest source the footprint reaches
+    const cx = tx + size / 2;
+    const cy = ty + size / 2;
+    let best: { x: number; y: number } | null = null;
+    let bestD = Infinity;
+    for (const s of sources) {
+      const dx = Math.max(tx - s.x, 0, s.x - (tx + size));
+      const dy = Math.max(ty - s.y, 0, s.y - (ty + size));
+      if (Math.hypot(dx, dy) > s.radius) continue;
+      const d = Math.hypot(cx - s.x, cy - s.y);
+      if (d < bestD) (bestD = d), (best = s);
+    }
+    if (!best || bestD < 0.5) return;
+    const n = Math.max(3, Math.round(bestD / 1.2));
+    const nx = -(cy - best.y) / bestD;
+    const ny = (cx - best.x) / bestD;
+    const pts: Pt[] = [];
+    for (let i = 0; i <= n; i++) {
+      const k = i / n;
+      const j = i === 0 || i === n ? 0 : (i % 2 ? 1 : -1) * 0.22 * (0.6 + 0.4 * breathe);
+      pts.push({ x: best.x + (cx - best.x) * k + nx * j, y: best.y + (cy - best.y) * k + ny * j });
+    }
+    g.lineStyle(5, POWER, 0.18, 0).strokePoints(pts);
+    g.lineStyle(1.6, 0xfff3c4, 0.9).strokePoints(pts);
   }
 
   /**

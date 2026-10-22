@@ -1,7 +1,7 @@
 import { BUILDINGS } from "./balance";
 import { setupObjectives, type UplinkDef } from "./objectives";
 import { applyOpener, spawnStartUnits, type OpenerId } from "./openers";
-import { Terrain, type Biome, type Faction, type UnitKind, type World } from "./types";
+import { Terrain, type Biome, type Faction, type Nation, type UnitKind, type World } from "./types";
 import { createWorld, inBounds, setTerrain, spawnBuilding, spawnUnit, terrainAt } from "./world";
 import { setupSurvival, type SurvivalOptions } from "./modes/survival";
 import { applyMutators, applySpawnRank, bannedBy, makeRules, rulesOf, type MutatorId } from "./rules";
@@ -10,6 +10,7 @@ import { dropPoint, stowAboard } from "./transport";
 import { setupLifeline } from "./lifeline";
 import { nomadStart } from "./goliath";
 import { armadaStart } from "./lift";
+import { behaves, nationKind, nationStart } from "./nations";
 import { hypot } from "./fmath";
 import { isRandomMapId, randomMapDef } from "./mapgen";
 
@@ -513,6 +514,8 @@ export interface MatchOptions {
   openers?: Partial<Record<Faction, OpenerId>>;
   /** Uplink relays and supply drops (objectives.ts). Default: off (the classic skirmish). */
   objectives?: boolean;
+  /** The nation each side plays (PANACHE-CONCEPTION.md §1.10): both, or absent = Classique. */
+  nations?: Partial<Record<Faction, Nation>>;
 }
 
 /**
@@ -552,7 +555,8 @@ export function createMapWorld(id: string, opts: MatchOptions = {}): World {
     return spawnUnit(w, "trooper", f, p.x, p.y);
   });
   const mutators = (opts.mutators ?? []).filter((m) => !mapBansMutator(def, m));
-  if (mutators.length) applyMutators(w, mutators);
+  if (mutators.length || opts.nations) applyMutators(w, mutators, opts.nations);
+  nationStart(w); // nations: each side's own worker and line squad, its buildings' HP (nations.ts)
   const skirmish = !opts.survival && !opts.op;
   if (skirmish) applyMapRules(w, def);
   if (rulesOf(w).islands) {
@@ -571,8 +575,8 @@ export function createMapWorld(id: string, opts: MatchOptions = {}): World {
   const extra = rulesOf(w).startUnits;
   if (extra.length)
     for (const u of starters) {
-      const ids = spawnStartUnits(w, u.faction, extra, u);
-      const condor = ids.map((id) => w.units.get(id)!).find((c) => c.kind === "condor");
+      const ids = spawnStartUnits(w, u.faction, extra.map((k) => nationKind(w, u.faction, k)), u);
+      const condor = ids.map((id) => w.units.get(id)!).find((c) => behaves(c.kind, "condor"));
       if (condor && skirmish && def.startUnits?.includes("condor")) {
         condor.free = true; // the map's, not bought
         if (def.squadAboard) stowAboard(w, condor, u);

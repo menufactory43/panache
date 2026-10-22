@@ -1,13 +1,14 @@
-import { BUILDINGS, COMBAT, DAMAGE_VS, GOLIATH, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
-import { GOLIATH_WEAPONS, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady } from "./goliath";
+import { BUILDINGS, COMBAT, DAMAGE_VS, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
+import { GOLIATH_WEAPONS, canRepair, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady, weaponStats } from "./goliath";
 import { dropLifts } from "./lift";
 import { concealedFrom, isInfantry, squadFirepower } from "./infantry";
 import { IGNORE_TICKS, moveUnitToward } from "./movement";
+import { buildingMaxHp, fireRateMult, isUnpowered, trenchCover, veiled } from "./nations";
 import { isStunned } from "./powers";
 import { leaveWreck, scatterGantry } from "./salvage";
 import { bailOut, canBailOut } from "./transport";
 import { Terrain, type ArmorClass, type Building, type Domain, type Faction, type TargetDomain, type Unit, type World } from "./types";
-import { rulesOf } from "./rules";
+import { nationOf, rulesOf } from "./rules";
 import { buildingCenter, canGetWithin, distToBuilding, domainOf, hqOf, moveClassOf, removeBuilding, terrainAt } from "./world";
 import { atan2, hypot } from "./fmath";
 
@@ -53,6 +54,7 @@ export function findTarget(
     const d = hypot(u.x - x, u.y - y);
     if (d > radius || d < minRange) continue;
     if (concealedFrom(w, faction, u)) continue;
+    if (veiled(w, faction, u.x, u.y, d)) continue; // in an enemy gas cloud, too far to pick out (nations.ts)
     // out of range and out of reach (over the sea, on an island): not ours to chase
     if (shooter && d > range && (ignoring(w, shooter, u.id) || !engageable(w, shooter, u.id))) continue;
     const st = UNITS[u.kind];
@@ -68,6 +70,10 @@ export function findTarget(
       if (b.faction === faction) continue;
       const d = distToBuilding(b, x, y);
       if (d > radius || d < minRange) continue;
+      if (w.nation?.clouds.length) {
+        const c = buildingCenter(b);
+        if (veiled(w, faction, c.x, c.y, d)) continue;
+      }
       const s = d + (BUILDINGS[b.kind].targets === "none" ? 3 : 1);
       if (s < bestScore) {
         bestScore = s;
@@ -141,6 +147,7 @@ function damageMult(w: World, id: number, dmgType: keyof typeof DAMAGE_VS): numb
     if (unitDomain(u) === "ground") {
       const t = terrainAt(w, Math.floor(u.x), Math.floor(u.y));
       cover = t === Terrain.Forest && isInfantry(u.kind) ? INFANTRY.woodsCover : TERRAIN[t].cover;
+      if (u.entrenched) cover = trenchCover(w, u, cover); // Tranchées: the better cover, never both
     }
   }
   return DAMAGE_VS[dmgType][armor] * cover;
@@ -255,7 +262,9 @@ function fire(w: World, attacker: Attacker, targetId: number, incidents: Inciden
   const t = targetPosition(w, targetId);
   if (!t) return;
   const interval = stats.shotInterval ?? COMBAT.shotInterval;
-  clock.cooldown = Math.max(1, Math.round(interval * TICK_RATE));
+  // (Pression des chaudières: a boosted unit fires faster)
+  const rate = isUnit ? fireRateMult(attacker.unit) : 1;
+  clock.cooldown = Math.max(1, Math.round(rate === 1 ? interval * TICK_RATE : (interval * TICK_RATE) / rate));
   const angle = atan2(t.x - src.x, -(t.y - src.y));
   holder.firedTick = w.tick;
   clock.firedTick = w.tick;
@@ -321,8 +330,15 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
   const reach = stats.range + COMBAT.acquireBonus + (u.order.type === "idle" ? 2.5 : 0);
   let best: { id: number; x: number; y: number; d: number; unit: boolean } | null = null;
   let bestScore = Infinity;
+  const groundOnly = stats.healTargets === "ground"; // (the Atelier roulant: no aircraft)
+  // (a nation's menders never touch the fallen: a unit or building killed earlier this tick sits at ≤ 0 HP
+  // until cleanupDeaths, and a repair there brought it back. Classique keeps its old order, bit for bit.)
+  const spareDead = nationOf(w, u.faction) !== "classique";
   for (const o of w.units.values()) {
     if (o.faction !== u.faction || o.id === u.id || o.hp >= UNITS[o.kind].hp) continue;
+    if (spareDead && o.hp <= 0) continue;
+    if (groundOnly && unitDomain(o) === "air") continue;
+    if (!canRepair(u.kind, o)) continue; // (the Zénith: Pasteur only, goliath.ts SUPER.zenith.repairedBy)
     if (o.goliath && isStunned(w, o.id)) continue; // an EMP blocks repair on a Goliath while it lasts
     const d = hypot(o.x - u.x, o.y - u.y);
     if (d > reach) continue;
@@ -334,10 +350,12 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
     }
   }
   for (const b of w.buildings.values()) {
-    if (b.faction !== u.faction || b.hp >= BUILDINGS[b.kind].hp) continue;
+    const max = buildingMaxHp(w, b);
+    if (b.faction !== u.faction || b.hp >= max) continue;
+    if (spareDead && b.hp <= 0) continue;
     const d = distToBuilding(b, u.x, u.y);
     if (d > reach) continue;
-    const s = d + 2 + (b.hp / BUILDINGS[b.kind].hp) * 3;
+    const s = d + 2 + (b.hp / max) * 3;
     if (s < bestScore) {
       bestScore = s;
       const c = buildingCenter(b);
@@ -360,7 +378,7 @@ function tickHealer(w: World, u: Unit, engaged: Set<number>): void {
     o.hp = Math.min(UNITS[o.kind].hp, o.hp + amount);
   } else {
     const b = w.buildings.get(best.id)!;
-    b.hp = Math.min(BUILDINGS[b.kind].hp, b.hp + amount);
+    b.hp = Math.min(buildingMaxHp(w, b), b.hp + amount);
   }
   if (w.tick % 5 === 0)
     w.fx.push({ type: "heal", x: u.x, y: u.y, tx: best.x, ty: best.y, sourceId: u.id, targetId: best.id });
@@ -416,7 +434,8 @@ export function tickCombat(w: World): Set<number> {
       const acquire = stats.range + COMBAT.acquireBonus;
       if (u.autoTargetId !== null) {
         const d = distTo(w, u.autoTargetId, u.x, u.y);
-        if (d > acquire + 0.5 || d < minRange || hidden(w, u.faction, u.autoTargetId)) u.autoTargetId = null;
+        if (d > acquire + 0.5 || d < minRange || hidden(w, u.faction, u.autoTargetId) || lostInGas(w, u.faction, u.autoTargetId, d))
+          u.autoTargetId = null;
         else if (d > stats.range && !engageable(w, u, u.autoTargetId)) u.autoTargetId = null;
         else if (healers.length > 0) {
           const cur = w.units.get(u.autoTargetId);
@@ -449,7 +468,7 @@ export function tickCombat(w: World): Set<number> {
 
   for (const b of w.buildings.values()) {
     if (b.cooldown > 0) b.cooldown--;
-    if (isStunned(w, b.id)) continue; // EMP'd: guns offline
+    if (isStunned(w, b.id) || isUnpowered(b)) continue; // EMP'd, or off the Réseau électrique: guns offline
     const stats = BUILDINGS[b.kind];
     if (stats.targets === "none") continue;
     const c = buildingCenter(b);
@@ -493,7 +512,7 @@ function goliathWeapons(w: World, u: Unit, healers: Unit[], incidents: Incident[
       ws.targetId = null;
       continue;
     }
-    const st = GOLIATH.weapons[k];
+    const st = weaponStats(u, k); // (the Zénith's own systems in the Goliath's slots)
     const minR = st.minRange ?? 0;
     const inReach = (id: number | null): id is number => {
       if (id === null) return false;
@@ -539,6 +558,13 @@ function healerInRange(u: Unit, healers: Unit[], range: number, minRange: number
     }
   }
   return best;
+}
+
+/** Has target `id`, `d` tiles off, gone into an enemy Gaz de houille cloud, too far to keep track of (nations.ts)? */
+function lostInGas(w: World, faction: Faction, id: number, d: number): boolean {
+  if (!w.nation?.clouds.length) return false;
+  const t = targetPosition(w, id);
+  return !!t && veiled(w, faction, t.x, t.y, d);
 }
 
 /** Is unit `id` an enemy Sniper Team hidden from `faction` in Woods? (Buildings never are.) */

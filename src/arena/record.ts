@@ -9,7 +9,7 @@
 import { type OpenerId } from "../sim/openers";
 import type { MutatorId } from "../sim/rules";
 import { step } from "../sim/sim";
-import type { Command, Faction, World } from "../sim/types";
+import type { Command, Faction, Nation, World } from "../sim/types";
 
 // setup and hashing live in the sim, shared with sound duels (SOUND-DUEL.md)
 export { setupWorld } from "../sim/setup";
@@ -86,6 +86,8 @@ export interface BattleRecord {
   openers: Partial<Record<Faction, OpenerId>>;
   /** Income multiplier per side when not 1 (the built-in AI's difficulty handicap: tickAi sets it every tick). */
   income?: Partial<Record<Faction, number>>;
+  /** The nation each side played (PANACHE-CONCEPTION.md §1.10); absent: Classique. setupWorld(record) reads it. */
+  nations?: Partial<Record<Faction, Nation>>;
   seats: Record<Faction, SeatInfo>;
   /** Coordinates in `log` are each side's own frame; `turns` and `radio` ticks are true. */
   frames: "own";

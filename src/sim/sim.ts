@@ -6,13 +6,14 @@ import {
   tickProduction,
   tickTrickle
 } from "./economy";
-import { ECONOMY, FOG } from "./balance";
+import { FOG } from "./balance";
 import { tickFog } from "./fog";
 import { applyGoliathCommand, orderedToMove, tickGoliaths, tickLove } from "./goliath";
 import { applyLiftCommand, routeLiftCommand, tickLift, type HeldLiftOrders } from "./lift";
 import { tickLifeline } from "./lifeline";
 import { callWaveEarly, tickSurvival } from "./modes/survival";
 import { tickMovement, vehicleSpots } from "./movement";
+import { behaves, holdOf, tickNations } from "./nations";
 import { tickOps } from "./ops";
 import { tickObjectives } from "./objectives";
 import { applyCalldown, chargePowers, tickPowers } from "./powers";
@@ -29,6 +30,7 @@ export function step(w: World, commands: Command[]): void {
   const held: HeldLiftOrders | undefined = commands.length > 1 ? { ignored: new Map(), freed: [] } : undefined;
   for (const c of commands) applyCommand(w, c, held);
   const spots = vehicleSpots(w); // (before anything drives: squads step aside only for a vehicle on the move)
+  tickNations(w); // nations only: power networks, trenches, power zones and boosts (nations.ts)
   tickConstruction(w);
   tickProduction(w);
   tickHarvest(w);
@@ -84,9 +86,9 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
       if (!isResource(w, tileIndex(w, tx, ty))) break;
       for (const id of c.unitIds) {
         const u = w.units.get(id);
-        if (!u || u.faction !== c.faction || u.kind !== "harvester" || lifting.has(id)) continue;
+        if (!u || u.faction !== c.faction || !behaves(u.kind, "harvester") || lifting.has(id)) continue;
         // a full hold goes home to unload first, not out to the field and back
-        const full = u.cargo >= ECONOMY.harvesterCapacity - 1e-6;
+        const full = u.cargo >= holdOf(u.kind) - 1e-6;
         u.order = { type: "harvest", fieldX: tx, fieldY: ty, phase: full ? "toBase" : "toField" };
         u.path = null;
       }

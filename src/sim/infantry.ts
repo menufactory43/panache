@@ -1,6 +1,7 @@
 import { INFANTRY, TICK_RATE, UNITS } from "./balance";
 import { strikeDamage } from "./combat";
 import { isVisible } from "./fog";
+import { behaves, revealedTo } from "./nations";
 import { Terrain, type Faction, type Unit, type UnitKind, type World } from "./types";
 import { distToBuilding, terrainAt } from "./world";
 import { hypot } from "./fmath";
@@ -50,7 +51,7 @@ export function unitSeenBy(w: World, faction: Faction, u: Unit): boolean {
 }
 
 /** Can this kind hide in Woods? (The Sniper Team: a camouflaged marksman pair.) */
-const conceals = (kind: UnitKind): boolean => kind === "sniper";
+const conceals = (kind: UnitKind): boolean => behaves(kind, "sniper");
 
 /**
  * Is `u` a Sniper Team hidden from `faction` by Woods concealment? It is when
@@ -64,6 +65,7 @@ export function concealedFrom(w: World, faction: Faction, u: Unit): boolean {
   if (u.faction === faction || !conceals(u.kind)) return false;
   if (terrainAt(w, Math.floor(u.x), Math.floor(u.y)) !== Terrain.Forest) return false;
   if (w.tick - u.firedTick <= INFANTRY.concealAfterShot * TICK_RATE) return false; // the muzzle flash gives it away
+  if (w.nation?.reveals.length && revealedTo(w, faction, u.x, u.y)) return false; // under a Ballon-sonde
   const r = INFANTRY.concealRadius;
   for (const o of w.units.values()) {
     if (o.faction !== faction) continue;

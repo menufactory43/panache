@@ -29,42 +29,43 @@ import {
  * 2 for the rest), team colour on the roofs so every one reads from above.
  *
  * (models.ts imports this module, so the palette and helpers it exports are only
- * touched inside the builders, never at module load.)
+ * touched inside the builders, never at module load. The nations' buildings,
+ * buildings-rep.ts / buildings-emp.ts, and landmarks.ts share them.)
  */
 
 // ------------------------------------------------------------ palette ---
 
 /** Haussmann limestone, its plinth and cornice. */
-const STONE = 0xd9cdb0;
-const STONE_D = 0xa49579;
-const STONE_L = 0xefe6cf;
+export const STONE = 0xd9cdb0;
+export const STONE_D = 0xa49579;
+export const STONE_L = 0xefe6cf;
 /** Slate and zinc roofs. */
-const SLATE = 0x5b6670;
-const ZINC = 0x7f8a92;
-const BRICK = 0x9a4a33;
-const BRICK_D = 0x70321f;
+export const SLATE = 0x5b6670;
+export const ZINC = 0x7f8a92;
+export const BRICK = 0x9a4a33;
+export const BRICK_D = 0x70321f;
 /** Blackened wrought iron (lattices, columns, rails). */
-const IRON = 0x2e2b29;
-const SOOT = 0x1a1715;
-const COAL = 0x242120;
-const WOOD = 0x8f5e34;
-const WOOD_D = 0x5e3b20;
-const GRAVEL = 0xb7a784;
-const LAWN = 0x66733f;
-const SACK = 0xb9a173;
+export const IRON = 0x2e2b29;
+export const SOOT = 0x1a1715;
+export const COAL = 0x242120;
+export const WOOD = 0x8f5e34;
+export const WOOD_D = 0x5e3b20;
+export const GRAVEL = 0xb7a784;
+export const LAWN = 0x66733f;
+export const SACK = 0xb9a173;
 /** Gaslit window panes and the amber-lit glass of the iron halls. */
-const PANE = 0xf2bb5c;
-const GLAZE = 0xd9c79a;
-const COPPER = 0xb8733a;
-const RADIUM = 0x7dffa8;
-const SPARK = 0xbfe0ff;
+export const PANE = 0xf2bb5c;
+export const GLAZE = 0xd9c79a;
+export const COPPER = 0xb8733a;
+export const RADIUM = 0x7dffa8;
+export const SPARK = 0xbfe0ff;
 /** The objectives' neutral gold (the old hazard yellow, now polished). */
 const HAZ_GOLD = 0xc9a24a;
 
 // ------------------------------------------------------------ helpers ---
 
 /** A gable roof `w` wide at the eaves, `h` tall, its ridge `len` long along Z (turned by `ry`), base at `at`. */
-function gable(b: ModelBuilder, w: number, h: number, len: number, at: Vec3, hex: number, ry = 0): void {
+export function gable(b: ModelBuilder, w: number, h: number, len: number, at: Vec3, hex: number, ry = 0): void {
   const s = new THREE.Shape([new THREE.Vector2(-w / 2, 0), new THREE.Vector2(w / 2, 0), new THREE.Vector2(0, h)]);
   const g = new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false });
   g.translate(0, 0, -len / 2);
@@ -72,7 +73,7 @@ function gable(b: ModelBuilder, w: number, h: number, len: number, at: Vec3, hex
 }
 
 /** One sawtooth: a slope rising from -Z to a vertical face at +Z... turned by `ry`. Base at `at`, `d` deep, `len` long along X. */
-function tooth(b: ModelBuilder, d: number, h: number, len: number, at: Vec3, hex: number): void {
+export function tooth(b: ModelBuilder, d: number, h: number, len: number, at: Vec3, hex: number): void {
   // (drawn in XY, extruded along Z, then turned so the slope runs along Z and the vertical face looks north)
   const s = new THREE.Shape([new THREE.Vector2(-d / 2, 0), new THREE.Vector2(d / 2, 0), new THREE.Vector2(d / 2, h)]);
   const g = new THREE.ExtrudeGeometry(s, { depth: len, bevelEnabled: false });
@@ -81,7 +82,7 @@ function tooth(b: ModelBuilder, d: number, h: number, len: number, at: Vec3, hex
 }
 
 /** A hipped frustum (mansard, hall roof): `w` × `d` at its foot, every side drawn in by `inset` at the top. */
-function frustum(b: ModelBuilder, w: number, h: number, d: number, inset: number, at: Vec3, hex: number): void {
+export function frustum(b: ModelBuilder, w: number, h: number, d: number, inset: number, at: Vec3, hex: number): void {
   const g = new THREE.BoxGeometry(w, h, d);
   const p = g.attributes.position!;
   for (let i = 0; i < p.count; i++)
@@ -94,18 +95,18 @@ function frustum(b: ModelBuilder, w: number, h: number, d: number, inset: number
 }
 
 /** A half cylinder lying along Z (vault, hangar, arched door), its flat side down at `at`. */
-function vault(b: ModelBuilder, r: number, len: number, at: Vec3, hex: number, o: { seg?: number; hy?: number; glow?: number } = {}): void {
+export function vault(b: ModelBuilder, r: number, len: number, at: Vec3, hex: number, o: { seg?: number; hy?: number; glow?: number } = {}): void {
   const g = new THREE.CylinderGeometry(r, r, len, o.seg ?? 12, 1, false, Math.PI / 2, Math.PI);
   b.add(g, at, hex, { rot: [Math.PI / 2, 0, 0], scale: [1, 1, o.hy ?? 1], glow: o.glow ?? 0 });
 }
 
 /** An upright half ring (an arch rib) in the XY plane, turned by `ry`. */
-function rib(b: ModelBuilder, r: number, tube: number, at: Vec3, hex: number, ry = 0, hy = 1): void {
+export function rib(b: ModelBuilder, r: number, tube: number, at: Vec3, hex: number, ry = 0, hy = 1): void {
   b.add(new THREE.TorusGeometry(r, tube, 3, 10, Math.PI), at, hex, { rot: [0, ry, 0], scale: [1, hy, 1] });
 }
 
 /** A row of `n` gaslit panes (flat quads) on a façade facing `face`, from `a` to `c` along it, the façade at `at`. */
-function panes(b: ModelBuilder, face: "+x" | "-x" | "+z" | "-z", a: number, c: number, n: number, y: number, at: number, w = 0.07, h = 0.12, glow = 0.65): void {
+export function panes(b: ModelBuilder, face: "+x" | "-x" | "+z" | "-z", a: number, c: number, n: number, y: number, at: number, w = 0.07, h = 0.12, glow = 0.65): void {
   const ry = { "+z": 0, "-z": Math.PI, "+x": Math.PI / 2, "-x": -Math.PI / 2 }[face];
   for (let i = 0; i < n; i++) {
     const u = n === 1 ? (a + c) / 2 : a + ((c - a) * i) / (n - 1);
@@ -114,7 +115,7 @@ function panes(b: ModelBuilder, face: "+x" | "-x" | "+z" | "-z", a: number, c: n
 }
 
 /** A thin round rod from `a` to `c` (lattice members, wires): four sides, no caps. */
-function rod(b: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void {
+export function rod(b: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void {
   const d = new THREE.Vector3(c[0] - a[0], c[1] - a[1], c[2] - a[2]);
   const len = d.length();
   const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
@@ -122,14 +123,14 @@ function rod(b: ModelBuilder, a: Vec3, c: Vec3, r: number, hex: number): void {
 }
 
 /** A gas street lamp: iron post, a glowing lantern, a little cap. */
-function lamp(b: ModelBuilder, x: number, z: number, y0: number, h = 0.32): void {
+export function lamp(b: ModelBuilder, x: number, z: number, y0: number, h = 0.32): void {
   b.cyl(0.012, 0.018, h, 5, [x, y0 + h / 2, z], IRON);
   b.box(0.045, 0.06, 0.045, [x, y0 + h + 0.025, z], AMBER, { glow: 1 });
   b.cone(0.04, 0.04, 4, [x, y0 + h + 0.075, z], IRON, { rot: [0, Math.PI / 4, 0] });
 }
 
 /** A pennant flying east from a pole at `at` (its hoist), `len` long. */
-function pennant(b: ModelBuilder, at: Vec3, len: number, h: number, hex: number): void {
+export function pennant(b: ModelBuilder, at: Vec3, len: number, h: number, hex: number): void {
   const s = new THREE.Shape([new THREE.Vector2(0, h / 2), new THREE.Vector2(0, -h / 2), new THREE.Vector2(len, 0)]);
   const g = new THREE.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false });
   g.translate(0, 0, -0.015);
@@ -140,7 +141,7 @@ function pennant(b: ModelBuilder, at: Vec3, len: number, h: number, hex: number)
  * A four-legged iron lattice (pylon, mast, tower), its legs from ±`r0` at `y0`
  * to ±`r1` at `y1`, cross-braced on every face in `n` storeys.
  */
-function pylon(b: ModelBuilder, x: number, z: number, r0: number, r1: number, y0: number, y1: number, n: number, leg: number, brace: number, hex = IRON): void {
+export function pylon(b: ModelBuilder, x: number, z: number, r0: number, r1: number, y0: number, y1: number, n: number, leg: number, brace: number, hex = IRON): void {
   const at = (k: number, sx: number, sz: number): Vec3 => {
     const f = k / n;
     const r = r0 + (r1 - r0) * f;
@@ -159,7 +160,7 @@ function pylon(b: ModelBuilder, x: number, z: number, r0: number, r1: number, y0
  * an outer and inner chord pinned together at the feet (±`half`, `y0`), rising
  * `rise`, latticed between.
  */
-function greatArch(b: ModelBuilder, z: number, half: number, y0: number, rise: number, depth: number, hex: number, n = 12): void {
+export function greatArch(b: ModelBuilder, z: number, half: number, y0: number, rise: number, depth: number, hex: number, n = 12): void {
   const f = (u: number) => Math.sqrt(Math.max(0, 1 - u * u)) * 0.55 + (1 - Math.abs(u)) * 0.45;
   const outer = (i: number): Vec3 => {
     const u = -1 + (2 * i) / n;
@@ -177,13 +178,13 @@ function greatArch(b: ModelBuilder, z: number, half: number, y0: number, rise: n
 }
 
 /** A heap of coal: a few dark cones. */
-function coal(b: ModelBuilder, x: number, z: number, y0: number, s: number): void {
+export function coal(b: ModelBuilder, x: number, z: number, y0: number, s: number): void {
   b.cone(0.22 * s, 0.2 * s, 7, [x, y0 + 0.1 * s, z], COAL, { scale: [1.2, 1, 1] });
   b.cone(0.14 * s, 0.13 * s, 6, [x + 0.16 * s, y0 + 0.065 * s, z + 0.1 * s], 0x2c2826);
   b.cone(0.12 * s, 0.11 * s, 6, [x - 0.17 * s, y0 + 0.055 * s, z - 0.06 * s], 0x1e1c1b);
 }
 
-const factionOf = (t: Team): Faction => (t === TEAMS.red ? "red" : "blue");
+export const factionOf = (t: Team): Faction => (t === TEAMS.red ? "red" : "blue");
 
 // ---------------------------------------------------------- buildings ---
 

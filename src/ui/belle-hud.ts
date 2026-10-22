@@ -24,6 +24,8 @@
  * (belle-hud.css), so every rule, id and handler keeps working.
  * `?style=original` never mounts this.
  */
+import { crestImg, nationShort } from "./nations-ui";
+import type { NationOrClassic } from "../sim/types";
 import { sfx } from "../game/audio";
 import type { Controller } from "../game/controller";
 
@@ -98,6 +100,8 @@ export interface BelleHudHooks {
   root: HTMLElement;
   ctrl: Controller;
   spectator: boolean;
+  /** The player's nation: its crest leads the pill (Classique: none). */
+  nation?: NationOrClassic;
   togglePause(): void;
   /** A 💡 line in the ticker (feedback to a tap that did nothing). */
   tip(msg: string): void;
@@ -149,6 +153,11 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
 
   const pill = make("button", "bh-pill");
   pill.title = "Charbon, revenu et horloge : touche pour les détails";
+  if (h.nation && h.nation !== "classique") {
+    pill.insertAdjacentHTML("afterbegin", crestImg(h.nation, "bh-crest"));
+    pill.classList.add(`nat-${h.nation}`);
+    pill.title = `${nationShort(h.nation)} · ${pill.title}`;
+  }
   const res = q("#res");
   if (res) pill.appendChild(res);
   const clockEl = make("span", "bh-clock", "0:00");

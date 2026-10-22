@@ -8,6 +8,7 @@ import { BUILDINGS, ECONOMY, GOLIATH, TERRAIN } from "./balance";
 import { canPlaceBuilding, inBaseRange } from "./economy";
 import { UNIT_IN_THE_WAY, anchoredGoliaths, inGoliathRing, overlapsGoliath } from "./goliath";
 import { Terrain, type BuildingKind, type Faction, type World } from "./types";
+import { inPowerRange, needsPower, onGrid, powerSources } from "./nations";
 import { buildingAtTile, buildingCenter, domainOf, inBounds, terrainAt } from "./world";
 import { hypot } from "./fmath";
 
@@ -67,7 +68,9 @@ export function placementBlocker(
     }
   if (offMap) return "Hors de la carte";
   // the most fundamental problem first: nothing nearby can be fixed by nudging
-  if (!inBuildRange(w, faction, tx + size / 2, ty + size / 2) && (kind === "hq" || !inGoliathRing(w, faction, tx, ty, size)))
+  const grid = onGrid(w, faction) && needsPower(kind);
+  if (grid && !inPowerRange(w, faction, kind, tx, ty) && !inGoliathRing(w, faction, tx, ty, size)) return "Hors du réseau électrique";
+  if (!grid && !inBuildRange(w, faction, tx + size / 2, ty + size / 2) && (kind === "hq" || !inGoliathRing(w, faction, tx, ty, size)))
     return "Trop loin de la base";
   if (ground !== null) return `Impossible sur ${groundName(w, ground)}`;
   if (building) return "Bloqué";
@@ -126,6 +129,8 @@ export function suggestPlacement(
   for (const b of w.buildings.values())
     if (b.faction === faction && !b.outpost) centres.push({ c: buildingCenter(b), r: Math.ceil(ECONOMY.buildRadius + size) });
   if (kind !== "hq") for (const g of anchoredGoliaths(w, faction)) centres.push({ c: g, r: Math.ceil(GOLIATH.buildRing + size) });
+  // (a République building that needs power: round the Réseau électrique's sources, whose reach passes the 6 tiles)
+  if (onGrid(w, faction) && needsPower(kind)) for (const s of powerSources(w, faction)) centres.push({ c: s, r: Math.ceil(s.radius + size) });
   for (const { c, r } of centres) {
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {

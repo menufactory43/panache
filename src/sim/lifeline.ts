@@ -1,4 +1,5 @@
 import { BUILDINGS, LIFELINE, TICK_RATE } from "./balance";
+import { behaves, nationKind } from "./nations";
 import { isInfantry } from "./infantry";
 import { applySpawnRank, bannedBy, rulesOf } from "./rules";
 import { stowAboard } from "./transport";
@@ -31,8 +32,8 @@ export function setupLifeline(w: World): void {
 
 /** Does this side have a Condor flying, or one being built? */
 export function hasCondor(w: World, f: Faction): boolean {
-  for (const u of w.units.values()) if (u.faction === f && u.kind === "condor") return true;
-  for (const b of w.buildings.values()) if (b.faction === f && b.queue.some((q) => q.kind === "condor")) return true;
+  for (const u of w.units.values()) if (u.faction === f && behaves(u.kind, "condor")) return true;
+  for (const b of w.buildings.values()) if (b.faction === f && b.queue.some((q) => behaves(q.kind, "condor"))) return true;
   return false;
 }
 
@@ -79,7 +80,7 @@ export function tickLifeline(w: World): void {
   if (!lines || w.winner || !rulesOf(w).lifeline) return;
   for (const f of FACTIONS) {
     const slot = lines[f];
-    if ((!hqOf(w, f) && !hasGoliath(w, f)) || bannedBy(w, "condor", f) || hasCondor(w, f)) {
+    if ((!hqOf(w, f) && !hasGoliath(w, f)) || bannedBy(w, nationKind(w, f, "condor"), f) || hasCondor(w, f)) {
       slot.due = null;
       continue;
     }
@@ -98,12 +99,12 @@ export function tickLifeline(w: World): void {
 }
 
 function flyIn(w: World, f: Faction, route: NonNullable<ReturnType<typeof lifelineRoute>>): Unit {
-  const c = spawnUnit(w, "condor", f, route.from.x, route.from.y);
+  const c = spawnUnit(w, nationKind(w, f, "condor"), f, route.from.x, route.from.y);
   c.free = true;
   c.facing = c.aim = atan2(route.to.x - c.x, -(route.to.y - c.y));
   c.order = { type: "move", x: route.to.x, y: route.to.y };
-  if (squadCount(w, f) < LIFELINE.squadUnder && !bannedBy(w, "trooper", f)) {
-    const squad = spawnUnit(w, "trooper", f, c.x, c.y);
+  if (squadCount(w, f) < LIFELINE.squadUnder && !bannedBy(w, nationKind(w, f, "trooper"), f)) {
+    const squad = spawnUnit(w, nationKind(w, f, "trooper"), f, c.x, c.y);
     squad.free = true;
     applySpawnRank(w, squad);
     stowAboard(w, c, squad);

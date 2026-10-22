@@ -255,6 +255,97 @@ export const BELLE_RECIPES: Partial<Record<SfxName, Recipe>> = {
     tn(c, o, t, "triangle", 3000, 840, 0.5, 0.012, 0, 0.06);
     return 0.58;
   },
+  // the Canon Branly (and the Zénith's): no powder, a "zap-boum" — the coils' rising whine, a snap of
+  // sparks, then a dull electric thump as the glowing shell leaves
+  arcShell: (c, o, t, n) => {
+    tn(c, o, t, "sawtooth", 220, 1400, 0.12, 0.03, 0, 0.02);
+    tn(c, o, t, "square", 118, 121, 0.16, 0.025);
+    ticks(c, o, t + 0.06, n, 7, 0.14, "highpass", 3800, 0.16, { click: 0.004 });
+    nb(c, o, t + 0.12, n, 0.03, "highpass", 3000, 0.4);
+    tn(c, o, t + 0.12, "sine", 140, 40, 0.3, 0.75);
+    nb(c, o, t + 0.12, n, 0.32, "lowpass", 900, 0.45, 120);
+    tn(c, o, t + 0.16, "sine", 2400, 1300, 0.35, 0.025, 0, 0.04);
+    return 0.6;
+  },
+  // the Mortier de 280: a crack, a huge chest-deep boom that shakes the ground, the powder cloud
+  // rolling away, and the shell's long, falling siege whistle
+  heavyShell: (c, o, t, n) => {
+    nb(c, o, t, n, 0.05, "highpass", 1300, 0.7);
+    tn(c, o, t, "sine", 80, 20, 0.9, 1.1);
+    tn(c, o, t, "triangle", 160, 45, 0.35, 0.3);
+    nb(c, o, t, n, 0.9, "lowpass", 1000, 1, 60);
+    nb(c, o, t + 0.1, n, 1.2, "lowpass", 300, 0.45, 50);
+    ticks(c, o, t + 0.2, n, 6, 0.5, "bandpass", 1600, 0.12, { taper: 0.6, q: 3 });
+    tn(c, o, t + 0.35, "sine", 1700, 520, 1.7, 0.035, 0, 0.25);
+    return 2.1;
+  },
+  // the Bobine d'Arsonval: a big coil's arc — a fat 50 Hz roar of a buzz, crackling streamers, a snap
+  arcBolt: (c, o, t, n) => {
+    const bp = c.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 700;
+    bp.Q.value = 0.7;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.11, t + 0.01);
+    g.gain.setValueAtTime(0.09, t + 0.2);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+    bp.connect(g).connect(o);
+    for (const f of [50, 100.6, 151, 203]) {
+      const osc = c.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = f;
+      osc.connect(bp);
+      osc.start(t);
+      osc.stop(t + 0.36);
+    }
+    ticks(c, o, t, n, 14, 0.3, "highpass", 2600, 0.16, { click: 0.005 });
+    nb(c, o, t + 0.28, n, 0.04, "highpass", 2000, 0.3);
+    return 0.4;
+  },
+  // the Batterie de 47: two long quick-firers, a sharp double crack and the shells hissing skyward
+  flak47: (c, o, t, n) => {
+    for (const d of [0, 0.09]) {
+      nb(c, o, t + d, n, 0.03, "highpass", 2200, 0.4);
+      tn(c, o, t + d, "sine", 230, 70, 0.14, 0.32);
+      nb(c, o, t + d, n, 0.2, "lowpass", 1500, 0.3, 200);
+    }
+    nb(c, o, t + 0.05, n, 0.3, "bandpass", 2600, 0.05, 5200, 3);
+    return 0.36;
+  },
+  // the Zénith passing over: four airscrews beating against each other over a deep engine drone
+  zenithDrone: (c, o, t, n) => {
+    const dur = 2.4;
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 420;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.14, t + 0.6);
+    g.gain.setValueAtTime(0.14, t + dur - 0.8);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    lp.connect(g).connect(o);
+    for (const [f, lfo] of [[46, 7.1], [47.3, 7.6], [69, 6.4], [92.5, 8.2]] as const) {
+      const osc = c.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = f;
+      // (the airscrews' beat: a slow tremolo on each engine)
+      const trem = c.createGain();
+      trem.gain.value = 0.5;
+      const mod = c.createOscillator();
+      mod.frequency.value = lfo;
+      const depth = c.createGain();
+      depth.gain.value = 0.4;
+      mod.connect(depth).connect(trem.gain);
+      osc.connect(trem).connect(lp);
+      for (const x of [osc, mod]) {
+        x.start(t);
+        x.stop(t + dur + 0.02);
+      }
+    }
+    nb(c, o, t, n, dur, "bandpass", 260, 0.05, 200, 1);
+    return dur + 0.05;
+  },
 
   // ---- impacts and deaths ----
   // a machine blows up: boom, debris rattling down, and the boiler's steam hissing out

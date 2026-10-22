@@ -4,15 +4,24 @@
  * text agrees ("ta Patrie est détruite", "les Forges sont tombées").
  * Player-visible text only: nothing here is compared, sent or saved.
  */
-import type { BuildingKind, PowerKind, UnitKind } from "./types";
+import { BUILDINGS, NATION_BUILDINGS, UNITS } from "./balance";
+import type { BuildingKind, Nation, NationOrClassic, PowerKind, UnitKind } from "./types";
 
 export type NamedKind = UnitKind | BuildingKind | PowerKind;
 
-/** Kinds whose French name is feminine (Patrie, Escouade, Section, Montgolfière, Forges, Polytechnique, Halles, Hotchkiss, Batterie, Tour, Manufacture, Galerie, Fée). */
+/**
+ * Kinds whose French name is feminine (Patrie, Escouade, Section, Montgolfière, Forges, Polytechnique, Halles, Hotchkiss, Batterie, Tour, Manufacture, Galerie, Fée;
+ * the nations': Jamais-Contente, Estafette, Bobine, Pression). The Classique
+ * names: a shared building kind a nation renames (NATION_BUILDINGS) takes its
+ * grammar from NATION_NAMES.
+ */
 export const FEMININE: ReadonlySet<NamedKind> = new Set<NamedKind>([
   "scout", "trooper", "rocket-squad", "sniper", "condor",
   "fab-plant", "tech-lab", "depot", "turret", "sam-site", "radar", "assembly-bay", "gantry",
-  "emp"
+  "emp",
+  "jamais-contente", "sapeurs", "estafette", "fusiliers", "carabiniers",
+  "arsonval", "flak-battery",
+  "pression"
 ]);
 
 /** Kinds whose French name is already plural (les Forges, les Halles). */
@@ -48,28 +57,99 @@ export const PLURALS: Record<UnitKind | BuildingKind, string> = {
   "sam-site": "Batteries Ruggieri",
   radar: "Tours TSF",
   "assembly-bay": "Manufactures",
-  gantry: "Galeries des Machines"
+  gantry: "Galeries des Machines",
+  // the nations' units (PANACHE-CONCEPTION.md §1.5): the makers' names stay invariable
+  // (deux Fourgons Jeantaud, deux Jamais-Contente), the machines' names take their -s
+  fourgon: "Fourgons Jeantaud",
+  "jamais-contente": "Jamais-Contente",
+  "de-dion": "Autocanons De Dion",
+  branly: "Canons Branly",
+  sapeurs: "Escouades de sapeurs-électriciens",
+  zenith: "Zéniths",
+  estafette: "Estafettes",
+  "mortier-280": "Mortiers de 280",
+  gyroptere: "Gyroptères",
+  epervier: "Éperviers",
+  vulcain: "Vulcains",
+  atelier: "Ateliers roulants",
+  fusiliers: "Escouades de fusiliers",
+  carabiniers: "Sections de carabiniers",
+  titan: "Titans",
+  arsonval: "Bobines d'Arsonval",
+  "flak-battery": "Batteries de 47"
 };
 
-/** Names starting with an aspirated h: no elision ("la Hotchkiss", "les Halles"). */
-const ASPIRATED = /^(Hotchkiss|Halles)/;
+/** Grammar of a name: its gender, whether it is already plural, and its plural. */
+export interface NameGrammar {
+  feminine: boolean;
+  pluralNoun: boolean;
+  plural: string;
+}
+
+/**
+ * The names a nation gives a shared building kind (balance.ts
+ * NATION_BUILDINGS) that differ from the Classique one: "le Garage
+ * électrique Jeantaud", "la Citadelle", "le Haut-fourneau".
+ */
+export const NATION_NAMES: Readonly<Record<string, NameGrammar>> = {
+  "Garage électrique Jeantaud": { feminine: false, pluralNoun: false, plural: "Garages électriques Jeantaud" },
+  "Station de charge": { feminine: true, pluralNoun: false, plural: "Stations de charge" },
+  "Hangar du Zénith": { feminine: false, pluralNoun: false, plural: "Hangars du Zénith" },
+  Citadelle: { feminine: true, pluralNoun: false, plural: "Citadelles" },
+  "Aérodrome à vapeur": { feminine: false, pluralNoun: false, plural: "Aérodromes à vapeur" },
+  "Haut-fourneau": { feminine: false, pluralNoun: false, plural: "Hauts-fourneaux" },
+  "Ballon captif": { feminine: false, pluralNoun: false, plural: "Ballons captifs" },
+  "Caserne-atelier": { feminine: true, pluralNoun: false, plural: "Casernes-ateliers" }
+};
+
+const isUnitKind = (k: UnitKind | BuildingKind): k is UnitKind => k in UNITS;
+
+/**
+ * A unit's or building's name as `nation` calls it (§1.10): the Empire's HQ is
+ * the Citadelle, the République's Fab Plant the Garage électrique Jeantaud.
+ * Without a nation (Classique), the BUILDINGS / UNITS name.
+ */
+export function displayName(kind: UnitKind | BuildingKind, nation?: NationOrClassic | null): string {
+  if (isUnitKind(kind)) return UNITS[kind].name;
+  const n = nation && nation !== "classique" ? NATION_BUILDINGS[nation as Nation][kind] : undefined;
+  return n?.name ?? BUILDINGS[kind].name;
+}
+
+/** The grammar of a kind's name as `nation` calls it. */
+export function grammarOf(kind: UnitKind | BuildingKind, nation?: NationOrClassic | null): NameGrammar {
+  const own = NATION_NAMES[displayName(kind, nation)];
+  if (own && !isUnitKind(kind) && displayName(kind, nation) !== BUILDINGS[kind].name) return own;
+  return { feminine: FEMININE.has(kind), pluralNoun: PLURAL_NOUN.has(kind), plural: PLURALS[kind] };
+}
+
+/** "les Citadelles", "deux Fourgons Jeantaud": a kind's plural as `nation` calls it. */
+export const pluralName = (kind: UnitKind | BuildingKind, nation?: NationOrClassic | null): string => grammarOf(kind, nation).plural;
+
+/** Names starting with an aspirated h: no elision ("la Hotchkiss", "les Halles", "le Haut-fourneau", "le Hangar du Zénith"). */
+const ASPIRATED = /^(Hotchkiss|Halles|Haut|Hangar)/;
 /** Does the article elide before this word? ("l'Éole", "l'Hydroglisseur", but "la Hotchkiss"). */
 export const elides = (word: string): boolean => !ASPIRATED.test(word) && /^[aeiouyéèêàâîôûh]/i.test(word);
 
-export const isFeminine = (k: NamedKind | null | undefined): boolean => !!k && FEMININE.has(k);
-export const isPluralNoun = (k: NamedKind | null | undefined): boolean => !!k && PLURAL_NOUN.has(k);
+const isPowerKind = (k: NamedKind): k is PowerKind => !(k in UNITS) && !(k in BUILDINGS);
+
+/** Gender and number of the kind's name, as `nation` (absent: Classique) calls it. */
+const gram = (k: NamedKind, nation?: NationOrClassic | null): { feminine: boolean; pluralNoun: boolean } =>
+  isPowerKind(k) ? { feminine: FEMININE.has(k), pluralNoun: PLURAL_NOUN.has(k) } : grammarOf(k, nation);
+
+export const isFeminine = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): boolean => !!k && gram(k, nation).feminine;
+export const isPluralNoun = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): boolean => !!k && gram(k, nation).pluralNoun;
 
 /** An adjective or past participle agreed with the kind: agree("turret", "détruit") = "détruite", agree("fab-plant", "détruit") = "détruites". */
-export const agree = (k: NamedKind | null | undefined, word: string): string =>
-  `${word}${isFeminine(k) ? "e" : ""}${isPluralNoun(k) ? "s" : ""}`;
+export const agree = (k: NamedKind | null | undefined, word: string, nation?: NationOrClassic | null): string =>
+  `${word}${isFeminine(k, nation) ? "e" : ""}${isPluralNoun(k, nation) ? "s" : ""}`;
 
 /** Definite article with the noun: "le Panhard", "la Patrie", "l'Éole", "les Forges". */
-export const theName = (k: NamedKind, name: string): string =>
-  isPluralNoun(k) ? `les ${name}` : elides(name) ? `l'${name}` : isFeminine(k) ? `la ${name}` : `le ${name}`;
+export const theName = (k: NamedKind, name: string, nation?: NationOrClassic | null): string =>
+  isPluralNoun(k, nation) ? `les ${name}` : elides(name) ? `l'${name}` : isFeminine(k, nation) ? `la ${name}` : `le ${name}`;
 
 /** Indefinite article with the noun: "un Panhard", "une Patrie", "des Forges". */
-export const aName = (k: NamedKind, name: string): string =>
-  isPluralNoun(k) ? `des ${name}` : isFeminine(k) ? `une ${name}` : `un ${name}`;
+export const aName = (k: NamedKind, name: string, nation?: NationOrClassic | null): string =>
+  isPluralNoun(k, nation) ? `des ${name}` : isFeminine(k, nation) ? `une ${name}` : `un ${name}`;
 
 /** "est" / "sont" for the kind as subject. */
-export const isVerb = (k: NamedKind | null | undefined): string => (isPluralNoun(k) ? "sont" : "est");
+export const isVerb = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): string => (isPluralNoun(k, nation) ? "sont" : "est");

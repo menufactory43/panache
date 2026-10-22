@@ -58,7 +58,8 @@ export const MUSIC = {
    * least strikeHammerFloor wherever it lands (its boom carries) and in full
    * when it lands on or near our things.
    */
-  strikeBoost: { barrage: 0.45, emp: 0.3, droppod: 0.3, hammer: 0.85 } as Record<PowerKind, number>,
+  // (the nations' powers: the Rayon Curie strikes like the Obus Méliès; the balloon, the gas and the boilers are quiet)
+  strikeBoost: { barrage: 0.45, emp: 0.3, droppod: 0.3, hammer: 0.85, sonde: 0.1, curie: 0.85, gaz: 0.2, pression: 0.2 } satisfies Record<PowerKind, number>,
   strikeFadeS: 6,
   strikeHammerFloor: 0.5,
   /** An enemy strike telegraphed onto our things lifts the tension before it lands. */
@@ -851,7 +852,7 @@ export class BattleMood {
         case "calldownImpact": {
           // calldowns are public: no fog check, just how close it is (and whether it hit home)
           let k = h.earshot(e.x, e.y);
-          if (e.power === "hammer") {
+          if (e.power === "hammer" || e.power === "curie") {
             k = Math.max(k, MUSIC.strikeHammerFloor);
             if (!h.spectator && h.threatened?.(e.x, e.y, e.radius)) k = 1;
           }

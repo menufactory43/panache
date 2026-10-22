@@ -116,3 +116,30 @@ describe("a rematch, from the report's Rematch to the reloaded page's lobby", ()
     expect(tokenLiterals(stale).filter((f) => ![REMATCH_DUEL, ...SINGLE_TOKENS].includes(f.literal))).toEqual([{ at: "src/ui/fullscreen.ts", literal: "old-duel" }]);
   });
 });
+
+describe("nations in a duel's rematch and saved battle (LOBBY_PROTO 2)", () => {
+  it("the rematch keeps the nation this phone played; anything else reads as Classique", () => {
+    const base = { role: "guest", plan: "high", micMode: "raw", hostSide: "red", mapId: "riverlands", mutators: [] };
+    expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "empire" }))?.nation).toBe("empire");
+    expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "classique" }))).not.toHaveProperty("nation");
+    expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "atlantis" }))).not.toHaveProperty("nation");
+    expect(lobby.parseRematch(JSON.stringify(base))).not.toHaveProperty("nation");
+  });
+
+  it("a saved battle with nations replays them, and the viewer refuses nations it can't read", async () => {
+    const { battleRecord } = await import("../src/versus/records");
+    const { parseRecord } = await import("../src/game/replay");
+    const { setupWorld, worldHash } = await import("../src/arena/record");
+    const setup = { map: "riverlands", seed: 7, mutators: [], openers: {}, nations: { blue: "empire", red: "republique" } } as const;
+    const rec = battleRecord({
+      setup: { ...setup, mutators: [], nations: { ...setup.nations } }, seats: { blue: "host", red: "guest" }, via: "online-duel",
+      turns: [], hashes: [], tick: 10, end: { tick: 10, winner: null, reason: "aborted" }, sim: null, created: "2026-10-22T00:00:00Z"
+    });
+    expect(rec.nations).toEqual({ blue: "empire", red: "republique" });
+    const back = parseRecord(JSON.stringify(rec));
+    expect(worldHash(setupWorld(back))).toBe(worldHash(setupWorld({ ...setup, mutators: [], nations: { ...setup.nations } })));
+    expect(worldHash(setupWorld(back))).not.toBe(worldHash(setupWorld({ ...setup, mutators: [], nations: undefined })));
+    expect(() => parseRecord(JSON.stringify({ ...rec, nations: { blue: "empire" } }))).toThrow(/nations/);
+    expect(() => parseRecord(JSON.stringify({ ...rec, nations: { blue: "empire", red: "atlantis" } }))).toThrow(/nations/);
+  });
+});

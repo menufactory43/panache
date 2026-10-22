@@ -72,7 +72,9 @@ const out = { connect: () => {} } as unknown as AudioNode;
 
 describe("Belle Époque sound effects", () => {
   it("cover the battle, interface and calldown sounds", () => {
-    for (const n of ["cannon", "heavy", "mg", "flak", "rocket", "missile", "laser", "shell", "bomb", "explosion", "bigExplosion", "click", "ready", "alert", "sell", "inbound", "coin", "victory", "defeat"] as SfxName[])
+    for (const n of ["cannon", "heavy", "mg", "flak", "rocket", "missile", "laser", "shell", "bomb", "explosion", "bigExplosion", "click", "ready", "alert", "sell", "inbound", "coin", "victory", "defeat",
+      // the nations' weapons (WP5g): the Branly's zap-boum, the 280's siege boom, the Bobine's arc, the Batterie de 47, the Zénith's engines
+      "arcShell", "heavyShell", "arcBolt", "flak47", "zenithDrone"] as SfxName[])
       expect(BELLE_RECIPES[n], n).toBeDefined();
     // the switch: Belle when asked and available, the original otherwise
     expect(sfxRecipe("cannon", true)).toBe(BELLE_RECIPES.cannon);
@@ -108,6 +110,13 @@ describe("Belle Époque unit voices", () => {
     expect(BELLE_VOICES.raptor.family).toBe("prop");
     expect(BELLE_VOICES.scout.family).toBe("balloon");
     for (const k of ["trooper", "rocket-squad", "sniper"] as const) expect(BELLE_VOICES[k].family).toBe("clock");
+    // the nations' units have voices of their own, not their stand-ins': the République hums, the Empire chuffs
+    expect(BELLE_VOICES.fourgon).not.toBe(BELLE_VOICES.harvester);
+    expect(BELLE_VOICES.fourgon.family).toBe("arc");
+    expect(BELLE_VOICES.branly.family).toBe("arc");
+    expect(BELLE_VOICES.estafette.family).toBe("steam");
+    expect(BELLE_VOICES["mortier-280"].family).toBe("steam");
+    expect(BELLE_VOICES.titan.family).toBe("balloon");
     // the original voices are untouched
     expect(VOICES.trooper.wave).toBe("square");
   });

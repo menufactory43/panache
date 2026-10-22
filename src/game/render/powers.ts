@@ -48,7 +48,11 @@ export interface TargetPreview {
 }
 
 const ENEMY = 0xff3b30;
-const OWN: Record<PowerKind, number> = { barrage: 0xffc93c, emp: 0x7fe3ff, droppod: 0x6eb0ff, hammer: 0xffd86e };
+// (the nations' powers borrow the colour of the Classique power in their slot until WP5g)
+const OWN: Record<PowerKind, number> = {
+  barrage: 0xffc93c, emp: 0x7fe3ff, droppod: 0x6eb0ff, hammer: 0xffd86e,
+  sonde: 0xe8e0c8, curie: 0x9fffd0, gaz: 0x8a8a7a, pression: 0xff9c4a
+};
 const EMP_BLUE = 0xbfeaff;
 /** Barrage shells appear this many sim ticks before they land, falling from this offset (tiles, height). */
 const SHELL_LEAD = 3.2;
@@ -88,6 +92,31 @@ const FEE_RING = 0x7a4dff;
 /** Feu roulant: each shell's burst rolls on with this many lighter bursts (cosmetic: the damage is the sim's). */
 const ROLL_ON = 2;
 
+/** Rayon Curie: radium's blue-green, in place of the Méliès' fire. */
+const CURIE = 0x6fffd0;
+const CURIE_LAYERS: [number, number, number][] = [[0.28, 1, 0xeafff6], [0.7, 0.5, 0x9fffe0], [1.4, 0.18, 0x3fd0a0]];
+/** Gaz de houille: thick grey-brown coal gas rolling low over the cloud's disc. */
+const GAS: EmitCfg = {
+  tex: TEX.puff, tex2: TEX.puff2, life: [2200, 3400], speed: [0.04, 0.18], up: [0.02, 0.1], size: [0.9, 1.2], grow: [1.6, 2.1],
+  alpha: [0.62, 0], tints: [0x6a6052, 0x5a5246, 0x7a6e5c], end: 0x8a8070, drag: 0.4, rot: 0.6, spin: 0.15, wind: [0.08, 0.04], fadeIn: 0.25, easeOut: true
+};
+/** Puffs per second per cloud tile of radius (a 3.5-tile cloud: ~15/s, ~45 alive). */
+const GAS_RATE = 4.2;
+/** Pression des chaudières: white steam. */
+const STEAM_HALO: EmitCfg = {
+  tex: TEX.puff, tex2: TEX.puff2, life: [700, 1200], speed: [0.6, 1.4], up: [0.3, 0.8], size: [0.25, 0.35], grow: [2, 2.8],
+  alpha: [0.7, 0], tints: [0xf4f0ea, 0xe6e2dc], end: 0xffffff, drag: 1.2, rot: 0.5, fadeIn: 0.1, easeOut: true
+};
+/** Ballon-sonde: how high it floats over the point (tiles) and how long it takes to get there (ms). */
+const SONDE_H = 3.2;
+const SONDE_RISE = 1600;
+const sondeMats = { env: null as THREE.MeshStandardMaterial | null, gear: null as THREE.MeshStandardMaterial | null };
+const sondeGeo = {
+  env: new THREE.SphereGeometry(0.34, 14, 10).scale(1, 1.18, 1),
+  basket: new THREE.BoxGeometry(0.14, 0.1, 0.14),
+  line: new THREE.CylinderGeometry(0.006, 0.006, 0.36, 4)
+};
+
 /** The EMP crackle's scratch arc (5 points), refilled per arc: no per-frame garbage. */
 const ARC = Array.from({ length: 5 }, () => ({ x: 0, y: 0 }));
 
@@ -110,6 +139,10 @@ export class PowerRenderer {
   private group = new THREE.Group();
   private time = 0;
   private hammerAnnounced = false;
+  /** Ballons-sondes in the air, by calldown id (a WP1 reveal zone each). */
+  private balloons = new Map<number, { root: THREE.Group; t: number; x: number; y: number }>();
+  /** Gaz de houille: puffs owed to each cloud (fractional, by calldown id). */
+  private gasAcc = new Map<number, number>();
 
   constructor(
     private v: View,
@@ -333,6 +366,21 @@ export class PowerRenderer {
         this.shake(x, y, 140, 0.003);
         break;
       }
+      case "curie":
+        this.rayonCurie(ev.id, x, y, g);
+        break;
+      case "sonde":
+        this.ring(x, y, OWN.sonde, 0.3, POWERS.sonde.radius, 700, 0, false);
+        this.fx.pulse(x, y, 0xe8e0c8, 1.2);
+        break;
+      case "gaz":
+        // (the cloud itself rolls in sync(), from the sim's zones)
+        this.v.particles.emit({ ...GAS, spread: POWERS.gaz.radius * 0.5, speed: [0.4, 1.2] }, x, y, g + 0.3, 14);
+        this.sound("shell", x, y, 0.5);
+        break;
+      case "pression":
+        this.pressionHalo(x, y, g, ev.unitIds);
+        break;
       case "hammer": {
         if (BELLE_EPOQUE) {
           this.obusMelies(ev.id, x, y, g);
@@ -516,6 +564,151 @@ export class PowerRenderer {
     if (this.onScreen(x, y, 4)) this.v.rig.shake(560, 0.013);
   }
 
+  // ------------------------------------------------------ nations' powers ---
+
+  /** Rayon Curie lands: the strike's column from the sky in radium blue-green, rings and a cold flash. */
+  private rayonCurie(id: number, x: number, y: number, g: number): void {
+    const R = POWERS.curie.radius;
+    const l = this.lances.get(id);
+    if (l) {
+      this.group.remove(l.mesh);
+      l.mat.dispose();
+      this.lances.delete(id);
+    }
+    const layers = CURIE_LAYERS.map(([r, o, col]) => {
+      const mat = glowMat(col, o);
+      const mesh = new THREE.Mesh(beamGeo, mat);
+      mesh.position.set(x, g - 0.2, y);
+      mesh.scale.set(r, 40, r);
+      mesh.renderOrder = 8;
+      this.group.add(mesh);
+      return { mesh, mat, r, o };
+    });
+    this.v.tweens.add({
+      dur: 700, ease: Ease.quadIn,
+      update: (k) => {
+        for (const q of layers) {
+          q.mat.opacity = q.o * (1 - k);
+          q.mesh.scale.x = q.mesh.scale.z = q.r * (1 - k * 0.8);
+        }
+      },
+      done: () => {
+        for (const q of layers) {
+          this.group.remove(q.mesh);
+          q.mat.dispose();
+        }
+      }
+    });
+    this.glow(x, y, g + 0.6, 0xeafff6, 5.5, 8.5, 480, 0.9);
+    this.glow(x, y, g + 0.06, CURIE, R * 1.3, R * 1.9, 1200, 0.7, true);
+    this.fx.shock(x, y, R * 0.95, 0xbfffe8, 0.9, 520);
+    for (const [delay, k, tint] of [[0, 1.15, 0xeafff6], [120, 0.85, CURIE], [260, 1.4, 0x3fd0a0]] as const)
+      this.ring(x, y, tint, 0.3, R * k, 620, delay);
+    this.v.particles.emit({ ...SPARKS, tints: [0xeafff6, 0x9fffe0, CURIE], end: 0x3fd0a0, speed: [1, 4], spread: R * 0.5 }, x, y, g + 0.4, 26);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 + Math.random();
+      const d = i === 0 ? 0 : R * (0.3 + Math.random() * 0.45);
+      const px = x + Math.cos(a) * d;
+      const py = y + Math.sin(a) * d;
+      this.v.tweens.after(i * 70, () =>
+        this.fx.explosion({ type: "explosion", x, y, size: i === 0 ? 1.8 : 0.9, air: false, kind: "unit" }, { x: px, y: py, h: this.ground(px, py) + 0.1 })
+      );
+    }
+    this.sound("hammer", x, y, 1, 0.45);
+    if (this.onScreen(x, y, 4)) this.v.rig.shake(480, 0.011);
+  }
+
+  /** Pression des chaudières: a ring of steam bursts round the point, and a halo of steam off every boosted vehicle. */
+  private pressionHalo(x: number, y: number, g: number, ids: readonly number[]): void {
+    const R = POWERS.pression.radius;
+    this.ring(x, y, 0xffe8d0, 0.3, R, 600);
+    this.ring(x, y, 0xff9c4a, 0.3, R * 0.9, 650, 80, false);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const px = x + Math.cos(a) * R * 0.85;
+      const py = y + Math.sin(a) * R * 0.85;
+      this.v.particles.emit(STEAM_HALO, px, py, this.ground(px, py) + 0.2, 1);
+    }
+    for (const id of ids) {
+      const u = this.world.units.get(id);
+      if (!u || !(this.friendly(u.faction) || this.opts.visibleAt(u.x, u.y))) continue;
+      const h = this.ground(u.x, u.y) + 0.35;
+      this.v.particles.emit({ ...STEAM_HALO, spread: 0.25 }, u.x, u.y, h, 5);
+      this.fx.pulse(u.x, u.y, 0xff9c4a, 0.8);
+    }
+    this.v.particles.emit({ ...STEAM_HALO, spread: 0.6 }, x, y, g + 0.3, 6);
+    this.sound("emp", x, y, 0.6, 0.1);
+  }
+
+  /** A small hydrogen balloon with a basket of instruments (shared geometry and materials). */
+  private balloon(): THREE.Group {
+    sondeMats.env ??= new THREE.MeshStandardMaterial({ color: 0xe8e0c8, roughness: 0.7, metalness: 0.05, emissive: 0x2a2620 });
+    sondeMats.gear ??= new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.8, metalness: 0.2 });
+    const root = new THREE.Group();
+    const env = new THREE.Mesh(sondeGeo.env, sondeMats.env);
+    env.position.y = 0.5;
+    const basket = new THREE.Mesh(sondeGeo.basket, sondeMats.gear);
+    root.add(env, basket);
+    for (const [dx, dz] of [[-0.05, -0.05], [0.05, -0.05], [-0.05, 0.05], [0.05, 0.05]] as const) {
+      const l = new THREE.Mesh(sondeGeo.line, sondeMats.gear);
+      l.position.set(dx, 0.22, dz);
+      root.add(l);
+    }
+    return root;
+  }
+
+  /**
+   * The nations' zones, every frame (WP1 World.nation; both public): a
+   * Ballon-sonde rising and bobbing over each reveal, its circle on the
+   * ground; Gaz de houille rolling over each cloud, its edge traced.
+   */
+  private drawZones(dtMs: number): void {
+    const st = this.world.nation;
+    const g = this.v.top;
+    const live = new Set<number>();
+    for (const z of st?.reveals ?? []) {
+      live.add(z.id);
+      let b = this.balloons.get(z.id);
+      if (!b) {
+        const root = this.balloon();
+        this.group.add(root);
+        b = { root, t: 0, x: z.x, y: z.y };
+        this.balloons.set(z.id, b);
+      }
+      b.t += dtMs;
+      const k = Ease.quadOut(Math.min(1, b.t / SONDE_RISE));
+      const ground = this.ground(z.x, z.y);
+      b.root.position.set(z.x + Math.sin(b.t / 1900) * 0.15, ground + 0.2 + SONDE_H * k + Math.sin(b.t / 700) * 0.06, z.y + Math.cos(b.t / 2300) * 0.12);
+      b.root.rotation.y = b.t / 4000;
+      const col = this.friendly(z.faction) ? OWN.sonde : ENEMY;
+      g.lineStyle(1.5, col, 0.55, 0).strokeCircle(z.x, z.y, z.radius);
+      g.fillStyle(col, 0.04).fillCircle(z.x, z.y, z.radius);
+    }
+    for (const [id, b] of this.balloons)
+      if (!live.has(id)) {
+        b.root.removeFromParent();
+        this.balloons.delete(id);
+      }
+    const gas = new Set<number>();
+    for (const c of st?.clouds ?? []) {
+      gas.add(c.id);
+      let acc = (this.gasAcc.get(c.id) ?? 0) + (dtMs / 1000) * GAS_RATE * c.radius;
+      const n = Math.floor(acc);
+      acc -= n;
+      this.gasAcc.set(c.id, acc);
+      for (let i = 0; i < Math.min(n, 6); i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = Math.sqrt(Math.random()) * c.radius * 0.85;
+        const px = c.x + Math.cos(a) * d;
+        const py = c.y + Math.sin(a) * d;
+        this.v.particles.emit(GAS, px, py, this.ground(px, py) + 0.25 + Math.random() * 0.4, 1);
+      }
+      // (its outline is public: the enemy sees the cloud, not what it hides)
+      g.lineStyle(1.2, 0x8a8070, 0.45, 0).strokeCircle(c.x, c.y, c.radius);
+    }
+    for (const id of this.gasAcc.keys()) if (!gas.has(id)) this.gasAcc.delete(id);
+  }
+
   // ---------------------------------------------------------- per frame ---
 
   /** Draw reticles, falling pods and shells, stun crackle and the aim preview. */
@@ -540,6 +733,7 @@ export class PowerRenderer {
         this.melies.delete(id);
       }
     this.flyStreaks(now);
+    this.drawZones(dtMs);
     this.drawStuns(dtMs);
     if (preview) this.drawPreview(preview);
   }
@@ -559,7 +753,7 @@ export class PowerRenderer {
     g.lineStyle(2.5, col, 0.95).strokeCircle(x, y, R);
     if (k < 1 && R * (1 - k) > px(3)) g.lineStyle(2, col, 0.75 + 0.25 * blink).strokeCircle(x, y, R * (1 - k));
     // four outward brackets
-    const spin = c.power === "hammer" ? this.time * 0.0016 : 0;
+    const spin = c.power === "hammer" || c.power === "curie" ? this.time * 0.0016 : 0;
     for (let i = 0; i < 4; i++) {
       const a = spin + (i * Math.PI) / 2;
       const r0 = R + px(4);
@@ -573,11 +767,11 @@ export class PowerRenderer {
     if (c.power === "hammer" && BELLE_EPOQUE) {
       this.drawMelies(c, k);
       g.fillStyle(0xffe2a0, 0.15 + 0.5 * k * blink).fillCircle(x, y, px(4 + 10 * k));
-    } else if (c.power === "hammer") {
-      // a targeting lance from orbit, thickening as the strike charges
+    } else if (c.power === "hammer" || c.power === "curie") {
+      // a targeting lance from orbit, thickening as the strike charges (the Rayon Curie's radium-green)
       let l = this.lances.get(c.id);
       if (!l) {
-        const mat = glowMat(friendly ? 0xfff2c0 : 0xffb0a0, 0.3);
+        const mat = glowMat(c.power === "curie" ? (friendly ? 0xc0ffe8 : 0x9fe0c0) : friendly ? 0xfff2c0 : 0xffb0a0, 0.3);
         const mesh = new THREE.Mesh(beamGeo, mat);
         mesh.renderOrder = 8;
         this.group.add(mesh);
@@ -758,6 +952,8 @@ export class PowerRenderer {
     this.v.scene.remove(this.group);
     this.melies.clear();
     this.pods.clear();
+    this.balloons.clear();
+    this.gasAcc.clear();
     this.lances.clear();
   }
 }

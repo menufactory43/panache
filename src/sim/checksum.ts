@@ -4,6 +4,7 @@
  * drifting apart (SOUND-DUEL.md). Never change what worldHash covers: saved
  * records pin its values.
  */
+import "./nations"; // (World.nation and the nations' unit fields)
 import type { World } from "./types";
 
 const buf = new DataView(new ArrayBuffer(8));
@@ -60,5 +61,28 @@ export function worldHash(w: World): string {
   h.num(w.wrecks.length);
   for (const l of w.objectives.uplinks) h.num(l.progress);
   h.str(w.winner ?? "-");
+  if (w.nation) nationHash(h, w);
   return h.hex();
+}
+
+/**
+ * The nations' state (nations.ts), folded in only when the world has it: a
+ * Classique world never does, so its hashes stay what they always were.
+ */
+function nationHash(h: Fnv, w: World): void {
+  const ns = w.nation!;
+  for (const id of [...w.units.keys()].sort((a, b) => a - b)) {
+    const u = w.units.get(id)!;
+    if (u.still === undefined && !u.entrenched && !u.tsf && u.overdrive === undefined) continue;
+    h.num(id);
+    h.num(u.still ?? -1);
+    h.num(u.entrenched ? 1 : 0);
+    h.num(u.tsf ? 1 : 0);
+    h.num(u.overdrive ?? -1);
+  }
+  for (const id of [...w.buildings.keys()].sort((a, b) => a - b)) if (w.buildings.get(id)!.unpowered) h.num(id);
+  for (const z of [...ns.reveals, ...ns.clouds]) {
+    h.num(z.id);
+    h.num(z.until);
+  }
 }

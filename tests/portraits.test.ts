@@ -1,9 +1,20 @@
 /**
  * The HUD portraits (ICONS.md): shots of the 3D models, blue for every kind and red for every unit
- * and building, all made by tools/model-portraits.mjs --all.
+ * and building, all made by tools/model-portraits.mjs --all; the nations' (PANACHE-CONCEPTION.md
+ * WP5g) by --nations: their own units and defences, and their own models of shared buildings
+ * (hq@empire → hq-empire.webp, placeholders.ts portraitKind).
  */
 import { describe, expect, it } from "vitest";
 import { BUILDING_KINDS, UNIT_KINDS } from "../src/game/assets";
+import { BUILDINGS, UNITS } from "../src/sim/balance";
+import type { Nation } from "../src/sim/types";
+import { NATION_PORTRAIT_BUILDINGS, portraitKind } from "../src/game/three/belle/placeholders";
+
+const NATION_UNITS = (Object.keys(UNITS) as (keyof typeof UNITS)[]).filter((k) => UNITS[k].nation);
+const NATION_ONLY = (Object.keys(BUILDINGS) as (keyof typeof BUILDINGS)[]).filter((k) => BUILDINGS[k].nation);
+const NATION_SHARED = (Object.entries(NATION_PORTRAIT_BUILDINGS) as [Nation, readonly string[]][]).flatMap(([n, ks]) => ks.map((k) => `${k}-${n}`));
+/** Every nation portrait's file name. */
+const NATION_FILES = [...NATION_UNITS, ...NATION_ONLY, ...NATION_SHARED];
 
 const OBJECTIVES = ["uplink", "supply-crate"];
 const blue = Object.keys(import.meta.glob("../public/assets/icons/*.webp")).map((p) => p.slice(p.lastIndexOf("/") + 1, -5));
@@ -39,15 +50,27 @@ describe("HUD portraits", () => {
     expect(scriptList("UNITS")).toEqual(UNIT_KINDS);
     expect(scriptList("BUILDINGS")).toEqual(BUILDING_KINDS);
     expect(scriptList("OBJECTIVES")).toEqual(OBJECTIVES);
+    expect(scriptList("NATION_UNITS").sort()).toEqual([...NATION_UNITS].sort());
+    expect(scriptList("NATION_BUILDINGS").map((k) => k.replace("@", "-")).sort()).toEqual([...NATION_ONLY, ...NATION_SHARED].sort());
+  });
+
+  it("show a nation's own portrait for its own kinds and its own buildings", () => {
+    expect(portraitKind("fourgon")).toBe("fourgon");
+    expect(portraitKind("arsonval", "republique")).toBe("arsonval");
+    expect(portraitKind("hq", "empire")).toBe("hq-empire");
+    expect(portraitKind("hq", "republique")).toBe("hq");
+    expect(portraitKind("hq")).toBe("hq");
+    expect(portraitKind("fab-plant", "republique")).toBe("fab-plant-republique");
+    expect(portraitKind("fab-plant", "classique")).toBe("fab-plant");
   });
 
   it("exist for every unit, building and objective, 256 px square", () => {
-    expect(blue.sort()).toEqual([...UNIT_KINDS, ...BUILDING_KINDS, ...OBJECTIVES].sort());
+    expect(blue.sort()).toEqual([...UNIT_KINDS, ...BUILDING_KINDS, ...OBJECTIVES, ...NATION_FILES].sort());
     for (const k of blue) expect(webpSize(`public/assets/icons/${k}.webp`), k).toEqual([256, 256]);
   });
 
   it("exist in red for every unit and building (the objectives belong to no side)", () => {
-    expect(red.sort()).toEqual([...UNIT_KINDS, ...BUILDING_KINDS].sort());
+    expect(red.sort()).toEqual([...UNIT_KINDS, ...BUILDING_KINDS, ...NATION_FILES].sort());
     for (const k of red) expect(webpSize(`public/assets/icons/red/${k}.webp`), k).toEqual([256, 256]);
   });
 });

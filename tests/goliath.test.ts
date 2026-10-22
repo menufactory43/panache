@@ -1147,7 +1147,8 @@ describe("sight and visibility", () => {
 
   it("a Goliath sees further than any other unit", () => {
     for (const k of Object.keys(UNITS) as UnitKind[])
-      if (k !== "goliath") expect(UNITS.goliath.sight, k).toBeGreaterThan(UNITS[k].sight);
+      // (among Classique's units: the Zénith, the République's own super-unit, sees further still)
+      if (k !== "goliath" && !UNITS[k].nation) expect(UNITS.goliath.sight, k).toBeGreaterThan(UNITS[k].sight);
     const w = field();
     spawnUnit(w, "goliath", "blue", 30, 30);
     tickFog(w);

@@ -13,7 +13,8 @@
  * - IdleWatch nudges when a factory has sat idle while the player could
  *   afford something from it.
  */
-import { BUILDINGS, UNITS } from "../sim/balance";
+import { behaves } from "../sim/nations";
+import { BUILDINGS, ROLES, UNITS } from "../sim/balance";
 import { unitBlocker } from "../sim/economy";
 import { unitSeenBy } from "../sim/infantry";
 import { PLURALS } from "../sim/lexicon";
@@ -88,7 +89,7 @@ export class EnemyIntel {
     if (t < this.nextScan) return;
     this.nextScan = t + ADVISOR.scanS;
     for (const u of this.w.units.values()) {
-      if (u.faction === this.faction || u.kind === "harvester" || u.kind === "scout") continue;
+      if (u.faction === this.faction || behaves(u.kind, "harvester") || isScout(u.kind)) continue;
       if (!unitSeenBy(this.w, this.faction, u)) continue;
       let m = this.seen.get(u.kind);
       if (!m) this.seen.set(u.kind, (m = new Map()));
@@ -204,12 +205,15 @@ export class IdleWatch {
   }
 }
 
+/** A scout of any roster (the Patrie, the Empire's Estafette): unarmed, it says nothing of the enemy's army. */
+const isScout = (k: UnitKind): boolean => k === ROLES.classique.scout || k === ROLES.republique.scout || k === ROLES.empire.scout;
+
 /** Cost of the cheapest unit `factory` can build right now (combat units first; scouts only if nothing else). */
 function cheapestUnit(w: World, faction: Faction, factory: BuildingKind): number | null {
   let best: number | null = null;
   for (const k of Object.keys(UNITS) as UnitKind[]) {
     const u = UNITS[k];
-    if (u.builtAt !== factory || k === "scout" || unitBlocker(w, faction, k)) continue;
+    if (u.builtAt !== factory || isScout(k) || unitBlocker(w, faction, k)) continue;
     if (best === null || u.cost < best) best = u.cost;
   }
   return best;

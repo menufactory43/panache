@@ -89,6 +89,8 @@ export const NATIONS = {
 } as const;
 ```
 
+(Après WP4 : `republique.radiumValue` 2,0 et `empire.trench.mult` 0,9 ; Branly 200 PV, De Dion 260 PV — §3.10.)
+
 **République — Réseau électrique** (nouveau code, moyen)
 - Placement : un bâtiment républicain (sauf GQG et Tour TSF) ne peut être posé que si son emprise est à
   `hqRadius` du centre d'un GQG ou à `towerRadius` d'une Tour TSF (remplace la règle des 6 cases ; la Tour TSF
@@ -926,3 +928,476 @@ WP0 sauf par leur propriétaire.
 | Duel sonore : désaccord de protocole | proto 2 négocié, repli Classique automatique |
 | Performances mobile (25 nouveaux modèles) | budget : ≤ 600 triangles par unité, ≤ 1 500 par bâtiment, ≤ 4 000 pour le Zénith ; instanciation existante |
 | Ton : glissement vers le réel | relecture des cartons : pas de pays, de batailles ou d'uniformes réels ; Empire comique, jamais cruel |
+
+### 3.5 WP0 — fait
+
+Livré sur `feat/camps`. Classique vérifié bit pour bit : `tests/classic-hash.test.ts` rejoue les 9 records de
+`battles/showcase` et 3 parties IA-contre-IA de 10 min (riverlands, archipelago, frostbite + Nomades) et compare
+hachages `worldHash` tous les 500 ticks, fin de partie et empreinte des commandes de l'IA aux valeurs calculées
+sur `4eff7f6` (avant tout code de nation). Tests de données : `tests/nations-data.test.ts`.
+
+Où trouver quoi :
+- `types.ts` : `Nation`, `NationOrClassic`, `Role`, `ClassicUnitKind`/`NationUnitKind`,
+  `ClassicBuildingKind`/`NationBuildingKind`, `ClassicPowerKind`/`NationPowerKind`, `WeaponFx` + `arc-shell`, `heavy-shell`.
+- `balance.ts` : les 15 unités et 2 défenses (ajoutées **après** les genres Classique : l'ordre des clés reste
+  le même pour le Classique), champs `nation/base/cargo/healTargets`, `NATIONS`, `NATION_IDS`, `ROSTERS`,
+  `NATION_BUILDINGS` (noms et rôles des genres partagés par nation), `ROLES`, `ZENITH`, `POWERS.sonde/curie/gaz/pression`,
+  `POWER_SETS`, `POD_CREWS`.
+- `rules.ts` : `Rules.nations`, `nationOf()`, `kindNation()`, `inRoster()`, `rosterBan()` (appelé en tête de
+  `bannedBy`), `matchNations()`, `parseNations()`, `applyMutators(w, ids, nations)`.
+- `setup.ts` / `maps.ts` : `MatchSetup.nations`, `MatchOptions.nations`.
+- `lexicon.ts` : genre et pluriel de chaque nouveau nom, `NATION_NAMES`, `displayName(kind, nation)`, `grammarOf`,
+  `pluralName`, paramètre `nation` optionnel sur `isFeminine/agree/theName/aName/isVerb` ; h aspiré pour
+  Haut-fourneau et Hangar.
+- `three/belle/placeholders.ts` (réexporté par `belle/index.ts`) : `PLACEHOLDER_MODEL`, `PLACEHOLDER_BUILDING`,
+  `NATION_TEAMS`, `lookalike`, `portraitKind`, `withStandIns`.
+
+Partie de développement : `/?nations=republique,empire` (bleu, puis rouge ; `rep,emp` accepté) sur le
+serveur de dev ou le build ; escarmouche seulement (ni Survie, ni Opération, ni Défi du jour). Le tiroir de
+construction ne montre que l'effectif de la nation du joueur.
+
+Écarts au document, et pourquoi :
+1. `ROLES` vit dans `balance.ts` (et `Role` dans `types.ts`), pas dans `ai/roles.ts` qui appartient à WP3 : WP3
+   construit dessus.
+2. Les 16 unités Classique ne portent **pas** de champ `nation` (« tout genre avec `nation` est banni en
+   Classique ») : leur répartition est la table `ROSTERS`, qui couvre aussi les bâtiments (Rép sans Hotchkiss,
+   Emp sans Ruggieri).
+3. `NATIONS` est typé par une interface plutôt que `as const`, pour rester modifiable par `--tune` ; il gagne
+   `name`/`short` (« la République », « l'Empire de Carbonie ») pour les messages « Réservé à … ».
+4. `POD_CREWS` n'a d'équipage que pour la République (l'Empire n'a pas d'Obus-capsule dans `POWER_SETS`).
+5. Pas encore de changement de comportement : départ (`harvester` + `trooper` pour les deux nations), ouvertures,
+   IA, multiplicateurs, mécaniques et pouvoirs nouveaux sont à WP1–WP3. Une République ne peut donc pas encore
+   produire de récolteur (le Fourgon n'a pas son comportement `base` avant `behaves()`), et l'IA ne joue que les
+   genres de son effectif que `bannedBy` lui laisse.
+6. Listes des mutateurs (`GROUND_COMBAT`, `NO_GROUND_COMBAT`, `INFANTRY_SQUADS`, `NO_VEHICLES`) : étendues à la
+   main avec les nouveaux genres (Classique en tête, inchangé), pas encore calculées depuis `ROLES`. Le conflit
+   Nomades/Armada ↔ République n'est pas encore imposé.
+7. Duel sonore : `TABLES_COMPLETE` du codec ne vérifie que les genres Classique (les duels restent Classique
+   jusqu'à `LOBBY_PROTO = 2`, WP7) ; `tests/versus-codec.test.ts` ajusté en conséquence.
+8. Voix : `voice-lines.ts` n'énumère que les genres et pouvoirs Classique (les clips des nations sont WP5g).
+   Le briefing de l'arène (`unitTable`/`buildingTable`) reste Classique (WP4).
+9. Modèles provisoires : couleur de nation = `NATION_TEAMS[nation][camp]` (siège bleu : couleur propre ; siège
+   rouge : la variante « miroir » du §1.1, dans tous les cas) ; les escouades gardent la couleur du camp (le gréement
+   d'infanterie choisit ses couleurs par camp). Portraits, voix et tables par genre (`withStandIns`) : ceux du
+   modèle provisoire. Les fx `arc-shell` et `heavy-shell` sont dessinés comme `shell` (`GameScene`).
+10. Le Zénith est rangé dans l'onglet Véhicules à côté du Gargantua (unités du gantry, comme `TAB_OF`).
+11. Pluriels choisis : « Jamais-Contente » invariable (nom propre de la voiture), « Vulcains », « Zéniths », « Titans ».
+12. `tests/goliath.test.ts` « le Gargantua voit plus loin que toute autre unité » restreint aux unités Classique
+    (le Zénith voit à 11).
+
+### 3.6 WP1 — fait
+
+Livré sur `feat/camps-wp1`. Classique inchangé bit pour bit (`tests/classic-hash.test.ts` vert) ; tests des
+mécaniques : `tests/nations.test.ts` (25 tests : chaque mécanique, chaque pouvoir, déterminisme, miroirs Rép-Rép et
+Emp-Emp).
+
+Où trouver quoi :
+- `src/sim/nations.ts` (nouveau) : `behaves(kind, base)` / `buildingBehaves`, `nationKind(w, f, kind)` (genre Classique →
+  genre de la nation pour le même rôle), multiplicateurs (`buildingCostFor`, `buildingTicks`, `buildingMaxHp(w, b)`,
+  `unitTicks`, `parallelOf`, `radiumValue`, `harvestRate`, `holdOf`), Réseau électrique (`powerSources`, `inPowerRange`,
+  `needsPower`, `onGrid`, `isUnpowered`), Réseau TSF (`tsfSources`, `speedMult`, `sightBonus`), Tranchées
+  (`trenchCover`), zones de pouvoirs (`revealedTo`, `veiled`), `tickNations` (appelé par `sim.ts`) et `nationStart`
+  (appelé par `maps.ts`).
+- État exposé au rendu et à l'UI (champs simples, absents en Classique) : `Building.unpowered`, `Unit.entrenched`,
+  `Unit.still`, `Unit.tsf` (aura), `Unit.overdrive` (tick de fin de la Pression), `World.nation.reveals` (ballons-sondes,
+  publics) et `World.nation.clouds` (nuages de gaz, publics). `worldHash` ne les couvre que si `World.nation` existe.
+- `powers.ts` : `powerSet(w, f)` (les quatre pouvoirs du camp), Ballon-sonde, Gaz de houille, Pression, Rayon Curie
+  (`landHammer` paramétré), `podCrew` par nation (`POD_CREWS`).
+
+Écarts au document, et pourquoi :
+1. Les nouveaux champs d'état sont déclarés depuis `nations.ts` par augmentation de module (`declare module "./types"`)
+   au lieu d'être écrits dans `types.ts` (registre de WP0, gelé) : mêmes champs, visibles partout.
+2. Pas de `FxEvent` nouveaux (« hors réseau », « retranchée ») : l'union est dans `types.ts` ; le rendu lit les drapeaux.
+   La surchauffe de la Pression émet l'événement `stun` existant.
+3. Les tests de genre du Gargantua (`kind === "goliath"`, `spawnUnit` qui crée `GoliathState`, Zénith) restent à WP2
+   (`goliath.ts`, `lift.ts`) ; `nations.ts` compte déjà un Zénith (`kind === "zenith"`, amarré : `goliath.mode ===
+   "anchored"`) comme source des deux réseaux. Levage par deux Titans : `lift.ts` (WP2) ; le transport d'escouades du
+   Titan (capacité 3) marche déjà par `UNITS.capacity`.
+4. Tranchées : « immobile » = pas d'ordre `move/attackMove/board` et pas déplacée de plus de 0,02 case depuis le tick
+   précédent ; près d'une Hotchkiss, l'escouade immobile est retranchée dès le tick suivant.
+5. Gaz : le seuil d'acquisition est `POWERS.gaz.acquire` = 2 cases (le test vérifie bloqué à 2,5, pas à 1,5) ; il filtre
+   l'acquisition automatique (unités et défenses) et fait lâcher une cible auto entrée dans le nuage, pas un ordre
+   d'attaque explicite. Le nuage masque aussi sous Ciel dégagé.
+6. Ballon-sonde : peut viser une zone inexplorée (c'est son rôle) ; les autres pouvoirs gardent la règle.
+7. Pression : tous les véhicules terrestres non-infanterie du camp dans le rayon (Gargantua compris).
+8. Coûts de bâtiments par nation arrondis à l'entier (Tour TSF républicaine : 128) ; PV max arrondis.
+9. Réseau électrique : un bâtiment dans l'anneau d'un Gargantua/Zénith amarré reste plaçable (règle d'avant-poste) ;
+   `placementBlocker` dit « Hors du réseau électrique » ; `suggestPlacement` cherche aussi autour des sources.
+10. Fichiers hors liste touchés au minimum pour `behaves()`/`nationKind()` : `sim.ts` (commande `harvest`, appel de
+    `tickNations`), `maps.ts` (`nationStart`, unités de départ de la carte et d'Aéroportés par nation), `rules.ts`
+    (`nationBansMutator` : Nomades/Armada retirés si la République joue), `openers.ts` (Fourgons et unités d'ouverture
+    de la nation), `lifeline.ts` (Titan/Fusiliers pour l'Empire), `objectives.ts` et `salvage.ts` (récolteurs),
+    `tests/salvage.test.ts` (le Fourgon ne laisse pas d'épave, comme le Fardier).
+11. Reste aux autres lots (sites qui lisent encore `kind === "harvester"` ou `BUILDINGS[k].hp`) : WP6 —
+    `game/controller.ts` (ordre de récolte au clic, `isArmyUnit`), `GameScene.ts` (récolteur de départ du joueur mis au
+    travail), `render/entities.ts` (barres de vie : utiliser `buildingMaxHp`), `ui/hud.ts`/`controller.ts` (prix de
+    revente), `awareness.ts`, `chronicle.ts`, textes d'ouverture (« Fardiers ») ; WP3 — `ai/*` (`ai/menders.ts` PV
+    des bâtiments, placement sous réseau via `inPowerRange`/`powerSources`), `modes/survival.ts` ; WP4 — `arena/observe.ts`.
+
+### 3.7 WP2 — fait
+
+Zénith livré **avec amarrage** (le repli « Zénith sans amarrage » n'a pas servi). Classique et Empire inchangés :
+`tests/classic-hash.test.ts` et les 7 fichiers de tests du Gargantua passent tels quels. Tests : `tests/zenith.test.ts` (13).
+
+Où trouver quoi (`src/sim/goliath.ts`) :
+- `SUPER[kind]` (`goliath`, `zenith`) : `tune` (GOLIATH ou ZENITH, lus en direct, donc `--tune` les atteint),
+  `weapon(slot)`, `weaponId(slot)`, `trains(kind)`, `repairedBy`, `liftable`, `words` (libellés ancré/amarré).
+  `superOf`, `isSuperKind`, `superTune`, `superKindOf(w, camp)` (= `ROLES[nation].super`, Gargantua en Classique),
+  `weaponStats(u, slot)`, `ensureSuper`, `spawnSuper`, `canRepair(healer, cible)`, `trainableBy(w, g, kind)`,
+  `superView(u)` (champs simples pour le rendu : mode, progression d'amarrage, amarré, armes avec id/état/firedTick).
+- Les armes du Zénith occupent les 4 emplacements du Gargantua (`ZENITH_SLOTS` : mortars → branly, laser → arc,
+  cannons → bombs, mg → mg ; mêmes seuils 0,75 / 0,5 / 0,25 / jamais) : `GoliathState`, les fx `goliathWeapon`
+  et `types.ts` ne changent pas. Le rendu traduit l'emplacement par `SUPER.zenith.weaponId(slot)`.
+- Amarrage = le mode « anchored » du Gargantua, avec les temps de ZENITH (3 s / 4 s), sur un 2×2 constructible
+  libre (le mât est inscrit dans `World.occupancy`). Amarré : point de dépôt (`nearestDropSite`, sans changement),
+  anneau de construction, production d'Éole, Blériot, Pasteur et Patrie (`trainableAt` tient compte de la nation ;
+  le Classique garde l'ancienne expression mot pour mot). Jamais levé (`lift.ts liftBlocker` → « Il vole déjà »).
+- Coût +25 % par Zénith possédé (`goliathCost(w, camp, kind)`, compte par genre). Nomades / Armada avec nations :
+  le super de la nation (un Zénith d'Armada vole seul, sans Montgolfières).
+- IA (`ai/goliath.ts`) : même plan pour le Zénith — il vole (pas de levage, tout site accessible, relais
+  d'îles compris ; un champ coupé de la base par le sol vaut ×0,7), s'amarre comme le Gargantua s'ancre, et
+  amarré produit des aéronefs (`hangarPick` : Pasteur s'il est blessé sans Pasteur près de lui, Blériot face à
+  l'aviation, sinon Éole). `wantGantry` teste le bannissement du super de la nation.
+
+Crochets attendus des autres lots (non modifiés ici, propriété WP1/WP3) :
+1. `combat.ts goliathWeapons` : `const st = GOLIATH.weapons[k]` → `weaponStats(u, k)` (sinon le Zénith tire avec les
+   armes du Gargantua ; seuils, portées d'ordre, `goliathReachAt` et la menace IA sont déjà les bonnes).
+2. `combat.ts tickHealer` : ignorer une cible si `!canRepair(u.kind, o)` (Pasteur seul pour le Zénith ; l'Atelier,
+   `healTargets: "ground"`, l'exclut aussi une fois `healTargets` en place).
+3. `world.ts spawnUnit` : `isSuperKind(kind)` (ou `behaves(kind, "goliath")`) au lieu de `kind === "goliath"` pour créer
+   `unit.goliath` (en attendant, `tickGoliaths` le crée au tick même de la sortie du Hangar, et `spawnSuper` aussi).
+4. `economy.ts` : `trainBlocker` → `trainableBy(w, g, kind)` ; `queueCap` → `isSuperKind(kind) ? superTune(kind).queueMax` ;
+   `goliathBuildNews` / `GOLIATH.nearlyDone` → `isSuperKind(head.kind)` / `superTune` ; le bannissement du gantry
+   (« banni avec le Gargantua ») → `superKindOf(w, camp)` (aujourd'hui le Hangar du Zénith est banni pour la République) ;
+   message « Ancre-le pour produire » → `superOf(g.kind).words.trainHint`.
+5. `salvage.ts` : `UNITS.goliath.cost/buildTime` → `UNITS[kind]` ; `powers.ts` : le texte « GQG ou un Gargantua ».
+6. WP1 Réseau électrique / TSF : un Zénith amarré (`isAnchored(u) && u.kind === "zenith"`) est une source ; tout
+   Zénith pour le TSF.
+7. WP3 `ai/commander.ts` : produire `superKindOf(w, camp)` au Gantry (`unit: "goliath"` en dur l. 473), compter
+   `unitCost(w, f, superKindOf(...))`.
+
+### 3.8 WP3 — fait
+
+Livré sur `feat/camps-wp3`. Classique vérifié : `classic-hash.test.ts` vert, et 39 configurations IA-contre-IA
+de 7 min (6 cartes × 6 personnalités, 3 difficultés, mutateurs, ouvertures, objectifs, Survie) produisent les
+mêmes hachages et les mêmes commandes avant/après.
+
+Où trouver quoi :
+- `ai/roles.ts` : `aiKinds(nation)` (les emplacements que remplit le commandant, dérivés de `ROLES` ; la ligne
+  `classique` redonne exactement les genres d'avant), `behaves()`/`baseOf()` locaux à l'IA, `buildingFor()`
+  (Rép : `turret` → `arsonval` ; Emp : `sam-site` → `flak-battery`), `isDefence`, réseau électrique vu par
+  l'IA (`needsPower`, `powerSources`, `poweredAt`, `unpoweredBuildings`).
+- `ai/commander.ts` : production par rôle (Forges/Parc/Manufacture : l'Estafette et l'Atelier sortent des Forges),
+  `NATION_STRATEGIES` (`siege`, `volta`), `PERSONALITIES`, `NATION_POOLS`/`poolFor()`, re-tirage dans la
+  réserve de la nation au premier passage quand la personnalité était tirée au hasard ; placement sous réseau
+  (rayons des sources d'abord, sinon une Tour TSF ancrée vers le bâtiment voulu, plafond 6 ; Tour reconstruite
+  près d'un bâtiment éteint ; Station de charge précédée d'une Tour vers son gisement) ; Fourgons envoyés
+  d'abord sur le radium à ≤ 20 cases ; guetteur du Mortier de 280 (`planSpotter` : le premier éclaireur se
+  tient à 6,5 cases de la cible des pièces) ; super-unité = `ROLES.super` à la Galerie/au Hangar ;
+  compteurs `waves`/`firstWaveTick` dans `AiState`.
+- `ai/powers.ts` : pouvoirs filtrés par `POWER_SETS` ; Rayon Curie (règle de l'Obus Méliès, amas ≥ 800) ;
+  Pression (≥ 4 véhicules dans le rayon, vague lancée ou au contact) ; Gaz (colonne ≥ 400 à ≤ 6 cases de
+  ≥ 2 défenses connues, en assaut) ; Ballon-sonde (tir reçu sans tireur visible, sinon toutes les 90 s sur le
+  QG ennemi). Un pouvoir de nation que la sim n'accepte pas (compteur `fired` inchangé) est écarté.
+- `ai/condor.ts`, `ai/airlift.ts`, `ai/menders.ts` : tests de genre remplacés par comportement (transport,
+  tireur d'élite, récolteur, réparateur ; l'Atelier roulant ne suit que les unités au sol).
+- `modes/survival.ts` : vagues par rôle (chaque genre Classique des réserves vaut pour son rôle chez la nation
+  attaquante ; l'artillerie impériale amène des Mortiers de 280 dès la vague 6).
+- `tests/ai-nations.test.ts`.
+
+Écarts, et pourquoi :
+1. `siege`/`volta` ne sont pas dans `STRATEGIES`/`StrategyName` (les outils, le Défi du jour et les tables par
+   personnalité de `ai/goliath.ts` itèrent ces clés : le Défi du jour aurait changé) mais dans
+   `NATION_STRATEGIES` ; leur `name` est la personnalité Classique dont elles empruntent les tables (`siege` →
+   `ironclad`, `volta` → `rush`), leur `id` la leur ; `personalityOf(s)` rend le vrai nom.
+2. Les six personnalités Classique jouent les deux nations quand on les demande ; seules les réserves au hasard
+   suivent le tableau du §1.9.
+3. Sans le `behaves()` de WP1 la sim ne fait récolter que le genre `harvester` : l'IA détecte un genre de
+   récolteur qui reste inactif après un ordre de récolte et cesse d'en construire. Le test donne alors trois
+   Fardiers de remplacement à chaque camp (il le détecte et s'en passe une fois WP1 fusionné).
+4. Le Gargantua/Zénith : `wantGantry`/`wantGoliath` (fichier de WP2) refusent tant que `goliath` est banni,
+   donc la République ne construit pas encore de Hangar ; la commande produit déjà `ROLES.super`.
+5. Ouvertures (`openers.ts`) non adaptées : leurs genres Classique sont bannis en partie « nation », donc pas
+   d'ouverture pour l'IA en nation. Boss de Survie : pas de Gargantua (vague de cœur par rôle seulement).
+
+Mesures (sans les mécaniques de WP1, Fardiers de remplacement) : Rép contre Emp, 20 parties sur 5 cartes,
+chaque nation de chaque côté : Empire 18, République 1, nulle 1 (médiane 9,8 min) — non significatif tant que
+la Rép ne peut pas remplacer ses récolteurs ni profiter de ses multiplicateurs ; miroirs (12 parties chacun) :
+Emp-Emp bleu 6 / rouge 6 (médiane 12,9 min), Rép-Rép 5 / 7 (11,3 min), aucune nulle. À remesurer par WP4.
+
+### 3.9 Intégration — fait
+
+Sur `feat/camps` : fusion de `feat/camps-m-bat` (WP5f/WP5d) avec les branches de modèles déjà fusionnées, puis les
+crochets entre lots. Classique inchangé bit pour bit (`classic-hash.test.ts` vert) ; suite complète, build et
+`tools/smoke.mjs 390 844` verts.
+
+Fusion des modèles :
+- `belle/index.ts` enregistre tout : `GROUND_REP`, `GROUND_EMP`, `AIR_EMP`, `zenith`, les escouades (`nationSquadDef`),
+  `BE_NATION_BUILDING_MODELS` (bâtiments de nation) et `BE_LANDMARKS` (Tour Eiffel).
+- `placeholders.ts` : `STAND_IN` / `STAND_IN_BUILDING` complets (voix, portraits, tables `withStandIns`) ;
+  `PLACEHOLDER_MODEL` et `PLACEHOLDER_BUILDING` vides (liste `MODELLED` des 15 genres) ; `lookalike(k)` = ce que dessine
+  le rendu (le genre lui-même désormais).
+- Couleurs unifiées dans `models.ts` : `unitDef(kind, f, owner?)` et `buildingDef(kind, f, owner?)` peignent tout modèle
+  d'une armée de nation — genre propre **ou partagé** (GQG, Forges, Panhard d'un Empire…) — en `NATION_TEAMS[nation][camp]`
+  (le crochet `inNation` de `ground-rep.ts` est supprimé). `SquadRig(kind, f, seed, alive, nation)` fait de même pour les
+  escouades partagées. `?style=original` dessine aussi les modèles et escouades des nations (ils n'existent qu'en Belle Époque).
+
+Crochets câblés : les 7 de WP2 (§3.7 : `weaponStats`, `canRepair`, `spawnUnit`, `trainableBy`/`queueCap`/annonces/
+bannissement du Hangar par `superKindOf`/`trainHint`, `salvage.ts`, texte de `powers.ts` ; le Zénith amarré était déjà
+source chez WP1 ; `ai/commander.ts` produisait déjà `K.super` au prix `unitCost`). IA : la sonde « récolteur inerte » de
+WP3 ne marque plus aucun récolteur (le Fourgon récolte), menace antiaérienne du Zénith par ses armes, `behaves()` dans
+`ai/salvage`, `veterans`, `objectives`, `goliath`, `powers`. Ouvertures : `openerBlocked` traduit les genres par rôle
+(`nationKind`) : l'IA et le joueur ont leurs cartes d'ouverture en nation. Interface (handoffs WP1 §3.6 n° 11) : récolteur
+de départ, ordres de récolte, revente, PV par `behaves`/`buildingMaxHp`/`buildingCostFor` ; textes au nom du récolteur
+de la nation (« leurs Fardiers » = ceux de l'ennemi) ; libellés d'amarrage ; annonces du Zénith reformulées
+(`callouts.ts zenithLine` : « Zénith ennemi en amarrage »…, sans clip enregistré, sous-titrées).
+Rendu : `ZenithView` branché avant le Gargantua et nourri par `superView` ; Hangar par `isSuperKind` ; sacs de sable
+(`entrenched`) ; variante de matériau `unpowered` + éclair barré clignotant ; arc de la Bobine éteint hors réseau ;
+vapeur de la Pression ; visuels du Ballon-sonde, Gaz de houille, Rayon Curie et Pression (`render/powers.ts`).
+Correctif : `MUSIC.strikeBoost` manquait les quatre pouvoirs de nation (NaN dans la musique, erreurs console).
+
+Escarmouche : contrôle « Nation » (Classique / République / Empire) dans le menu Belle Époque, réglage `nation` de
+`battledrones.settings` ; l'IA prend la nation adverse ; `?nations=` reste prioritaire ; ni Survie, ni Opération, ni
+Défi du jour, ni duel.
+
+Mesure rapide (avant WP4, aucun nombre retouché) : Rép contre Emp, IA Normal, 6 cartes × 2 sièges × 4 couples de
+personnalités (balanced/balanced, volta/siege, skyforce/ironclad, airswarm/boom) = 48 parties, plafond 25 min :
+**Empire 42, République 5, nulle 1** ; médiane 11,1 min. Par carte (Rép–Emp) : Terrain d'essai 2–6, Terres fluviales 1–7,
+Mer de dunes 2–5 (+1 nulle), Engelure 0–8, Cendres 0–8, Archipel 0–8. Siège bleu/rouge de la Rép : 2–21 / 3–21. Le Hangar
+du Zénith est bâti dans 28 parties, un Zénith ne sort que dans 5 (le fonds de l'IA n'atteint pas 1 500), contre un
+Gargantua dans 38. Pas de bogue trouvé derrière : récolte par travailleur comparable (5 min, un seul : Fourgon 2 880,
+Fardier 3 100), aucun blocage de production. C'est le chantier de WP4.
+
+Restes : `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne reconnaît que la Patrie comme
+éclaireur.
+
+### 3.10 WP4 — Mesures
+
+Branche `feat/camps-bal`. Classique inchangé bit pour bit (`tests/classic-hash.test.ts` vert) : tous les leviers d'IA
+ajoutés ne s'appliquent qu'à un camp qui joue une nation (`nation !== "classique"`), et les seuls nombres touchés dans
+`balance.ts` sont ceux des nations et de leurs unités propres.
+
+**Outils** (tous en Node, déterministes : même commande → mêmes lignes ; ~0,33 s de calcul par minute simulée)
+- `npx vite-node tools/pacing.ts run out.jsonl --nations rep-emp|rep-rep|emp-emp [--seeds N] [--jobs N]` : panel IA contre
+  IA. `rep-emp` joue chaque personnalité de la réserve Normal de la République (balanced, rush, airswarm, skyforce,
+  volta) contre chaque personnalité impériale (balanced, rush, airswarm, boom, ironclad, siege), la République de chaque
+  côté, sur les 6 cartes : 360 parties par graine ; les miroirs jouent chaque couple ordonné de la réserve (150 / 216).
+  Ouvertures et objectifs (Liaisons, largages) comme en escarmouche ; `--bare` (ni l'un ni l'autre), `--no-openers`,
+  `--no-objectives`, `--pairs a/b,…`, `--cap <min>`, `--tune JSON` (atteint aussi `NATION_AI`, `OBJECTIVE_AI`,
+  `NATION_STRATEGIES`, `GOLIATH_AI.nation`). `--jobs N` lance N processus (défaut : un par cœur) et réunit leurs
+  fichiers : 720 parties en ~6 min sur 10 cœurs.
+- `pacing.ts summary --nations <fichiers>` : part de la République (intervalles de Wilson à 95 %), par carte, par siège,
+  par personnalité, par couple ; part du rouge dans les miroirs ; courbes médianes par nation (valeur d'armée, récolte,
+  récolteurs, bâtiments, banque à 2, 4, 6… 15 min) ; super-unité (part des camps qui en alignent une, heure médiane,
+  Hangar/Galerie) ; première vague ; part du radium ; secondes de bâtiments éteints ; pouvoirs ; **tableau par genre**
+  (construits, dépensé, pertes, valeur d'unités et de bâtiments tués par coup de grâce, tués / valeur perdue) ; qui menait
+  l'armée à 6:00. Chaque ligne du `.jsonl` garde ces mesures (`Match.nat`, `tools/pacing-match.ts`).
+- `tools/balance.ts duels --nations [--trench] [--tsf]` (matrice 10 × 11 à 1 800 de charbon, sous les règles des
+  nations, moyenne par unité), `goliath --vs zenith [--menders N]` (super contre super, et chacune contre des groupes de
+  coût égal de l'autre nation), `siege` (groupes de siège contre 3 Hotchkiss + Batterie de 47, ou 2 Bobines + Ruggieri +
+  Tour TSF : temps pour raser, pertes).
+- `tools/arena.ts … --nations rep,emp` : arène en nations (le record garde `nations` et se rejoue) ; sièges `ai:siege`,
+  `ai:volta`.
+
+**Ce qui faisait perdre — ou gagner — la République** (panel de départ : 360 parties, code de `feat/camps`)
+1. *La première lecture mesurait un départ nu.* Sans ouvertures ni objectifs (ce que faisait le script de §3.9),
+   l'Empire gagne 75 % [70–79] ; **en escarmouche réelle** (ouvertures + Liaisons + largages, comme le jeu et l'arène) la
+   République gagnait 60 % [54–65]. Ce sont les objectifs qui renversent tout (sans ouvertures mais avec objectifs : Rép
+   64 % ; sans objectifs mais avec ouvertures : 26 %) : l'IA impériale envoyait ses escouades lentes (400 de charbon, et
+   aussitôt une autre si la première mourait) prendre des Liaisons au milieu de la carte, où l'armée rapide de la
+   République les mangeait une à une. Résultat : à 4:00, armée Rép 3 964 contre 1 953 ; 83 % des parties de moins de
+   8 min à la République, 40 % des plus longues.
+2. *Vapeur gaspillée (bogue d'IA).* Les usines impériales fabriquent 2 éléments de file à la fois, mais l'IA ne gardait
+   qu'un élément en file sous 700 de charbon : chaque usine tournait à 1/1,3 du débit Classique au lieu de ×1,54.
+3. *Bogues de genre dans l'IA.* `ai/objectives.ts` excluait des Liaisons le Pasteur, le Canon de 75, la Patrie et les
+   chasseurs alpins par leur genre : l'Atelier roulant, le Mortier de 280 (vitesse 0,9), le Canon Branly, l'Estafette et
+   les carabiniers partaient prendre et garder des Liaisons. Le Gargantua formait des « pioupious » (genre interdit à
+   l'Empire : rien), les chasses et escortes de super-unités comptaient l'Atelier (sans arme) comme combattant, la
+   caisse « unité » des largages donnait un Hydroglisseur à l'Empire.
+4. *Économie.* Récolte par travailleur comparable, mais la République aligne 5 Fourgons contre 4 Fardiers : récolte à
+   4:00, 12 000 contre 8 300 ; le radium ×1,5 creusait l'écart sur les cartes qui en ont (Terres fluviales 87 %).
+5. *Zénith rare.* Les personnalités républicaines bâtissent le Hangar tard (rush, airswarm, skyforce : 420–480 s) et
+   n'épargnent que 35 % : Zénith dans 26 % des camps contre Gargantua dans 38 % (sur départ nu : 11 % contre 49 %).
+6. *Tranchées ×0,7.* Sur l'Archipel, les Fusiliers retranchés tiennent les Liaisons d'île contre les pioupious :
+   14 % pour la République, beaucoup de nulles.
+Le réseau électrique ne freine pas l'IA : 14–50 secondes-bâtiment éteintes par partie, et le Garage/Parc/Manufacture
+sortent plus tôt que chez l'Empire (Manufacture 0:28 contre 1:16).
+
+**Changements**
+| Où | Avant | Après | Pourquoi |
+|---|---|---|---|
+| `ai/commander.ts` profondeur de file | 1 (2 au-dessus de 700) | ≥ `parallel` (Empire : 2) | point 2 |
+| `ai/objectives.ts` `OBJECTIVE_AI.empire` | toute Liaison, escouade 400, renvoi immédiat | Liaisons de sa moitié (`reach` 0,5), escouade 600, 45 s avant de renvoyer après une perte | point 1 (60 % → 55 %) |
+| `ai/roles.ts` `isGun`, `noObjectiveDuty` ; `ai/objectives.ts`, `ai/goliath.ts`, `ai/veterans.ts` | tests de genre Classique | par comportement (réparateur, canon à portée minimale, éclaireur, tireur d'élite) | point 3 |
+| `ai/goliath.ts` escouades du Gargantua | `trooper`/`rocket-squad` | `ROLES[nation].line/at` (Fusiliers) | point 3 |
+| `sim/objectives.ts` caisse « unité » | Hydroglisseur pour tous | `nationKind` (Empire : Creusot) | point 3 |
+| `ai/commander.ts` `NATION_AI.empire.workers` | 0 | +1 Fardier | point 4 (45 %, parties courtes 49/102 au lieu de 72/97) |
+| `NATIONS.republique.radiumValue` | 2,4 | **2,0** (×1,25) | point 4 (Terres fluviales) |
+| `ai/goliath.ts` `GOLIATH_AI.nation.republique` | — | Hangar à 0,75 × l'heure, épargne +10 points | point 5 |
+| `NATIONS.empire.trench.mult` | 0,7 | **0,9** | point 6 (Archipel sans tranchées : 46 %) |
+| Canon Branly PV | 170 | **200** | 0,44 tué par valeur perdue, le pire de la République |
+| Autocanon De Dion PV | 230 | **260** | perdait contre des Vulcains à coût égal (−0,26 → −0,09) |
+Leviers essayés et écartés : `coalRate` 1,4 (37 %, Archipel 2 %), Rép `unitTime` 1,0 (45 %, siège bleu 39 %),
+garde économique impériale ×1,6 (Archipel 17 %, 42 nulles), Hotchkiss en tête d'ordre de construction (`redoubt`, sans
+effet mesurable), Titan à 2 escouades (sans effet : l'IA charge `UNITS.condor.capacity`, voir restes).
+
+**Résultat final** (Normal, 25 min, ouvertures et objectifs ; Wilson 95 %)
+| Mesure | Avant (360 parties) | Après (720 parties) | Cible |
+|---|---|---|---|
+| Rép contre Emp, part de la République | 60 % [54–65] | **51 % [47–55]** (n = 636 décidées) | 45–55 % |
+| Terrain d'essai | 66 % [53–76] | 46 % [37–55] | 40–60 % |
+| Terres fluviales | 87 % [76–93] | **65 % [55–73]** | 40–60 % ✗ |
+| Mer de dunes | 71 % [58–81] | 40 % [32–50] | 40–60 % |
+| Engelure | 53 % [41–65] | 58 % [49–66] | 40–60 % |
+| Cendres | 61 % [48–72] | 54 % [45–63] | 40–60 % |
+| Archipel | 14 % [7–26] | **34 % [23–47]**, 61 nulles sur 120 | 40–60 % ✗ |
+| Siège de la Rép bleu / rouge | 63 % / 57 % | 54 % [48–59] / 48 % [43–54] | équitable |
+| Miroir Rép-Rép, part du rouge | — | 57 % [51–63] (n = 283 ; 300 parties) | 45–55 % (Classique `--mirror` : 53 %, n = 209) |
+| Miroir Emp-Emp, part du rouge | — | **50 % [45–55]** (n = 377 ; 432 parties) | 45–55 % |
+| Super-unité alignée (camps) | Zénith 26 %, Gargantua 38 % | **Zénith 48 % (7:23), Gargantua 42 % (7:58)** | comparable |
+| Durée médiane | 11:18 | **11:15** | 9–15 min |
+| Nulles (25:00) | 4 % | 12 % (dont 61 sur l'Archipel) | < 8 % ✗ |
+| Armée à 6:00 (médianes Rép / Emp) | 3 395 / 1 823 | 2 769 / 2 377 | — |
+| Récolte à 4:00 (médianes Rép / Emp) | 12 000 / 8 300 | 11 600 / 9 700 | — |
+| Parties < 8 min / > 16 min gagnées par la Rép | 74 % / 49 % | 55 % / 47 % | — |
+| Départ nu (`--bare`, 360 parties), pour mémoire | 25 % [21–30] | 16 % [13–21] | hors jeu (l'escarmouche a toujours ses objectifs) |
+
+Personnalités (part de victoires contre toute la réserve adverse) : Rép balanced 85 %, airswarm 62 %, skyforce 39 %,
+volta 39 %, rush 29 % ; Emp siege 69 %, balanced 56 %, boom 54 %, rush 51 %, ironclad 35 %, airswarm 31 %. Rép rush,
+Emp airswarm et ironclad sont sous la barre des 35 % du §1.8.
+
+**Efficacité par genre en partie** (720 parties ; « tués/perdu » = valeur d'unités ennemies achevées ÷ valeur perdue ;
+le coup de grâce seul est compté, ce qui favorise les tirs lourds et défavorise ce qui affaiblit sans achever)
+| République | dépensé/partie | tués/perdu | | Empire | dépensé/partie | tués/perdu |
+|---|---|---|---|---|---|---|
+| Éole | 6 260 | 0,57 | | Épervier | 3 936 | 0,71 |
+| Jamais-Contente | 4 050 | 1,04 | | Gyroptère | 3 541 | 0,42 |
+| Blériot | 3 191 | 1,08 | | Panhard | 3 345 | 1,05 |
+| Pioupious | 2 890 | 0,79 | | Canon de 75 | 2 041 | 0,60 |
+| Canon Branly | 2 483 | 0,44 | | Fusiliers | 2 024 | 0,80 |
+| Albatros | 2 111 | 0,33 | | Artificiers | 1 893 | 1,29 |
+| Hydroglisseur | 1 818 | 1,19 | | Faucheux | 1 738 | 1,89 |
+| Sapeurs-électriciens | 1 431 | 0,70 | | Mortier de 280 | 1 226 | 0,70 |
+| De Dion | 1 414 | 1,28 | | Gargantua | 1 047 | 4,69 |
+| Zénith | 1 160 | 4,70 | | Creusot | 871 | 0,66 |
+| Chasseurs alpins | 444 | 2,18 | | Vulcain | 711 | 0,33 |
+| | | | | Carabiniers | 564 | 1,94 |
+Aucune unité ne domine (les super-unités sont à part : 1 par camp au plus, perdues dans moins de 20 % des cas) ; les
+bombardiers (Albatros, Vulcain, 0,33) et les aéronefs d'attaque sont faibles des deux côtés, à parts égales — c'est
+l'IA qui les jette contre la DCA. Duels à coût égal (`duels --nations`) : moyenne des lignes −0,35 (De Dion, qui ne tire
+qu'en l'air) à +0,29 (Albatros) ; colonnes −0,24 (Mortier de 280) à +0,29 (Vulcain) ; toile du §1.5 : Jamais-Contente
+contre Creusot +0,58 (cible +0,25–0,45), Panhard contre Jamais-Contente +0,14 (cible +0,2–0,4), Fusiliers contre
+Jamais-Contente +0,46, Sapeurs contre Creusot +0,69, carabiniers contre pioupious +0,54, chasseurs alpins contre Fusiliers
++0,73, De Dion contre Gyroptère +0,66. Zénith contre Gargantua seul à seul : **+0,71 pour le Zénith** (cible 45–55 %) —
+le Gargantua n'a contre l'air que son arc et ses mitrailleuses (~33 DPS effectifs) et ses armes sont Classique ; baisser
+l'arc du Zénith de 26 à 16 DPS ne ramène qu'à +0,54 et l'affaiblirait contre tout le reste. Le Zénith perd nettement
+contre Faucheux, Épervier et Artificiers de coût égal : son contre est l'escorte antiaérienne, pas le Gargantua. Siège :
+les défenses républicaines (2 Bobines + Ruggieri + Tour TSF) tombent sans pertes devant Mortier de 280, Canon de 75 et
+Creusot ; les impériales coûtent 60–100 % de leur valeur aux groupes républicains sauf au Canon Branly (portée 8,5).
+
+**Restes**
+- Terres fluviales (65 %) : l'Empire y perd 13 Fardiers par 10 minutes (10–12 ailleurs) sous les raids des
+  Jamais-Contente et des Éole ; aucun levier global ne l'a ramenée sous 60 % sans faire tomber une autre carte.
+- Archipel : moitié de nulles (Classique : 8 %). Sans super-unités les nulles tombent de moitié : un Zénith qui vole ou un
+  Gargantua planté sur une île survit au QG, et aucune IA ne sait l'achever. À traiter dans `ai/goliath.ts` (chasse d'un
+  Zénith par Éperviers et Faucheux) plutôt que par des nombres.
+- Miroir Rép-Rép : 57 % au rouge (Classique `--mirror` 53 %, mêmes cartes) ; à suivre avec plus de graines.
+- L'IA du Titan charge `UNITS.condor.capacity` (2) au lieu de 3 (`ai/airlift.ts`, `ai/condor.ts`) et le levage par deux
+  Titans n'est jamais tenté (`canLift` teste la Montgolfière) ; corriger avantagera l'Empire sur l'Archipel.
+- Duel Zénith–Gargantua hors cible (ci-dessus) ; personnalités Rép rush, Emp airswarm/ironclad sous 35 %.
+
+### 3.11 WP5g — Art — fait
+
+Branche `feat/camps-art`. Les 7 véhicules terrestres et les 4 aéronefs de l'Empire repris au niveau de détail des
+premiers modèles Belle Époque (1 900 à 3 250 triangles ; plafonds des tests 3 300 au sol, 3 000 en l'air) ; Vulcain
+(cigare court, dos d'équipe coupé de bandes de fer, 2 moteurs, queue cruciforme) et Titan (long ballon tout d'équipe,
+4 moteurs, double dérive) distincts vus de dessus. Portraits de toutes les unités et de tous les bâtiments des nations,
+bleu et rouge (`model-portraits.mjs --nations` ; bâtiment partagé dessiné par la nation : `hq@empire` → `hq-empire.webp`,
+`portraitKind(kind, nation)`), dans le tiroir, les fiches et les cartes d'ouverture. Voix : 206 répliques nouvelles
+(unités, bâtiments sous leur nom de nation, pouvoirs, Citadelle, Zénith) ; « Alerte : notre Citadelle est attaquée ».
+Cris d'unités propres aux 15 genres, sons `arcShell`, `heavyShell`, `arcBolt`, `flak47`, `zenithDrone` ; lueur bleue
+discrète des unités relayées par le Réseau TSF.
+
+### 3.12 WP6 et WP7 — Interface et duel en ligne — fait
+
+Sur `feat/camps-ui`. **WP7** : `LOBBY_PROTO` 2 par une extension en fin de trame (lisible par un pair proto 1, qui
+joue alors Classique), nation de l'hôte dans l'offre, choix de l'invité dans la feuille (Rép / Emp / Classique =
+« la nation adverse »), nations dans `confHash` seulement hors Classique ; codec étendu (`CODEC_VERSION` 2) ;
+`BattleRecord.nations` et relecture ; feuille du duel en ligne au style Belle Époque. **WP6** : sélecteur de nation
+au menu (deux cartes à blason, identité, mécaniques, 3 unités, option Classique, adversaire « nation adverse /
+au hasard / miroir », réglage `rival`) ; blasons générés (`art/catalog.py crest-*`, `public/assets/ui/crest-*.webp`) ;
+blason dans la pastille du HUD, écran de fin avec blasons et ligne de nation ; cartes d'info en jeu par nation
+(contres contre l'autre nation, règle de nation) et `unit-info.ts` complet ; « Citadelle attaquée » ; conseiller
+(Estafette = éclaireur) ; rayon du Réseau électrique au placement et refus « Hors du réseau : près du GQG ou d'une
+Tour TSF » ; noms de nation du placement (« Placer Garage électrique Jeantaud ») ; `models.html` filtre Nation.
+Restes : page des modèles hors style Belle (portraits aux couleurs de nation : faits, §3.11 et §3.14).
+
+### 3.13 WP8 — Campagne — fait
+
+Livré sur `feat/camps-camp`. `src/sim/ops.ts` : `CAMPAIGN` (12 missions, anciens ids conservés) et `TRIALS` (les 8 ops
+Classique, ids `-classique`, onglet « Épreuves »), `OPS` = les deux ; `OpDef.nations/act/cards/dressing/art/script` ;
+but `reach` (atteint une fois, reste acquis) ; `destroy` par `tag` ; `CAMPAIGN_UNLOCKS`, `arsenalFor`, `playerBansOf`,
+`unlocksAfter` ; `rules.sideBans[f].powers` (lu par `powers.ts`) et `OpRules.enemyPowerBans` ; `Building.hpMult`
+(lu par `buildingMaxHp`) ; `OpsState.names/landmarks/events/tagDeaths`. Cartons : `src/ui/cine.ts` + `campaign.css`
+(moteur du film d'intro, projecteur, iris ; un plan sépia par chapitre, `public/assets/ui/campaign/`, `art/campaign.py`).
+Menu : onglet « 📜 Campagne » (chapitres par acte, nation, étoiles, verrous) et « 🎖 Épreuves ». Pilotes :
+`tests/ops-pilots.ts`, `npx vite-node tools/ops.ts campaign 3`.
+
+Écarts : M12 sur **Terres fluviales** (la Seine), pas le Terrain d'essai : la Tour TSF « eiffel » (1 case, PV ×4) est
+dessinée par `landmarkDef("eiffel")` à l'entrée du pont ; le Colosse part de la Citadelle avec une escorte (3 Creusot,
+1 Atelier) à 2:30. Habillage « polygone » : non fait (champ seulement). M7 : tunnel au nord-ouest (8, 2), route le
+long du lac (les coordonnées du doc tombaient dans le lac / près de la Citadelle), 5 Hotchkiss + 3 Fusiliers.
+M10 : une seule Batterie de 47 (deux abattent l'escadre fixe en Difficile). M3 : un Faucheux par ballon et une
+Batterie de 47 sur l'île du centre (sinon gagné en 2 min aux Éole). M4 : garnison républicaine + revenu 30 %.
+Réglages provisoires (Empire bien plus fort avant WP4) à revoir après l'équilibrage : M3 (assault 3600, revenu
+70 %), M6 (gagné par une ruée à 1:30 ; trop dur dès qu'on défend la base), M9 (Difficile tenu 2/3), M11 (2/3),
+M12 (combat ~2–3 min), Obus Méliès interdit à l'ennemi en M3 et M7.
+
+### 3.14 Intégration finale — fait
+
+Sur `feat/camps` : fusions de `feat/camps-bal`, `-art`, `-ui`, `-camp` dans cet ordre, `tsc` et `vitest` verts après
+chacune. Conflits : `awareness.ts` (libellé du GQG par nation : version de l'interface, qui contient celle de l'art),
+`arena/record.ts` (deux champs `nations` : un seul, partiel, celui que lit la relecture), `art/catalog.py` (blasons et
+plans de chapitre gardés), ce document (notes de chaque lot en §3.10–3.13 ; restes de §3.9 repris de l'art).
+
+**Corrections croisées**
+- Voix : les 6 titres de mission nouveaux, « Mission réussie / échouée », « Ferrand l'a fini ! », « Le Colosse se met
+  en marche ! » (10 répliques, `voice-lines.ts` lit à nouveau `OPS` entier ; 618 → 628 lignes au manifeste, aucune manquante).
+- Textes : « L'arc électrique aime l'acier épais » (M5), « autos blindées » (épreuve du pont), fusées pour le Blériot et
+  la Batterie Ruggieri ; le sélecteur lit le radium (×1,25 depuis WP4, il disait ×1,5) et le charbon dans `NATIONS`.
+- Portraits : `models.html` en Empire montre le jeu rouge (Citadelle comprise), comme le sélecteur, le HUD et les fins.
+- Atelier roulant (et Pasteur) d'une nation : ne répare plus une unité ou un bâtiment tombé à 0 PV dans le tick (il le
+  ressuscitait avant `cleanupDeaths`) ; Classique inchangé (`classic-hash` vert), test `nations.test.ts`.
+- IA des nations en escarmouche (`ai/goliath.ts` `finishingOff`, pas en campagne) : le QG ennemi tombé, toute unité libre
+  qui peut la toucher chasse sa dernière super-unité, de partout, et les aérodromes gardent 8 chasseurs contre un Zénith.
+  Archipel 44 → 42 nulles sur 120 : seules 3 nulles sur 44 étaient un QG tombé ; les autres sont des impasses d'îles,
+  QG debout et mines vides à 25:00. Essayé et écarté : le Titan chargé à 3 (`UNITS.titan.capacity`) — Rép 11 % sur
+  l'Archipel, pas moins de nulles.
+
+**Campagne après WP4** (`npx vite-node tools/ops.ts campaign 3`, idle sur 2 graines) : M7 était à 1/3 (Boom impérial au
+GQG vers 3:30), M9 à 0/3 (le général scripté débordé), M11 à 1/3. Réglages : M7 revenu ennemi 80 % et assaut à 2 400
+(6/6 sur 6 graines), M9 revenu ennemi 80 % (6/6), M11 vagues toutes les 43 s au lieu de 40 (11/12 ; ★★★ « en 7:30 »).
+| Mission | Pilote | Gagné | | Mission | Pilote | Gagné |
+|---|---|---|---|---|---|---|
+| M1 bridgehead | holder | 3/3 | | M7 col-des-aigles | escort | 3/3 |
+| M2 harvest-moon | miner | 3/3 | | M8 sky-pirates | raider | 3/3 |
+| M3 granit | raider | 3/3 | | M9 glass-jaw | general | 3/3 |
+| M4 carbonie | gunner | 3/3 | | M10 decapitation | strike | 3/3 |
+| M5 iron-tide | holder | 3/3 | | M11 last-light | defender | 2/3 |
+| M6 frozen-assets | rusher | 3/3 | | M12 dame-de-fer | tower | 3/3 |
+Pilote immobile : perdu partout (0/2). Épreuves Classique identiques à `feat/camps-camp`.
+
+**Équilibre final** (`pacing.ts run --nations rep-emp --seeds 2 --jobs 10`, 720 parties, 386 s) : République **52 %
+[48–55]** (n = 643 décidées), 77 nulles (10,7 %, dont 52 sur l'Archipel) ; durée médiane 11:11. Par carte : Terrain
+d'essai 37 %, Terres fluviales 75 %, Mer de dunes 43 %, Engelure 60 %, Cendres 59 %, Archipel 28 % (+52 nulles). Siège
+de la Rép bleu 53 % / rouge 50 %. Super-unité alignée : Zénith 48 % des camps (7:19), Gargantua 43 % (7:56). Armée à
+6:00 (médianes) 2 800 / 2 380 ; récolte à 4:00 11 600 / 9 700.
+
+Vérifications : `tsc`, `vitest` (92 fichiers, 1 729 tests), `npm run build`, `smoke.mjs` 390×844, 844×390,
+1280×800 rouge et `?style=original` (aperçu) : OK. En jeu (Chrome sans tête) : sélecteur à blasons, escarmouche
+République contre Empire jusqu'à la fin (2:25), cartons et début de la mission 1, feuille du duel en ligne, `models.html`
+par nation ; aucune erreur de console.
+
+Restes : Terres fluviales (75 %) et Archipel (28 %, nulles) hors cible ; impasses d'îles à traiter par l'IA de
+transport (Titan, levage à deux) avec un nouveau panel ; M11 à 2/3 sur les graines 1–3 (11/12 sur 12).
+

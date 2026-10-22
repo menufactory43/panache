@@ -8,11 +8,12 @@
  * Times are sim seconds for detection windows and cooldowns (so a faster
  * game speed needs no change) and render seconds for the delivery queue.
  */
-import { BUILDINGS, TICK_RATE, UNITS } from "../sim/balance";
+import { TICK_RATE, UNITS } from "../sim/balance";
 import { isVisible } from "../sim/fog";
 import { goliathsOf } from "../sim/goliath";
 import type { BuildingKind, Faction, FxEvent, GoliathWeapon, PowerKind, UnitKind, World } from "../sim/types";
-import { agree } from "../sim/lexicon";
+import { agree, displayName } from "../sim/lexicon";
+import { nationOf } from "../sim/rules";
 import { hqOf } from "../sim/world";
 import type { Announcement, AnnounceTone } from "./announce";
 import { baseGoliath, calldownThreatens } from "./awareness";
@@ -65,6 +66,8 @@ export const CALLOUTS = {
     "enemy-barrage": 20,
     "enemy-emp": 20,
     "enemy-droppod": 20,
+    "enemy-curie": 20,
+    "enemy-gaz": 20,
     /** Our Condor put its squads down / one of ours went down (bail-out or lost with them) / the enemy lands troops. */
     "troops-deployed": 20,
     "condor-down": 10,
@@ -95,7 +98,10 @@ export const CALLOUTS = {
   calldownLines: {
     barrage: { key: "enemy-barrage", text: "Artillerie en approche !", staleS: 1.5 },
     emp: { key: "enemy-emp", text: "Fée Électricité en approche !", staleS: 1 },
-    droppod: { key: "enemy-droppod", text: "Obus-capsule ennemi !", staleS: 2.5 }
+    droppod: { key: "enemy-droppod", text: "Obus-capsule ennemi !", staleS: 2.5 },
+    // (the nations' strikes that hurt: the République's ray, the Empire's gas)
+    curie: { key: "enemy-curie", text: "Rayon Curie en approche !", staleS: 1.5 },
+    gaz: { key: "enemy-gaz", text: "Gaz de houille en approche !", staleS: 2 }
   } as Partial<Record<PowerKind, { key: string; text: string; staleS: number }>>,
   /** A streak mostly made by one calldown is its own banner ("Sky Hammer: triple kill"), with this cooldown. */
   calldownStreakCooldownS: 10,
@@ -158,6 +164,22 @@ const hostile = (kind: UnitKind | BuildingKind | null | undefined): string => ag
 export const GOLIATH_COUNTERS = "Artificiers, Éole, Hydroglisseurs, Albatros";
 /** Spoken names of the weapon systems a Goliath can lose (the machine guns never go offline). */
 export const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "mortiers", laser: "arc électrique", cannons: "canons" };
+/** The Zénith's systems, in the Goliath's slots (sim/goliath.ts ZENITH_SLOTS), and what beats it. */
+export const ZENITH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "canons Branly", laser: "arc de proue", cannons: "soute à bombes" };
+const ZENITH_COUNTERS = "Éperviers, Faucheux, Batteries de 47, Artificiers";
+/**
+ * A Goliath line reworded for the Zénith (the République's super-unit moors
+ * where the Goliath anchors). voice-lines.ts records each one reworded so.
+ */
+export function zenithLine(text: string): string {
+  return text
+    .split(GOLIATH_COUNTERS).join(ZENITH_COUNTERS)
+    .split("Galerie des Machines").join("Hangar du Zénith")
+    .split("lève l'ancre").join("largue les amarres")
+    .split("en ancrage").join("en amarrage")
+    .split("ancré").join("amarré")
+    .split("Gargantua").join("Zénith");
+}
 /** "mortars", "mortars and laser", "mortars, laser and cannons". */
 export const listWords = (xs: readonly string[]): string =>
   xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`;
@@ -233,13 +255,13 @@ export class BattleCallouts {
       else if (ev.type === "rankUp") this.rankUp(ev.id, t);
       else if (ev.type === "calldown") this.calldown(ev, t);
       // Goliaths and Gantries are always visible to the enemy: their news needs no fog check
-      else if (ev.type === "goliathBuild") this.goliathBuild(ev, t);
-      else if (ev.type === "goliathRollout") this.goliathRollout(ev, t);
-      else if (ev.type === "goliathMode") this.goliathMode(ev, t);
+      else if (ev.type === "goliathBuild") this.zenithAware(this.h.world.buildings.get(ev.buildingId)?.queue[0]?.kind, () => this.goliathBuild(ev, t));
+      else if (ev.type === "goliathRollout") this.zenithAware(this.h.world.units.get(ev.id)?.kind, () => this.goliathRollout(ev, t));
+      else if (ev.type === "goliathMode") this.zenithAware(this.h.world.units.get(ev.id)?.kind, () => this.goliathMode(ev, t));
       else if (ev.type === "goliathLift") this.goliathLift(ev, t);
       else if (ev.type === "goliathWeapon") (weapons ??= []).push(ev); // (one line for systems lost together)
     }
-    if (weapons) this.goliathWeapons(weapons, t);
+    if (weapons) this.zenithAware(undefined, () => this.goliathWeapons(weapons!, t));
     this.poll(t, fx);
   }
 
@@ -270,7 +292,19 @@ export class BattleCallouts {
     return t - (this.last.get(key) ?? -Infinity) >= cd;
   }
 
+  /** The news being told is a Zénith's: say() and raise() reword it (zenithLine). */
+  private zenithNews = false;
+  private zenithAware(kind: UnitKind | undefined, tell: () => void): void {
+    this.zenithNews = kind === "zenith";
+    try {
+      tell();
+    } finally {
+      this.zenithNews = false;
+    }
+  }
+
   private say(line: RadioLine, t: number, cdKey = line.key): void {
+    if (this.zenithNews) line = { ...line, text: zenithLine(line.text) };
     this.last.set(cdKey, t);
     this.counts.set(line.key, (this.counts.get(line.key) ?? 0) + 1);
     this.h.radio(line);
@@ -287,6 +321,7 @@ export class BattleCallouts {
 
   /** A banner that is news, not a kill: it starts its cooldown but doesn't hold back the next kill banner. */
   private raise(a: Announcement, t: number, cdKey = a.key): void {
+    if (this.zenithNews) a = { ...a, text: zenithLine(a.text), ...(a.sub ? { sub: zenithLine(a.sub) } : {}) };
     this.last.set(cdKey, t);
     this.counts.set(a.key, (this.counts.get(a.key) ?? 0) + 1);
     this.shown.push(t);
@@ -301,6 +336,15 @@ export class BattleCallouts {
 
   // -------------------------------------------------------------- events --
 
+  /** A side's HQ by its nation's name: "GQG", or the Empire's "Citadelle". */
+  private hqName(f: Faction): string {
+    return displayName("hq", nationOf(this.h.world, f));
+  }
+  /** A word agreed with a side's HQ: "attaqué" / "attaquée". */
+  private hqAgree(f: Faction, word: string): string {
+    return agree("hq", word, nationOf(this.h.world, f));
+  }
+
   private hit(ev: Extract<FxEvent, { type: "hit" }>, t: number): void {
     const h = this.h;
     if (ev.building) {
@@ -310,14 +354,14 @@ export class BattleCallouts {
         if (h.spectator) {
           const key = `hq-attack-${b.faction}`;
           if (this.ready(key, t, 40))
-            this.say({ key, text: `GQG ${SIDE[b.faction]} attaqué`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+            this.say({ key, text: `${this.hqName(b.faction)} ${SIDE[b.faction]} ${this.hqAgree(b.faction, "attaqué")}`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
           return;
         }
         if (b.faction !== h.player) return;
         // in view, the player already knows: remind less often
         const seen = h.onScreen(ev.x, ev.y);
         if (this.ready("hq-attack", t, seen ? CALLOUTS.cooldownS["hq-attack-seen"] : CALLOUTS.cooldownS["hq-attack"])) {
-          this.say({ key: "hq-attack", text: "Alerte : notre GQG est attaqué", priority: 0, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
+          this.say({ key: "hq-attack", text: `Alerte : notre ${this.hqName(b.faction)} est ${this.hqAgree(b.faction, "attaqué")}`, priority: 0, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
           this.last.set("base-attack", t);
         }
         return;
@@ -374,20 +418,24 @@ export class BattleCallouts {
         this.hqFell(ev, t, by);
         return;
       }
-      const name = BUILDINGS[ev.buildingKind].name;
+      // (by the name the victim's nation gives it: "Haut-fourneau", "Station de charge")
+      const nation = nationOf(h.world, victim);
+      const name = displayName(ev.buildingKind, nation);
+      const hostileB = agree(ev.buildingKind, "ennemi", nation);
+      const destroyed = agree(ev.buildingKind, "détruit", nation);
       if (by && !h.spectator && killer === h.player) {
         // our strike flattened a building: worth a cheer, not just a radio line —
         // under the strike's own streak banner if it's about to call one
         const s = this.streaks[killer];
         if (s.pending) {
-          s.big ??= `${name} ${agree(ev.buildingKind, "détruit")}`;
+          s.big ??= `${name} ${destroyed}`;
           this.last.set("structure-killed", t);
           return;
         }
         if (t - this.lastKillBanner >= CALLOUTS.killBannerGapS) {
           this.last.set("structure-killed", t);
           this.banner(
-            { key: "calldown-hit", text: "Coup au but !", say: "Coup en plein au but !", sub: `${powerName(by.power)} : ${name} ${hostile(ev.buildingKind)} ${agree(ev.buildingKind, "détruit")}`, tone: "good", priority: 3, x: ev.x, y: ev.y },
+            { key: "calldown-hit", text: "Coup au but !", say: "Coup en plein au but !", sub: `${powerName(by.power)} : ${name} ${hostileB} ${destroyed}`, tone: "good", priority: 3, x: ev.x, y: ev.y },
             t
           );
           return;
@@ -396,12 +444,12 @@ export class BattleCallouts {
       if (h.spectator) {
         const key = `structure-killed-${victim}`;
         if (this.ready(key, t, 20))
-          this.say({ key, text: `${name} ${SIDE[victim]} ${agree(ev.buildingKind, "détruit")}`, priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
+          this.say({ key, text: `${name} ${SIDE[victim]} ${destroyed}`, priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
       } else if (victim === h.player) {
         if (this.ready("structure-lost", t))
           this.say({ key: "structure-lost", text: `Bâtiment perdu : ${name}`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
       } else if (this.ready("structure-killed", t)) {
-        this.say({ key: "structure-killed", text: `${name} ${hostile(ev.buildingKind)} ${agree(ev.buildingKind, "détruit")}`, priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key: "structure-killed", text: `${name} ${hostileB} ${destroyed}`, priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
       }
       return;
     }
@@ -430,16 +478,16 @@ export class BattleCallouts {
     const f = ev.faction;
     const n = goliathsOf(w, f).length;
     if (h.spectator)
-      this.raise({ key: `hq-fell-${f}`, text: `GQG ${SIDE[f]} détruit`, sub: `${SIDE[f]} : ${n > 1 ? "ses" : "son"} ${fightsOn(n)}`, tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
+      this.raise({ key: `hq-fell-${f}`, text: `${this.hqName(f)} ${SIDE[f]} ${this.hqAgree(f, "détruit")}`, sub: `${SIDE[f]} : ${n > 1 ? "ses" : "son"} ${fightsOn(n)}`, tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
     else if (f === h.player)
-      this.raise({ key: "hq-fell", text: "Notre GQG est tombé", sub: `${n > 1 ? "Nos" : "Notre"} ${fightsOn(n)}`, tone: "bad", priority: 0, x: ev.x, y: ev.y }, t);
+      this.raise({ key: "hq-fell", text: `Notre ${this.hqName(f)} est ${this.hqAgree(f, "tombé")}`, sub: `${n > 1 ? "Nos" : "Notre"} ${fightsOn(n)}`, tone: "bad", priority: 0, x: ev.x, y: ev.y }, t);
     else {
       // our kill: a banner like any other big kill (it spaces out the streak banners after it)
       this.last.set("enemy-hq-fell", t);
       this.banner(
         {
-          key: "enemy-hq-fell", text: "GQG ennemi détruit", sub: `Détruis ${n > 1 ? "ses Gargantuas" : "son Gargantua"} pour gagner`, tone: "epic", priority: 1,
-          x: ev.x, y: ev.y, ...(by ? { say: `GQG ennemi détruit par ${powerPhrase(by.power)}` } : {})
+          key: "enemy-hq-fell", text: `${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")}`, sub: `Détruis ${n > 1 ? "ses Gargantuas" : "son Gargantua"} pour gagner`, tone: "epic", priority: 1,
+          x: ev.x, y: ev.y, ...(by ? { say: `${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")} par ${powerPhrase(by.power)}` } : {})
         },
         t
       );
@@ -620,8 +668,8 @@ export class BattleCallouts {
       const text = h.spectator
         ? `${byGoliath ? `Dernier Gargantua ${loser} détruit. ` : ""}${SIDE[w.winner]} remporte la bataille`
         : w.winner === h.player
-          ? byGoliath ? "Dernier Gargantua ennemi détruit. Victoire !" : "GQG ennemi détruit. Victoire !"
-          : byGoliath ? "Notre dernier Gargantua est tombé. Mission échouée." : "Notre GQG est tombé. Mission échouée.";
+          ? byGoliath ? "Dernier Gargantua ennemi détruit. Victoire !" : `${this.hqName(enemyOf(w.winner))} ${this.hqAgree(enemyOf(w.winner), "ennemi")} ${this.hqAgree(enemyOf(w.winner), "détruit")}. Victoire !`
+          : byGoliath ? "Notre dernier Gargantua est tombé. Mission échouée." : `Notre ${this.hqName(enemyOf(w.winner))} est ${this.hqAgree(enemyOf(w.winner), "tombé")}. Mission échouée.`;
       this.say({ key: w.winner === h.player || h.spectator ? "victory" : "defeat", text, priority: 0, tone: w.winner === h.player || h.spectator ? "epic" : "bad", caption: false }, t);
       return;
     }
@@ -868,7 +916,8 @@ export class BattleCallouts {
       const fresh = weapons.filter((k) => this.ready(keyOf(k), t, cd));
       if (fresh.length === 0) continue;
       for (const k of fresh) this.last.set(keyOf(k), t);
-      const what = listWords(fresh.map((k) => GOLIATH_WORD[k]!));
+      this.zenithNews = h.world.units.get(ev.id)?.kind === "zenith";
+      const what = listWords(fresh.map((k) => (this.zenithNews ? ZENITH_WORD : GOLIATH_WORD)[k]!));
       const key = fresh.map(keyOf).join("+");
       const at = { x: ev.x, y: ev.y };
       if (h.spectator) this.say({ key, text: `Gargantua ${SIDE[f]} : ${what} hors service`, priority: 2, tone: "info", ...at, caption: true }, t);

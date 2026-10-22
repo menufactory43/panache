@@ -1,11 +1,12 @@
 import * as THREE from "three";
-import type { BuildingKind, Faction, UnitKind } from "../../sim/types";
+import type { BuildingKind, ClassicBuildingKind, ClassicUnitKind, Faction, Nation, NationOrClassic, UnitKind } from "../../sim/types";
+import { BUILDINGS, UNITS } from "../../sim/balance";
 import { ModelBuilder, type Section, type Vec3 } from "./builder";
 import { GANTRY_STAGES, GOLIATH_RIG, gantryStage, goliathStatic } from "./goliath";
 import { botStatic, botHeight, J, squadStatic, type BotKind } from "./infantry";
 import { modelMat } from "./materials";
 import { BELLE_EPOQUE } from "./theme";
-import { BE_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS } from "./belle";
+import { BE_BUILDING_MODELS, BE_LANDMARKS, BE_NATION_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, PLACEHOLDER_MODEL, STAND_IN_BUILDING, type LandmarkKind } from "./belle";
 
 /**
  * Every vehicle, aircraft, building and map objective as a procedural
@@ -219,7 +220,7 @@ export const CRAWLER_LEGS: readonly CrawlerLeg[] = ([1, -1] as const).flatMap((s
 
 type UnitBuilder = (t: Team) => ModelDef;
 
-const UNIT_MODELS: Record<UnitKind, UnitBuilder> = {
+const UNIT_MODELS: Record<ClassicUnitKind, UnitBuilder> = {
   stinger: (t) => {
     const b = hullB();
     tracks(b, 0.235, 0.17, 0.15, 0.8, 0, t.main);
@@ -663,7 +664,7 @@ function squadModel(kind: BotKind, t: Team): ModelDef {
 
 // ---------------------------------------------------------- buildings ---
 
-const BUILDING_MODELS: Record<BuildingKind, (t: Team) => ModelDef> = {
+const BUILDING_MODELS: Record<ClassicBuildingKind, (t: Team) => ModelDef> = {
   hq: (t) => {
     const b = siteB();
     b.block(2.9, 0.16, 2.9, [0, 0.06, 0], GM_D, { taper: 0.03, bevel: 0.04 });
@@ -1286,14 +1287,52 @@ function def(key: string, make: () => ModelDef): ModelDef {
   return d;
 }
 
-export function unitDef(kind: UnitKind, f: Faction): ModelDef {
-  const make = (BELLE_EPOQUE && BE_UNIT_MODELS[kind]) || UNIT_MODELS[kind];
-  return def(`u/${f}/${kind}`, () => make(TEAMS[f]));
+/**
+ * The colours a model wears (§1.1): a nation's (the kind's own nation, else
+ * its owner's) in NATION_TEAMS, the side's in Classique. One rule for units
+ * and buildings: every model of a nation's army, new or shared, is painted
+ * the same way.
+ */
+function nationFor(own: Nation | undefined, owner?: NationOrClassic): Nation | undefined {
+  return own ?? (owner && owner !== "classique" ? owner : undefined);
+}
+const teamFor = (f: Faction, n: Nation | undefined): Team => (n ? NATION_TEAMS[n][f] : TEAMS[f]);
+
+/**
+ * A unit's model. `owner` (nationOf the unit's side) paints a shared kind in
+ * its nation's colours too. A nation's own models exist only in the Belle
+ * Époque style: `?style=original` draws them too. A kind still in
+ * PLACEHOLDER_MODEL borrows its stand-in's builder. Squads (and a squad
+ * stand-in) pick their colours in their rig (infantry.ts, by side and the
+ * squad's own nation), so they get the side's here.
+ */
+export function unitDef(kind: UnitKind, f: Faction, owner?: NationOrClassic): ModelDef {
+  const mine = UNITS[kind].nation;
+  const own = BELLE_EPOQUE || mine ? BE_UNIT_MODELS[kind] : undefined;
+  const stand = own ? undefined : (PLACEHOLDER_MODEL as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
+  const make = own || (stand && ((BELLE_EPOQUE && BE_UNIT_MODELS[stand]) || UNIT_MODELS[stand])) || UNIT_MODELS[kind as ClassicUnitKind];
+  const n = MAP_SCALE.has(kind) || (stand && MAP_SCALE.has(stand)) ? undefined : nationFor(mine, owner);
+  return def(`u/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
 }
 
-export function buildingDef(kind: BuildingKind, f: Faction): ModelDef {
-  const make = (BELLE_EPOQUE && BE_BUILDING_MODELS[kind]) || BUILDING_MODELS[kind];
-  return def(`b/${f}/${kind}`, () => make(TEAMS[f]));
+/**
+ * A building's model. `owner` (nationOf the building's side): a nation draws
+ * some shared kinds its own way (belle/index.ts BE_NATION_BUILDING_MODELS) and
+ * paints all of them in its colours; a nation-only kind always does.
+ */
+export function buildingDef(kind: BuildingKind, f: Faction, owner?: NationOrClassic): ModelDef {
+  const n = nationFor(BUILDINGS[kind].nation, owner);
+  const mine = BELLE_EPOQUE && n ? BE_NATION_BUILDING_MODELS[n][kind] : undefined;
+  const own = mine || (BELLE_EPOQUE ? BE_BUILDING_MODELS[kind] : undefined);
+  // (?style=original: a nation-only defence borrows its stand-in's original model)
+  const stand = own ? undefined : (STAND_IN_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
+  const make = own || BUILDING_MODELS[stand ?? (kind as ClassicBuildingKind)];
+  return def(`b/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
+}
+
+/** A campaign landmark (the Eiffel Tower), its flag in `f`'s colours, or neutral. */
+export function landmarkDef(kind: LandmarkKind, f?: Faction): ModelDef {
+  return def(`lm/${kind}/${f ?? "-"}`, () => BE_LANDMARKS[kind](f ? TEAMS[f] : undefined));
 }
 
 export function uplinkDef(): ModelDef {
@@ -1318,10 +1357,14 @@ const UNIT_SIZE: Record<UnitKind, number> = {
   trooper: 0.8, "rocket-squad": 0.8, sniper: 0.7,
   condor: 1.5,
   // (shoulders and pauldrons: it stands over twice as tall, see goliath.ts)
-  goliath: 2.05
+  goliath: 2.05,
+  // the nations' new units (PANACHE-CONCEPTION.md §1.11 sizes; drawn with placeholders until WP5)
+  fourgon: 1.15, "jamais-contente": 0.85, "de-dion": 0.95, branly: 1.1, sapeurs: 0.8, zenith: 2.6,
+  estafette: 0.7, "mortier-280": 1.4, gyroptere: 1.0, epervier: 0.95, vulcain: 1.5, atelier: 1.1,
+  fusiliers: 0.8, carabiniers: 0.7, titan: 1.6
 };
 /** Robot infantry is built at map scale (tiles): formations sized to the squad's radius. */
-const MAP_SCALE = new Set<UnitKind>(["trooper", "rocket-squad", "sniper"]);
+const MAP_SCALE = new Set<UnitKind>(["trooper", "rocket-squad", "sniper", "sapeurs", "fusiliers", "carabiniers"]);
 /** Units read a touch bigger than their footprint in 3D, as in any RTS. */
 const UNIT_BUMP = 1.12;
 const scales = new Map<UnitKind, number>();

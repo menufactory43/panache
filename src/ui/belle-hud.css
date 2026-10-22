@@ -1021,3 +1021,19 @@ html.belle .hud-row {
 html.belle .hud-row .snd .sl {
   text-decoration: none;
 }
+
+/* the player's nation crest at the head of the pill */
+html.belle #hud.bh .bh-pill .bh-crest {
+  width: 34px;
+  height: 34px;
+  margin-left: -7px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  flex: none;
+}
+html.belle #hud.bh .bh-pill.nat-republique {
+  box-shadow: var(--lift), inset 3px 0 0 #2a4a96;
+}
+html.belle #hud.bh .bh-pill.nat-empire {
+  box-shadow: var(--lift), inset 3px 0 0 #8c2432;
+}

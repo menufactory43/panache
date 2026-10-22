@@ -9,7 +9,7 @@ import { tickFog } from "./fog";
 import { createMapWorld } from "./maps";
 import { applyOpener, type OpenerId } from "./openers";
 import type { MutatorId } from "./rules";
-import type { Faction, World } from "./types";
+import type { Faction, Nation, World } from "./types";
 
 export interface MatchSetup {
   map: string;
@@ -18,10 +18,20 @@ export interface MatchSetup {
   openers: Partial<Record<Faction, OpenerId>>;
   /** Per-side income multipliers (AI difficulty in arena seats); absent = 1. */
   income?: Partial<Record<Faction, number>>;
+  /**
+   * The nation each side plays (PANACHE-CONCEPTION.md §1.10): both sides, or
+   * absent = Classique (the world, and its hashes, exactly as before nations).
+   */
+  nations?: Partial<Record<Faction, Nation>>;
 }
 
 export function setupWorld(r: MatchSetup): World {
-  const w = createMapWorld(r.map, { seed: r.seed, objectives: true, ...(r.mutators.length ? { mutators: r.mutators } : {}) });
+  const w = createMapWorld(r.map, {
+    seed: r.seed,
+    objectives: true,
+    ...(r.mutators.length ? { mutators: r.mutators } : {}),
+    ...(r.nations ? { nations: r.nations } : {})
+  });
   for (const f of ["blue", "red"] as const) {
     const o = r.openers[f];
     if (o) applyOpener(w, f, o);

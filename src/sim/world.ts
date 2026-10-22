@@ -1,6 +1,7 @@
 import { BUILDINGS, ECONOMY, GOLIATH, TERRAIN, UNITS, type TerrainInfo } from "./balance";
 import { createFog } from "./fog";
 import { createObjectiveState } from "./objectives";
+import { buildingMaxHpOf } from "./nations";
 import { createPowerState } from "./powers";
 import {
   Terrain,
@@ -257,7 +258,7 @@ export function spawnUnit(
     kills: 0
   };
   if (UNITS[kind].capacity) unit.passengers = [];
-  if (kind === "goliath") unit.goliath = newGoliathState();
+  if (kind === "goliath" || UNITS[kind].base === "goliath") unit.goliath = newGoliathState(); // (super-units: the Zénith too, goliath.ts SUPER)
   w.units.set(unit.id, unit);
   return unit;
 }
@@ -297,7 +298,7 @@ export function spawnBuilding(
     faction,
     tx,
     ty,
-    hp: BUILDINGS[kind].hp,
+    hp: buildingMaxHpOf(w, faction, kind), // (the nation's: Préfabriqué, Vapeur)
     queue: [],
     rally: null,
     facing: faction === "blue" ? 0 : Math.PI,

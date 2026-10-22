@@ -7,7 +7,7 @@ import { concealedFrom, isInfantry, squadAlive, squadFirepower, tickCrush, unitS
 import { MAPS, createMapWorld } from "../src/sim/maps";
 import { findPath, unitStepSpeed } from "../src/sim/movement";
 import { presence, setupObjectives } from "../src/sim/objectives";
-import { OPS } from "../src/sim/ops";
+import { TRIALS } from "../src/sim/ops";
 import { wreckValue } from "../src/sim/salvage";
 import { step } from "../src/sim/sim";
 import { carrierOf, dropPoint, findUnit, freeSeats, isLoaded } from "../src/sim/transport";
@@ -649,7 +649,8 @@ describe("the starting Trooper Squad", () => {
   });
 
   it("is every player's in Ops and Last Stand (the wave side has no starting army)", () => {
-    for (const op of OPS) {
+    // (the Classique Trials: campaign missions field their nations' line squads, and set up more of them)
+    for (const op of TRIALS) {
       const w = createMapWorld(op.map, { op: op.id });
       expect(troopers(w, "blue"), op.id).toHaveLength(1);
       expect(troopers(w, "red"), op.id).toHaveLength(hqOf(w, "red") ? 1 : 0);

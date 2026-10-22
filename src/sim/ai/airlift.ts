@@ -8,6 +8,7 @@ import type { Command, Faction, Unit, Uplink, World } from "../types";
 import { canGetWithin, dist, moveClassOf, onHomeLand, regionAt, sideFrame } from "../world";
 import type { AiState, Difficulty, StrategyName } from "./commander";
 import { airspace, route } from "./condor";
+import { isAirStriker, isInterceptor, isSniper, isTransport, kindsOf } from "./roles";
 import { AA_COVER, USELESS, aaSources, aaStrengthAt, aaWeight, effectiveness, type Sighting } from "./intel";
 import { cos, sin } from "../fmath";
 
@@ -175,7 +176,8 @@ export const islandRelays = (w: World): Uplink[] => w.objectives.uplinks.filter(
 /** Does this commander fly the airlift? On island-relay maps, every personality and difficulty does. */
 export function airliftActive(w: World, faction: Faction, _s?: AiState): boolean {
   if (w.survival || !w.objectives.uplinks.some((l) => l.infantryOnly)) return false;
-  return bannedBy(w, "condor", faction) === null && bannedBy(w, "trooper", faction) === null;
+  const K = kindsOf(w, faction);
+  return bannedBy(w, K.transport, faction) === null && bannedBy(w, K.line, faction) === null;
 }
 
 /**
@@ -280,7 +282,7 @@ export function planAirlift(w: World, faction: Faction, s: AiState, ctx: Airlift
     const recent = intel && w.tick - intel.tick < AIRLIFT.recall * tps;
     const enemyValue = theirs.length > 0 ? seenValue : recent ? intel!.value : l.owner === enemy ? AIRLIFT.guess : 0;
     // their drones circling it (in sight now) shoot up a landing as surely as a garrison
-    const air = ctx.seen.filter((u) => (u.kind === "wasp" || u.kind === "hornet") && dist(u.x, u.y, l.x, l.y) <= AIRLIFT.airGuard);
+    const air = ctx.seen.filter((u) => isAirStriker(u.kind) && dist(u.x, u.y, l.x, l.y) <= AIRLIFT.airGuard);
     return { l, region, ours, theirs, enemy: enemyValue, air, guard: enemyValue + valueOf(air) };
   });
 
@@ -381,12 +383,14 @@ export function planAirlift(w: World, faction: Faction, s: AiState, ctx: Airlift
   const home = homeSpot(w, faction, ctx.hqC);
   // (not a Condor on a Goliath's lift: an order to it would redirect or set down the Goliath)
   const condors = ctx.mine
-    .filter((u) => u.kind === "condor" && u.order.type !== "lift" && !ctx.skip?.has(u.id))
+    .filter((u) => isTransport(u.kind) && u.order.type !== "lift" && !ctx.skip?.has(u.id))
     .sort((a, b) => a.id - b.id);
   for (const id of [...m.lifts.keys()]) if (!w.units.has(id)) m.lifts.delete(id);
   // squads free to fly, nearest home first (Sniper Teams only when nobody else is free;
   // Rocket Squads first once the enemy flies drones: a garrison is its own anti-air)
-  const rank = (u: Unit) => (u.kind === "sniper" ? 2 : u.kind === "rocket-squad" && s.seenAir >= 2 ? 0 : 1);
+  const K = kindsOf(w, faction);
+  const antiAir = (k: Unit["kind"]) => K.infAA !== K.line && k === K.infAA;
+  const rank = (u: Unit) => (isSniper(u.kind) ? 2 : antiAir(u.kind) && s.seenAir >= 2 ? 0 : 1);
   const pool = ctx.army
     .filter(
       (u) =>
@@ -416,7 +420,7 @@ export function planAirlift(w: World, faction: Faction, s: AiState, ctx: Airlift
       if (it.l.owner !== faction || !it.l.crewed || extra <= 0 || it.guard > 0) continue;
       const squads = it.ours
         .filter((u) => u.order.type === "idle" && u.autoTargetId === null && u.hp >= UNITS[u.kind].hp * AIRLIFT.minHp)
-        .sort((a, b) => (a.kind === "rocket-squad" ? 1 : 0) - (b.kind === "rocket-squad" ? 1 : 0) || a.id - b.id)
+        .sort((a, b) => (antiAir(a.kind) ? 1 : 0) - (antiAir(b.kind) ? 1 : 0) || a.id - b.id)
         .slice(0, Math.min(extra, cap));
       if (squads.length > 0) return { it, squads };
     }
@@ -629,7 +633,7 @@ function strikes(
   if (s.difficulty === "easy") return [];
   const enemy: Faction = faction === "blue" ? "red" : "blue";
   const bombers = ctx.army.filter(
-    (u) => (u.kind === "wasp" || u.kind === "hornet") && u.order.type === "idle" && !ctx.used.has(u.id) && u.hp >= UNITS[u.kind].hp * 0.5
+    (u) => isAirStriker(u.kind) && u.order.type === "idle" && !ctx.used.has(u.id) && u.hp >= UNITS[u.kind].hp * 0.5
   );
   if (bombers.length === 0) return [];
   const targets = islands
@@ -720,12 +724,12 @@ function noteThreats(w: World, m: Memo, c: Unit, drop: P | null, seen: readonly 
 function intercepts(w: World, faction: Faction, ctx: AirliftContext, islands: readonly Island[]): Command[] {
   const cmds: Command[] = [];
   const R = AIRLIFT.interceptRadius;
-  const ourCondors = ctx.mine.filter((u) => u.kind === "condor");
+  const ourCondors = ctx.mine.filter((u) => isTransport(u.kind));
   // their drones over an island our squads hold: the garrison can't run, so the fighters come
   const bombers = new Set(islands.filter((it) => it.ours.length > 0).flatMap((it) => it.air.map((u) => u.id)));
   for (const e of ctx.seen) {
     const near = (p: P, r = R) => dist(e.x, e.y, p.x, p.y) <= r;
-    if (e.kind === "condor") {
+    if (isTransport(e.kind)) {
       const relevant =
         islands.some((it) => (it.l.owner === faction || it.ours.length > 0) && near(it.l)) ||
         near(ctx.hqC, R + 4) ||
@@ -737,12 +741,12 @@ function intercepts(w: World, faction: Faction, ctx: AirliftContext, islands: re
     if (chasing >= want) continue;
     const able = ctx.army
       .filter((u) => {
-        if (ctx.used.has(u.id) || u.order.type !== "idle" || u.kind === "condor") return false;
+        if (ctx.used.has(u.id) || u.order.type !== "idle" || isTransport(u.kind)) return false;
         if (effectiveness(u.kind, e.kind) < USELESS) return false;
         if (UNITS[u.kind].domain === "air") return true;
         return dist(u.x, u.y, e.x, e.y) <= AIRLIFT.interceptGround && canGetWithin(w, moveClassOf(u.kind), u.x, u.y, e.x, e.y, UNITS[u.kind].range);
       })
-      .sort((a, b) => (a.kind === "raptor" ? 0 : 1) - (b.kind === "raptor" ? 0 : 1) || dist(a.x, a.y, e.x, e.y) - dist(b.x, b.y, e.x, e.y))
+      .sort((a, b) => (isInterceptor(a.kind) ? 0 : 1) - (isInterceptor(b.kind) ? 0 : 1) || dist(a.x, a.y, e.x, e.y) - dist(b.x, b.y, e.x, e.y))
       .slice(0, want - chasing);
     if (able.length === 0) continue;
     for (const u of able) ctx.used.add(u.id);

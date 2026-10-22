@@ -1,7 +1,9 @@
-import { BUILDINGS, POWERS, TICK_RATE, UNITS } from "../balance";
+import { BUILDINGS, POWER_SETS, POWERS, TICK_RATE, UNITS } from "../balance";
 import { isVisible, knownBuildings } from "../fog";
-import { canWalk } from "../goliath";
-import { calldownBlocker, isStunned, powerStatus } from "../powers";
+import { canWalk, isSuperKind } from "../goliath";
+import { POWER_KINDS, calldownBlocker, isStunned, powerStatus } from "../powers";
+import { nationOf } from "../rules";
+import { isDefence, isWorker } from "./roles";
 import type { BuildingKind, Calldown, Command, Faction, PowerKind, Unit, World } from "../types";
 import { dist, domainOf, hqOf, moveClassOf, passable, regionAt } from "../world";
 import type { AiMode, AiState, Difficulty } from "./commander";
@@ -33,6 +35,15 @@ interface Memo {
   seen: Set<number>;
   /** Unit id → tick until which it is busy dodging (keep other orders off it). */
   dodging: Map<number, number>;
+  /**
+   * A nation's power fired last pass, and its `fired` count then: if the
+   * count hasn't moved since, the sim doesn't carry that power (yet), and it
+   * is never asked for again (so a dud can't hold up the others).
+   */
+  probe?: { power: PowerKind; fired: number; tick: number };
+  duds?: Set<PowerKind>;
+  /** Tick of the last routine Ballon-sonde over the enemy HQ. */
+  lastSonde?: number;
 }
 
 /** Per-commander reflex memory, kept beside (not inside) AiState. */
@@ -133,7 +144,19 @@ export interface CalldownContext {
   army: Unit[];
   /** Visible armed intruders near our base or harvesters. */
   threats: { id: number; x: number; y: number }[];
+  /** The units of a wave launched this pass, if any. */
+  wave?: Unit[];
 }
+
+/** The nations' own powers: the ones a probe may find the sim doesn't carry yet. */
+const NATION_ONLY: readonly PowerKind[] = ["sonde", "curie", "gaz", "pression"];
+/** Seconds between routine Ballon-sonde looks at the enemy HQ (§1.7). */
+const SONDE_EVERY = 90;
+/** Own ground vehicles within the Pression's radius worth boosting (§1.7). */
+const PRESSION_MIN = 4;
+/** Known enemy defences within this many tiles of our column that call for the Gaz de houille (§1.7). */
+const GAZ_DEFENCES = 2;
+const GAZ_NEAR = 6;
 
 interface Clump {
   x: number;
@@ -203,7 +226,7 @@ const value = (us: Unit[]) => us.reduce((v, u) => v + UNITS[u.kind].cost, 0);
 const PRODUCTION: BuildingKind[] = ["fab-plant", "airpad", "assembly-bay", "tech-lab", "gantry"];
 /** A Sky Hammer's worth of a building it catches: production 1.5, a Gantry with a Goliath on the cradle (all that progress lost) 3. */
 const hammerWorth = (w: World, kb: { id: number; kind: BuildingKind }): number =>
-  kb.kind === "gantry" && w.buildings.get(kb.id)?.queue[0]?.kind === "goliath"
+  kb.kind === "gantry" && isSuperKind(w.buildings.get(kb.id)?.queue[0]?.kind ?? "harvester")
     ? 3
     : PRODUCTION.includes(kb.kind) ? 1.5 : kb.kind === "hq" ? 1.2 : 1;
 
@@ -215,12 +238,22 @@ const hammerWorth = (w: World, kb: { id: number; kind: BuildingKind }): number =
  */
 export function planCalldowns(w: World, faction: Faction, s: AiState, ctx: CalldownContext): Command[] {
   const cmds: Command[] = [];
+  const nation = nationOf(w, faction);
+  const m = memo(s);
+  // (a nation's power the sim didn't take last pass is a dud: WP1's mechanics not in yet)
+  if (m.probe && w.tick > m.probe.tick) {
+    if (w.powers.fired[faction][m.probe.power] === m.probe.fired) (m.duds ??= new Set()).add(m.probe.power);
+    m.probe = undefined;
+  }
+  const owned = (p: PowerKind) =>
+    nation === "classique" ? POWER_KINDS.includes(p) : POWER_SETS[nation].includes(p) && !m.duds?.has(p);
   const fire = (power: PowerKind, x: number, y: number): boolean => {
     if (calldownBlocker(w, faction, power, x, y)) return false;
     cmds.push({ type: "calldown", faction, power, x, y });
+    if (NATION_ONLY.includes(power)) m.probe = { power, fired: w.powers.fired[faction][power], tick: w.tick };
     return true;
   };
-  const ready = (p: PowerKind) => powerStatus(w, faction, p).ready;
+  const ready = (p: PowerKind) => owned(p) && powerStatus(w, faction, p).ready;
   const visibleEnemies = seenEnemies(w, faction); // (a Sniper Team hidden in the woods isn't aimed at)
   const armed = visibleEnemies.filter((u) => UNITS[u.kind].dps > 0 || UNITS[u.kind].heal);
 
@@ -228,6 +261,11 @@ export function planCalldowns(w: World, faction: Faction, s: AiState, ctx: Calld
   if (ready("hammer")) {
     const t = hammerTarget(w, faction, visibleEnemies);
     if (t) fire("hammer", t.x, t.y);
+  }
+  // (the Rayon Curie: the same rule, its own radius and a richer clump, §1.7)
+  if (ready("curie")) {
+    const t = hammerTarget(w, faction, visibleEnemies, POWERS.curie.radius, CURIE_CLUMP);
+    if (t) fire("curie", t.x, t.y);
   }
 
   // --- defence: a superior force at the base or the mining line ----------
@@ -257,6 +295,47 @@ export function planCalldowns(w: World, faction: Faction, s: AiState, ctx: Calld
     }
   }
 
+  // --- Pression des chaudières: a wave of vehicles going in (Empire) ------
+  if (ready("pression")) {
+    const vehicles = (ctx.wave?.length ? ctx.wave : ctx.army).filter(
+      (u) => UNITS[u.kind].domain === "ground" && !UNITS[u.kind].squad && !u.goliath && UNITS[u.kind].dps > 0
+    );
+    const clump = bestClump(vehicles, POWERS.pression.radius - 0.5, () => 1);
+    // (with the wave launching, or a column already in a fight)
+    const engaged = clump && armed.some((e) => hypot(e.x - clump.x, e.y - clump.y) <= 8);
+    if (clump && clump.value >= PRESSION_MIN && (ctx.wave?.length || engaged) && fire("pression", clump.x, clump.y)) return cmds;
+  }
+
+  // --- Gaz de houille: our column walking into known defences (Empire) ---
+  if (ready("gaz") && ctx.mode === "assault") {
+    const defences = knownBuildings(w, faction).filter((kb) => isDefence(kb.kind));
+    const column = ctx.army.filter((u) => UNITS[u.kind].domain === "ground" && dist(u.x, u.y, ctx.hqC.x, ctx.hqC.y) > HOME_RADIUS);
+    const clump = bestClump(column, POWERS.gaz.radius - 0.5, (u) => UNITS[u.kind].cost);
+    if (clump && clump.value >= 400) {
+      const near = defences.filter((kb) => {
+        const size = BUILDINGS[kb.kind].size;
+        return dist(kb.tx + size / 2, kb.ty + size / 2, clump.x, clump.y) <= GAZ_NEAR;
+      }).length;
+      if (near >= GAZ_DEFENCES && fire("gaz", clump.x, clump.y)) return cmds;
+    }
+  }
+
+  // --- Ballon-sonde (République): shot at from out of sight, else a routine look at the enemy HQ
+  if (ready("sonde")) {
+    const blind = blindFire(w, faction, armed, ctx.enemyHqPos);
+    if (blind && fire("sonde", blind.x, blind.y)) return cmds;
+    const every = SONDE_EVERY * TICK_RATE;
+    if (
+      w.tick - (m.lastSonde ?? 0) >= every &&
+      w.powers.meter[faction] >= OFFENCE_RESERVE - 20 &&
+      !isVisible(w, faction, Math.floor(ctx.enemyHqPos.x), Math.floor(ctx.enemyHqPos.y)) &&
+      fire("sonde", ctx.enemyHqPos.x, ctx.enemyHqPos.y)
+    ) {
+      m.lastSonde = w.tick;
+      return cmds;
+    }
+  }
+
   // --- Barrage: the best visible ground clump (Easy never shells) ---------
   if (s.difficulty !== "easy" && ready("barrage")) {
     const ground = visibleEnemies.filter((u) => domainOf(u) === "ground"); // (a Goliath on a lift is in the air)
@@ -278,7 +357,7 @@ export function planCalldowns(w: World, faction: Faction, s: AiState, ctx: Calld
   // --- offence: knock out the defences in front of a wave -----------------
   // (only from surplus charge: offence must not starve the defensive powers)
   if (ctx.mode === "assault" && ready("emp") && w.powers.meter[faction] >= OFFENCE_RESERVE) {
-    const defences = knownBuildings(w, faction).filter((kb) => kb.kind === "turret" || kb.kind === "sam-site");
+    const defences = knownBuildings(w, faction).filter((kb) => isDefence(kb.kind));
     let best: { x: number; y: number; v: number } | null = null;
     for (const kb of defences) {
       const st = BUILDINGS[kb.kind];
@@ -319,11 +398,43 @@ export function planCalldowns(w: World, faction: Faction, s: AiState, ctx: Calld
   return cmds;
 }
 
+/** A Rayon Curie's clump: the Sky Hammer's rule, a richer one (§1.7: ≥ 800). */
+const CURIE_CLUMP = 800;
+
+/**
+ * Where to look when we're being shot from out of sight (an enemy Mortar or
+ * Canon beyond our vision): one of ours hurt in the last two seconds with no
+ * armed enemy we can see that could reach it — 7 tiles from it toward the
+ * enemy HQ. Null if none.
+ */
+function blindFire(w: World, faction: Faction, armed: Unit[], enemyHq: { x: number; y: number }): { x: number; y: number } | null {
+  const recent = 2 * TICK_RATE;
+  const hit = (x: number, y: number) => !armed.some((e) => hypot(e.x - x, e.y - y) <= UNITS[e.kind].range + 1);
+  const at = (x: number, y: number) => {
+    const d = Math.max(1, hypot(enemyHq.x - x, enemyHq.y - y));
+    const k = Math.min(1, 7 / d);
+    return { x: x + (enemyHq.x - x) * k, y: y + (enemyHq.y - y) * k };
+  };
+  for (const u of w.units.values())
+    if (u.faction === faction && !isWorker(u.kind) && w.tick - u.damagedTick <= recent && u.damagedTick > 0 && hit(u.x, u.y)) return at(u.x, u.y);
+  for (const b of w.buildings.values())
+    if (b.faction === faction && w.tick - b.damagedTick <= recent && b.damagedTick > 0) {
+      const c = { x: b.tx + BUILDINGS[b.kind].size / 2, y: b.ty + BUILDINGS[b.kind].size / 2 };
+      if (hit(c.x, c.y)) return at(c.x, c.y);
+    }
+  return null;
+}
+
 /** Sky Hammer aim: a visible clump worth ≥ 700, else the best production hit, else the HQ. */
-function hammerTarget(w: World, faction: Faction, visibleEnemies: Unit[]): { x: number; y: number } | null {
-  const R = POWERS.hammer.radius;
+function hammerTarget(
+  w: World,
+  faction: Faction,
+  visibleEnemies: Unit[],
+  R: number = POWERS.hammer.radius,
+  minClump = HAMMER_CLUMP
+): { x: number; y: number } | null {
   const clump = bestClump(visibleEnemies, R * 0.8, (u) => UNITS[u.kind].cost * (isStunned(w, u.id) ? 1.3 : 1));
-  if (clump && clump.value >= HAMMER_CLUMP) return clump;
+  if (clump && clump.value >= minClump) return clump;
   const known = knownBuildings(w, faction);
   const centre = (kb: (typeof known)[number]) => ({
     x: kb.tx + BUILDINGS[kb.kind].size / 2,

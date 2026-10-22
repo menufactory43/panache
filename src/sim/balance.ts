@@ -4,6 +4,10 @@ import {
   type BuildingKind,
   type DamageType,
   type Domain,
+  type Nation,
+  type NationOrClassic,
+  type PowerKind,
+  type Role,
   type TargetDomain,
   type UnitKind,
   type WeaponFx
@@ -69,6 +73,18 @@ export interface UnitStats extends ArmedStats {
   capacity?: number;
   /** Always visible to the enemy, through fog and on the minimap (the Goliath: it can't hide). */
   alwaysVisible?: boolean;
+  /**
+   * The nation that alone fields this unit (PANACHE-CONCEPTION.md §1.5):
+   * banned in Classique and for the other nation. Absent on the 16 Classique
+   * units (each nation's share of them is in ROSTERS).
+   */
+  nation?: Nation;
+  /** The Classique unit whose behaviour this one reuses (harvester, mender, trooper, sniper, condor, goliath). */
+  base?: UnitKind;
+  /** Harvesters: scrap a load holds (default ECONOMY.harvesterCapacity). */
+  cargo?: number;
+  /** Repairers: only ground units and buildings (the Atelier roulant), not aircraft. */
+  healTargets?: "ground";
 }
 
 export interface BuildingStats extends ArmedStats {
@@ -90,6 +106,10 @@ export interface BuildingStats extends ArmedStats {
   alwaysVisible?: boolean;
   /** Harvesters may unload scrap here. */
   dropOff?: boolean;
+  /** The nation that alone builds this defence (§1.6): banned in Classique and for the other nation. */
+  nation?: Nation;
+  /** The Classique building whose behaviour this one reuses (turret, sam-site). */
+  base?: BuildingKind;
 }
 
 /**
@@ -205,6 +225,122 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     cost: 1600, hp: 3000, speed: 1.0, sight: 10, domain: "ground", armor: "heavy",
     targets: "both", dps: 125, range: 8,
     buildTime: 60, builtAt: "gantry", radius: 1.0, alwaysVisible: true
+  },
+  // ---- the nations' own units (PANACHE-CONCEPTION.md §1.5). Appended after the
+  // 16 Classique units: code that indexes UNITS in key order keeps its Classique
+  // indices. Build times are before the nation's unitTime multiplier. ----
+  // République
+  fourgon: {
+    name: "Fourgon Jeantaud", role: "Fourgon électrique : extrait charbon et radium, vite et par petites charges.",
+    nation: "republique", base: "harvester", cargo: 80,
+    cost: 125, hp: 200, speed: 2.1, sight: 4, domain: "ground", armor: "medium",
+    targets: "none", dps: 0, range: 0,
+    buildTime: 8, builtAt: "hq", radius: 0.42
+  },
+  "jamais-contente": {
+    name: "Jamais-Contente", role: "Bolide électrique. Arc court qui perce le blindage. Ne tire pas en l'air.",
+    nation: "republique",
+    cost: 140, hp: 210, speed: 3.0, sight: 6, domain: "ground", armor: "light",
+    targets: "ground", dps: 21, range: 3.2, shotInterval: 0.7, dmgType: "laser", fx: "laser",
+    buildTime: 6, builtAt: "fab-plant", turret: true, radius: 0.36
+  },
+  "de-dion": {
+    name: "Autocanon De Dion", role: "Antiaérien rapide à tir de barrage. Impuissant au sol.",
+    nation: "republique",
+    // (230 HP lost to cost-equal Vulcains, −0.26 in tools/balance.ts duels --nations: anti-air beaten by the bomber it answers)
+    cost: 175, hp: 260, speed: 2.4, sight: 7, domain: "ground", armor: "light",
+    targets: "air", dps: 29, range: 5.5, shotInterval: 0.25, dmgType: "flak", fx: "flak",
+    buildTime: 7, builtAt: "fab-plant", turret: true, radius: 0.38
+  },
+  branly: {
+    name: "Canon Branly", role: "Canon électromagnétique : obus rapides, longue portée. Fragile de près.",
+    nation: "republique",
+    // (170 HP: 0.44 units killed per value lost in AI-vs-AI panels, the République's worst gun)
+    cost: 260, hp: 200, speed: 1.8, sight: 6, domain: "ground", armor: "light",
+    targets: "ground", dps: 17, range: 8.5, minRange: 2.5, shotInterval: 2.5,
+    splash: 0.8, projectileSpeed: 9, dmgType: "explosive", fx: "arc-shell",
+    buildTime: 9, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.4
+  },
+  sapeurs: {
+    name: "Escouade de sapeurs-électriciens", role: "Lances à arc antichar. Fondent Creusot et Gargantua. Ne tirent pas en l'air.",
+    nation: "republique",
+    cost: 175, hp: 200, speed: 1.7, sight: 6, domain: "ground", armor: "infantry",
+    targets: "ground", dps: 24, range: 3.5, shotInterval: 1.2, dmgType: "laser", fx: "laser",
+    buildTime: 9, builtAt: "assembly-bay", radius: 0.4, squad: 3
+  },
+  // Fights with ZENITH.weapons (WP2), like the Goliath with GOLIATH.weapons: these summarise them.
+  zenith: {
+    name: "Zénith", role: "Croiseur aérien et base volante. Amarre-le pour produire, réparer et récolter partout.",
+    nation: "republique", base: "goliath",
+    cost: 1500, hp: 2600, speed: 1.3, sight: 11, domain: "air", armor: "heavy",
+    targets: "both", dps: 105, range: 7,
+    buildTime: 55, builtAt: "gantry", radius: 1.1, alwaysVisible: true
+  },
+  // Empire de Carbonie
+  estafette: {
+    name: "Estafette", role: "Motocyclette à vapeur de reconnaissance. Rapide, non armée, reste au sol.",
+    nation: "empire",
+    cost: 60, hp: 90, speed: 4.2, sight: 8, domain: "ground", armor: "light",
+    targets: "none", dps: 0, range: 0,
+    buildTime: 4, builtAt: "fab-plant", radius: 0.3
+  },
+  "mortier-280": {
+    name: "Mortier de 280", role: "Pièce de siège. Surclasse toute défense en portée. Aveugle : il lui faut un guetteur.",
+    nation: "empire",
+    cost: 425, hp: 280, speed: 0.9, sight: 6, domain: "ground", armor: "medium",
+    targets: "ground", dps: 20, range: 11, minRange: 4, shotInterval: 6,
+    splash: 1.5, projectileSpeed: 4.5, dmgType: "explosive", fx: "heavy-shell",
+    buildTime: 14, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.5
+  },
+  gyroptere: {
+    name: "Gyroptère", role: "Autogire à vapeur d'attaque. Canon antichar sur cibles au sol. Craint la DCA.",
+    nation: "empire",
+    cost: 225, hp: 260, speed: 3.0, sight: 6, domain: "air", armor: "medium",
+    targets: "ground", dps: 26, range: 3.2, shotInterval: 0.5, dmgType: "cannon", fx: "cannon",
+    buildTime: 8, builtAt: "airpad", radius: 0.4
+  },
+  epervier: {
+    name: "Épervier", role: "Chasseur à vapeur. Ses canons percent les grands aéronefs. Ne tire pas au sol.",
+    nation: "empire",
+    cost: 225, hp: 240, speed: 3.8, sight: 7, domain: "air", armor: "medium",
+    targets: "air", dps: 30, range: 3.5, shotInterval: 0.5, dmgType: "cannon", fx: "mg",
+    buildTime: 7, builtAt: "airpad", radius: 0.38
+  },
+  vulcain: {
+    name: "Vulcain", role: "Bombardier blindé, lent. Écrase bases et colonnes. Escorte requise.",
+    nation: "empire",
+    cost: 425, hp: 650, speed: 1.6, sight: 6, domain: "air", armor: "heavy",
+    targets: "ground", dps: 40, range: 1.6, shotInterval: 2.5, splash: 1.3,
+    projectileSpeed: 4.5, dmgType: "explosive", fx: "bomb",
+    buildTime: 13, builtAt: "airpad", requires: "tech-lab", radius: 0.6
+  },
+  atelier: {
+    name: "Atelier roulant", role: "Locomobile de réparation. Répare véhicules, Gargantua et bâtiments. Pas les aéronefs.",
+    nation: "empire", base: "mender", healTargets: "ground",
+    cost: 160, hp: 320, speed: 1.7, sight: 5, domain: "ground", armor: "medium",
+    targets: "none", dps: 0, range: 2.5, heal: 12,
+    buildTime: 7, builtAt: "fab-plant", radius: 0.45
+  },
+  fusiliers: {
+    name: "Escouade de fusiliers", role: "Automates fusiliers cuirassés. Tirent sol et air. Se retranchent.",
+    nation: "empire", base: "trooper",
+    cost: 125, hp: 260, speed: 1.5, sight: 5, domain: "ground", armor: "infantry",
+    targets: "both", dps: 16, range: 3, shotInterval: 0.5, dmgType: "kinetic", fx: "rifle", airMult: 0.5,
+    buildTime: 6, builtAt: "assembly-bay", radius: 0.4, squad: 5
+  },
+  carabiniers: {
+    name: "Section de carabiniers", role: "Tireurs d'élite blindés. Effacent l'infanterie. Portée plus courte que les chasseurs alpins.",
+    nation: "empire", base: "sniper",
+    cost: 200, hp: 150, speed: 1.4, sight: 7, domain: "ground", armor: "infantry",
+    targets: "ground", dps: 18, range: 6.5, shotInterval: 2.5, dmgType: "precision", fx: "snipe",
+    buildTime: 8, builtAt: "assembly-bay", requires: "tech-lab", radius: 0.35, squad: 2
+  },
+  titan: {
+    name: "Titan", role: "Dirigeable-cargo cuirassé. Emporte trois escouades ; deux Titans soulèvent un Gargantua.",
+    nation: "empire", base: "condor",
+    cost: 225, hp: 520, speed: 2.8, sight: 6, domain: "air", armor: "heavy",
+    targets: "none", dps: 0, range: 0,
+    buildTime: 9, builtAt: "airpad", radius: 0.6, capacity: 3
   }
 };
 
@@ -241,7 +377,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     targets: "both", dps: 26, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "cannon"
   },
   "sam-site": {
-    name: "Batterie Ruggieri", role: "Missiles antiaériens longue portée.",
+    name: "Batterie Ruggieri", role: "Fusées antiaériennes longue portée.",
     cost: 275, hp: 560, sight: 7, size: 1, buildTime: 9,
     targets: "air", dps: 32, range: 6.5, shotInterval: 1.2, dmgType: "missile", fx: "missile"
   },
@@ -260,6 +396,19 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     cost: 600, hp: 1200, sight: 5, size: 3, buildTime: 25,
     requiresAll: ["fab-plant", "airpad", "tech-lab", "assembly-bay"], unique: true, alwaysVisible: true,
     targets: "none", dps: 0, range: 0
+  },
+  // ---- the two defences only one nation builds (§1.6) ----
+  arsonval: {
+    name: "Bobine d'Arsonval", role: "Tour à arc électrique. Perce les blindés au sol. Doit être alimentée.",
+    nation: "republique", base: "turret",
+    cost: 250, hp: 600, sight: 6, size: 1, buildTime: 8,
+    targets: "ground", dps: 34, range: 4, shotInterval: 1, dmgType: "laser", fx: "laser"
+  },
+  "flak-battery": {
+    name: "Batterie de 47", role: "Canons antiaériens à vapeur. Longue portée contre les aéronefs.",
+    nation: "empire", base: "sam-site",
+    cost: 275, hp: 700, sight: 7, size: 1, buildTime: 9,
+    targets: "air", dps: 30, range: 6, shotInterval: 0.6, dmgType: "flak", fx: "flak"
   }
 };
 
@@ -477,7 +626,58 @@ export const POWERS = {
     unitDamage: 260,
     /** Buildings whose footprint is in the radius: flat (an HQ loses ~22%). */
     buildingDamage: 700
+  },
+  // ---- the nations' powers (PANACHE-CONCEPTION.md §1.7; their effects are WP1) ----
+  /** Ballon-sonde (République): reveals the area, Snipers in Woods included; the balloon is seen by both sides. */
+  sonde: {
+    cost: 20, cooldown: 30, telegraph: 0.5,
+    radius: 8,
+    /** Seconds the area stays revealed. */
+    duration: 20
+  },
+  /** Rayon Curie (République): the Sky Hammer's slot, with its own numbers. */
+  curie: {
+    unlock: 6 * 60, cooldown: 150, telegraph: 2.5,
+    radius: 2.2,
+    /** Units: this × (1 − 0.5·d/r), any armour, ground or air. */
+    unitDamage: 300,
+    buildingDamage: 450
+  },
+  /** Gaz de houille (Empire): a cloud the enemy can't see into, and can't pick targets in past `acquire` tiles. */
+  gaz: {
+    cost: 35, cooldown: 40, telegraph: 1,
+    radius: 3.5,
+    /** Seconds the cloud lasts. */
+    duration: 12,
+    /** An enemy unit acquires a target inside the cloud only this close (tiles). */
+    acquire: 2
+  },
+  /** Pression des chaudières (Empire): own ground vehicles in the radius speed up and fire faster, then overheat. */
+  pression: {
+    cost: 45, cooldown: 55, telegraph: 0.5,
+    radius: 4,
+    /** Seconds of boost, then seconds of overheat (stunned). */
+    duration: 10, overheat: 3,
+    speed: 1.35, fireRate: 1.25
   }
+};
+
+/**
+ * The four powers each side's panel shows, by nation (§1.7). The fourth is the
+ * late strike (online at 6:00 like the Sky Hammer). Classique: today's four.
+ */
+export const POWER_SETS: Record<NationOrClassic, [PowerKind, PowerKind, PowerKind, PowerKind]> = {
+  classique: ["barrage", "emp", "droppod", "hammer"],
+  republique: ["sonde", "emp", "droppod", "curie"],
+  empire: ["barrage", "gaz", "pression", "hammer"]
+};
+
+/**
+ * The Drop Pod's crew by nation (§1.7 Obus-capsule: the République's; the
+ * Empire's powers have no pod). Classique: POWERS.droppod.units / techUnits.
+ */
+export const POD_CREWS: Partial<Record<Nation, { units: UnitKind[]; techUnits: UnitKind[] }>> = {
+  republique: { units: ["jamais-contente", "jamais-contente", "de-dion"], techUnits: ["lancer", "lancer", "de-dion"] }
 };
 
 /**
@@ -612,4 +812,183 @@ export const GOLIATH = {
   love: { range: 5 },
   /** Goliath Armada mutator: the four starting Goliaths hang this far (tiles) either way of the HQ's centre, on each axis (lift.ts armadaStart). */
   armada: { gap: 2.2 }
+};
+
+
+// ------------------------------------------------------------- nations ---
+
+/** One nation's economy, production and signature-mechanic numbers (§1.2). */
+export interface NationStats {
+  /** Display name, with its article: "la République". */
+  name: string;
+  /** Short name ("République") for tight spaces. */
+  short: string;
+  /** Scrap per unit of crystal (radium) mined (Classique: ECONOMY.crystalValue). */
+  radiumValue: number;
+  /** × ECONOMY.harvestRate on coal. */
+  coalRate: number;
+  /** Préfabriqué / Vapeur: × building cost, build time and max HP. */
+  buildingCost: number;
+  buildingTime: number;
+  buildingHp: number;
+  /** × buildTime of every unit. */
+  unitTime: number;
+  /** Queue items a factory builds at once (Vapeur: 2). */
+  parallel: number;
+  /** République — Réseau électrique: tiles from a source's centre to a building's footprint edge. */
+  power?: { hqRadius: number; towerRadius: number };
+  /** République — Réseau TSF: units this close to a Tour TSF or a Zénith move faster and see further. */
+  tsf?: { radius: number; speed: number; sight: number };
+  /** République: the Tour TSF's cost before the buildingCost multiplier (Classique 200). */
+  towerCost?: number;
+  /** Empire — Tranchées: still `still` s → damage taken × `mult`; at once within `redoubtRadius` of a Hotchkiss. */
+  trench?: { still: number; mult: number; redoubtRadius: number };
+}
+
+/**
+ * The nations (§1.2). Tunable like everything else here
+ * (`--tune '{"NATIONS.republique.radiumValue":2.2}'`). Read by WP1's
+ * mechanics; nothing in Classique reads them.
+ */
+export const NATIONS: Record<Nation, NationStats> = {
+  republique: {
+    name: "la République", short: "République",
+    // economy
+    // Classique ECONOMY.crystalValue = 1.6 (×1.25; at ×1.5 = 2.4 the radium maps — Terres fluviales,
+    // Engelure — went 70–80% to the République in tools/pacing.ts --nations panels, WP4)
+    radiumValue: 2.0,
+    coalRate: 1.0,
+    // Préfabriqué
+    buildingCost: 0.85, buildingTime: 0.75, buildingHp: 0.8,
+    unitTime: 0.85,
+    parallel: 1,
+    // Réseau électrique
+    power: { hqRadius: 8, towerRadius: 7 },
+    tsf: { radius: 9, speed: 1.12, sight: 2 },
+    towerCost: 150
+  },
+  empire: {
+    name: "l'Empire de Carbonie", short: "Empire",
+    radiumValue: 1.6,
+    coalRate: 1.15,
+    buildingCost: 1.1, buildingTime: 1.15, buildingHp: 1.25,
+    unitTime: 1.3,
+    parallel: 2,
+    // (×0.7 made dug-in Fusiliers unshiftable on the Archipelago's island relays: 16–23% for the République
+    // there in tools/pacing.ts --nations panels; ×1, i.e. no trench, 46%)
+    trench: { still: 3, mult: 0.9, redoubtRadius: 2.5 }
+  }
+};
+
+export const NATION_IDS: Nation[] = ["republique", "empire"];
+
+/**
+ * What each nation fields (§1.3, §1.4, §1.6): its units in build-bar order
+ * and its buildings. No unit is shared; building kinds are, under the
+ * nation's own names (NATION_BUILDINGS), except each side's armed defences.
+ */
+export const ROSTERS: Record<Nation, { units: UnitKind[]; buildings: BuildingKind[] }> = {
+  republique: {
+    units: [
+      "fourgon", "scout", "jamais-contente", "de-dion", "branly", "lancer",
+      "wasp", "raptor", "hornet", "mender", "condor",
+      "trooper", "sapeurs", "sniper", "zenith"
+    ],
+    buildings: ["hq", "fab-plant", "airpad", "tech-lab", "depot", "arsonval", "sam-site", "radar", "assembly-bay", "gantry"]
+  },
+  empire: {
+    units: [
+      "harvester", "estafette", "stinger", "flak-crawler", "mortar", "mortier-280", "mastodon", "atelier",
+      "gyroptere", "epervier", "vulcain", "titan",
+      "fusiliers", "rocket-squad", "carabiniers", "goliath"
+    ],
+    buildings: ["hq", "fab-plant", "airpad", "tech-lab", "depot", "turret", "flak-battery", "radar", "assembly-bay", "gantry"]
+  }
+};
+
+/** A shared building kind's name and role under a nation (§1.6); absent: the Classique one (BUILDINGS). */
+export const NATION_BUILDINGS: Record<Nation, Partial<Record<BuildingKind, { name: string; role: string }>>> = {
+  republique: {
+    hq: { name: "GQG", role: "Grand Quartier Général. Produit des Fourgons, reçoit le charbon, alimente le réseau. Perds-le avec tous tes Zéniths, et c'est la défaite." },
+    "fab-plant": { name: "Garage électrique Jeantaud", role: "Produit les véhicules terrestres électriques." },
+    "tech-lab": { name: "Polytechnique", role: "Débloque Canon Branly, Hydroglisseur, Albatros et Chasseurs alpins." },
+    depot: { name: "Station de charge", role: "Point de dépôt avancé. À bâtir près des gisements éloignés." },
+    radar: { name: "Tour TSF", role: "Pylône du réseau : alimente les bâtiments proches, accélère les unités, révèle une vaste zone." },
+    gantry: { name: "Hangar du Zénith", role: "Construit le Zénith. Un par camp, toujours visible par l'ennemi." }
+  },
+  empire: {
+    hq: { name: "Citadelle", role: "Citadelle impériale. Produit des Fardiers, reçoit le charbon. Perds-la avec tous tes Gargantuas, et c'est la défaite." },
+    airpad: { name: "Aérodrome à vapeur", role: "Produit les aéronefs à vapeur." },
+    "tech-lab": { name: "Haut-fourneau", role: "Débloque Canon de 75, Mortier de 280, Creusot, Vulcain et Carabiniers." },
+    radar: { name: "Ballon captif", role: "Observatoire : révèle une vaste zone à travers le brouillard." },
+    "assembly-bay": { name: "Caserne-atelier", role: "Produit l'infanterie automate impériale." }
+  }
+};
+
+/**
+ * The AI's roles (§1.9): which unit fills each, per nation. WP3's
+ * ai/roles.ts builds on this; Classique names today's kinds, so an AI
+ * reading it through the "classique" row plays exactly as before.
+ */
+export const ROLES: Record<NationOrClassic, Record<Role, UnitKind>> = {
+  classique: {
+    worker: "harvester", scout: "scout", light: "stinger", aa: "flak-crawler", artillery: "mortar", siege: "mortar",
+    heavy: "mastodon", antiArmour: "lancer", airStrike: "wasp", interceptor: "raptor", bomber: "hornet",
+    healer: "mender", line: "trooper", at: "rocket-squad", sniper: "sniper", transport: "condor", super: "goliath"
+  },
+  republique: {
+    worker: "fourgon", scout: "scout", light: "jamais-contente", aa: "de-dion", artillery: "branly", siege: "branly",
+    heavy: "lancer", antiArmour: "jamais-contente", airStrike: "wasp", interceptor: "raptor", bomber: "hornet",
+    healer: "mender", line: "trooper", at: "sapeurs", sniper: "sniper", transport: "condor", super: "zenith"
+  },
+  empire: {
+    worker: "harvester", scout: "estafette", light: "stinger", aa: "flak-crawler", artillery: "mortar", siege: "mortier-280",
+    heavy: "mastodon", antiArmour: "mastodon", airStrike: "gyroptere", interceptor: "epervier", bomber: "vulcain",
+    healer: "atelier", line: "fusiliers", at: "rocket-squad", sniper: "carabiniers", transport: "titan", super: "goliath"
+  }
+};
+
+/** The Zénith's weapon systems (§1.5), lost in this order as its health falls. */
+export type ZenithWeapon = "branly" | "arc" | "bombs" | "mg";
+
+/**
+ * The Zénith (§1.5): the République's super-unit, an airborne Goliath. WP2
+ * generalises goliath.ts over this and GOLIATH.
+ */
+export const ZENITH = {
+  /** Each Zénith costs this much more (share of list price) for every one the side already has. */
+  costStep: 0.25,
+  queueMax: 1,
+  nearlyDone: 0.85,
+  /** Seconds to moor (over buildable 2×2 ground), and to cast off again. */
+  anchorTime: 3,
+  packTime: 4,
+  footprint: 2,
+  buildRing: 3,
+  reboot: 2.5,
+  restoreMargin: 0.05,
+  /** Moored, it trains these (instead of the Goliath's infantry). */
+  trains: ["wasp", "raptor", "mender", "scout"] as UnitKind[],
+  /** Only these repair it. */
+  repairedBy: ["mender"] as UnitKind[],
+  weapons: {
+    branly: {
+      name: "Canons Branly de nacelle", lostBelow: 0.75,
+      targets: "ground", dps: 30, range: 7, minRange: 2.5, shotInterval: 2,
+      splash: 0.8, projectileSpeed: 9, dmgType: "explosive", fx: "arc-shell"
+    },
+    arc: {
+      name: "Arc de proue", lostBelow: 0.5,
+      targets: "both", dps: 26, range: 5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.8
+    },
+    bombs: {
+      name: "Soute à bombes", lostBelow: 0.25,
+      targets: "ground", dps: 34, range: 2, shotInterval: 2,
+      splash: 1.2, projectileSpeed: 5, dmgType: "explosive", fx: "bomb"
+    },
+    mg: {
+      name: "Mitrailleuses de coursive", lostBelow: 0,
+      targets: "both", dps: 15, range: 3.5, shotInterval: 0.4, dmgType: "kinetic", fx: "mg", airMult: 0.7
+    }
+  } as Record<ZenithWeapon, GoliathWeaponStats>
 };

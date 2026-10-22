@@ -66,7 +66,9 @@ export type SfxName =
   | "siren" | "emp" | "pod" | "hammer" | "charge" | "uplink"
   | "capture" | "uplinkLost" | "drop" | "crate"
   | "rifle" | "snipe" | "crush" | "clank" | "thrust"
-  | "anchor" | "packup" | "stomp" | "topple" | "offline" | "reboot" | "weld" | "rollout" | "hook" | "love";
+  | "anchor" | "packup" | "stomp" | "topple" | "offline" | "reboot" | "weld" | "rollout" | "hook" | "love"
+  // the nations' weapons and the Zénith (Belle Époque recipes in audio-belle.ts; the original style borrows the nearest)
+  | "arcShell" | "heavyShell" | "arcBolt" | "flak47" | "zenithDrone";
 
 export type AudioChannel = "sfx" | "music" | "voice";
 
@@ -566,6 +568,7 @@ function setCompressor(c: DynamicsCompressorNode, s: Readonly<CompressorSettings
 /** Sounds that duck the music: [dB, seconds]. */
 const DUCKS: Partial<Record<SfxName, [number, number]>> = {
   bigExplosion: [6, 0.6],
+  heavyShell: [4, 0.5],
   alert: [5, 0.6],
   inbound: [5, 0.7],
   victory: [6, 1.2],
@@ -581,11 +584,15 @@ const GAP: Partial<Record<SfxName, number>> = {
   siren: 1.6, emp: 0.25, pod: 0.3, hammer: 0.6, charge: 1, uplink: 0.2,
   capture: 0.8, uplinkLost: 0.8, drop: 2, crate: 0.3,
   rifle: 0.06, snipe: 0.12, crush: 0.15, clank: 0.07, thrust: 0.3,
-  anchor: 0.8, packup: 1, stomp: 0.18, topple: 0.6, offline: 0.4, reboot: 0.6, weld: 1.4, rollout: 2, hook: 0.6, love: 2
+  anchor: 0.8, packup: 1, stomp: 0.18, topple: 0.6, offline: 0.4, reboot: 0.6, weld: 1.4, rollout: 2, hook: 0.6, love: 2,
+  arcShell: 0.08, heavyShell: 0.3, arcBolt: 0.08, flak47: 0.08, zenithDrone: 1.2
 };
 
 /** Weapon and impact sounds: these thin out at faster game speeds (setTempo). */
-const BATTLE = new Set<SfxName>(["cannon", "heavy", "mg", "flak", "rocket", "missile", "laser", "shell", "bomb", "explosion", "bigExplosion", "heal", "rifle", "snipe", "crush", "clank", "stomp", "weld"]);
+const BATTLE = new Set<SfxName>([
+  "cannon", "heavy", "mg", "flak", "rocket", "missile", "laser", "shell", "bomb", "explosion", "bigExplosion", "heal", "rifle", "snipe", "crush", "clank", "stomp", "weld",
+  "arcShell", "heavyShell", "arcBolt", "flak47"
+]);
 
 /** Short feedback cues that may use the reserved voices above the battle cap. */
 const PRIORITY = new Set<SfxName>(["kill", "lost", "coin", "alert", "inbound"]);
@@ -1034,7 +1041,13 @@ const RECIPES: Record<SfxName, Recipe> = {
     [1047, 1319, 1568].forEach((f, i) => tone(c, o, t, "triangle", f * 2, f * 2, 0.5, 0.025, 0.55 + i * 0.09));
     tone(c, o, t + 0.2, "sine", 262, 262, 1.2, 0.07);
     return 1.45;
-  }
+  },
+  // (the nations' weapons only exist in Belle Époque; here they borrow the nearest original sound)
+  arcShell: (...a) => RECIPES.shell(...a),
+  heavyShell: (...a) => RECIPES.heavy(...a),
+  arcBolt: (...a) => RECIPES.laser(...a),
+  flak47: (...a) => RECIPES.flak(...a),
+  zenithDrone: (...a) => RECIPES.thrust(...a)
 };
 
 export const sfx = new Sfx();

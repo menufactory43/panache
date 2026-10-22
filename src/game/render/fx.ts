@@ -412,7 +412,7 @@ export class Fx {
         // the Faucheux's Gatling: a quick ripple of rounds, and a black "Archie" burst up there
         this.burst(from, to, 2, 0.36, 60);
         this.tracer(from, to, 0.7, () => this.archie(to));
-        this.sound("flak", from.x, from.y, 0.7);
+        this.sound(this.sourceKind?.(ev.sourceId) === "flak-battery" ? "flak47" : "flak", from.x, from.y, 0.7);
         break;
       }
       case "rockets":
@@ -442,14 +442,27 @@ export class Fx {
         break;
       case "laser":
         this.zap(from, to);
-        this.sound("laser", from.x, from.y, 0.7);
+        // (the Bobine d'Arsonval's arc roars louder than a lance's)
+        this.sound(this.sourceKind?.(ev.sourceId) === "arsonval" ? "arcBolt" : "laser", from.x, from.y, 0.7);
         break;
-      case "shell":
-        this.muzzle(from, 0.95, 0xfff0c8);
-        this.flash(from, 0.8, 0xffa040, 0.7);
-        this.powder(from, to, 5, POWDER_BIG);
-        this.sound("shell", from.x, from.y);
+      case "shell": {
+        // (the nations' shells come in as the Mortar's, GameScene: their guns tell them apart)
+        const k = this.sourceKind?.(ev.sourceId);
+        if (k === "branly" || k === "zenith") {
+          // the Canon Branly: no powder, a blue-white discharge at the muzzle
+          this.muzzle(from, 0.8, 0xd8f2ff);
+          this.flash(from, 0.7, 0x7fd0ff, 0.8);
+          this.sparks(from, 5);
+          this.sound("arcShell", from.x, from.y);
+          break;
+        }
+        const big = k === "mortier-280";
+        this.muzzle(from, big ? 1.4 : 0.95, 0xfff0c8);
+        this.flash(from, big ? 1.3 : 0.8, 0xffa040, 0.7);
+        this.powder(from, to, big ? 8 : 5, POWDER_BIG);
+        this.sound(big ? "heavyShell" : "shell", from.x, from.y);
         break;
+      }
       case "bomb":
         this.sound("bomb", from.x, from.y, 0.6);
         break;
@@ -983,6 +996,11 @@ export class Fx {
   /** Steam venting at `p` (a Goliath's hydraulics). */
   steam(p: P3, n = 1): void {
     this.emit(STEAM, p, n);
+  }
+
+  /** A faint blue glint over a unit in the Réseau TSF. */
+  tsf(p: P3): void {
+    this.emit(BE.TSF_GLINT, p, 1);
   }
 
   /** Hearts bubbling up from `p` (Robot Love). */

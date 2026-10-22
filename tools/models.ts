@@ -22,10 +22,11 @@
 // The Goliath stands, the Gantry shows its armament stage; any other unit, building or objective (uplink,
 // supply-crate) points north and fills the view. ?turn=rad turns the model clockwise from that pose,
 // ?head=rad a building's turret or head on its mount, ?faction=red paints it red, and ?solo with a
-// squad kind shows one of its robots, weapon up.
+// squad kind shows one of its robots, weapon up. <kind>@<nation> (hq@empire, depot@republique) draws a
+// nation's own model of a shared building; eiffel the Eiffel Tower landmark.
 import * as THREE from "three";
 import { Stage } from "../src/game/three/stage";
-import { buildingDef, crateDef, instance, pileDef, podDef, uplinkDef, unitDef, unitScale, chuteGeometry, modelMesh, rubbleGeometry, TRACK } from "../src/game/three/models";
+import { buildingDef, landmarkDef, crateDef, instance, pileDef, podDef, uplinkDef, unitDef, unitScale, chuteGeometry, modelMesh, rubbleGeometry, TRACK } from "../src/game/three/models";
 import { GoliathRig, type GoliathPose } from "../src/game/three/goliath";
 import { J, baySeats, SquadRig, type BotKind } from "../src/game/three/infantry";
 import { setVariant } from "../src/game/three/materials";
@@ -43,15 +44,15 @@ plate.position.set(9, 0, 2);
 plate.receiveShadow = true;
 stage.scene.add(plate);
 
-const icon = q.get("icon");
+const [icon, iconNation] = (q.get("icon") ?? "").split("@") as [string, "republique" | "empire" | undefined];
 /** ?turn=rad: a portrait's model turned clockwise (seen from above) from its resting pose. */
 const turn = Number(q.get("turn") ?? 0);
 /** ?head=rad: a turret or radar head turned clockwise on its mount (the Radar's dish faces the viewer so). */
 const head = Number(q.get("head") ?? 0);
-const facs = (icon ? q.get("faction") ?? "blue" : q.get("faction") ?? "blue,red").split(",") as ("blue" | "red")[];
-const only = icon ? "icon" : q.get("only");
+const facs = (q.get("icon") ? q.get("faction") ?? "blue" : q.get("faction") ?? "blue,red").split(",") as ("blue" | "red")[];
+const only = q.get("icon") ? "icon" : q.get("only");
 const anim = q.get("anim") ?? "walk";
-const BOTS: BotKind[] = ["trooper", "rocket-squad", "sniper"];
+const BOTS: BotKind[] = ["trooper", "rocket-squad", "sniper", "sapeurs", "fusiliers", "carabiniers"];
 const AIR: string[] = ["scout", "wasp", "raptor", "hornet", "mender", "condor"];
 // units at their in-game size (unitScale), each row spaced to fit its biggest hulls
 const box = new THREE.Box3();
@@ -108,7 +109,7 @@ function cableBetween(a: THREE.Vector3, b: THREE.Vector3): void {
 
 facs.forEach((f, fi) => {
   if (only === "icon") {
-    if (icon === "gantry") {
+    if (icon === "gantry" && !iconNation) {
       const g = instance(buildingDef("gantry", f));
       for (let i = 0; i < 4; i++) g.parts[`stage${i}`]!.visible = i === 2;
       g.parts.lightsOff!.visible = false;
@@ -131,9 +132,10 @@ facs.forEach((f, fi) => {
       r.root.rotation.y = -turn;
       stage.scene.add(r.root);
       iconRoot = r.root;
-    } else if ((BUILDING_KINDS as string[]).includes(icon!) || icon === "uplink" || icon === "supply-crate") {
+    } else if ((BUILDING_KINDS as string[]).includes(icon!) || ["uplink", "supply-crate", "arsonval", "flak-battery", "eiffel"].includes(icon)) {
       // a building or objective as the map shows it
-      const d = icon === "uplink" ? uplinkDef() : icon === "supply-crate" ? crateDef() : buildingDef(icon as never, f);
+      const d =
+        icon === "uplink" ? uplinkDef() : icon === "supply-crate" ? crateDef() : icon === "eiffel" ? landmarkDef("eiffel", f) : buildingDef(icon as never, f, iconNation);
       const b = instance(d);
       b.root.rotation.y = -turn;
       if (b.turret) b.turret.rotation.y = -head;

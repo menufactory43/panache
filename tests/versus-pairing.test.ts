@@ -10,7 +10,7 @@ import { OPENER_IDS, openerBlocked, type OpenerId } from "../src/sim/openers";
 import { hash32 } from "../src/sim/rand";
 import { MUTATOR_IDS, type MutatorId } from "../src/sim/rules";
 import { setupWorld } from "../src/sim/setup";
-import type { Faction } from "../src/sim/types";
+import type { Faction, NationOrClassic } from "../src/sim/types";
 import { BitWriter, CodecError } from "../src/versus/codec";
 import { rxqOf } from "../src/versus/lockstep";
 import {
@@ -38,6 +38,8 @@ interface PhoneSpec {
   host?: HostOffer;
   build?: number;
   proto?: number;
+  /** The guest's nation (Pairing's `nation`). */
+  nation?: NationOrClassic;
   /** The nonce draw's seed. */
   seed: number;
   /** The opener this phone taps once the cards have been up `pickAfterMs` (null: never tap, the timeout picks). Default: the last one offered. */
@@ -73,6 +75,7 @@ function phone(link: LinkTransport, spec: PhoneSpec): Phone {
     ...(spec.proto !== undefined ? { proto: spec.proto } : {}),
     ...(spec.plan ? { plan: spec.plan } : {}),
     ...(spec.host ? { host: spec.host } : {}),
+    ...(spec.nation ? { nation: spec.nation } : {}),
     now: () => link.now(),
     random: rng(spec.seed)
   });
@@ -239,9 +242,13 @@ function randomFrame(r: () => number): LobbyFrame {
   }
   const picked = r() < 0.6;
   const go = picked && r() < 0.5;
+  // the nations' extension (proto 2): the sender's ask, and the config's two
+  const ext = r() < 0.6;
+  if (config && ext && r() < 0.6) config.nations = { host: r() < 0.5 ? "republique" : "empire", guest: r() < 0.5 ? "republique" : "empire" };
   return {
     role, proto: int(16), build: int(65536), nonce: int(65536), heard: int(65536), rxq: int(8), ping: int(256), echo: int(256),
-    hold: int(128), config, confHash: int(65536), pick: picked ? opener() : null, picked, go, theirs: go ? opener() : null
+    hold: int(128), config, confHash: int(65536), pick: picked ? opener() : null, picked, go, theirs: go ? opener() : null,
+    ...(ext ? { nation: (["classique", "republique", "empire"] as const)[int(3)]! } : {})
   };
 }
 
@@ -256,14 +263,16 @@ function patch(f: { bits: Uint8Array; nbits: number }, at: number, width: number
 }
 
 describe("the lobby frame", () => {
-  it("round-trips every field, within 157 bits", () => {
+  it("round-trips every field, within 164 bits (157 without the nations' extension)", () => {
     const r = rng(99);
     let longest = 0;
+    let longest1 = 0;
     for (let i = 0; i < 5000; i++) {
       const f = randomFrame(r);
       const w = writeLobbyFrame(f);
       expect(w.nbits).toBeLessThanOrEqual(LOBBY_FRAME_MAX);
       longest = Math.max(longest, w.nbits);
+      if (f.nation === undefined) longest1 = Math.max(longest1, w.nbits);
       expect(readLobbyFrame(w.bits, w.nbits)).toEqual(f);
       expect(readLobbyHeader(w.bits, w.nbits)).toEqual({ role: f.role, proto: f.proto, build: f.build });
       // as the modem delivers it: padded with zeros to the packet
@@ -272,6 +281,9 @@ describe("the lobby frame", () => {
       expect(readLobbyFrame(padded, 188)).toEqual(f);
     }
     expect(longest).toBe(LOBBY_FRAME_MAX); // (a random map, and GO)
+    expect(longest1).toBe(157); // (proto 1's frame is unchanged: proto 2 only trails it)
+    // the longest frame fits the low plan's packet (186 bits) as it did
+    expect(LOBBY_FRAME_MAX).toBeLessThanOrEqual(186);
   });
 
   it("rejects malformed frames", () => {
@@ -303,6 +315,23 @@ describe("the lobby frame", () => {
     expect(() => writeLobbyFrame({ ...base, config: { ...base.config!, delay: 9 } })).toThrow(RangeError);
     expect(() => writeLobbyFrame({ ...base, role: "guest" })).toThrow(RangeError);
     expect(() => writeLobbyFrame({ ...base, hold: 128 })).toThrow(RangeError);
+    // nations ride only in the extension
+    expect(() => writeLobbyFrame({ ...base, config: { ...base.config!, nations: { host: "republique", guest: "empire" } } })).toThrow(RangeError);
+    // the extension (proto 2) trails the frame: nation code 3, and a config with one side Classique, are no frame
+    const two: LobbyFrame = { ...base, nation: "republique", config: { ...base.config!, nations: { host: "republique", guest: "empire" } } };
+    const ok2 = writeLobbyFrame(two);
+    expect(ok2.nbits).toBe(ok.nbits + 7);
+    expect(readLobbyFrame(ok2.bits, ok2.nbits)).toEqual(two);
+    // (a proto-1 reader stops at `theirs`: the same frame, as ok's)
+    expect(readLobbyHeader(ok2.bits, ok2.nbits)).toEqual(readLobbyHeader(ok.bits, ok.nbits));
+    const EXT_AT = ok.nbits;
+    expect(readLobbyFrame(ok2.bits, EXT_AT)).toEqual(base);
+    for (let n = EXT_AT + 1; n < ok2.nbits; n++) bad({ bits: ok2.bits, nbits: n });
+    expect(readLobbyFrame(patch(ok2, EXT_AT + 1, 2, 2).bits, ok2.nbits).nation).toBe("empire");
+    bad(patch(ok2, EXT_AT + 1, 2, 3));
+    bad(patch(ok2, EXT_AT + 3, 2, 0));
+    bad(patch(ok2, EXT_AT + 5, 2, 3));
+    expect(readLobbyFrame(patch(patch(ok2, EXT_AT + 3, 2, 0), EXT_AT + 5, 2, 0).bits, ok2.nbits).config!.nations).toBeUndefined();
   });
 
   it("has room for every map and mutator, and its rules are the spec's", () => {
@@ -321,8 +350,14 @@ describe("the lobby frame", () => {
     const h = confHash(c, "high", 10, 20);
     expect(h).toBeGreaterThan(0);
     for (const changed of [confHash({ ...c, delay: 5 }, "high", 10, 20), confHash({ ...c, fast: true }, "high", 10, 20), confHash({ ...c, hostSide: "red" }, "high", 10, 20),
-      confHash({ ...c, mutators: ["veterans"] }, "high", 10, 20), confHash({ ...c, mapId: "frostbite" }, "high", 10, 20), confHash(c, "low", 10, 20), confHash(c, "high", 11, 20), confHash(c, "high", 10, 21)])
+      confHash({ ...c, mutators: ["veterans"] }, "high", 10, 20), confHash({ ...c, mapId: "frostbite" }, "high", 10, 20), confHash(c, "low", 10, 20), confHash(c, "high", 11, 20), confHash(c, "high", 10, 21),
+      confHash({ ...c, nations: { host: "republique", guest: "empire" } }, "high", 10, 20)])
       expect(changed).not.toBe(h);
+    // nations: each side's counts; Classique hashes as in proto 1 (the formula before nations)
+    const rep = confHash({ ...c, nations: { host: "republique", guest: "empire" } }, "high", 10, 20);
+    expect(confHash({ ...c, nations: { host: "empire", guest: "republique" } }, "high", 10, 20)).not.toBe(rep);
+    expect(confHash({ ...c, nations: { host: "republique", guest: "republique" } }, "high", 10, 20)).not.toBe(rep);
+    expect(h).toBe(hash32(0x5d0c, MAPS.findIndex((m) => m.id === "riverlands"), 0, 0, 4, 0, 0, 0, 10, 20) & 0xffff || 0xffff);
   });
 });
 
@@ -761,6 +796,65 @@ describe("two phones pairing over PacketAir", () => {
 });
 
 // ------------------------------------------------- what can't break it ---
+
+describe("nations in the lobby (LOBBY_PROTO 2)", () => {
+  it("agrees on both nations: the host's, and the guest's ask (none: the host's rival)", { timeout: 60_000 }, () => {
+    const cases: { host: NationOrClassic; guest: NationOrClassic | undefined; hostSide: Faction; want: Partial<Record<Faction, string>> | undefined }[] = [
+      { host: "republique", guest: "empire", hostSide: "blue", want: { blue: "republique", red: "empire" } },
+      { host: "empire", guest: undefined, hostSide: "red", want: { blue: "republique", red: "empire" } },
+      { host: "empire", guest: "empire", hostSide: "blue", want: { blue: "empire", red: "empire" } },
+      // (a Classique host: Classique, whatever the guest asks)
+      { host: "classique", guest: "empire", hostSide: "blue", want: undefined }
+    ];
+    for (const [i, c] of cases.entries()) {
+      const offer: HostOffer = { map: "riverlands", mutators: [], hostSide: c.hostSide, nation: c.host };
+      const d = duel({ seed: 1300 + i, offer, ...(c.guest ? { guest: { nation: c.guest } } : {}) });
+      const [h, g] = pairUp(d);
+      expectAgreed(d, h, g, offer);
+      expect(h.setup.nations, JSON.stringify(c)).toEqual(c.want);
+      expect(g.setup.nations).toEqual(c.want);
+      for (const ph of [d.host, d.guest]) {
+        expect(lastSaid(ph).proto).toBe(1); // (proto 2's header: its frame is proto 1's, extended)
+        expect(lastSaid(ph).nation).toBe(ph === d.host ? c.host : (c.guest ?? "classique"));
+        expect(ph.pairing.state().peer?.proto).toBe(LOBBY_PROTO);
+      }
+      if (c.want) {
+        // the nations world: each side's opener is one its nation's roster allows
+        const w = setupWorld(h.setup);
+        expect(w.rules?.nations).toEqual(c.want);
+        expect(h.config.nations).toEqual({ host: c.want[c.hostSide], guest: c.want[other(c.hostSide)] });
+      } else expect(h.config.nations).toBeUndefined();
+    }
+  });
+
+  it("falls back to Classique with a proto-1 phone, either role", { timeout: 60_000 }, () => {
+    for (const [i, [hostProto, guestProto]] of ([[2, 1], [1, 2]] as const).entries()) {
+      const offer: HostOffer = { map: "riverlands", mutators: [], nation: "republique" };
+      const d = duel({ seed: 1400 + i, offer, host: { proto: hostProto }, guest: { proto: guestProto, nation: "empire" } });
+      const [h, g] = pairUp(d);
+      expectAgreed(d, h, g, offer);
+      expect(h.setup.nations).toBeUndefined();
+      expect(h.config.nations).toBeUndefined();
+      // the proto-1 phone never sends the extension, and the proto-2 one knows its peer as proto 1; no version error
+      const old = hostProto === 1 ? d.host : d.guest;
+      const fresh = hostProto === 1 ? d.guest : d.host;
+      expect(old.said.every((f) => readLobbyFrame(f.bits, f.nbits).nation === undefined)).toBe(true);
+      expect(fresh.pairing.state().peer?.proto).toBe(1);
+      expect(old.pairing.state().peer?.proto).toBe(1);
+      for (const ph of [d.host, d.guest]) expect(ph.phases.has("error")).toBe(false);
+    }
+  });
+
+  it("a Classique duel between proto-2 phones agrees on proto 1's config and hash", { timeout: 60_000 }, () => {
+    const offer: HostOffer = { map: "dune-sea", mutators: ["veterans"], hostSide: "red" };
+    const d = duel({ seed: 1500, offer, guest: { nation: "empire" } });
+    const [h, g] = pairUp(d);
+    expectAgreed(d, h, g, offer);
+    expect(h.setup.nations).toBeUndefined();
+    expect(h.config.nations).toBeUndefined();
+    expect(lastSaid(d.host).confHash).toBe(confHash(h.config, h.plan, h.hostNonce, h.guestNonce));
+  });
+});
 
 describe("a pairing under way", () => {
   const offer: HostOffer = { map: "riverlands", mutators: [] };

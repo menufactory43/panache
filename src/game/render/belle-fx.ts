@@ -60,6 +60,11 @@ export const FEE_SPARKS: EmitCfg = {
   tex: TEX.glint, additive: true, life: [300, 700], speed: [0.4, 2], up: [0.3, 1.6], size: [0.14, 0.24], grow: [0.2, 0.4],
   alpha: [1, 0], tints: [0xd9c4ff, 0xb08cff, 0xffffff, 0x9fc8ff], end: 0x6a4aff, gravity: -1.2, drag: 0.5, spin: 3
 };
+/** The Réseau TSF (Unit.tsf): now and then a faint blue glint drifts up off a unit in range of a Tour TSF or a Zénith. */
+export const TSF_GLINT: EmitCfg = {
+  tex: TEX.glint, additive: true, life: [600, 1000], speed: [0.05, 0.25], up: [0.25, 0.5], size: [0.1, 0.16], grow: [0.4, 0.6],
+  alpha: [0.75, 0], tints: [0x9fd8ff, 0xc4e6ff, 0x7fb8ff], end: 0x4a6aff, gravity: -0.3, drag: 0.6, spin: 2
+};
 /** Thick black coal smoke over a blast. */
 export const COAL_SMOKE: EmitCfg = {
   tex: TEX.puff, tex2: TEX.puff2, life: [1500, 2500], speed: [0.06, 0.3], up: [0.35, 0.7], size: [0.42, 0.56], grow: [2.4, 3.2],

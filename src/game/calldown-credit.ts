@@ -36,7 +36,11 @@ export const powerName = (p: PowerKind): string => POWER_NAMES[p];
 
 /** "a Barrage", "an EMP", "the Sky Hammer" (in running text). */
 export function powerPhrase(p: PowerKind): string {
-  return p === "hammer" ? `l'${POWER_NAMES[p]}` : p === "emp" ? `la ${POWER_NAMES[p]}` : `un ${POWER_NAMES[p]}`;
+  // (the late strikes and the nations' named powers take the definite article: "le Rayon Curie", "la Pression des chaudières")
+  if (p === "hammer") return `l'${POWER_NAMES[p]}`;
+  if (p === "emp" || p === "pression") return `la ${POWER_NAMES[p]}`;
+  if (p === "curie" || p === "gaz") return `le ${POWER_NAMES[p]}`;
+  return `un ${POWER_NAMES[p]}`;
 }
 
 /**

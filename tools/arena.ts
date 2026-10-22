@@ -16,7 +16,8 @@
 // MCP seat URL). Models play through LLM and the llm-tools-battledrones plugin:
 // `llm battledrones run --blue gpt-6-luna --red gpt-6-luna` starts `serve`
 // itself. Common options: --map, --seed, --mutators a,b, --round <seconds>,
-// --max-minutes <n>, --out <dir> (default battles/).
+// --max-minutes <n>, --out <dir> (default battles/), --nations rep,emp (blue's, then red's; the
+// record keeps them, and replays with them). AI seats take the nations' own personalities too (ai:siege, ai:volta).
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, symlinkSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
@@ -25,7 +26,7 @@ import { replay, resimulate, type BattleEnd, type BattleRecord } from "../src/ar
 import { DEFAULT_SCRIPT, playScripted, type Script } from "../src/arena/scripted";
 import { TICK_RATE, UNITS } from "../src/sim/balance";
 import { MAPS, isKnownMapId } from "../src/sim/maps";
-import { isMutatorId, type MutatorId } from "../src/sim/rules";
+import { isMutatorId, parseNations, type MutatorId } from "../src/sim/rules";
 import type { Faction } from "../src/sim/types";
 import { ROOT, gitCommit, readRecord, recordPath, simHash, writeRecord } from "./arena/files";
 import { serveArena } from "./arena/server";
@@ -74,7 +75,10 @@ function matchArgs() {
   for (const m of mutators) if (!isMutatorId(m)) die(`unknown mutator "${m}"`);
   const roundTicks = Math.round(Number(arg("round", "5")) * TICK_RATE);
   const maxTicks = Math.round(Number(arg("max-minutes", "20")) * 60 * TICK_RATE);
-  return { map, seed, mutators: mutators as MutatorId[], roundTicks, maxTicks, out: arg("out", join(ROOT, "battles"))! };
+  const nationsArg = arg("nations");
+  const nations = nationsArg ? parseNations(nationsArg) : null;
+  if (nationsArg && !nations) die(`--nations wants blue's and red's nation: rep,emp | emp,rep | rep,rep | emp,emp (not ${nationsArg})`);
+  return { map, seed, mutators: mutators as MutatorId[], ...(nations ? { nations } : {}), roundTicks, maxTicks, out: arg("out", join(ROOT, "battles"))! };
 }
 
 const who = (r: BattleRecord, f: Faction) => r.seats[f].player;
@@ -87,7 +91,7 @@ function playLocal(o: ReturnType<typeof matchArgs>, blue: string, red: string, w
   const seats = { blue: seatOf(blue, false), red: seatOf(red, false) };
   const path = write ? recordPath(o.out, o.map, o.seed, blue, red) : null;
   const arena = new Arena({
-    map: o.map, seed: o.seed, mutators: o.mutators, roundTicks: o.roundTicks, maxTicks: o.maxTicks,
+    map: o.map, seed: o.seed, mutators: o.mutators, nations: o.nations, roundTicks: o.roundTicks, maxTicks: o.maxTicks,
     seats: { blue: seats.blue.spec, red: seats.red.spec },
     commit: gitCommit(), sim: simHash(),
     onRound: (a) => {
@@ -122,7 +126,7 @@ async function serve() {
   const path = arg("record") ?? recordPath(o.out, o.map, o.seed, label(blue), label(red));
   const quiet = flag("quiet");
   const arena = new Arena({
-    map: o.map, seed: o.seed, mutators: o.mutators, roundTicks: o.roundTicks, maxTicks: o.maxTicks,
+    map: o.map, seed: o.seed, mutators: o.mutators, nations: o.nations, roundTicks: o.roundTicks, maxTicks: o.maxTicks,
     seats: { blue: seats.blue.spec, red: seats.red.spec },
     commit: gitCommit(), sim: simHash()
   });
