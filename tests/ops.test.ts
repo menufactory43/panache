@@ -257,6 +257,18 @@ describe("Ops: every op is beatable, and none is won by doing nothing", () => {
       expect(lazy.result?.won).toBe(false);
     }, 30_000);
 
+  // stars no pilot had ever earned (playtest of 2026-10-22): each one a skilled pilot earns
+  for (const [id, pilot, bit, seeds] of [
+    ["carbonie", "siege", 2, [1]],
+    ["sky-pirates", "ace", 2, [1]],
+    ["decapitation", "careful", 2, [1]],
+    ["last-light", "caller", 4, [4, 5, 6]]
+  ] as const)
+    it(`${id}: the ${bit === 2 ? "★★" : "★★★"} star is within reach (${pilot})`, () => {
+      const runs = seeds.map((s) => runOp(id, PILOTS[id]![pilot]!, s).result);
+      expect(runs.some((r) => r?.won && (r.stars & bit) === bit)).toBe(true);
+    }, 30_000);
+
   it("replays identically from the same seed", () => {
     const a = runOp("decapitation", PILOTS.decapitation!.strike!, 4);
     const b = runOp("decapitation", PILOTS.decapitation!.strike!, 4);

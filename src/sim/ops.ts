@@ -867,10 +867,10 @@ export const CAMPAIGN: OpDef[] = [
     act: 3,
     nations: REP_EMP,
     dressing: "polygone",
-    tagline: "Un groupe d'assaut, aucune usine, 3:00",
+    tagline: "Un groupe d'assaut, aucune usine, 2:30",
     brief:
-      "Le Polygone de Carbonie, quartier général du Maréchal. Ni base ni renforts : trois Hydroglisseurs (dont celui de Valmont), trois Jamais-Contente, deux Albatros, deux Blériot et deux Pasteur. La Citadelle s'abrite derrière une Batterie de 47, trois Hotchkiss, des Faucheux et un écran d'Éperviers. Abats-la en moins de 3:00.",
-    tip: "Avance en un seul groupe. Les Jamais-Contente tuent les Faucheux, les Blériot les Éperviers, les Albatros rasent les Batteries de 47 ; puis tout sur la Citadelle.",
+      "Le Polygone de Carbonie, quartier général du Maréchal. Ni base ni renforts : trois Hydroglisseurs (dont celui de Valmont), trois Jamais-Contente, deux Albatros, deux Blériot et deux Pasteur. La Citadelle s'abrite derrière une Batterie de 47, trois Hotchkiss, des Faucheux et un écran d'Éperviers. Abats-la en moins de 2:30.",
+    tip: "Avance en un seul groupe. Les Jamais-Contente tuent les Faucheux, les Blériot les Éperviers, les Albatros rasent les Batteries de 47 ; puis tout sur la Citadelle. Les Éperviers chassent aussi les Pasteur : garde-les en retrait tant qu'ils volent.",
     map: "proving-grounds",
     ai: { strategy: "balanced", difficulty: "hard", tweak: DEFENSIVE },
     focus: { x: 10, y: 39 },
@@ -895,10 +895,11 @@ export const CAMPAIGN: OpDef[] = [
       o.units("red", "epervier", 3, 38, 4);
       w.factions.red.scrap = 400;
     },
-    goals: [{ type: "destroyHq" }, { type: "within", secs: 180 }],
+    // (3:00 and 2:00 until the playtest: the strike group won in 1:06 on every seed; Difficile, the clock is tight now)
+    goals: [{ type: "destroyHq" }, { type: "within", secs: 150 }],
     stars: [
       { type: "maxLosses", n: 4 },
-      { type: "within", secs: 120 }
+      { type: "within", secs: 90 }
     ],
     cards: {
       before: ["Le Polygone de Carbonie. Le quartier général du Maréchal.", "Pas de renforts. Pas de seconde chance.", "Valmont : « En avant, et avec panache ! »"],
@@ -914,11 +915,12 @@ export const CAMPAIGN: OpDef[] = [
     nations: REP_EMP,
     tagline: "Dix vagues impériales avant l'aube",
     brief:
-      "Les faubourgs, en amont de Paris. Les colonnes impériales arrivent des bords de la carte toutes les 40 secondes, chaque fois plus fortes. Tu commences retranché : Garage, Chalais-Meudon, deux Bobines, une Ruggieri et deux Tours TSF. Ferrand termine le Zénith. Survis à 10 vagues.",
-    tip: "La barre du haut annonce la prochaine vague : prépare la riposte. Le Zénith arrive après la cinquième vague — garde-le près des Tours TSF et des Pasteur.",
+      "Les faubourgs, en amont de Paris. Les colonnes impériales arrivent des bords de la carte toutes les 43 secondes, chaque fois plus fortes. Tu commences retranché : Garage, Chalais-Meudon, deux Bobines, une Ruggieri et deux Tours TSF. Ferrand termine le Zénith. Survis à 10 vagues.",
+    tip: "La barre du haut annonce la prochaine vague : prépare la riposte. Le Zénith arrive après la cinquième vague — garde-le près des Tours TSF et des Pasteur. Le terrain dégagé, appelle la vague suivante en avance : du charbon, et du temps gagné.",
     map: "riverlands",
     ai: "survival",
-    // (interval 43, was 40: after WP4 the defender pilot held 9/12 seeds; 11/12 now — ★★★ moved with it)
+    // (interval 43, was 40: after WP4 the defender pilot held 9/12 seeds; 11/12 now — ★★★ moved with it:
+    // the tenth wave leaves at 7:12, so 7:30 was out of reach; 8:00 takes waves called in early)
     survival: { difficulty: "normal", firstWave: 45, interval: 43 },
     scrap: 1200,
     setup(_w, o) {
@@ -943,7 +945,7 @@ export const CAMPAIGN: OpDef[] = [
     goals: [{ type: "waves", count: 10 }],
     stars: [
       { type: "maxLosses", n: 2, buildings: true },
-      { type: "within", secs: 450 }
+      { type: "within", secs: 480 }
     ],
     cards: {
       before: ["Les faubourgs. Paris voit déjà la fumée.", "Ferrand : « Le Zénith sera prêt. Tenez ! »", "Dix vagues avant l'aube."],
