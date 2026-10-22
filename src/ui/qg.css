@@ -655,7 +655,7 @@ html.belle .qg .qg-go {
   .qg-nat {
     left: var(--sl);
     right: var(--sr);
-    bottom: calc(var(--tabs) + 152px);
+    bottom: calc(var(--tabs) + 18px + var(--colh, 134px));
   }
   .menu[data-view="qg"] .ttl-heros {
     -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 96%);
@@ -745,9 +745,6 @@ html.belle .qg .qg-go {
     left: calc(50vw - 0.333 * 44vh);
     top: calc(var(--st, 8px) + 100px);
   }
-  .qg-nat {
-    bottom: calc(var(--tabs) + 138px);
-  }
   .qg-nt small {
     display: none;
   }
@@ -770,7 +767,7 @@ html.belle .qg .qg-go {
 .qg-natcard {
   display: none;
 }
-@media (orientation: landscape) and (min-height: 700px) {
+@media (orientation: landscape) and (min-height: 1000px) {
   .qg-natcard:not([hidden]) {
     display: block;
     background: var(--card);
@@ -887,4 +884,259 @@ html.belle .qg .qg-go {
 /* the salon: the mutators always in its column (the landscape side panel, their old home, is the hub's now) */
 .menu[data-view="salon"] .mutbtn.main:not([hidden]) {
   display: flex;
+}
+
+/* ------------------------------------------- the order of battle (regular) --- */
+/* Large screens (desktop, tablets, the unfolded iPhone Duo): not just bigger. The match is set up
+   right in the hub (maps, difficulty, the AI's nation, mutators; the campaign's chapter and
+   missions), the salon stays for the rest (random maps, seeds). */
+.qg-plan {
+  display: none;
+}
+@media (orientation: landscape) and (min-width: 860px) and (min-height: 560px), (orientation: portrait) and (min-width: 560px) and (min-height: 800px) {
+  .qg-plan:not(:empty) {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 230, 170, 0.08);
+  }
+  .qg-mode:not([data-p="duel"]) {
+    display: none;
+  }
+}
+.qg-plan .qg-k {
+  align-items: center;
+  margin: 0;
+}
+.qg-more {
+  background: none;
+  border: none;
+  padding: 6px 0 6px 10px;
+  font-size: 11.5px !important;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gold) !important;
+}
+.qg-maps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.qg-map {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.qg-map img {
+  width: 100%;
+  height: clamp(44px, 5.2vh, 64px);
+  object-fit: cover;
+  border-radius: 5px;
+  background: #2a1d10;
+  filter: sepia(0.2);
+}
+.qg-map small {
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}
+.qg-map em {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-style: normal;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--gold);
+}
+.qg-map.on {
+  border: 2px solid var(--gold);
+  padding: 2px;
+  box-shadow: 0 0 12px rgba(233, 187, 94, 0.35);
+}
+.qg-map.on small {
+  color: var(--text);
+}
+.qg-seg {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.qg-seg span {
+  padding: 0 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.qg-seg button {
+  flex: 1;
+  min-height: 38px;
+  background: none;
+  border: none;
+  font-size: 12.5px !important;
+  color: var(--dim) !important;
+  white-space: nowrap;
+}
+.qg-seg button.on {
+  color: #f8efd8 !important;
+  background: linear-gradient(180deg, #3d63ad, #24427e);
+  box-shadow: inset 0 0 0 1px rgba(233, 187, 94, 0.55);
+}
+.qg-mut {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed var(--line-hi);
+  font-size: 12.5px !important;
+  color: var(--dim) !important;
+}
+.qg-mut b {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-art {
+  position: relative;
+  height: clamp(80px, 12vh, 130px);
+  border-radius: 7px;
+  background: center / cover no-repeat;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+.qg-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), transparent 65%);
+}
+.qg-art b {
+  position: relative;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+}
+.qg-oline {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--dim);
+}
+.qg-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qg-mis {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px 0 6px;
+  text-align: left;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid transparent;
+}
+.qg-mis i {
+  font-style: normal;
+  font-family: var(--serif);
+  text-align: center;
+  color: var(--gold);
+}
+.qg-mis b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-mis small {
+  font-size: 11px;
+  color: var(--gold);
+}
+.qg-mis.on {
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(233, 187, 94, 0.22), rgba(0, 0, 0, 0.28));
+}
+.qg-mis.locked {
+  opacity: 0.5;
+}
+
+/* ------------------------------ closed iPhone Duo: the bar on the right side --- */
+/* A portrait screen wider and shorter than a phone's (the Duo's cover screen, ~466 × 678): as
+   Apple asks for it, the controls leave the bottom for a vertical bar on the right, under the
+   right thumb, and the content keeps the whole height to its left. */
+@media (orientation: portrait) and (min-aspect-ratio: 13/20) and (max-width: 559px) {
+  .qg {
+    --bar: 74px;
+    --tabs: env(safe-area-inset-bottom);
+    --sr: calc(var(--bar) + env(safe-area-inset-right) + 10px);
+  }
+  .qg-tabs {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: calc(var(--bar) + env(safe-area-inset-right));
+    height: auto;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: var(--st) env(safe-area-inset-right) var(--sb) 0;
+    border-top: none;
+    border-left: 1px solid var(--line);
+  }
+  .qg-tab {
+    flex: 0 0 auto;
+    min-height: 70px;
+  }
+  .qg-tab.on::before {
+    top: 22%;
+    bottom: 22%;
+    left: 0;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  html.belle .qg .qg-logo {
+    right: var(--sr);
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    left: calc((100vw - var(--bar, 74px)) / 2 - 0.333 * 44vh);
+  }
+  .qg-side {
+    grid-template-columns: 70px 1fr 70px;
+  }
 }

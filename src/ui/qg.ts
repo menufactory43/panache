@@ -35,6 +35,17 @@ export interface HubState {
   survivalBest: number | null;
   duel: { sound: boolean; online: boolean };
   tutoDone: boolean;
+  // ---- the order of battle (large screens: set the match up without leaving the hub)
+  maps: { id: string; name: string; thumb: string; on: boolean; badge: string }[];
+  diffs: { id: string; label: string; on: boolean }[];
+  /** The AI's nation (skirmish with a nation; null otherwise). */
+  rivals: { id: string; label: string; on: boolean }[] | null;
+  /** Mutators on, in a few words ("" = none). */
+  mutators: string;
+  /** A few missions around the picked one, its tagline and chapter still. */
+  missions: { id: string; n: number; title: string; stars: number; locked: boolean; on: boolean }[];
+  opLine: string;
+  opArt: string | null;
 }
 
 export interface HubHooks {
@@ -51,6 +62,12 @@ export interface HubHooks {
   tuto(): void;
   replays(): void;
   settings(): void;
+  map(id: string): void;
+  difficulty(id: string): void;
+  rival(id: string): void;
+  mutators(): void;
+  /** Pick a mission (the picked one again: its briefing). */
+  op(id: string): void;
 }
 
 export interface Hub {
@@ -120,6 +137,7 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
         <button class="qg-chg">Changer</button>
         <span class="qg-duo"><button class="qg-btn alt" data-a="sound">🔊 Par le son</button><button class="qg-btn alt" data-a="online">🌐 En ligne</button></span>
       </div>
+      <div class="qg-plan"></div>
       <div class="qg-natcard"></div>
       <button class="cta big qg-go" id="qg-go">En avant !</button>
     </div>
@@ -132,6 +150,9 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
   const $ = <T extends HTMLElement = HTMLElement>(s: string) => el.querySelector<T>(s)!;
   const click = (s: string, fn: (b: HTMLElement) => void) => el.querySelectorAll<HTMLElement>(s).forEach((b) => b.addEventListener("click", () => fn(b)));
 
+  // portrait: the nation sits just above the column, whatever its height (qg.css --colh)
+  const col = el.querySelector<HTMLElement>(".qg-col")!;
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(() => el.style.setProperty("--colh", `${col.offsetHeight}px`)).observe(col);
   let shownNation: NationOrClassic | null = null;
   const sync = () => {
     const s = hooks.state();
@@ -194,7 +215,53 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     go.textContent = s.pick === "duel" ? "Défier un ami" : s.pick === "ops" && s.op.locked ? "🔒 Verrouillée" : "En avant !";
     go.classList.toggle("locked", s.pick === "ops" && s.op.locked);
     go.hidden = s.pick === "duel" && !s.duel.online && !s.duel.sound;
+    plan(s);
   };
+
+  /** The order of battle: what the salon sets, at hand (qg.css shows it on large screens only). */
+  const planEl = $(".qg-plan");
+  const seg = (k: string, items: { id: string; label: string; on: boolean }[], title = "") =>
+    `<div class="qg-seg" data-k="${k}">${title ? `<span>${title}</span>` : ""}${items.map((x) => `<button data-v="${x.id}" class="${x.on ? "on" : ""}">${x.label}</button>`).join("")}</div>`;
+  const plan = (s: HubState) => {
+    planEl.dataset.p = s.pick;
+    const head = `<div class="qg-k"><span>${s.pick === "ops" ? (s.op.campaign ? "Campagne de 1900" : "Épreuves") : "Ordre de bataille"}</span><button class="qg-more">Salon complet ›</button></div>`;
+    if (s.pick === "duel") planEl.innerHTML = "";
+    else if (s.pick === "ops")
+      planEl.innerHTML = `${head}
+        ${s.opArt ? `<div class="qg-art" style="background-image:url(${s.opArt})"><b>${s.op.title}</b></div>` : ""}
+        <p class="qg-oline">${s.opLine}</p>
+        <div class="qg-missions">${s.missions
+          .map((m) => `<button class="qg-mis${m.on ? " on" : ""}${m.locked ? " locked" : ""}" data-op="${m.id}"><i>${m.locked ? "🔒" : m.n}</i><b>${m.title}</b><small>${m.locked ? "" : "★".repeat(m.stars) + "☆".repeat(3 - m.stars)}</small></button>`)
+          .join("")}</div>`;
+    else
+      planEl.innerHTML = `${head}
+        <div class="qg-maps">${s.maps
+          .map((m) => `<button class="qg-map${m.on ? " on" : ""}" data-id="${m.id}" title="${m.name}"><img src="${m.thumb}" alt="" draggable="false"/><small>${m.name}</small>${m.badge ? `<em>${m.badge}</em>` : ""}</button>`)
+          .join("")}</div>
+        ${seg("diff", s.diffs)}
+        ${s.rivals ? seg("rival", s.rivals, "Adversaire") : ""}
+        ${s.pick === "skirmish" ? `<button class="qg-mut">🧪 Mutateurs <b>${s.mutators || "Non"}</b></button>` : ""}`;
+  };
+  planEl.addEventListener("click", (e) => {
+    const t = (e.target as HTMLElement).closest<HTMLElement>("button");
+    if (!t) return;
+    if (t.classList.contains("qg-more")) {
+      sfx.play("click", 0.5);
+      return hooks.salon();
+    }
+    if (t.classList.contains("qg-mut")) return hooks.mutators();
+    if (t.dataset.op) return hooks.op(t.dataset.op);
+    if (t.dataset.id) {
+      sfx.play("click", 0.5);
+      return hooks.map(t.dataset.id);
+    }
+    const k = t.closest<HTMLElement>(".qg-seg")?.dataset.k;
+    if (k && t.dataset.v) {
+      sfx.play("click", 0.5);
+      if (k === "diff") hooks.difficulty(t.dataset.v);
+      else hooks.rival(t.dataset.v);
+    }
+  });
 
   click("[data-p]", (b) => {
     sfx.play("click", 0.5);

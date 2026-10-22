@@ -19,8 +19,8 @@ import { dailyOp, today, type DailyOp } from "./game/daily";
 import { TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
 import { setTutorialState, tutorialState } from "./game/tutorial";
 import { showTutorialPrompt } from "./ui/tutorial";
-import { loadCareer, opsCompleted } from "./game/career";
-import type { MutatorId } from "./sim/rules";
+import { loadCareer, opsCompleted, starCount } from "./game/career";
+import { MUTATORS, type MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
 import { fullscreen, resetAudioSession } from "./ui/fullscreen";
 import { appUpdate, mountUpdatePill } from "./ui/update";
@@ -945,7 +945,35 @@ function showMenu(linkedMap?: string | null): void {
           op: { title: op.title, n: opIndex(op.id) + 1, total: book.length, done: opsCompleted(loadCareer(), book), campaign: isCampaignOp(op), locked: ops.locked(op) },
           survivalBest: loadBest(shownMap(), gameMode.difficulty)?.best ?? null,
           duel: { sound: duelable, online: onlineable },
-          tutoDone: tutorialState() === "done"
+          tutoDone: tutorialState() === "done",
+          maps: [...MAPS.map((m) => m.id), randomId].filter(offered).map((mid) => {
+            const rnd = isRandomMapId(mid);
+            const hide = rnd && gameMode.uncharted;
+            const rec = gameMode.mode === "survival" ? loadBest(mid, gameMode.difficulty) : null;
+            const stars = rnd || gameMode.mode === "survival" ? 0 : starCount(career.starsFor(mid));
+            return {
+              id: mid,
+              name: hide ? "Inconnue" : rnd ? `🎲 ${mapById(mid).name}` : mapById(mid).name,
+              thumb: hide ? BLANK_IMG : mapThumbUrl(mid),
+              on: mid === shownMap(),
+              badge: rec ? `🛡 ${rec.best}` : stars ? "★".repeat(stars) : ""
+            };
+          }),
+          diffs: diffs.map((d) => ({ id: d, label: DIFFICULTY[d].label, on: d === gameMode.difficulty })),
+          rivals: gameMode.mode !== "skirmish" || gameMode.nation === "classique" || urlNations()
+            ? null
+            : [["opposite", "Nation adverse"], ["random", "🎲 Au hasard"], ["same", "Miroir"]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
+          mutators: activeMutators().map((m) => MUTATORS[m].name).join(" · "),
+          missions: (() => {
+            const i = book.indexOf(op);
+            const from = Math.max(0, Math.min(i - 1, book.length - 5));
+            const c = loadCareer();
+            return book.slice(from, from + 5).map((o) => ({
+              id: o.id, n: book.indexOf(o) + 1, title: o.title, stars: starCount(c.ops[o.id]?.stars ?? 0), locked: ops.locked(o), on: o === op
+            }));
+          })(),
+          opLine: op.tagline,
+          opArt: op.art ? `assets/ui/campaign/${op.art}.webp` : null
         };
       },
       pick: (p) => {
@@ -988,6 +1016,11 @@ function showMenu(linkedMap?: string | null): void {
           void begin(true);
         });
       },
+      map: (mid) => menu.querySelector<HTMLElement>(`#maps .mapcard[data-id="${mid}"]`)?.click(),
+      difficulty: (d) => menu.querySelector<HTMLElement>(`#diff [data-d="${d}"]`)?.click(),
+      rival: (r) => menu.querySelector<HTMLElement>(`#rival [data-r="${r}"]`)?.click(),
+      mutators: () => menu.querySelector<HTMLElement>(".mutbtn.main")?.click(),
+      op: (oid) => menu.querySelector<HTMLElement>(`.campch[data-op="${oid}"], .opcard[data-op="${oid}"]`)?.click(),
       settings: () => {
         const intro = menu.querySelector<HTMLElement>("#replay-intro");
         const wrap = openSheet(
