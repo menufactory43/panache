@@ -276,6 +276,33 @@ export class Sfx {
     return this.buses?.[ch] ?? null;
   }
 
+  /**
+   * A copy of the mix as heard (after the glue compressor), for a recording:
+   * the highlight reel's film (ui/reel.ts). Null before audio starts, or
+   * where the browser can't make one. stop() lets it go.
+   */
+  capture(): { track: MediaStreamTrack; stop(): void } | null {
+    const ctx = this.ctx;
+    const comp = this.comp;
+    if (!ctx || !comp || typeof ctx.createMediaStreamDestination !== "function") return null;
+    const dest = ctx.createMediaStreamDestination();
+    comp.connect(dest);
+    const track = dest.stream.getAudioTracks()[0];
+    const stop = () => {
+      try {
+        comp.disconnect(dest);
+      } catch {
+        /* already rewired (the link guard) */
+      }
+      track?.stop();
+    };
+    if (!track) {
+      stop();
+      return null;
+    }
+    return { track, stop };
+  }
+
   /** Is this bus audible right now (not muted and switched on)? */
   enabled(ch: AudioChannel): boolean {
     return !this.settings.muted && this.settings[ch];

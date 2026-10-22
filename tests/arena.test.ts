@@ -335,7 +335,8 @@ describe("the loopback seat server", () => {
 describe("the battle viewer costs the game nothing until it's wanted", () => {
   // every module under src/, as text
   const sources = import.meta.glob("../src/**/*.ts", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
-  const viewer = ["../src/game/replay.ts", "../src/ui/replay.ts", "../src/game/replay-check.worker.ts"];
+  // (the highlight reel, ui/reel.ts, is the viewer in another mode: main.ts loads it on demand too)
+  const viewer = ["../src/game/replay.ts", "../src/ui/replay.ts", "../src/game/replay-check.worker.ts", "../src/ui/reel.ts"];
 
   it("nothing outside the viewer imports it or the arena statically: main.ts loads it on demand", () => {
     for (const [path, src] of Object.entries(sources)) {

@@ -31,6 +31,10 @@ import { mountTitle } from "./ui/title";
 import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
+import { mountSavedList } from "./ui/archives";
+import { reelWaiting, takeReel } from "./ui/reel-entry";
+import { SPOTLIGHT_KEY, setSpotlight, spotlightOn } from "./game/spotlight";
+import type { BattleRecord } from "./arena/record";
 // (types only: the sound duel's code is a lazily loaded chunk, reached through loadDuel() alone)
 import type * as DuelLobby from "./versus/lobby";
 import type { VersusFeed } from "./versus/feed";
@@ -236,6 +240,8 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
 
 function showMenu(linkedMap?: string | null): void {
+  // the report's « ▶ Revoir les temps forts » reloaded into its reel (ui/reel-entry.ts): that plays instead
+  if (reelWaiting()) return void watchReel();
   loadSettings();
   // "Rematch" from an end screen: what to skip straight into (read below)
   let token: string | null = null;
@@ -790,14 +796,25 @@ function showMenu(linkedMap?: string | null): void {
   if (tutorialState() === "done") tutoBtn.textContent = "🎓 Instruction ✓";
   tutoBtn.addEventListener("click", startTuto);
   menu.querySelector("#play-spectate")!.addEventListener("click", () => begin(true));
-  // an agent battle's record, pasted or picked: the viewer loads only now (game/replay.ts)
+  /** A match from the Archives (ui/archives.ts): its highlight reel (ui/reel.ts), or the whole of it in the viewer. */
+  const watchSaved = async (record: BattleRecord, reel: boolean) => {
+    // (the reel's chunk has the viewer in it: the whole match plays in the viewer as any record does)
+    const { reelFeed, viewerFeed } = await import("./ui/reel");
+    const feed = reel ? reelFeed(record, { onMenu: () => fullscreen.reload() }) : viewerFeed(record);
+    await begin(true, () => watchSetup(feed), feed);
+  };
+  // an agent battle's record, pasted or picked, or one of the player's own: the viewer loads only now (game/replay.ts)
   menu.querySelector("#play-replay")!.addEventListener("click", () => {
     sfx.play("click", 0.5);
-    showReplayPicker(menu, async (json) => {
-      const { replayFromJson } = await import("./game/replay");
-      const feed = replayFromJson(json);
-      await begin(true, () => watchSetup(feed), feed);
-    });
+    showReplayPicker(
+      menu,
+      async (json) => {
+        const { replayFromJson } = await import("./game/replay");
+        const feed = replayFromJson(json);
+        await begin(true, () => watchSetup(feed), feed);
+      },
+      (host) => mountSavedList(host, watchSaved)
+    );
   });
 
   // ------------------------------------------------------------ sound duel ---
@@ -1007,13 +1024,19 @@ function showMenu(linkedMap?: string | null): void {
           menu,
           "archives",
           `<h2>🎬 Archives</h2>
-           <p class="sh-sub">Revoir une bataille enregistrée, ou regarder deux IA s'affronter.</p>
+           <p class="sh-sub">Revoir tes dernières parties et leurs temps forts, une bataille enregistrée, ou deux IA s'affronter.</p>
+           <h3>Tes parties</h3>
+           <div id="arch-saved"></div>
            <div class="sh-actions sh-col">
              <button class="cta alt" data-a="replay">🎬 Voir une rediffusion</button>
              <button class="cta alt" data-a="spectate">🤖 IA contre IA</button>
              <button class="cta alt sheet-close">Fermer</button>
            </div>`
         );
+        mountSavedList(wrap.querySelector<HTMLElement>("#arch-saved")!, (r, reel) => {
+          wrap.remove();
+          return watchSaved(r, reel);
+        });
         wrap.querySelector('[data-a="replay"]')!.addEventListener("click", () => {
           wrap.remove();
           menu.querySelector<HTMLElement>("#play-replay")!.click();
@@ -1036,6 +1059,7 @@ function showMenu(linkedMap?: string | null): void {
           `<h2>⚙ Réglages</h2>
            <div id="qg-sound"></div>
            <div class="sh-actions sh-col">
+             <button class="cta alt" data-a="spot" aria-pressed="false" title="Ralenti, secousse et bandeau quand un Gargantua tombe, quand leur GQG est touché, quand une bataille est gagnée"></button>
              ${intro ? `<button class="cta alt" data-a="intro">🎞 Revoir l'intro</button>` : ""}
              <button class="cta alt" data-a="help">? Comment jouer</button>
              <button class="cta alt sheet-close">Fermer</button>
@@ -1049,6 +1073,27 @@ function showMenu(linkedMap?: string | null): void {
           offSound();
           obs.disconnect();
         }).observe(menu, { childList: true });
+        // the Temps forts (game/spotlight.ts): on by default
+        const spot = wrap.querySelector<HTMLButtonElement>('[data-a="spot"]')!;
+        const store = (() => {
+          try {
+            return localStorage;
+          } catch {
+            return null;
+          }
+        })();
+        const syncSpot = () => {
+          const on = spotlightOn(store);
+          spot.textContent = `✨ Temps forts : ${on ? "activés" : "coupés"}`;
+          spot.setAttribute("aria-pressed", String(on));
+          spot.dataset.key = SPOTLIGHT_KEY;
+        };
+        syncSpot();
+        spot.addEventListener("click", () => {
+          setSpotlight(store, !spotlightOn(store));
+          sfx.play("click", 0.5);
+          syncSpot();
+        });
         wrap.querySelector('[data-a="help"]')!.addEventListener("click", () => {
           const h = wrap.querySelector<HTMLElement>(".help")!;
           h.hidden = !h.hidden;
@@ -1125,6 +1170,21 @@ async function watchLinked(url: string, follow: boolean): Promise<void> {
   note.remove();
   watchSetup(feed);
   sfx.unlockOnGesture(); // (no menu was tapped: the sound starts on the first touch)
+  await startGame(feed);
+}
+
+/**
+ * The highlight reel the report's « ▶ Revoir les temps forts » reloaded into
+ * (ui/reel-entry.ts): its record, played by the reel (ui/reel.ts) instead of
+ * the menu. Its Menu reloads to the menu.
+ */
+async function watchReel(): Promise<void> {
+  const record = await takeReel();
+  if (!record) return showMenu();
+  const { reelFeed } = await import("./ui/reel");
+  const feed = reelFeed(record, { onMenu: () => fullscreen.reload() });
+  watchSetup(feed);
+  sfx.unlockOnGesture(); // (its ▶ Projeter tap starts the sound)
   await startGame(feed);
 }
 

@@ -11,6 +11,12 @@ import { createMapWorld, mapById } from "../sim/maps";
 import { OPENERS, OPENER_IDS, allowedOpener, applyOpener, openerBlocked, pickAiOpener, type OpenerId } from "../sim/openers";
 import { step } from "../sim/sim";
 import type { Building, Command, Faction, FxEvent, Unit, World } from "../sim/types";
+import type { BattleRecord, PlayedInfo } from "../arena/record";
+import { MatchRecorder, BUILD_SIM_HASH } from "./match-record";
+import { reelMoments } from "./reel";
+import { archiveMatch, archives } from "./archive";
+import { addReportSection } from "../ui/report";
+import { reelSection } from "../ui/reel-entry";
 import { buildingCenter, domainOf, hqOf } from "../sim/world";
 import { sfx } from "./audio";
 import { Controller, ENEMY, PLAYER, type TapHit } from "./controller";
@@ -27,7 +33,8 @@ import { Awareness } from "./awareness-view";
 import { baseGoliath, calldownThreatens, planTicks } from "./awareness";
 import { HINTS } from "./hints";
 import { SurvivalPresenter, finishRun } from "./survival";
-import { chronicleOf, type Chronicle } from "./chronicle";
+import { chronicleOf, placeName, type Chronicle } from "./chronicle";
+import { SPOTLIGHT, Spotlight, spotlightOn, type Spot } from "./spotlight";
 import { CINE_KEY, Director } from "./director";
 import { FINALE, Finale, LOVE_FINALE, finaleBanner, finaleOutcome, finaleZoom, freeAreaOffset, type FinaleCause } from "./finale";
 import { HeroPresenter } from "./hero-fx";
@@ -106,6 +113,12 @@ export interface MatchFeed {
   readonly opponent?: string;
   /** A duel's pause menu and report buttons (ui/hud.ts DuelHud). */
   readonly duel?: DuelHud;
+  /** After each frame is drawn, with the 3D view's canvas and the 2D overlay's (a highlight reel films them: ui/reel.ts). */
+  rendered?(view: HTMLCanvasElement, overlay: HTMLCanvasElement): void;
+  /** The finale is over: true when the feed shows what comes next itself (a highlight reel), instead of the report. */
+  ended?(winner: Faction | "draw"): boolean;
+  /** The match as a battle record to keep in the Archives once it's decided (a duel's: src/versus/feed.ts), or null. */
+  saveable?(): BattleRecord | null;
 }
 
 /** Why a duel ended with no result (GameScene.abort): the worlds drifted apart, the friend left, or this phone left. */
@@ -138,6 +151,10 @@ export class GameScene {
   private heroes!: HeroPresenter;
   private chronicle!: Chronicle;
   private finale: Finale | null = null;
+  /** Single player's record of the match for the Archives (match-record.ts): a skirmish or the Daily Op against the AI, else null. */
+  private recorder: MatchRecorder | null = null;
+  /** Single player's Temps forts (spotlight.ts): null in a duel, a replay, AI vs AI, the Instruction, or switched off. */
+  private spot: Spotlight | null = null;
   /** Where the match was decided (the deciding HQ or last Goliath's death), sized for what died. */
   private finaleAt: { x: number; y: number; size: number; cause: FinaleCause } | null = null;
   /** Ops: briefing banner, countdowns and star notices (null outside ops). */
@@ -207,7 +224,8 @@ export class GameScene {
 
   constructor(parent: HTMLElement, readonly dpr: number, art: TerrainArt | null, private feed: MatchFeed | null = null) {
     document.getElementById("loading")?.remove();
-    this.world = feed ? feed.world : createMapWorld(gameMode.mapId, matchOptions());
+    const opts = feed ? null : matchOptions();
+    this.world = feed ? feed.world : createMapWorld(gameMode.mapId, opts!);
     this.ctrl = new Controller(this.world);
     const interactive = (this.interactive = feed?.local !== undefined);
     // (a duel's orders land D ticks after the tap: the build bar counts them meanwhile)
@@ -245,6 +263,22 @@ export class GameScene {
     // mutators / the Daily Op decide which personalities can play (meta.ts)
     const aiDiff = gameMode.spectator ? "normal" : gameMode.difficulty;
     this.ai = this.world.survival || feed ? null : opEnemyAi() ?? createAiState(aiStrategy(aiDiff), aiDiff, aiSeed(1));
+    // the match kept for the Archives and its highlight reel: a skirmish or the Daily Op against the AI (Last Stand,
+    // ops and the Instruction start from setups a battle record can't describe; a duel's feed keeps its own)
+    if (opts?.objectives && !gameMode.spectator && this.ai && !this.world.survival && !this.world.ops) {
+      const handicap = DIFFICULTY[this.ai.difficulty].incomeMult;
+      this.recorder = new MatchRecorder({
+        setup: {
+          map: this.world.mapId, seed: this.world.seed, mutators: opts.mutators?.slice() ?? [],
+          ...(opts.nations ? { nations: { ...opts.nations } } : {}),
+          // (tickAi sets the AI's income handicap every tick: the record carries it, as the arena's do)
+          ...(handicap !== 1 ? { income: { [ENEMY]: handicap } } : {})
+        },
+        seats: { [PLAYER]: { player: "Toi" }, [ENEMY]: { player: "IA" } } as Record<Faction, { player: string }>,
+        sim: BUILD_SIM_HASH,
+        created: new Date().toISOString()
+      });
+    }
     if (gameMode.spectator) {
       this.blueAi = feed ? null : createAiState(aiStrategy("normal"), "normal", aiSeed(2));
       this.ctrl.spectator = true;
@@ -351,6 +385,15 @@ export class GameScene {
       handoff: (p) => this.gest.down(p, performance.now())
     });
     this.chronicle = chronicleOf(this.world);
+    if (!feed && !gameMode.spectator && !gameMode.op?.tutorial && spotlightOn(safeStorage()))
+      this.spot = new Spotlight({
+        player: PLAYER,
+        onScreen: (x, y) => rig.onScreen(x, y),
+        sees: (x, y) => this.seesPoint(x, y),
+        reduced: typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches,
+        place: (x, y) => placeName(this.chronicle.refs, x, y, PLAYER),
+        isHq: (id) => this.world.buildings.get(id)?.kind === "hq"
+      });
     this.heroes = new HeroPresenter(v, this.world, {
       player: PLAYER,
       spectator: gameMode.spectator,
@@ -602,12 +645,34 @@ export class GameScene {
         this.chronicle.onFx(ev);
         this.noteDecider(ev);
       }
+      // (the cinematic camera warms up on what it skipped, so it knows where the fighting is)
+      this.cine?.events(this.world.fx, this.world.tick / TICK_RATE);
       this.chronicle.tick();
       feed.afterTick(this.world, true);
     }
     this.world.fx = [];
     this.simSeconds = this.world.tick / TICK_RATE;
     this.snapshotPrev();
+  }
+
+  /**
+   * A fed match's cut (a highlight reel, ui/reel.ts): the camera straight
+   * onto (x, y), or where the fighting is hottest when no spot is given
+   * (the director's pick, else `side`'s army), and the director carries on
+   * from there.
+   */
+  cutTo(x: number | null, y: number | null, side: Faction = "blue", zoom = 46): void {
+    const rig = this.stage.rig;
+    let at = x !== null && y !== null ? { x, y } : null;
+    if (!at && this.cine) at = this.cine.subjects()[0] ?? this.cine.army(side);
+    if (!at) at = { x: this.world.width / 2, y: this.world.height / 2 };
+    rig.zoom = this.clampedZoom(zoom);
+    this.targetZoom = rig.zoom;
+    this.zoomAnchor = null;
+    this.glide = null;
+    const c = this.aware.playCentre();
+    rig.placeAt(at.x, at.y, c.x, c.y);
+    this.cine?.reset({ x: at.x, y: at.y, zoom: rig.zoom });
   }
 
   /** A commander's radio line: in the ticker, read out by the announcer. */
@@ -662,6 +727,7 @@ export class GameScene {
     const theirs = this.ai && allowedOpener(this.world, ENEMY, pickAiOpener(this.ai.strategy.name, this.world.seed, ENEMY));
     if (theirs) picks[ENEMY] = theirs;
     const mine = applyOpenersCanonical(this.world, picks)[PLAYER]!;
+    this.recorder?.opened(picks);
     this.holdStart = false;
     // roll-out flourish on everything that just arrived
     const b = mine.buildingId !== null ? this.world.buildings.get(mine.buildingId) : null;
@@ -783,8 +849,10 @@ export class GameScene {
 
     // (the Instruction's freeze-frames: the lesson waits on the player's tap)
     if (!this.ctrl.paused && !this.ended && !this.holdStart && !this.tutorial?.hold) {
-      // game speed (1–4×; a duel's slack trim), at most AWARE.maxTicksPerFrame ticks per frame
-      const plan = planTicks(this.acc, delta, this.interactive ? this.feed?.speed?.() ?? 1 : this.aware.value);
+      // game speed (1–4×; a duel's slack trim; a highlight reel's pace), at most AWARE.maxTicksPerFrame ticks per frame,
+      // slowed for a Temps fort (single player only: the sim takes ticks, not time, so it plays the same match slower)
+      const speed = this.interactive ? this.feed?.speed?.() ?? 1 : this.feed?.speed ? this.feed.speed() : this.aware.value * (this.spot?.timeScale ?? 1);
+      const plan = planTicks(this.acc, delta, speed);
       this.acc = plan.acc;
       for (let i = 0; i < plan.ticks; i++) {
         // decided mid-frame: the winning tick's events were handled once, don't replay them
@@ -799,7 +867,9 @@ export class GameScene {
         // our orders (a spectator's: blue's commander; a duel's: drained by its feed) and the enemy commander's, stepped blue's first
         const mine = this.blueAi ? tickAi(this.world, "blue", this.blueAi) : this.interactive ? [] : this.ctrl.drainCommands();
         const theirs = this.ai ? tickAi(this.world, ENEMY, this.ai) : []; // (Last Stand: the waves have no commander)
+        this.recorder?.step(this.world.tick, PLAYER === "blue" ? mine : theirs, PLAYER === "blue" ? theirs : mine);
         step(this.world, fed ?? composeTick(PLAYER, mine, theirs));
+        this.recorder?.stepped(this.world);
         this.simSeconds += 1 / TICK_RATE;
         this.afterTick();
         this.feed?.afterTick(this.world, false);
@@ -809,7 +879,9 @@ export class GameScene {
     this.feed?.frame(delta);
     const alpha = this.ctrl.paused ? 1 : this.acc / TICK_MS;
     this.finale?.update(delta);
-    const slow = this.finale?.timeScale ?? 1;
+    const moment = this.spot?.update(this.ctrl.paused || this.ended || this.holdStart ? 0 : delta, this.simSeconds, !!this.world.winner);
+    if (moment) this.playSpot(moment);
+    const slow = Math.min(this.finale?.timeScale ?? 1, this.spot?.timeScale ?? 1);
     const rig = this.stage.rig;
     rig.update(delta);
     this.viewBox = rig.viewRect();
@@ -836,6 +908,8 @@ export class GameScene {
       v.top.flush();
       this.stage.render();
       this.drawScreen();
+      // (a highlight reel films the frame here, while the 3D canvas still holds it)
+      this.feed?.rendered?.(this.stage.renderer.domElement, this.stage.screen.canvas);
     }
     this.hud.update(delta);
     if (this.ctrl.tip) {
@@ -862,6 +936,7 @@ export class GameScene {
       // Last Stand always ends in defeat; a new record still gets the fanfare
       const run = this.survival && !gameMode.spectator && !this.world.ops ? finishRun(this.world, this.world.mapId, this.survival.difficulty) : null;
       this.chronicle.finish();
+      this.keepMatch();
       // XP, medals, stars (spectators: no-op; a duel keeps its own record, src/versus/records.ts)
       if (!this.interactive) settleCareer(this.world, PLAYER);
       this.playFinale(() => {
@@ -873,6 +948,38 @@ export class GameScene {
         const played = this.interactive ? music.finale(outcome, { love: !!this.world.love }) : music.finale(outcome);
         if (!played && !gameMode.spectator && outcome !== "draw") sfx.play(outcome);
       });
+    }
+  }
+
+  /**
+   * The decided match into the Archives (archive.ts), with its highlight
+   * reel's moments from the chronicle, and the report's « ▶ Revoir les temps
+   * forts » (ui/reel-entry.ts): a single-player skirmish's own record, or a
+   * duel's (its feed's). Replays and AI vs AI aren't the player's matches.
+   * Never in the way of the end: a failure is only logged.
+   */
+  private keepMatch(): void {
+    const w = this.world;
+    const winner = w.winner;
+    if (!winner || this.aborted || (!this.recorder && !this.interactive)) return;
+    try {
+      const at = winner === "draw" && w.love ? { x: w.love.x, y: w.love.y } : this.finaleAt;
+      const reel = reelMoments(this.chronicle, PLAYER, { tick: w.tick, winner, ...(at ? { x: at.x, y: at.y } : {}) });
+      const played: PlayedInfo = {
+        pov: PLAYER,
+        kind: this.interactive ? "duel" : gameMode.daily ? "quotidienne" : "escarmouche",
+        result: winner === "draw" ? "draw" : winner === PLAYER ? "win" : "loss",
+        against: this.interactive ? this.feed?.opponent ?? "ton ami" : `IA ${this.ai?.strategy.label ?? ""} (${DIFFICULTY[gameMode.difficulty].label})`
+      };
+      const rec = this.recorder ? this.recorder.record(w, played, reel) : this.feed?.saveable?.() ?? null;
+      if (!rec) return;
+      if (this.recorder) rec.seats[ENEMY] = { player: played.against };
+      else Object.assign(rec, { played, reel });
+      const saved = archiveMatch(archives(), rec);
+      const duel = this.interactive ? this.feed?.duel : undefined;
+      addReportSection(reelSection({ record: rec, saved, leave: duel ? () => duel.menu() : () => fullscreen.reload() }));
+    } catch (e) {
+      console.warn("archives:", e);
     }
   }
 
@@ -987,11 +1094,28 @@ export class GameScene {
       onDone: () => {
         this.finale = null;
         // (a campaign mission: its closing card first, game/ops.ts)
+        if (this.feed?.ended?.(winner)) return;
         if (this.ops && !love) this.ops.outro(() => this.hud.showEnd(winner));
         else this.hud.showEnd(winner);
       }
     });
     this.zoomBy(zoom / this.targetZoom);
+  }
+
+  /**
+   * A Temps fort (spotlight.ts): its banner, and when it's on screen the
+   * jolt and a push-in anchored on the spot (the slow motion is the time
+   * scale update() reads). The camera never leaves what the player is
+   * looking at: nothing here pans.
+   */
+  private playSpot(s: Spot): void {
+    if (s.banner) announce(s.banner);
+    const rig = this.stage.rig;
+    if (s.shake) rig.shake(SPOT_SHAKE.ms, SPOT_SHAKE.intensity);
+    if (s.nudge && !this.ctrl.placing) {
+      const p = rig.project(s.x, s.y);
+      if (!p.behind) this.zoomBy(SPOTLIGHT.nudge, p.x, p.y);
+    }
   }
 
   /**
@@ -1031,6 +1155,7 @@ export class GameScene {
       this.objFx.onFx(ev);
     }
     this.juice.events(this.world.fx);
+    this.spot?.events(this.world.fx, this.simSeconds);
     this.mood.events(this.world.fx, this.simSeconds);
     this.radio.events(this.world.fx, this.simSeconds);
     voices.events(this.world.fx, this.voiceHooks);
@@ -1800,6 +1925,17 @@ export class GameScene {
     this.entities.destroy();
     this.terrain.dispose();
     this.stage.destroy();
+  }
+}
+
+const SPOT_SHAKE = SPOTLIGHT.shake;
+
+/** localStorage, or null where it's blocked. */
+function safeStorage(): Storage | null {
+  try {
+    return localStorage;
+  } catch {
+    return null;
   }
 }
 

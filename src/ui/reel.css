@@ -1,0 +1,88 @@
+/* « Revoir les temps forts »: the reel's canvas over everything, its few buttons over it (ui/reel.ts) */
+.reel {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: #050302;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.reel-cv {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.reel-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px max(9vh, calc(env(safe-area-inset-bottom) + 48px));
+}
+.reel-ui > * {
+  pointer-events: auto;
+}
+.reel-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 640px;
+}
+.reel-acts .cta {
+  min-height: 44px;
+}
+.reel-acts .cta[disabled] {
+  opacity: 0.5;
+}
+.reel-note {
+  margin: 10px 0 0;
+  max-width: 34em;
+  min-height: 1.2em;
+  text-align: center;
+  font: italic 14px/1.35 var(--serif, Georgia, serif);
+  color: #e8d9b0;
+  text-shadow: 0 1px 3px #000;
+}
+.reel-ui.playing {
+  justify-content: flex-start;
+  align-items: flex-end;
+  /* (under the letterbox's top bar: its PANACHE and clock stay clear) */
+  padding: calc(min(7vh, 9vw) + 10px) max(12px, env(safe-area-inset-right)) 0 12px;
+}
+.reel-skip {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(201, 162, 79, 0.7);
+  border-radius: 22px;
+  background: rgba(5, 3, 2, 0.6);
+  color: #f1e6c8;
+  font: italic 15px var(--serif, Georgia, serif);
+}
+.reel-rec {
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  top: calc(min(7vh, 9vw) + 22px);
+  color: #ff6a55;
+  font: 600 13px var(--serif, Georgia, serif);
+  letter-spacing: 0.06em;
+  animation: reel-rec 1.2s steps(2) infinite;
+}
+@keyframes reel-rec {
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reel-rec { animation: none; }
+}
+/* a phone on its side: the buttons lower, clear of the card's words */
+@media (max-height: 500px) {
+  .reel-ui { padding-bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px)); }
+  .reel-acts { gap: 8px; }
+}

@@ -2890,6 +2890,21 @@ button {
   font-weight: 800;
   color: var(--text);
 }
+/* « Revoir les temps forts » (ui/reel-entry.ts) */
+.aar-reel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.aar-reel .cta {
+  min-height: 44px;
+}
+.aar-reel small {
+  flex: 1 1 12em;
+  font-size: 12px;
+  opacity: 0.75;
+}
 /* story beats */
 .aar-moments {
   list-style: none;
@@ -3452,6 +3467,42 @@ button {
   }
 }
 
+/* « Tes parties » (ui/archives.ts): the Archives sheet's saved matches */
+.arch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+.arch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.arch-t {
+  flex: 1 1 12em;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.arch-t small {
+  color: var(--dim);
+  font-size: 12px;
+}
+.arch-b {
+  display: flex;
+  gap: 6px;
+}
+.arch-b .cta {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+}
 /* bottom sheets: mutator picker and the Career sheet */
 .sheet-wrap {
   position: fixed;
