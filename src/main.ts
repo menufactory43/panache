@@ -16,11 +16,11 @@ import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
 import { dailyOp, today, type DailyOp } from "./game/daily";
-import { TUTORIAL_OP, opById, type OpDef } from "./sim/ops";
+import { TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
 import { setTutorialState, tutorialState } from "./game/tutorial";
 import { showTutorialPrompt } from "./ui/tutorial";
-import { loadCareer } from "./game/career";
-import type { MutatorId } from "./sim/rules";
+import { loadCareer, opsCompleted, starCount } from "./game/career";
+import { MUTATORS, type MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
 import { fullscreen, resetAudioSession } from "./ui/fullscreen";
 import { appUpdate, mountUpdatePill } from "./ui/update";
@@ -28,6 +28,8 @@ import { scrollCue } from "./ui/hscroll";
 import { showReplayPicker } from "./ui/replay-picker";
 import { openMapPreview } from "./ui/map-preview";
 import { mountTitle } from "./ui/title";
+import { mountHub, type Hub, type HubPick } from "./ui/qg";
+import { mountAudioToggles } from "./ui/audio-panel";
 // (types only: the sound duel's code is a lazily loaded chunk, reached through loadDuel() alone)
 import type * as DuelLobby from "./versus/lobby";
 import type { VersusFeed } from "./versus/feed";
@@ -275,6 +277,7 @@ function showMenu(linkedMap?: string | null): void {
     <div class="keyart"></div>
     <button class="round menu-mute" id="menu-mute" title="Tout couper">🔊</button>
     <div class="menu-inner">
+      <div class="sl-head"><button class="sl-back" id="sl-back" type="button">‹ Quartier général</button></div>
       <h1 class="logo panache">PANACHE</h1>
       <div class="menu-side" id="menuside">
         <button class="rankbadge" id="rankbadge"></button>
@@ -526,6 +529,10 @@ function showMenu(linkedMap?: string | null): void {
       })
       .join("");
   }
+  /** The Quartier général (Belle Époque): mounted below, refreshed with the rest. */
+  let hub: Hub | null = null;
+  /** The hub's pick: a game type, or the duel (not a game type: its own lobby). */
+  let hubPick: HubPick | null = null;
   const sync = () => {
     const survival = gameMode.mode === "survival";
     const opsMode = gameMode.mode === "ops";
@@ -608,6 +615,7 @@ function showMenu(linkedMap?: string | null): void {
       : survival ? "▶ Lancer la Survie" : "▶ Jouer";
     menu.querySelector("#play")!.classList.toggle("locked", opsMode && ops.locked(sel));
     menu.querySelector("#play-spectate")!.textContent = survival ? "🤖 Voir l'IA défendre" : "🤖 IA contre IA";
+    hub?.sync();
   };
   sync();
   menu.querySelectorAll<HTMLElement>("#maps .mapcard").forEach((el) =>
@@ -911,6 +919,160 @@ function showMenu(linkedMap?: string | null): void {
     scr.querySelector("#duel-menu")!.addEventListener("click", () => {
       if (!duelLive) duelClosed();
     });
+  }
+
+  // ------------------------------------------------------ Quartier général ---
+  // The hub over the title scene picks and launches; the menu column under it is the salon (ui/qg.ts)
+  const view = (v: "qg" | "salon") => {
+    menu.dataset.view = v;
+    menu.scrollTop = 0;
+    sync();
+  };
+  if (BELLE_EPOQUE) {
+    hub = mountHub(menu, {
+      state: () => {
+        const pick: HubPick = hubPick === "duel" ? "duel" : gameMode.mode;
+        const op = ops.selected();
+        const book = bookOf(op);
+        const opsMode = pick === "ops";
+        const id = opsMode ? op.map : shownMap();
+        const blind = !opsMode && gameMode.uncharted && isRandomMapId(id);
+        return {
+          pick,
+          map: { name: blind ? "Inconnue" : mapById(id).name, thumb: blind ? BLANK_IMG : mapThumbUrl(id) },
+          difficulty: DIFFICULTY[gameMode.difficulty].label,
+          nation: gameMode.nation,
+          op: { title: op.title, n: opIndex(op.id) + 1, total: book.length, done: opsCompleted(loadCareer(), book), campaign: isCampaignOp(op), locked: ops.locked(op) },
+          survivalBest: loadBest(shownMap(), gameMode.difficulty)?.best ?? null,
+          duel: { sound: duelable, online: onlineable },
+          tutoDone: tutorialState() === "done",
+          maps: [...MAPS.map((m) => m.id), randomId].filter(offered).map((mid) => {
+            const rnd = isRandomMapId(mid);
+            const hide = rnd && gameMode.uncharted;
+            const rec = gameMode.mode === "survival" ? loadBest(mid, gameMode.difficulty) : null;
+            const stars = rnd || gameMode.mode === "survival" ? 0 : starCount(career.starsFor(mid));
+            return {
+              id: mid,
+              name: hide ? "Inconnue" : rnd ? `🎲 ${mapById(mid).name}` : mapById(mid).name,
+              thumb: hide ? BLANK_IMG : mapThumbUrl(mid),
+              on: mid === shownMap(),
+              badge: rec ? `🛡 ${rec.best}` : stars ? "★".repeat(stars) : ""
+            };
+          }),
+          diffs: diffs.map((d) => ({ id: d, label: DIFFICULTY[d].label, on: d === gameMode.difficulty })),
+          rivals: gameMode.mode !== "skirmish" || gameMode.nation === "classique" || urlNations()
+            ? null
+            : [["opposite", "Nation adverse"], ["random", "🎲 Au hasard"], ["same", "Miroir"]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
+          mutators: activeMutators().map((m) => MUTATORS[m].name).join(" · "),
+          missions: (() => {
+            const i = book.indexOf(op);
+            const from = Math.max(0, Math.min(i - 1, book.length - 5));
+            const c = loadCareer();
+            return book.slice(from, from + 5).map((o) => ({
+              id: o.id, n: book.indexOf(o) + 1, title: o.title, stars: starCount(c.ops[o.id]?.stars ?? 0), locked: ops.locked(o), on: o === op
+            }));
+          })(),
+          opLine: op.tagline,
+          opArt: op.art ? `assets/ui/campaign/${op.art}.webp` : null
+        };
+      },
+      pick: (p) => {
+        hubPick = p;
+        if (p !== "duel") {
+          gameMode.mode = p;
+          saveSettings();
+        }
+        sync();
+      },
+      go: () => menu.querySelector<HTMLElement>("#play")!.click(),
+      salon: () => view("salon"),
+      nation: (n) => {
+        gameMode.nation = n;
+        saveSettings();
+        sync();
+      },
+      duel: (online) => (online ? onlineBtn : duelBtn).click(),
+      daily: (op) => void begin(false, () => startDaily(op)),
+      career: () => menu.querySelector<HTMLElement>("#rankbadge")!.click(),
+      tuto: startTuto,
+      replays: () => {
+        const wrap = openSheet(
+          menu,
+          "archives",
+          `<h2>🎬 Archives</h2>
+           <p class="sh-sub">Revoir une bataille enregistrée, ou regarder deux IA s'affronter.</p>
+           <div class="sh-actions sh-col">
+             <button class="cta alt" data-a="replay">🎬 Voir une rediffusion</button>
+             <button class="cta alt" data-a="spectate">🤖 IA contre IA</button>
+             <button class="cta alt sheet-close">Fermer</button>
+           </div>`
+        );
+        wrap.querySelector('[data-a="replay"]')!.addEventListener("click", () => {
+          wrap.remove();
+          menu.querySelector<HTMLElement>("#play-replay")!.click();
+        });
+        wrap.querySelector('[data-a="spectate"]')!.addEventListener("click", () => {
+          wrap.remove();
+          void begin(true);
+        });
+      },
+      map: (mid) => menu.querySelector<HTMLElement>(`#maps .mapcard[data-id="${mid}"]`)?.click(),
+      difficulty: (d) => menu.querySelector<HTMLElement>(`#diff [data-d="${d}"]`)?.click(),
+      rival: (r) => menu.querySelector<HTMLElement>(`#rival [data-r="${r}"]`)?.click(),
+      mutators: () => menu.querySelector<HTMLElement>(".mutbtn.main")?.click(),
+      op: (oid) => menu.querySelector<HTMLElement>(`.campch[data-op="${oid}"], .opcard[data-op="${oid}"]`)?.click(),
+      settings: () => {
+        const intro = menu.querySelector<HTMLElement>("#replay-intro");
+        const wrap = openSheet(
+          menu,
+          "reglages",
+          `<h2>⚙ Réglages</h2>
+           <div id="qg-sound"></div>
+           <div class="sh-actions sh-col">
+             ${intro ? `<button class="cta alt" data-a="intro">🎞 Revoir l'intro</button>` : ""}
+             <button class="cta alt" data-a="help">? Comment jouer</button>
+             <button class="cta alt sheet-close">Fermer</button>
+           </div>
+           <div class="help" hidden>${HELP_HTML}</div>
+           <p class="credits">D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct</p>`
+        );
+        const offSound = mountAudioToggles(wrap.querySelector<HTMLElement>("#qg-sound")!);
+        new MutationObserver((_, obs) => {
+          if (wrap.isConnected) return;
+          offSound();
+          obs.disconnect();
+        }).observe(menu, { childList: true });
+        wrap.querySelector('[data-a="help"]')!.addEventListener("click", () => {
+          const h = wrap.querySelector<HTMLElement>(".help")!;
+          h.hidden = !h.hidden;
+        });
+        wrap.querySelector('[data-a="intro"]')?.addEventListener("click", () => {
+          wrap.remove();
+          intro!.click();
+        });
+      }
+    });
+    // the salon in two columns on wide screens (qg.css): the battlefield on the left, the sides and Play on the right
+    // (portrait keeps one column, in the same order: the columns are display: contents there)
+    const cols = document.createElement("div");
+    cols.className = "sl-cols";
+    cols.innerHTML = `<div class="sl-l"></div><div class="sl-r"></div>`;
+    const inner = menu.querySelector<HTMLElement>(".menu-inner")!;
+    const hs = (id: string) => menu.querySelector<HTMLElement>(id)!.closest<HTMLElement>(".hscroll") ?? menu.querySelector<HTMLElement>(id)!;
+    const left = ["#lsbest", ".campseg", "#opsum", "#opcards", ".campacts", "#opblurb", "#maps", "#rndpanel", "#blurb"];
+    const right = ["#diff", "#nation", ".mutbtn.main", "#play"];
+    menu.querySelector("#gmode")!.after(cols);
+    for (const id of left) if (inner.querySelector(id)) cols.firstElementChild!.appendChild(hs(id));
+    for (const id of right) if (inner.querySelector(id)) cols.lastElementChild!.appendChild(hs(id));
+    menu.querySelector("#sl-back")!.addEventListener("click", () => {
+      sfx.play("click", 0.5);
+      view("qg");
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && menu.isConnected && menu.dataset.view === "salon" && !menu.querySelector(".sheet-wrap")) view("qg");
+    });
+    // (robots, the smoke test and the tools, tap the menu's own buttons: they get it as it was, unless ?qg)
+    if (navigator.webdriver !== true || new URLSearchParams(location.search).has("qg")) view("qg");
   }
 
   // "Rematch" from the end screen skips straight back into a game

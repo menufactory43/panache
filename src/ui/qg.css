@@ -1,0 +1,1142 @@
+/*
+ * The Quartier général (src/ui/qg.ts), Belle Époque only: the menu's hub over
+ * the title scene. Four layouts, no device sniffing:
+ *  - landscape (desktop, tablets, the unfolded iPhone Duo ~890 × 626): the rail
+ *    on the left, the hero in the middle, the cards and the big button on the right;
+ *  - short landscape phones (≤ 500 px high): the same, compact, no title;
+ *  - portrait phones: the tab bar at the bottom, the action just above it;
+ *  - small portrait (the iPhone Duo's cover screen, ~466 × 678): portrait, tighter.
+ * The menu column under it is the « salon » (menu[data-view="salon"]).
+ */
+
+/* --------------------------------------------------------------- views --- */
+.menu[data-view="qg"] {
+  overflow: hidden;
+}
+.menu[data-view="qg"] :is(.menu-inner, .menu-mute) {
+  display: none;
+}
+.menu:not([data-view="qg"]) .qg {
+  display: none;
+}
+/* the salon: what the hub already shows is not repeated */
+.menu[data-view="salon"] .menu-inner > :is(.logo, #menuside, #duelrow, .row, .linkbtn, .help) {
+  display: none;
+}
+.sl-head {
+  display: none;
+}
+.menu[data-view="salon"] .sl-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-left: 52px; /* (the mute button) */
+}
+.sl-back {
+  font-family: var(--serif);
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  background: rgba(30, 21, 12, 0.88);
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+/* the scene under the hub: the officer in the middle, shade on both sides */
+.menu[data-view="qg"]:is(.ttl-in, .ttl-done) .ttl,
+.menu[data-view="qg"] .ttl {
+  --fx: 0.55;
+}
+.menu[data-view="qg"] .ttl-heros {
+  height: 82vh;
+  left: calc(50vw - 0.333 * 82vh);
+  bottom: -8vh;
+}
+.menu[data-view="qg"] .ttl-shade {
+  background:
+    linear-gradient(0deg, rgba(14, 8, 3, 0.9) 0%, rgba(14, 8, 3, 0) 26%),
+    linear-gradient(90deg, rgba(14, 8, 3, 0.94) 0%, rgba(14, 8, 3, 0.6) 17%, rgba(14, 8, 3, 0) 34%, rgba(14, 8, 3, 0) 60%, rgba(14, 8, 3, 0.78) 72%, rgba(14, 8, 3, 0.94) 100%);
+}
+
+/* the title and the film: no hub yet; then it pops in */
+.menu:is(.ttl-wait, .ttl-cine, .ttl-roll, .ttl-slam) .qg {
+  visibility: hidden;
+}
+.menu:is(.ttl-slam, .ttl-in):not(.ttl-done) .qg-logo {
+  visibility: hidden;
+}
+.menu.ttl-in .qg > :not(.qg-logo) {
+  animation: ttl-pop 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: 0.4s;
+}
+.menu.ttl-in .qg > .qg-col {
+  animation-delay: 0.55s;
+}
+
+/* ---------------------------------------------------------------- base --- */
+.qg {
+  --sl: max(18px, env(safe-area-inset-left));
+  --sr: max(18px, env(safe-area-inset-right));
+  --st: max(8px, env(safe-area-inset-top));
+  --sb: max(14px, env(safe-area-inset-bottom));
+  --card: rgba(26, 18, 10, 0.88);
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.qg > * {
+  pointer-events: auto;
+}
+.qg button,
+.qg a {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.qg a {
+  text-decoration: none;
+}
+
+/* the top bar: rank, medals, streak, settings */
+.qg-top {
+  position: absolute;
+  top: var(--st);
+  left: var(--sl);
+  right: var(--sr);
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qg-sp {
+  flex: 1;
+}
+.qg-rank {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 6px 4px 0;
+  min-height: 44px;
+}
+.qg-rank svg {
+  width: 30px;
+  height: 34px;
+  flex: none;
+}
+.qg-rank span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.qg-rank b {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.qg-rank i {
+  display: block;
+  width: 76px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 230, 170, 0.15);
+  overflow: hidden;
+}
+.qg-rank u {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #a8823a, var(--gold));
+}
+.qg-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.qg-chip em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--gold);
+}
+.qg-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--line-hi);
+  color: var(--gold) !important;
+  font-size: 18px;
+  flex: none;
+}
+
+/* the title */
+html.belle .qg .qg-logo {
+  position: absolute;
+  left: calc(var(--sl) + 10px);
+  top: calc(var(--st) + 50px);
+  margin: 0;
+  font-size: clamp(40px, 5.4vw, 70px);
+  text-align: left;
+}
+html.belle .qg .qg-logo::after {
+  margin-left: 0;
+}
+.qg-tag {
+  position: absolute;
+  left: calc(var(--sl) + 14px);
+  top: calc(var(--st) + 50px + clamp(40px, 5.4vw, 70px) * 1.05 + 14px);
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+}
+
+/* the rail: the four modes, then Arsenal, Archives, Instruction */
+.qg-rail {
+  position: absolute;
+  left: var(--sl);
+  top: calc(var(--st) + 50px + clamp(40px, 5.4vw, 70px) * 1.05 + 48px);
+  width: clamp(230px, 25vw, 320px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.qg-ri {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 56px;
+  padding: 6px 12px 6px 10px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 0 8px 8px 0;
+}
+.qg-ri i {
+  grid-row: span 2;
+  font-style: normal;
+  font-size: 19px;
+  text-align: center;
+  filter: saturate(0.7);
+}
+.qg-ri b {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(17px, 1.8vw, 23px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e9dcbd;
+}
+.qg-ri small {
+  grid-column: 2;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.qg-ri.on {
+  border-left-color: var(--gold);
+  background: linear-gradient(90deg, rgba(233, 187, 94, 0.26), rgba(233, 187, 94, 0.02));
+}
+.qg-ri.on b {
+  color: #fff3cf;
+  text-shadow: 0 0 18px rgba(233, 187, 94, 0.6);
+}
+.qg-ri.on i {
+  filter: none;
+}
+.qg-ri.sm {
+  min-height: 44px;
+}
+.qg-ri.sm b {
+  font-size: 14px;
+  color: var(--dim);
+}
+.qg-sep {
+  height: 1px;
+  margin: 8px 14px;
+  background: linear-gradient(90deg, var(--line-hi), transparent);
+}
+
+/* the nation, under the officer: arrows or a swipe */
+.qg-nat {
+  position: absolute;
+  /* between the rail and the column (on the iPhone Duo, the fold runs under the name, not the arrows) */
+  left: calc(var(--sl) + clamp(230px, 25vw, 320px) + 10px);
+  right: calc(var(--sr) + clamp(300px, 30vw, 380px) + 10px);
+  bottom: var(--sb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+  touch-action: pan-y;
+}
+.qg.no-nat .qg-nat {
+  visibility: hidden;
+}
+.qg-arr {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--line-hi);
+  color: var(--gold) !important;
+  font-size: 24px;
+  line-height: 1;
+}
+.qg-crest img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 6px #000);
+}
+.qg-nt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.qg-nt b,
+.qg-nt small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-nt b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 21px;
+  text-shadow: 0 2px 8px #000;
+}
+.qg-nt small {
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+/* the right column: Daily Op, the mode, the big button */
+.qg-col {
+  position: absolute;
+  right: var(--sr);
+  top: calc(var(--st) + 60px);
+  bottom: var(--sb);
+  width: clamp(300px, 30vw, 380px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qg-daily,
+.qg-mode {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 230, 170, 0.08);
+}
+.qg-k {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.qg-row,
+.qg-mode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qg-mode {
+  flex-wrap: wrap;
+}
+.qg-row img,
+.qg-th {
+  width: 54px;
+  height: 54px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  flex: none;
+  background: #2a1d10;
+}
+.qg-t {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.qg-t b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-t small {
+  font-size: 11.5px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+.qg-btn,
+.qg-chg {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  color: #2a1906 !important;
+  background: linear-gradient(180deg, #f6dc92, #c9973f);
+  border: 1px solid #6e4b1c;
+}
+.qg-chg {
+  padding: 8px 11px;
+}
+.qg-chg,
+.qg-btn.alt {
+  color: var(--gold) !important;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line-hi);
+  font-weight: 600 !important;
+}
+.qg-duo {
+  display: none;
+  width: 100%;
+  gap: 8px;
+}
+.qg-duo .qg-btn {
+  flex: 1;
+}
+.qg-mode[data-p="duel"] .qg-duo {
+  display: flex;
+}
+.qg-mode[data-p="duel"] .qg-th {
+  display: none;
+}
+html.belle .qg .qg-go {
+  margin-top: auto;
+  width: 100%;
+  min-height: 62px;
+  font-size: 25px;
+  letter-spacing: 0.18em;
+  border-radius: 12px;
+}
+.qg-go.locked {
+  filter: grayscale(0.7) brightness(0.8);
+}
+
+/* portrait only */
+.qg-side,
+.qg-tabs {
+  display: none;
+}
+.qg-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d6452f;
+  border: 2px solid #120c06;
+}
+
+/* ------------------------------------------------- short landscape phones --- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .qg {
+    --sl: max(14px, env(safe-area-inset-left));
+    --sr: max(14px, env(safe-area-inset-right));
+    --sb: max(10px, env(safe-area-inset-bottom));
+  }
+  .qg-top {
+    height: 44px;
+  }
+  html.belle .qg .qg-logo,
+  .qg-tag {
+    display: none;
+  }
+  .qg-rail {
+    top: calc(var(--st) + 50px);
+    bottom: var(--sb);
+    width: clamp(190px, 24vw, 240px);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-content: start;
+  }
+  .qg-ri {
+    grid-column: span 3;
+    min-height: 46px;
+  }
+  .qg-ri b {
+    font-size: 15px;
+  }
+  .qg-ri small {
+    display: none;
+  }
+  .qg-ri i {
+    grid-row: auto;
+  }
+  .qg-sep {
+    grid-column: span 3;
+    margin: 4px 10px;
+  }
+  /* Arsenal, Archives, Instruction: three icons side by side */
+  .qg-ri.sm {
+    grid-column: span 1;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 48px;
+    padding: 4px 0;
+    border-left: none;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .qg-ri.sm b {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.04em;
+  }
+  .qg-col {
+    top: calc(var(--st) + 50px);
+    width: clamp(260px, 34vw, 320px);
+    gap: 8px;
+  }
+  .qg-daily,
+  .qg-mode {
+    padding: 8px 10px;
+  }
+  .qg-k {
+    margin-bottom: 6px;
+  }
+  .qg-row img,
+  .qg-th {
+    width: 44px;
+    height: 44px;
+  }
+  .qg-t b {
+    font-size: 16px;
+  }
+  html.belle .qg .qg-go {
+    min-height: 54px;
+    font-size: 21px;
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    height: 96vh;
+    left: calc(46vw - 0.333 * 96vh);
+    bottom: -14vh;
+  }
+  .qg-nat {
+    left: calc(var(--sl) + clamp(190px, 24vw, 240px) + 6px);
+    right: calc(var(--sr) + clamp(260px, 34vw, 320px) + 6px);
+    gap: 6px;
+  }
+  .qg-crest img {
+    width: 40px;
+    height: 40px;
+  }
+  .qg-nt b {
+    font-size: 17px;
+  }
+  .qg-nt small {
+    display: none;
+  }
+}
+/* the smallest landscape phones (iPhone SE, 667 × 375): no Daily Op card (the rail's Op du jour is the dot) */
+@media (orientation: landscape) and (max-height: 400px) {
+  .qg-daily,
+  .qg-th {
+    display: none;
+  }
+  .qg-crest {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------- portrait --- */
+@media (orientation: portrait) {
+  .qg {
+    --sl: max(12px, env(safe-area-inset-left));
+    --sr: max(12px, env(safe-area-inset-right));
+    --tabs: calc(62px + env(safe-area-inset-bottom));
+  }
+  .qg-chip {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  html.belle .qg .qg-logo {
+    left: 0;
+    right: 0;
+    top: calc(var(--st) + 52px);
+    text-align: center;
+    font-size: clamp(34px, 10vw, 54px);
+    pointer-events: none;
+  }
+  html.belle .qg .qg-logo::after {
+    margin: 6px auto 0;
+  }
+  .qg-tag,
+  .qg-rail,
+  .qg-daily {
+    display: none;
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    height: 50vh;
+    left: calc(50vw - 0.333 * 50vh);
+    bottom: auto;
+    top: calc(var(--st, 8px) + 120px);
+  }
+  .menu[data-view="qg"] .ttl-shade {
+    background: linear-gradient(180deg, rgba(14, 8, 3, 0.7) 0%, rgba(14, 8, 3, 0) 18%, rgba(14, 8, 3, 0) 50%, rgba(14, 8, 3, 0.9) 64%, rgba(14, 8, 3, 0.97) 100%);
+  }
+  /* Daily Op, Instruction, Archives, Arsenal: pastilles on the sides */
+  .qg-side {
+    position: absolute;
+    top: calc(var(--st) + 120px);
+    left: var(--sl);
+    right: var(--sr);
+    display: grid;
+    grid-template-columns: 76px 1fr 76px;
+    grid-template-rows: auto auto;
+    row-gap: 10px;
+    pointer-events: none;
+  }
+  .qg-side > :nth-child(1) { grid-area: 1 / 1; }
+  .qg-side > :nth-child(2) { grid-area: 2 / 1; }
+  .qg-side > :nth-child(3) { grid-area: 1 / 3; }
+  .qg-side > :nth-child(4) { grid-area: 2 / 3; }
+  .qg-ev {
+    position: relative;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 7px 4px 6px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    text-align: center;
+  }
+  .qg-ev i {
+    font-style: normal;
+    font-size: 21px;
+  }
+  .qg-ev b {
+    font-size: 10.5px;
+  }
+  .qg-ev small {
+    font-size: 9.5px;
+    color: var(--dim);
+  }
+  .qg-nat {
+    left: var(--sl);
+    right: var(--sr);
+    bottom: calc(var(--tabs) + 18px + var(--colh, 134px));
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 96%);
+    mask-image: linear-gradient(180deg, #000 62%, transparent 96%);
+  }
+  .qg-col {
+    top: auto;
+    left: var(--sl);
+    right: var(--sr);
+    bottom: calc(var(--tabs) + 10px);
+    width: auto;
+    gap: 8px;
+  }
+  .qg-mode {
+    padding: 8px 10px;
+  }
+  .qg-row img,
+  .qg-th {
+    width: 44px;
+    height: 44px;
+  }
+  html.belle .qg .qg-go {
+    min-height: 58px;
+    font-size: 23px;
+  }
+  /* the tab bar */
+  .qg-tabs {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--tabs);
+    padding: 0 var(--sr) env(safe-area-inset-bottom) var(--sl);
+    display: flex;
+    background: #0b0703;
+    border-top: 1px solid var(--line);
+  }
+  .qg-tab {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    font-size: 11px !important;
+    color: var(--dim) !important;
+  }
+  .qg-tab i {
+    font-style: normal;
+    font-size: 20px;
+    filter: grayscale(0.5);
+  }
+  .qg-tab.on {
+    color: var(--gold) !important;
+  }
+  .qg-tab.on i {
+    filter: none;
+  }
+  .qg-tab.on::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 24%;
+    right: 24%;
+    height: 2px;
+    background: var(--gold);
+  }
+}
+/* short portrait (the iPhone Duo's cover screen, iPhone SE): tighter */
+@media (orientation: portrait) and (max-height: 720px) {
+  html.belle .qg .qg-logo {
+    font-size: 34px;
+    top: calc(var(--st) + 48px);
+  }
+  .qg-side {
+    top: calc(var(--st) + 104px);
+    row-gap: 8px;
+  }
+  .qg-ev small {
+    display: none;
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    height: 44vh;
+    left: calc(50vw - 0.333 * 44vh);
+    top: calc(var(--st, 8px) + 100px);
+  }
+  .qg-nt small {
+    display: none;
+  }
+  html.belle .qg .qg-go {
+    min-height: 52px;
+    font-size: 21px;
+  }
+}
+
+/* the hub's sheets (Archives, Réglages): buttons one under the other */
+.sh-actions.sh-col {
+  flex-direction: column;
+  align-items: stretch;
+}
+.reglages #qg-sound {
+  margin: 10px 0 4px;
+}
+
+/* the nation's card: tall landscape screens only (the column has room there) */
+.qg-natcard {
+  display: none;
+}
+@media (orientation: landscape) and (min-height: 1000px) {
+  .qg-natcard:not([hidden]) {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+}
+.qg-natcard p {
+  margin: 0;
+}
+.qg-natcard .qg-k {
+  font-family: var(--serif);
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.qg-nl {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--dim);
+}
+.qg-natcard ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.qg-natcard li {
+  position: relative;
+  padding-left: 14px;
+  margin: 5px 0;
+  font-size: 12.5px;
+}
+.qg-natcard li::before {
+  content: "◆";
+  position: absolute;
+  left: 0;
+  top: 2px;
+  font-size: 8px;
+  color: var(--gold);
+}
+.qg-units {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.qg-units span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--dim);
+  text-align: center;
+}
+.qg-units img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d140b;
+}
+
+/* ------------------------------------------------- the salon, two columns --- */
+.sl-cols,
+.sl-l,
+.sl-r {
+  display: contents;
+}
+@media (orientation: landscape) and (min-width: 860px) and (min-height: 560px) {
+  .menu[data-view="salon"] .menu-inner {
+    max-width: min(1180px, 94vw);
+    margin: 0 auto !important;
+    justify-content: flex-start;
+  }
+  .menu[data-view="salon"] .sl-cols {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 28px;
+    align-items: start;
+    text-align: center;
+  }
+  .menu[data-view="salon"] :is(.sl-l, .sl-r) {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .menu[data-view="salon"] .sl-r {
+    position: sticky;
+    top: 12px;
+  }
+  /* the battlefield: the map cards wrap into a grid instead of a row */
+  .menu[data-view="salon"] .sl-l #maps {
+    flex-wrap: wrap;
+    overflow: visible;
+    justify-content: center;
+  }
+  .menu[data-view="salon"] .sl-l .hscroll .hs-btn {
+    display: none;
+  }
+  .menu[data-view="salon"] .sl-head {
+    padding-left: 60px;
+  }
+  /* the scene steps back behind the salon */
+  .menu[data-view="salon"] .ttl-shade {
+    background: rgba(14, 8, 3, 0.82);
+  }
+}
+
+/* the salon: the mutators always in its column (the landscape side panel, their old home, is the hub's now) */
+.menu[data-view="salon"] .mutbtn.main:not([hidden]) {
+  display: flex;
+}
+
+/* ------------------------------------------- the order of battle (regular) --- */
+/* Large screens (desktop, tablets, the unfolded iPhone Duo): not just bigger. The match is set up
+   right in the hub (maps, difficulty, the AI's nation, mutators; the campaign's chapter and
+   missions), the salon stays for the rest (random maps, seeds). */
+.qg-plan {
+  display: none;
+}
+@media (orientation: landscape) and (min-width: 860px) and (min-height: 560px), (orientation: portrait) and (min-width: 560px) and (min-height: 800px) {
+  .qg-plan:not(:empty) {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 230, 170, 0.08);
+  }
+  .qg-mode:not([data-p="duel"]) {
+    display: none;
+  }
+}
+.qg-plan .qg-k {
+  align-items: center;
+  margin: 0;
+}
+.qg-more {
+  background: none;
+  border: none;
+  padding: 6px 0 6px 10px;
+  font-size: 11.5px !important;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gold) !important;
+}
+.qg-maps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.qg-map {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.qg-map img {
+  width: 100%;
+  height: clamp(44px, 5.2vh, 64px);
+  object-fit: cover;
+  border-radius: 5px;
+  background: #2a1d10;
+  filter: sepia(0.2);
+}
+.qg-map small {
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}
+.qg-map em {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-style: normal;
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--gold);
+}
+.qg-map.on {
+  border: 2px solid var(--gold);
+  padding: 2px;
+  box-shadow: 0 0 12px rgba(233, 187, 94, 0.35);
+}
+.qg-map.on small {
+  color: var(--text);
+}
+.qg-seg {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-hi);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.qg-seg span {
+  padding: 0 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.qg-seg button {
+  flex: 1;
+  min-height: 38px;
+  background: none;
+  border: none;
+  font-size: 12.5px !important;
+  color: var(--dim) !important;
+  white-space: nowrap;
+}
+.qg-seg button.on {
+  color: #f8efd8 !important;
+  background: linear-gradient(180deg, #3d63ad, #24427e);
+  box-shadow: inset 0 0 0 1px rgba(233, 187, 94, 0.55);
+}
+.qg-mut {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed var(--line-hi);
+  font-size: 12.5px !important;
+  color: var(--dim) !important;
+}
+.qg-mut b {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-art {
+  position: relative;
+  height: clamp(80px, 12vh, 130px);
+  border-radius: 7px;
+  background: center / cover no-repeat;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 10px;
+  overflow: hidden;
+}
+.qg-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.85), transparent 65%);
+}
+.qg-art b {
+  position: relative;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 18px;
+}
+.qg-oline {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--dim);
+}
+.qg-missions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qg-mis {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px 0 6px;
+  text-align: left;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid transparent;
+}
+.qg-mis i {
+  font-style: normal;
+  font-family: var(--serif);
+  text-align: center;
+  color: var(--gold);
+}
+.qg-mis b {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qg-mis small {
+  font-size: 11px;
+  color: var(--gold);
+}
+.qg-mis.on {
+  border-color: var(--gold);
+  background: linear-gradient(90deg, rgba(233, 187, 94, 0.22), rgba(0, 0, 0, 0.28));
+}
+.qg-mis.locked {
+  opacity: 0.5;
+}
+
+/* ------------------------------ closed iPhone Duo: the bar on the right side --- */
+/* A portrait screen wider and shorter than a phone's (the Duo's cover screen, ~466 × 678): as
+   Apple asks for it, the controls leave the bottom for a vertical bar on the right, under the
+   right thumb, and the content keeps the whole height to its left. */
+@media (orientation: portrait) and (min-aspect-ratio: 13/20) and (max-width: 559px) {
+  .qg {
+    --bar: 74px;
+    --tabs: env(safe-area-inset-bottom);
+    --sr: calc(var(--bar) + env(safe-area-inset-right) + 10px);
+  }
+  .qg-tabs {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: calc(var(--bar) + env(safe-area-inset-right));
+    height: auto;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: var(--st) env(safe-area-inset-right) var(--sb) 0;
+    border-top: none;
+    border-left: 1px solid var(--line);
+  }
+  .qg-tab {
+    flex: 0 0 auto;
+    min-height: 70px;
+  }
+  .qg-tab.on::before {
+    top: 22%;
+    bottom: 22%;
+    left: 0;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  html.belle .qg .qg-logo {
+    right: var(--sr);
+  }
+  .menu[data-view="qg"] .ttl-heros {
+    left: calc((100vw - var(--bar, 74px)) / 2 - 0.333 * 44vh);
+  }
+  .qg-side {
+    grid-template-columns: 70px 1fr 70px;
+  }
+}
