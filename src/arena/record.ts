@@ -105,6 +105,28 @@ export interface BattleRecord {
   upgraded?: Upgrade[];
   /** A version tag of the game (v11) this record replays exactly on, checked (tools/arena.ts pin): its links go there. */
   version?: string;
+  /** A match the player played, kept in the Archives (src/game/archive.ts): who they were and how it went. */
+  played?: PlayedInfo;
+  /** Its highlight reel's moments, found by the match's chronicle as it was played (src/game/reel.ts). */
+  reel?: ReelMoment[];
+}
+
+/** A played match's side of the story: the player's side, the kind of match, and its result for them. */
+export interface PlayedInfo {
+  pov: Faction;
+  kind: "escarmouche" | "quotidienne" | "duel";
+  result: "win" | "loss" | "draw";
+  /** Who they played ("IA Rush (Normal)", "ton ami"). */
+  against: string;
+}
+
+/** A key moment for the highlight reel: when, where (if somewhere), and its intertitle. */
+export interface ReelMoment {
+  kind: "first-blood" | "battle" | "turn" | "lead" | "goliath" | "end";
+  tick: number;
+  x?: number;
+  y?: number;
+  title: string;
 }
 
 /** One re-simulation: the code the record had been played (or last re-simulated) by, and how it ended then. */

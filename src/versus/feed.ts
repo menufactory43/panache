@@ -798,7 +798,12 @@ export class VersusFeed implements MatchFeed {
     return battleRecord({ setup: r.setup, seats, via: this.online ? "online-duel" : "sound-duel", turns: this.turns, hashes: this.hashes, tick: w.tick, end, sim: BUILD_SIM, created: this.created });
   }
 
-  /** "Copy debug info" after a desync. */
+  /** Kept in the Archives once decided (GameScene keepMatch): the record Save battle downloads; none for a match with no result. */
+  saveable(): BattleRecord | null {
+    return this.world.winner && !this.aborted ? this.record() : null;
+  }
+
+    /** "Copy debug info" after a desync. */
   debugInfo(): string {
     const r = this.result;
     const ls = this.session.lockstep;
