@@ -23,6 +23,7 @@ import {
   type AiKinds
 } from "./roles";
 import { planSalvage } from "./salvage";
+import { parallelOf } from "../nations";
 import { objectiveHolds, planObjectives } from "./objectives";
 import { dodgeCalldowns, dodgingUnits, planCalldowns } from "./powers";
 import { AIRBORNE_INFANTRY, condorHolds, flysGivenCondor, planCondor, wantCondor } from "./condor";
@@ -257,6 +258,20 @@ export const NATION_STRATEGIES: Record<NationStrategyName, Strategy> = {
     forward: true,
     atShare: 0.4
   }
+};
+
+/**
+ * The nations' own economy play (WP4; Classique: none): `workers` extra
+ * harvesters over the personality's count (the Empire's slow Fardiers need
+ * more hands to match the République's Fourgons); `guard` × the share of the
+ * army that holds the mining line; `redoubt`: the build order's first ground
+ * defence moves up to this place (−1: where the personality has it) — the
+ * Empire's Hotchkiss by its coal field, its Tranchées' anchor (§1.9).
+ */
+export const NATION_AI: Record<Nation, { workers: number; guard: number; redoubt: number }> = {
+  republique: { workers: 0, guard: 1, redoubt: -1 },
+  // (one more Fardier: the Empire's 4 against the République's 5 Fourgons lost 70–80% of the games under 8 minutes)
+  empire: { workers: 1, guard: 1, redoubt: -1 }
 };
 
 /** Every personality, Classique's and the nations'. */
@@ -604,7 +619,10 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
     return at ? { x: at.x + 0.5, y: at.y + 0.5 } : null;
   });
   cmds.push(...goliathFields.cmds);
-  const wantHarvesters = Math.max(1, s.strategy.harvesters + diff.extraHarvesters + depots + goliathFields.extra);
+  const wantHarvesters = Math.max(
+    1,
+    s.strategy.harvesters + diff.extraHarvesters + depots + goliathFields.extra + (nation === "classique" ? 0 : NATION_AI[nation].workers)
+  );
   // (Nomads: no HQ ever — the dug-in Goliath builds them, goliath.ts trainableAt)
   const yard = hq ? { id: hq.id, queue: hq.queue } : baseGoliath && trainableAt(w, K.worker) ? { id: baseGoliath.id, queue: baseGoliath.goliath!.queue } : null;
   if (yard && fieldsLeft && !nm?.duds.has(K.worker) && harvesters.length < wantHarvesters && yard.queue.length === 0 && f.scrap >= UNITS[K.worker].cost)
@@ -654,7 +672,8 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
   const infantryHeavy = s.seenInfantry >= 3 && s.seenInfantry >= 0.4 * s.seenGround;
 
   // floating scrap? keep queues two deep
-  const depth = f.scrap > 700 ? 2 : 1;
+  // (Vapeur: an Empire factory builds `parallel` items side by side; a shorter queue leaves a line idle)
+  const depth = Math.max(f.scrap > 700 ? 2 : 1, parallelOf(w, faction));
   // --- Assembly Bay: robot infantry, mixed to what we've seen -------------
   // Rockets for armour (and Ironclad's Mastodon escorts), Snipers for enemy squads
   // (never on Easy), and the personality's share of Troopers. Under Infantry
@@ -921,7 +940,7 @@ export function tickAi(w: World, faction: Faction, s: AiState): Command[] {
   else cmds.push(...planCondor(w, faction, s, { army, used, hqC, threatened, skip }));
 
   // --- 2. economy guard: a share of the army holds the mining line --------
-  const guardShare = s.mode === "assault" ? 0.15 : 0.35;
+  const guardShare = (s.mode === "assault" ? 0.15 : 0.35) * (nation === "classique" ? 1 : NATION_AI[nation].guard);
   const guardValue = value(army.filter((u) => dist(u.x, u.y, guardPoint.x, guardPoint.y) <= GUARD_RADIUS));
   if (guardValue < guardShare * armyValue) {
     let need = guardShare * armyValue - guardValue;
@@ -1258,7 +1277,12 @@ function nextBuilding(
   }
   // a nation builds its own defences where the plan names the shared ones (§1.9 buildingFor)
   const nation = nationOf(w, faction);
-  if (nation !== "classique") for (let i = 0; i < order.length; i++) order[i] = buildingFor(nation, order[i]!);
+  if (nation !== "classique") {
+    for (let i = 0; i < order.length; i++) order[i] = buildingFor(nation, order[i]!);
+    const at = NATION_AI[nation].redoubt;
+    const i = order.findIndex(isGroundDefence);
+    if (at >= 0 && i > at) order.splice(at, 0, ...order.splice(i, 1));
+  }
   const fabs = order.filter((k) => k === "fab-plant").length;
   const pads = order.filter((k) => k === "airpad").length;
   const noFab = bannedBy(w, "fab-plant", faction) !== null; // Air War mutator (or an op)

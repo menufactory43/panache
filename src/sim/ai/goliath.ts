@@ -1,4 +1,4 @@
-import { BUILDINGS, ECONOMY, TERRAIN, TICK_RATE, UNITS } from "../balance";
+import { BUILDINGS, ECONOMY, ROLES, TERRAIN, TICK_RATE, UNITS } from "../balance";
 import { engageable } from "../combat";
 import { canPlaceBuilding } from "../economy";
 import { isVisible, knownBuildings, type KnownBuilding } from "../fog";
@@ -25,9 +25,9 @@ import { isInfantry } from "../infantry";
 import { canCarry } from "../lift";
 import { findPath } from "../movement";
 import { blocksObjective, uplinkPay } from "../objectives";
-import { bannedBy, goliathBase, rulesOf } from "../rules";
+import { bannedBy, goliathBase, nationOf, rulesOf } from "../rules";
 import { isLoaded } from "../transport";
-import { Terrain, type Building, type BuildingKind, type Command, type Faction, type QueueItem, type Unit, type UnitKind, type World } from "../types";
+import { Terrain, type Building, type BuildingKind, type Command, type Faction, type Nation, type QueueItem, type Unit, type UnitKind, type World } from "../types";
 import {
   canGetWithin,
   dist,
@@ -46,7 +46,7 @@ import { airliftBusy } from "./airlift";
 import type { AiMode, AiState, Difficulty, StrategyName } from "./commander";
 import { dropCondorId, inMap, route } from "./condor";
 import { AA_COVER, USELESS, aaSources, aaStrengthAt, aaWeight, effectivenessVs, type Sighting } from "./intel";
-import { behaves } from "./roles";
+import { behaves, isHealer, isSniper } from "./roles";
 import { cos, sin } from "../fmath";
 
 /**
@@ -137,6 +137,16 @@ export const GOLIATH_AI = {
   islandMax: 1,
   /** Seconds between ordering one Goliath and the next. */
   again: 150,
+  /**
+   * The nations' own pace for their super-unit (WP4; Classique: none): the
+   * Gantry's hour × `from`, the savings share + `save`, the army floor × `floor`.
+   */
+  nation: {
+    // (the République's personalities start their Hangar late — rush, airswarm, skyforce: 420–480 s — and save
+    // 35%: a Zénith in 26–32% of its sides against a Gargantua in 38%; so, 46% against 41%)
+    republique: { from: 0.75, save: 0.1, floor: 1 },
+    empire: { from: 1, save: 0, floor: 1 }
+  } as Record<Nation, { from: number; save: number; floor: number }>,
   /** Share of income set aside for the next Goliath while one is wanted (the rest keeps the army coming). */
   save: { balanced: 0.45, rush: 0.35, airswarm: 0.35, boom: 0.5, skyforce: 0.35, ironclad: 0.55 } as Record<StrategyName, number>,
 
@@ -427,12 +437,19 @@ export function goliathFund(w: World, faction: Faction, s: AiState, ctx: FundCon
   const f = w.factions[faction];
   // nothing to save for (no Gantry, or room for no more), or the army comes first (the base
   // under attack, or too little army): nothing held back
-  if (!ctx.gantry || !roomForGoliath(w, faction, s) || ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor) {
+  const nat = superPace(w, faction);
+  if (!ctx.gantry || !roomForGoliath(w, faction, s) || ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor * (nat?.floor ?? 1)) {
     m.fund = Math.min(m.fund, f.scrap);
     return 0;
   }
-  m.fund = Math.min(goliathCost(w, faction), m.fund + gained * GOLIATH_AI.save[s.strategy.name], f.scrap);
+  m.fund = Math.min(goliathCost(w, faction), m.fund + gained * (GOLIATH_AI.save[s.strategy.name] + (nat?.save ?? 0)), f.scrap);
   return m.fund;
+}
+
+/** A nation's super-unit pace (GOLIATH_AI.nation), or null in Classique. */
+function superPace(w: World, faction: Faction): { from: number; save: number; floor: number } | null {
+  const n = nationOf(w, faction);
+  return n === "classique" ? null : GOLIATH_AI.nation[n];
 }
 
 /** Room for another Goliath (alive and on the cradle under GOLIATH_AI.max)? */
@@ -449,7 +466,7 @@ function roomForGoliath(w: World, faction: Faction, s: AiState): boolean {
  */
 export function wantGoliath(w: World, faction: Faction, s: AiState, ctx: FundContext & { spendable: number }): boolean {
   const m = memo(s);
-  if (w.survival || ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor) return false;
+  if (w.survival || ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor * (superPace(w, faction)?.floor ?? 1)) return false;
   if (!roomForGoliath(w, faction, s) || w.tick - m.lastOrder < GOLIATH_AI.again * TICK_RATE) return false;
   // (another while one walks: only on an income that pays for it, not out of the last of the bank)
   if (goliathsOf(w, faction).length > 0 && incomeRate(m) < GOLIATH_AI.gantryIncome) return false;
@@ -492,11 +509,11 @@ export function wantGantry(
   }
   if (f.pending?.kind === "gantry" || m.gantriesLost >= GOLIATH_AI.gantries) return false;
   if (w.tick - m.gantryFail < GOLIATH_AI.gantryRetry * TICK_RATE) return false;
-  let from = GOLIATH_AI.gantryFrom[s.strategy.name] * GOLIATH_AI.gantryPace[s.difficulty];
+  let from = GOLIATH_AI.gantryFrom[s.strategy.name] * GOLIATH_AI.gantryPace[s.difficulty] * (superPace(w, faction)?.from ?? 1);
   if (!Number.isFinite(from)) return false;
   if (knownBuildings(w, faction).some((kb) => kb.kind === "gantry")) from *= GOLIATH_AI.answerGantry;
   if (w.tick < from * TICK_RATE) return false;
-  if (ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor || !roomForGoliath(w, faction, s)) return false;
+  if (ctx.threatened || ctx.armyValue < GOLIATH_AI.armyFloor * (superPace(w, faction)?.floor ?? 1) || !roomForGoliath(w, faction, s)) return false;
   // a mobile base pays only with fields left to work: not on a map already mined out
   // (the island maps' relays are what a Goliath goes for there)
   if (!w.rules?.islands && fieldsOurSide(w, faction, m, ctx.home, ctx.enemyHome) < GOLIATH_AI.gantryFields) return false;
@@ -1120,7 +1137,9 @@ export function goliathBarracks(
     for (const u of w.units.values()) if (u.faction === faction && isInfantry(u.kind) && dist(u.x, u.y, g.x, g.y) <= 7) have++;
     if (have >= want) continue;
     const rockets = s.seenAir >= 2 || s.seenHeavy >= 2;
-    out.push({ id: g.id, queue: g.goliath!.queue, kind: rockets && r() < 0.6 ? "rocket-squad" : "trooper" });
+    // (the nation's own squads: the Empire's Gargantua trains Fusiliers, not Troopers)
+    const squads = ROLES[nationOf(w, faction)];
+    out.push({ id: g.id, queue: g.goliath!.queue, kind: rockets && r() < 0.6 ? squads.at : squads.line });
   }
   return out;
 }
@@ -1500,11 +1519,11 @@ function step(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan, ctx: 
         setPhase(w, plan, "muster");
         return;
       }
-      const company = value(ctx.army.filter((u) => u.kind !== "mender" && dist(u.x, u.y, g.x, g.y) <= 8));
+      const company = value(ctx.army.filter((u) => !isHealer(u.kind) && dist(u.x, u.y, g.x, g.y) <= 8));
       const deep = dist(g.x, g.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y) < GOLIATH_AI.deep;
       if (deep && company < GOLIATH_AI.company) {
         // alone in their base: back to the nearest group of ours (or the staging point)
-        const friends = ctx.army.filter((u) => u.kind !== "mender" && dist(u.x, u.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y) > dist(g.x, g.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y));
+        const friends = ctx.army.filter((u) => !isHealer(u.kind) && dist(u.x, u.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y) > dist(g.x, g.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y));
         friends.sort((a, b) => dist(a.x, a.y, g.x, g.y) - dist(b.x, b.y, g.x, g.y) || a.id - b.id);
         const to = friends[0] ?? ctx.staging;
         if (dist(g.x, g.y, to.x, to.y) > 3) move({ x: to.x, y: to.y });
@@ -1575,7 +1594,7 @@ function waveLead(ctx: GoliathContext, escorts: ReadonlySet<number>): P | null {
   const out = dist(ctx.staging.x, ctx.staging.y, ctx.hqC.x, ctx.hqC.y) + 2;
   const pushing = ctx.army.filter(
     (u) =>
-      u.kind !== "mender" && !escorts.has(u.id) && (u.order.type === "attack" || u.order.type === "attackMove") &&
+      !isHealer(u.kind) && !escorts.has(u.id) && (u.order.type === "attack" || u.order.type === "attackMove") &&
       dist(u.x, u.y, ctx.hqC.x, ctx.hqC.y) > out
   );
   let lead: Unit | null = null;
@@ -1652,7 +1671,7 @@ function keepEscorts(w: World, faction: Faction, s: AiState, g: Unit, plan: Plan
       .filter((u) => {
         const o = u.order;
         const free = o.type === "idle" || (o.type === "attackMove" && dist(o.x, o.y, ctx.guardPoint.x, ctx.guardPoint.y) < 2);
-        return free && !ctx.used.has(u.id) && u.kind !== "mender" && u.kind !== "scout" && u.kind !== "sniper";
+        return free && !ctx.used.has(u.id) && !isHealer(u.kind) && u.kind !== "scout" && !isSniper(u.kind);
       })
       .filter((u) => dist(u.x, u.y, g.x, g.y) <= GOLIATH_AI.escortReach && reachable(u))
       .sort((a, b) => {
@@ -1933,7 +1952,7 @@ export function huntGoliaths(w: World, faction: Faction, s: AiState, ctx: HuntCo
     need = Math.max(need, GOLIATH_AI.huntMin);
     const armour = UNITS[mark.kind].armor;
     const able = ctx.army
-      .filter((u) => !ctx.used.has(u.id) && u.order.type === "idle" && u.kind !== "mender")
+      .filter((u) => !ctx.used.has(u.id) && u.order.type === "idle" && !isHealer(u.kind))
       .filter((u) => dist(u.x, u.y, e.x, e.y) <= GOLIATH_AI.huntReach)
       .sort((a, b) => dist(a.x, a.y, e.x, e.y) - dist(b.x, b.y, e.x, e.y) || a.id - b.id);
     // its Menders first (a mended Goliath never goes down): a couple of units that can hit each

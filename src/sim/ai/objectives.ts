@@ -1,12 +1,13 @@
 import { OBJECTIVES, TICK_RATE, UNITS } from "../balance";
 import { unitSeenBy } from "../infantry";
 import { captureWeight } from "../objectives";
-import type { Command, Crate, Faction, Unit, Uplink, World } from "../types";
+import type { Command, Crate, Faction, Nation, Unit, Uplink, World } from "../types";
+import { nationOf } from "../rules";
 import { canGetWithin, dist, moveClassOf } from "../world";
 import type { AiMode, AiState } from "./commander";
 import { AA_COVER, aaSources, aaStrengthAt } from "./intel";
 import { hypot } from "../fmath";
-import { behaves } from "./roles";
+import { behaves, isGun, isHealer, noObjectiveDuty } from "./roles";
 
 /**
  * The commander's play for the map objectives (objectives.ts): it races for
@@ -20,6 +21,19 @@ import { behaves } from "./roles";
 
 /** Squad value that goes to take an Uplink (more if the enemy is there). */
 export const UPLINK_SQUAD = 400;
+/**
+ * The nations' own Uplink play (WP4; Classique keeps the constants above).
+ * `reach`: Uplinks it goes for lie at most this share of the way from its HQ
+ * to the enemy's (1: anywhere); `squad`: scrap a capture squad is worth at
+ * least; `resend`: seconds before another squad goes to the same Uplink once
+ * the last one was lost (Classique: at once).
+ */
+export const OBJECTIVE_AI: Record<Nation, { reach: number; squad: number; resend: number }> = {
+  republique: { reach: 1, squad: UPLINK_SQUAD, resend: 0 },
+  // (at 1/400/0 its slow squads bled into the République's raiders: 58% of Rép-Emp games went to the République; 55% so)
+  empire: { reach: 0.5, squad: 600, resend: 45 }
+};
+
 /** No Uplink runs before this: the opener's units settle in first. */
 const UPLINK_GRACE = 20 * TICK_RATE;
 /** Don't send another squad to the same Uplink within this long while the last is alive. */
@@ -161,7 +175,7 @@ export function planObjectives(w: World, faction: Faction, s: AiState, ctx: Obje
     const cands = free()
       .filter(
         (u) =>
-          UNITS[u.kind].domain === "ground" && u.kind !== "mortar" && dist(u.x, u.y, l.x, l.y) < 14 &&
+          UNITS[u.kind].domain === "ground" && !isGun(u.kind) && dist(u.x, u.y, l.x, l.y) < 14 &&
           captureWeight(l, u.kind) > 0 && canReach(w, u, l)
       )
       .sort((a, b) => {
@@ -191,11 +205,15 @@ export function planObjectives(w: World, faction: Faction, s: AiState, ctx: Obje
   const near = (l: Uplink) => dist(l.x, l.y, ctx.hqC.x, ctx.hqC.y);
   const far = (l: Uplink) => dist(l.x, l.y, ctx.enemyHqPos.x, ctx.enemyHqPos.y);
   const ownFlank = [...o.uplinks].sort((a, b) => near(a) - far(a) - (near(b) - far(b)))[0];
+  const nation = nationOf(w, faction);
+  const nat = nation === "classique" ? null : OBJECTIVE_AI[nation];
   const targets = o.uplinks
     // (island relays only a Condor's squads reach: the airlift's business, ai/airlift.ts)
     .filter((l) => !l.infantryOnly && (l.owner !== faction || l.pushing === enemy))
     // Boom only holds its own flank (the relay nearest its base); everyone else contests everything
     .filter((l) => s.strategy.name !== "boom" || l === ownFlank)
+    // (a nation's reach: the Empire's slow columns hold their own half)
+    .filter((l) => !nat || nat.reach >= 1 || l === ownFlank || near(l) <= nat.reach * (near(l) + far(l)))
     // Easy takes neutral relays but never comes to take yours
     .filter((l) => s.difficulty !== "easy" || l.owner === null)
     .map((l) => {
@@ -211,10 +229,11 @@ export function planObjectives(w: World, faction: Faction, s: AiState, ctx: Obje
         (inZone(u, l, 1) ||
           ((u.order.type === "attackMove" || u.order.type === "move") && hypot(u.order.x - l.x, u.order.y - l.y) <= 3))
     );
-    const need = Math.max(UPLINK_SQUAD, 1.3 * enemyValueNear(w, faction, l.x, l.y, SCAN_RADIUS));
+    const need = Math.max(nat ? nat.squad : UPLINK_SQUAD, 1.3 * enemyValueNear(w, faction, l.x, l.y, SCAN_RADIUS));
     if (value(mine) >= need) continue; // already on its way / holding it
     if (ctx.mode === "assault" && armyValue < ASSAULT_SPARE * need) continue;
     if (sent && w.tick - sent.tick < RESEND_TICKS && sent.ids.some((id) => w.units.has(id))) continue;
+    if (nat && sent && w.tick - sent.tick < nat.resend * TICK_RATE) continue; // (that squad was lost: not straight into it again)
     // recruits: nearest first; the economy guard keeps what it needs
     let guardSpare =
       value(ctx.army.filter((u) => dist(u.x, u.y, ctx.guardPoint.x, ctx.guardPoint.y) <= 5)) - ctx.guardNeed;
@@ -223,7 +242,7 @@ export function planObjectives(w: World, faction: Faction, s: AiState, ctx: Obje
     const pool = free()
       .filter(
         (u) =>
-          u.kind !== "mender" && u.kind !== "mortar" && u.kind !== "scout" && u.kind !== "sniper" &&
+          !noObjectiveDuty(u.kind) &&
           captureWeight(l, u.kind) > 0 && canReach(w, u, l)
       )
       .sort((a, b) => turn(a) - turn(b));
@@ -275,7 +294,7 @@ function planCrate(
     return (d * (UNITS[u.kind].domain === "air" ? 1 : 1.3)) / UNITS[u.kind].speed;
   };
   const pool = free()
-    .filter((u) => u.kind !== "mender" && dist(u.x, u.y, c.x, c.y) <= reach && etaOf(u) < secsLeft - 2 && canReach(w, u, c, 0.8))
+    .filter((u) => !isHealer(u.kind) && dist(u.x, u.y, c.x, c.y) <= reach && etaOf(u) < secsLeft - 2 && canReach(w, u, c, 0.8))
     .sort((a, b) => etaOf(a) - etaOf(b));
   if (pool.length === 0) return;
   const need = Math.max(1, 1.2 * enemyNear);

@@ -89,6 +89,8 @@ export const NATIONS = {
 } as const;
 ```
 
+(Après WP4 : `republique.radiumValue` 2,0 et `empire.trench.mult` 0,9 ; Branly 200 PV, De Dion 260 PV — §3.10.)
+
 **République — Réseau électrique** (nouveau code, moyen)
 - Placement : un bâtiment républicain (sauf GQG et Tour TSF) ne peut être posé que si son emprise est à
   `hqRadius` du centre d'un GQG ou à `towerRadius` d'une Tour TSF (remplace la règle des 6 cases ; la Tour TSF
@@ -1169,3 +1171,138 @@ Fardier 3 100), aucun blocage de production. C'est le chantier de WP4.
 Restes : portraits et voix des nouveaux genres (WP5g ; toujours ceux des doublures), art des cartes d'ouverture,
 « GQG attaqué » pour la Citadelle, `unit-info.ts`/`arena/observe.ts` Classique, conseiller (`advisor.ts`) qui ne
 reconnaît que la Patrie comme éclaireur, aucun repère visuel du Réseau TSF.
+
+### 3.10 WP4 — Mesures
+
+Branche `feat/camps-bal`. Classique inchangé bit pour bit (`tests/classic-hash.test.ts` vert) : tous les leviers d'IA
+ajoutés ne s'appliquent qu'à un camp qui joue une nation (`nation !== "classique"`), et les seuls nombres touchés dans
+`balance.ts` sont ceux des nations et de leurs unités propres.
+
+**Outils** (tous en Node, déterministes : même commande → mêmes lignes ; ~0,33 s de calcul par minute simulée)
+- `npx vite-node tools/pacing.ts run out.jsonl --nations rep-emp|rep-rep|emp-emp [--seeds N] [--jobs N]` : panel IA contre
+  IA. `rep-emp` joue chaque personnalité de la réserve Normal de la République (balanced, rush, airswarm, skyforce,
+  volta) contre chaque personnalité impériale (balanced, rush, airswarm, boom, ironclad, siege), la République de chaque
+  côté, sur les 6 cartes : 360 parties par graine ; les miroirs jouent chaque couple ordonné de la réserve (150 / 216).
+  Ouvertures et objectifs (Liaisons, largages) comme en escarmouche ; `--bare` (ni l'un ni l'autre), `--no-openers`,
+  `--no-objectives`, `--pairs a/b,…`, `--cap <min>`, `--tune JSON` (atteint aussi `NATION_AI`, `OBJECTIVE_AI`,
+  `NATION_STRATEGIES`, `GOLIATH_AI.nation`). `--jobs N` lance N processus (défaut : un par cœur) et réunit leurs
+  fichiers : 720 parties en ~6 min sur 10 cœurs.
+- `pacing.ts summary --nations <fichiers>` : part de la République (intervalles de Wilson à 95 %), par carte, par siège,
+  par personnalité, par couple ; part du rouge dans les miroirs ; courbes médianes par nation (valeur d'armée, récolte,
+  récolteurs, bâtiments, banque à 2, 4, 6… 15 min) ; super-unité (part des camps qui en alignent une, heure médiane,
+  Hangar/Galerie) ; première vague ; part du radium ; secondes de bâtiments éteints ; pouvoirs ; **tableau par genre**
+  (construits, dépensé, pertes, valeur d'unités et de bâtiments tués par coup de grâce, tués / valeur perdue) ; qui menait
+  l'armée à 6:00. Chaque ligne du `.jsonl` garde ces mesures (`Match.nat`, `tools/pacing-match.ts`).
+- `tools/balance.ts duels --nations [--trench] [--tsf]` (matrice 10 × 11 à 1 800 de charbon, sous les règles des
+  nations, moyenne par unité), `goliath --vs zenith [--menders N]` (super contre super, et chacune contre des groupes de
+  coût égal de l'autre nation), `siege` (groupes de siège contre 3 Hotchkiss + Batterie de 47, ou 2 Bobines + Ruggieri +
+  Tour TSF : temps pour raser, pertes).
+- `tools/arena.ts … --nations rep,emp` : arène en nations (le record garde `nations` et se rejoue) ; sièges `ai:siege`,
+  `ai:volta`.
+
+**Ce qui faisait perdre — ou gagner — la République** (panel de départ : 360 parties, code de `feat/camps`)
+1. *La première lecture mesurait un départ nu.* Sans ouvertures ni objectifs (ce que faisait le script de §3.9),
+   l'Empire gagne 75 % [70–79] ; **en escarmouche réelle** (ouvertures + Liaisons + largages, comme le jeu et l'arène) la
+   République gagnait 60 % [54–65]. Ce sont les objectifs qui renversent tout (sans ouvertures mais avec objectifs : Rép
+   64 % ; sans objectifs mais avec ouvertures : 26 %) : l'IA impériale envoyait ses escouades lentes (400 de charbon, et
+   aussitôt une autre si la première mourait) prendre des Liaisons au milieu de la carte, où l'armée rapide de la
+   République les mangeait une à une. Résultat : à 4:00, armée Rép 3 964 contre 1 953 ; 83 % des parties de moins de
+   8 min à la République, 40 % des plus longues.
+2. *Vapeur gaspillée (bogue d'IA).* Les usines impériales fabriquent 2 éléments de file à la fois, mais l'IA ne gardait
+   qu'un élément en file sous 700 de charbon : chaque usine tournait à 1/1,3 du débit Classique au lieu de ×1,54.
+3. *Bogues de genre dans l'IA.* `ai/objectives.ts` excluait des Liaisons le Pasteur, le Canon de 75, la Patrie et les
+   chasseurs alpins par leur genre : l'Atelier roulant, le Mortier de 280 (vitesse 0,9), le Canon Branly, l'Estafette et
+   les carabiniers partaient prendre et garder des Liaisons. Le Gargantua formait des « pioupious » (genre interdit à
+   l'Empire : rien), les chasses et escortes de super-unités comptaient l'Atelier (sans arme) comme combattant, la
+   caisse « unité » des largages donnait un Hydroglisseur à l'Empire.
+4. *Économie.* Récolte par travailleur comparable, mais la République aligne 5 Fourgons contre 4 Fardiers : récolte à
+   4:00, 12 000 contre 8 300 ; le radium ×1,5 creusait l'écart sur les cartes qui en ont (Terres fluviales 87 %).
+5. *Zénith rare.* Les personnalités républicaines bâtissent le Hangar tard (rush, airswarm, skyforce : 420–480 s) et
+   n'épargnent que 35 % : Zénith dans 26 % des camps contre Gargantua dans 38 % (sur départ nu : 11 % contre 49 %).
+6. *Tranchées ×0,7.* Sur l'Archipel, les Fusiliers retranchés tiennent les Liaisons d'île contre les pioupious :
+   14 % pour la République, beaucoup de nulles.
+Le réseau électrique ne freine pas l'IA : 14–50 secondes-bâtiment éteintes par partie, et le Garage/Parc/Manufacture
+sortent plus tôt que chez l'Empire (Manufacture 0:28 contre 1:16).
+
+**Changements**
+| Où | Avant | Après | Pourquoi |
+|---|---|---|---|
+| `ai/commander.ts` profondeur de file | 1 (2 au-dessus de 700) | ≥ `parallel` (Empire : 2) | point 2 |
+| `ai/objectives.ts` `OBJECTIVE_AI.empire` | toute Liaison, escouade 400, renvoi immédiat | Liaisons de sa moitié (`reach` 0,5), escouade 600, 45 s avant de renvoyer après une perte | point 1 (60 % → 55 %) |
+| `ai/roles.ts` `isGun`, `noObjectiveDuty` ; `ai/objectives.ts`, `ai/goliath.ts`, `ai/veterans.ts` | tests de genre Classique | par comportement (réparateur, canon à portée minimale, éclaireur, tireur d'élite) | point 3 |
+| `ai/goliath.ts` escouades du Gargantua | `trooper`/`rocket-squad` | `ROLES[nation].line/at` (Fusiliers) | point 3 |
+| `sim/objectives.ts` caisse « unité » | Hydroglisseur pour tous | `nationKind` (Empire : Creusot) | point 3 |
+| `ai/commander.ts` `NATION_AI.empire.workers` | 0 | +1 Fardier | point 4 (45 %, parties courtes 49/102 au lieu de 72/97) |
+| `NATIONS.republique.radiumValue` | 2,4 | **2,0** (×1,25) | point 4 (Terres fluviales) |
+| `ai/goliath.ts` `GOLIATH_AI.nation.republique` | — | Hangar à 0,75 × l'heure, épargne +10 points | point 5 |
+| `NATIONS.empire.trench.mult` | 0,7 | **0,9** | point 6 (Archipel sans tranchées : 46 %) |
+| Canon Branly PV | 170 | **200** | 0,44 tué par valeur perdue, le pire de la République |
+| Autocanon De Dion PV | 230 | **260** | perdait contre des Vulcains à coût égal (−0,26 → −0,09) |
+Leviers essayés et écartés : `coalRate` 1,4 (37 %, Archipel 2 %), Rép `unitTime` 1,0 (45 %, siège bleu 39 %),
+garde économique impériale ×1,6 (Archipel 17 %, 42 nulles), Hotchkiss en tête d'ordre de construction (`redoubt`, sans
+effet mesurable), Titan à 2 escouades (sans effet : l'IA charge `UNITS.condor.capacity`, voir restes).
+
+**Résultat final** (Normal, 25 min, ouvertures et objectifs ; Wilson 95 %)
+| Mesure | Avant (360 parties) | Après (720 parties) | Cible |
+|---|---|---|---|
+| Rép contre Emp, part de la République | 60 % [54–65] | **51 % [47–55]** (n = 636 décidées) | 45–55 % |
+| Terrain d'essai | 66 % [53–76] | 46 % [37–55] | 40–60 % |
+| Terres fluviales | 87 % [76–93] | **65 % [55–73]** | 40–60 % ✗ |
+| Mer de dunes | 71 % [58–81] | 40 % [32–50] | 40–60 % |
+| Engelure | 53 % [41–65] | 58 % [49–66] | 40–60 % |
+| Cendres | 61 % [48–72] | 54 % [45–63] | 40–60 % |
+| Archipel | 14 % [7–26] | **34 % [23–47]**, 61 nulles sur 120 | 40–60 % ✗ |
+| Siège de la Rép bleu / rouge | 63 % / 57 % | 54 % [48–59] / 48 % [43–54] | équitable |
+| Miroir Rép-Rép, part du rouge | — | 57 % [51–63] (n = 283 ; 300 parties) | 45–55 % (Classique `--mirror` : 53 %, n = 209) |
+| Miroir Emp-Emp, part du rouge | — | **50 % [45–55]** (n = 377 ; 432 parties) | 45–55 % |
+| Super-unité alignée (camps) | Zénith 26 %, Gargantua 38 % | **Zénith 48 % (7:23), Gargantua 42 % (7:58)** | comparable |
+| Durée médiane | 11:18 | **11:15** | 9–15 min |
+| Nulles (25:00) | 4 % | 12 % (dont 61 sur l'Archipel) | < 8 % ✗ |
+| Armée à 6:00 (médianes Rép / Emp) | 3 395 / 1 823 | 2 769 / 2 377 | — |
+| Récolte à 4:00 (médianes Rép / Emp) | 12 000 / 8 300 | 11 600 / 9 700 | — |
+| Parties < 8 min / > 16 min gagnées par la Rép | 74 % / 49 % | 55 % / 47 % | — |
+| Départ nu (`--bare`, 360 parties), pour mémoire | 25 % [21–30] | 16 % [13–21] | hors jeu (l'escarmouche a toujours ses objectifs) |
+
+Personnalités (part de victoires contre toute la réserve adverse) : Rép balanced 85 %, airswarm 62 %, skyforce 39 %,
+volta 39 %, rush 29 % ; Emp siege 69 %, balanced 56 %, boom 54 %, rush 51 %, ironclad 35 %, airswarm 31 %. Rép rush,
+Emp airswarm et ironclad sont sous la barre des 35 % du §1.8.
+
+**Efficacité par genre en partie** (720 parties ; « tués/perdu » = valeur d'unités ennemies achevées ÷ valeur perdue ;
+le coup de grâce seul est compté, ce qui favorise les tirs lourds et défavorise ce qui affaiblit sans achever)
+| République | dépensé/partie | tués/perdu | | Empire | dépensé/partie | tués/perdu |
+|---|---|---|---|---|---|---|
+| Éole | 6 260 | 0,57 | | Épervier | 3 936 | 0,71 |
+| Jamais-Contente | 4 050 | 1,04 | | Gyroptère | 3 541 | 0,42 |
+| Blériot | 3 191 | 1,08 | | Panhard | 3 345 | 1,05 |
+| Pioupious | 2 890 | 0,79 | | Canon de 75 | 2 041 | 0,60 |
+| Canon Branly | 2 483 | 0,44 | | Fusiliers | 2 024 | 0,80 |
+| Albatros | 2 111 | 0,33 | | Artificiers | 1 893 | 1,29 |
+| Hydroglisseur | 1 818 | 1,19 | | Faucheux | 1 738 | 1,89 |
+| Sapeurs-électriciens | 1 431 | 0,70 | | Mortier de 280 | 1 226 | 0,70 |
+| De Dion | 1 414 | 1,28 | | Gargantua | 1 047 | 4,69 |
+| Zénith | 1 160 | 4,70 | | Creusot | 871 | 0,66 |
+| Chasseurs alpins | 444 | 2,18 | | Vulcain | 711 | 0,33 |
+| | | | | Carabiniers | 564 | 1,94 |
+Aucune unité ne domine (les super-unités sont à part : 1 par camp au plus, perdues dans moins de 20 % des cas) ; les
+bombardiers (Albatros, Vulcain, 0,33) et les aéronefs d'attaque sont faibles des deux côtés, à parts égales — c'est
+l'IA qui les jette contre la DCA. Duels à coût égal (`duels --nations`) : moyenne des lignes −0,35 (De Dion, qui ne tire
+qu'en l'air) à +0,29 (Albatros) ; colonnes −0,24 (Mortier de 280) à +0,29 (Vulcain) ; toile du §1.5 : Jamais-Contente
+contre Creusot +0,58 (cible +0,25–0,45), Panhard contre Jamais-Contente +0,14 (cible +0,2–0,4), Fusiliers contre
+Jamais-Contente +0,46, Sapeurs contre Creusot +0,69, carabiniers contre pioupious +0,54, chasseurs alpins contre Fusiliers
++0,73, De Dion contre Gyroptère +0,66. Zénith contre Gargantua seul à seul : **+0,71 pour le Zénith** (cible 45–55 %) —
+le Gargantua n'a contre l'air que son arc et ses mitrailleuses (~33 DPS effectifs) et ses armes sont Classique ; baisser
+l'arc du Zénith de 26 à 16 DPS ne ramène qu'à +0,54 et l'affaiblirait contre tout le reste. Le Zénith perd nettement
+contre Faucheux, Épervier et Artificiers de coût égal : son contre est l'escorte antiaérienne, pas le Gargantua. Siège :
+les défenses républicaines (2 Bobines + Ruggieri + Tour TSF) tombent sans pertes devant Mortier de 280, Canon de 75 et
+Creusot ; les impériales coûtent 60–100 % de leur valeur aux groupes républicains sauf au Canon Branly (portée 8,5).
+
+**Restes**
+- Terres fluviales (65 %) : l'Empire y perd 13 Fardiers par 10 minutes (10–12 ailleurs) sous les raids des
+  Jamais-Contente et des Éole ; aucun levier global ne l'a ramenée sous 60 % sans faire tomber une autre carte.
+- Archipel : moitié de nulles (Classique : 8 %). Sans super-unités les nulles tombent de moitié : un Zénith qui vole ou un
+  Gargantua planté sur une île survit au QG, et aucune IA ne sait l'achever. À traiter dans `ai/goliath.ts` (chasse d'un
+  Zénith par Éperviers et Faucheux) plutôt que par des nombres.
+- Miroir Rép-Rép : 57 % au rouge (Classique `--mirror` 53 %, mêmes cartes) ; à suivre avec plus de graines.
+- L'IA du Titan charge `UNITS.condor.capacity` (2) au lieu de 3 (`ai/airlift.ts`, `ai/condor.ts`) et le levage par deux
+  Titans n'est jamais tenté (`canLift` teste la Montgolfière) ; corriger avantagera l'Empire sur l'Archipel.
+- Duel Zénith–Gargantua hors cible (ci-dessus) ; personnalités Rép rush, Emp airswarm/ironclad sous 35 %.

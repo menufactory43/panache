@@ -9,7 +9,7 @@
 import { type OpenerId } from "../sim/openers";
 import type { MutatorId } from "../sim/rules";
 import { step } from "../sim/sim";
-import type { Command, Faction, World } from "../sim/types";
+import type { Command, Faction, Nation, World } from "../sim/types";
 
 // setup and hashing live in the sim, shared with sound duels (SOUND-DUEL.md)
 export { setupWorld } from "../sim/setup";
@@ -79,6 +79,8 @@ export interface BattleRecord {
   created: string;
   map: string;
   mutators: MutatorId[];
+  /** The nations blue and red played (absent: Classique). */
+  nations?: Record<Faction, Nation>;
   seed: number;
   /** Ticks per round. */
   round: number;

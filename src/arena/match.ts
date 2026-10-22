@@ -15,14 +15,14 @@
  * Nothing here touches the network or the file system: tools/arena.ts
  * drives it, and tests drive it directly.
  */
-import { DIFFICULTY, createAiState, tickAi, type AiState, type Difficulty, type StrategyName, STRATEGIES } from "../sim/ai/commander";
+import { DIFFICULTY, PERSONALITIES, createAiState, tickAi, type AiState, type Difficulty, type PersonalityName } from "../sim/ai/commander";
 import { TICK_RATE } from "../sim/balance";
 import { hash32 } from "../sim/rand";
 import { OPENER_IDS, allowedOpener, pickAiOpener, type OpenerId } from "../sim/openers";
 import { placementBlocker } from "../sim/placement";
 import type { MutatorId } from "../sim/rules";
 import { step } from "../sim/sim";
-import type { Command, Faction, World } from "../sim/types";
+import type { Command, Faction, Nation, World } from "../sim/types";
 import { MAPS, createMapWorld, isKnownMapId } from "../sim/maps";
 import { tickFog } from "../sim/fog";
 import { applyOpener } from "../sim/openers";
@@ -44,15 +44,15 @@ export const SIDES: Faction[] = ["blue", "red"];
 
 export type SeatSpec =
   | { kind: "agent"; player?: string; settings?: Record<string, unknown> }
-  | { kind: "ai"; strategy: StrategyName; difficulty: Difficulty };
+  | { kind: "ai"; strategy: PersonalityName; difficulty: Difficulty };
 
 /** "ai:rush:hard" → an AI seat; anything else is an agent seat named by it. */
 export function parseSeat(s: string): SeatSpec {
   const m = /^ai(?::([a-z]+))?(?::([a-z]+))?$/.exec(s.trim());
   if (m) {
-    const strategy = (m[1] ?? "balanced") as StrategyName;
+    const strategy = (m[1] ?? "balanced") as PersonalityName;
     const difficulty = (m[2] ?? "normal") as Difficulty;
-    if (!(strategy in STRATEGIES)) throw new Error(`unknown AI personality "${strategy}": ${Object.keys(STRATEGIES).join(", ")}`);
+    if (!(strategy in PERSONALITIES)) throw new Error(`unknown AI personality "${strategy}": ${Object.keys(PERSONALITIES).join(", ")}`);
     if (!(difficulty in DIFFICULTY)) throw new Error(`unknown AI difficulty "${difficulty}": ${Object.keys(DIFFICULTY).join(", ")}`);
     return { kind: "ai", strategy, difficulty };
   }
@@ -65,6 +65,8 @@ export interface ArenaOptions {
   map: string;
   seed: number;
   mutators?: MutatorId[];
+  /** The nations blue and red play (absent: Classique). */
+  nations?: Record<Faction, Nation>;
   roundTicks?: number;
   maxTicks?: number;
   seats: Record<Faction, SeatSpec>;
@@ -116,7 +118,9 @@ export class Arena {
     this.maxTicks = opts.maxTicks ?? MAX_TICKS;
     this.onRound = opts.onRound;
     const mutators = opts.mutators ?? [];
-    this.w = createMapWorld(opts.map, { seed: opts.seed, objectives: true, ...(mutators.length ? { mutators } : {}) });
+    this.w = createMapWorld(opts.map, {
+      seed: opts.seed, objectives: true, ...(mutators.length ? { mutators } : {}), ...(opts.nations ? { nations: opts.nations } : {})
+    });
     tickFog(this.w); // (each side sees its own base in the opener round)
     const seat = (side: Faction): Seat => {
       const spec = opts.seats[side];
@@ -149,6 +153,7 @@ export class Arena {
       created: new Date().toISOString(),
       map: this.w.mapId,
       mutators: this.w.rules?.mutators ?? [],
+      ...(opts.nations ? { nations: opts.nations } : {}),
       seed: this.w.seed,
       round: this.roundTicks,
       maxTicks: this.maxTicks,

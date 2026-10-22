@@ -11,21 +11,37 @@
 // `matches` also reports the Goliath numbers GOLIATH.md asks for (when the first one
 // appears, what each earns and kills before it dies, outposts, lifts, how long a side
 // lasts after its HQ falls); --no-goliath bans it for an A/B run.
+//   npx vite-node tools/balance.ts duels --nations [--trench] [--tsf]
+//                                                 République (rows) × Empire (columns) at equal cost,
+//                                                 under the nations' rules (--trench: the Empire's
+//                                                 squads hold dug in; --tsf: a Tour TSF behind the
+//                                                 République), with each unit's mean
+//   npx vite-node tools/balance.ts goliath --vs zenith [--menders N]
+//                                                 Gargantua (+N Ateliers) vs Zénith (+N Pasteurs), and
+//                                                 each super-unit vs cost-equal groups of the other nation
+//   npx vite-node tools/balance.ts siege          each nation's siege groups vs the other's defences
+//                                                 (Emp: 3 Hotchkiss + Batterie de 47; Rép: 2 Bobines +
+//                                                 Ruggieri + Tour TSF), time to raze and value lost
 // Any mode takes --tune '{"UNITS.trooper.hp":200}' to override exported balance numbers
 // (and AI personalities: "STRATEGIES.rush.assaultValue"; the Goliath: "GOLIATH.costStep")
 // for an A/B run.
-import { STRATEGIES, createAiState, tickAi, type StrategyName } from "../src/sim/ai/commander";
+import { NATION_AI, NATION_STRATEGIES, STRATEGIES, createAiState, tickAi, type StrategyName } from "../src/sim/ai/commander";
 import { CONDOR_AI } from "../src/sim/ai/condor";
+import { OBJECTIVE_AI } from "../src/sim/ai/objectives";
 import { GOLIATH_AI } from "../src/sim/ai/goliath";
 import { MENDER_AI } from "../src/sim/ai/menders";
 import * as balance from "../src/sim/balance";
-import { TICK_RATE, UNITS } from "../src/sim/balance";
+import { BUILDINGS, TICK_RATE, UNITS } from "../src/sim/balance";
 import { MAPS, createMapWorld, mapById } from "../src/sim/maps";
 import { pickAiOpener } from "../src/sim/openers";
 import { step } from "../src/sim/sim";
 import { rulesOf } from "../src/sim/rules";
 import type { Faction, UnitKind, World } from "../src/sim/types";
-import { createWorld, spawnUnit } from "../src/sim/world";
+import { createWorld, spawnBuilding, spawnUnit } from "../src/sim/world";
+import { DEFAULT_RULES } from "../src/sim/rules";
+import { buildingMaxHp } from "../src/sim/nations";
+import { spawnSuper } from "../src/sim/goliath";
+import type { BuildingKind, Nation } from "../src/sim/types";
 
 const COMBAT: UnitKind[] = [
   "stinger", "flak-crawler", "mortar", "mastodon", "lancer", "wasp", "raptor", "hornet", "trooper", "rocket-squad", "sniper"
@@ -339,7 +355,7 @@ function passive(): void {
 
 function applyTune(json: string | undefined): void {
   if (!json) return;
-  const roots: Record<string, unknown> = { ...balance, STRATEGIES, CONDOR_AI, GOLIATH_AI, MENDER_AI };
+  const roots: Record<string, unknown> = { ...balance, STRATEGIES, NATION_STRATEGIES, NATION_AI, OBJECTIVE_AI, CONDOR_AI, GOLIATH_AI, MENDER_AI };
   for (const [path, v] of Object.entries(JSON.parse(json) as Record<string, unknown>)) {
     const parts = path.split(".");
     let o = roots as Record<string, unknown>;
@@ -349,11 +365,210 @@ function applyTune(json: string | undefined): void {
     o[last] = v;
   }
 }
+// ------------------------------------------------------------- nations ---
+
+const REP_COMBAT: UnitKind[] = ["jamais-contente", "de-dion", "branly", "lancer", "wasp", "raptor", "hornet", "trooper", "sapeurs", "sniper"];
+const EMP_COMBAT: UnitKind[] = ["stinger", "flak-crawler", "mortar", "mortier-280", "mastodon", "gyroptere", "epervier", "vulcain", "fusiliers", "rocket-squad", "carabiniers"];
+
+/** A bare field under the nations' rules (blue and red's nations given). */
+function nationsField(blue: Nation, red: Nation, size = 40): World {
+  const w = createWorld(size, size);
+  w.rules = { ...DEFAULT_RULES, bannedUnits: [], bannedBuildings: [], startUnits: [], mutators: [], nations: { blue, red } };
+  return w;
+}
+
+/**
+ * `a` (nation na) vs `b` (nation nb), equal scrap, a on blue. `trench`: nb's
+ * (the Empire's) squads hold their ground, dug in, instead of advancing;
+ * `tsf`: a Tour TSF stands behind the République's army.
+ */
+function nationDuel(a: UnitKind, na: Nation, b: UnitKind, nb: Nation, opts: { trench: boolean; tsf: boolean }): number {
+  const w = nationsField(na, nb);
+  const army = (kind: UnitKind, f: Faction, x: number) => {
+    const n = Math.max(1, Math.round(BUDGET / UNITS[kind].cost));
+    const ids: number[] = [];
+    for (let i = 0; i < n; i++) ids.push(spawnUnit(w, kind, f, x + (i % 3) * 0.8, 16 + Math.floor(i / 3) * 0.8).id);
+    return ids;
+  };
+  const A = army(a, "blue", 8);
+  const B = army(b, "red", 30);
+  for (const [f, n, x] of [["blue", na, 4], ["red", nb, 35]] as const)
+    if (opts.tsf && n === "republique") spawnBuilding(w, "radar", f, x, 15);
+  const holdB = opts.trench && nb === "empire" && !!UNITS[b].squad;
+  const holdA = opts.trench && na === "empire" && !!UNITS[a].squad;
+  if (holdA) for (const id of A) w.units.get(id)!.entrenched = true;
+  if (holdB) for (const id of B) w.units.get(id)!.entrenched = true;
+  step(w, [
+    ...(holdA ? [] : [{ type: "attackMove" as const, faction: "blue" as const, unitIds: A, x: 32, y: 17 }]),
+    ...(holdB ? [] : [{ type: "attackMove" as const, faction: "red" as const, unitIds: B, x: 8, y: 17 }])
+  ]);
+  let quiet = 0;
+  for (let t = 0; t < 150 * TICK_RATE; t++) {
+    step(w, []);
+    const blue = [...w.units.values()].some((u) => u.faction === "blue");
+    const red = [...w.units.values()].some((u) => u.faction === "red");
+    if (!blue || !red) break;
+    quiet = w.fx.some((f) => f.type === "shot") ? 0 : quiet + 1;
+    if (t > 300 && quiet > 150) break; // nobody can hit anybody (or the holders' foes stay out of reach)
+  }
+  const left = (f: Faction) =>
+    [...w.units.values()].filter((u) => u.faction === f).reduce((s, u) => s + (u.hp / UNITS[u.kind].hp) * UNITS[u.kind].cost, 0);
+  return (left("blue") - left("red")) / BUDGET;
+}
+
+/** The République × Empire matrix (+ = the République's unit wins), and each unit's mean over the other roster. */
+function nationDuels(): void {
+  const opts = { trench: process.argv.includes("--trench"), tsf: process.argv.includes("--tsf") };
+  const pad = (s: string, n = 8) => s.slice(0, n).padStart(n);
+  const cell = new Map<string, number>();
+  for (const a of REP_COMBAT)
+    for (const b of EMP_COMBAT)
+      cell.set(`${a}|${b}`, (nationDuel(a, "republique", b, "empire", opts) - nationDuel(b, "empire", a, "republique", opts)) / 2);
+  console.log(`République (rows) vs Empire (columns), ${BUDGET} scrap each, + = row wins${opts.trench ? "; Empire squads dug in" : ""}${opts.tsf ? "; Tour TSF behind the République" : ""}`);
+  console.log(pad("", 10) + EMP_COMBAT.map((k) => pad(k)).join("") + pad("mean"));
+  const meanOf = (xs: number[]) => xs.reduce((x, y) => x + y, 0) / xs.length;
+  for (const a of REP_COMBAT) {
+    const row = EMP_COMBAT.map((b) => cell.get(`${a}|${b}`)!);
+    console.log(pad(a, 10) + row.map((v) => pad(v.toFixed(2))).join("") + pad(meanOf(row).toFixed(2)));
+  }
+  console.log(pad("mean", 10) + EMP_COMBAT.map((b) => pad((-meanOf(REP_COMBAT.map((a) => cell.get(`${a}|${b}`)!))).toFixed(2))).join("") + "   (column: + = the Empire's unit wins)");
+  console.log(`roster mean: République ${meanOf([...cell.values()]).toFixed(3)}`);
+}
+
+/** One super-unit (+ `healers`) against another army of `kind` × n, or super vs super. */
+function superDuel(sup: UnitKind, sn: Nation, healers: number, foe: UnitKind, fn: Nation, foeHealers: number, flip: boolean): { score: number; secs: number } {
+  const w = nationsField(flip ? fn : sn, flip ? sn : fn);
+  const sSide: Faction = flip ? "red" : "blue";
+  const fSide: Faction = flip ? "blue" : "red";
+  const sx = flip ? 30 : 8;
+  const fx = flip ? 8 : 30;
+  const healer = (n: Nation): UnitKind => (n === "republique" ? "mender" : "atelier");
+  const budget = UNITS[sup].cost + healers * UNITS[healer(sn)].cost;
+  const sIds = [spawnSuper(w, sup, sSide, sx, 17).id];
+  for (let i = 0; i < healers; i++) sIds.push(spawnUnit(w, healer(sn), sSide, sx + (flip ? 1.5 : -1.5), 15.5 + i).id);
+  const fIds: number[] = [];
+  if (foe === "goliath" || foe === "zenith") {
+    fIds.push(spawnSuper(w, foe, fSide, fx, 17).id);
+    for (let i = 0; i < foeHealers; i++) fIds.push(spawnUnit(w, healer(fn), fSide, fx + (flip ? -1.5 : 1.5), 15.5 + i).id);
+  } else {
+    const n = Math.max(1, Math.round(budget / UNITS[foe].cost));
+    for (let i = 0; i < n; i++) fIds.push(spawnUnit(w, foe, fSide, fx + (i % 3) * 0.8, 14 + Math.floor(i / 3) * 0.8).id);
+  }
+  const foeBudget = foe === "goliath" || foe === "zenith" ? UNITS[foe].cost + foeHealers * UNITS[healer(fn)].cost : budget;
+  step(w, [
+    { type: "attackMove", faction: sSide, unitIds: sIds, x: fx, y: 17 },
+    { type: "attackMove", faction: fSide, unitIds: fIds, x: sx, y: 17 }
+  ]);
+  let t = 0;
+  let quiet = 0;
+  for (; t < 240 * TICK_RATE; t++) {
+    step(w, []);
+    const alive = (f: Faction) => [...w.units.values()].some((u) => u.faction === f && !(UNITS[u.kind].dps === 0 && UNITS[u.kind].heal));
+    if (!alive("blue") || !alive("red")) break;
+    quiet = w.fx.some((f) => f.type === "shot" || f.type === "goliathWeapon") ? 0 : quiet + 1;
+    if (t > 300 && quiet > 150) break;
+  }
+  const left = (f: Faction) =>
+    [...w.units.values()].filter((u) => u.faction === f).reduce((s, u) => s + (u.hp / UNITS[u.kind].hp) * UNITS[u.kind].cost, 0);
+  return { score: left(sSide) / budget - left(fSide) / foeBudget, secs: t / TICK_RATE };
+}
+
+function superDuels(): void {
+  const at = process.argv.indexOf("--menders");
+  const n = at >= 0 ? Number(process.argv[at + 1]) : 0;
+  const both = (a: UnitKind, an: Nation, ah: number, b: UnitKind, bn: Nation, bh: number) => {
+    const x = superDuel(a, an, ah, b, bn, bh, false);
+    const y = superDuel(a, an, ah, b, bn, bh, true);
+    return { score: (x.score + y.score) / 2, secs: (x.secs + y.secs) / 2 };
+  };
+  const fmt = (r: { score: number; secs: number }) => `${r.score >= 0 ? "+" : ""}${r.score.toFixed(2)}  ${r.secs.toFixed(0).padStart(4)} s`;
+  console.log(`Zénith${n ? ` + ${n} Pasteurs` : ""} vs Gargantua${n ? ` + ${n} Ateliers` : ""} (+ = Zénith): ${fmt(both("zenith", "republique", n, "goliath", "empire", n))}`);
+  console.log(`
+Zénith${n ? ` + ${n} Pasteurs` : ""} vs cost-equal Empire groups (+ = Zénith wins)`);
+  for (const k of EMP_COMBAT) console.log(`  ${k.padEnd(13)} ${fmt(both("zenith", "republique", n, k, "empire", 0))}`);
+  console.log(`
+Gargantua${n ? ` + ${n} Ateliers` : ""} vs cost-equal République groups (+ = Gargantua wins)`);
+  for (const k of REP_COMBAT) console.log(`  ${k.padEnd(13)} ${fmt(both("goliath", "empire", n, k, "republique", 0))}`);
+}
+
+/** Each nation's defences (§1.8: 3 Hotchkiss + 1 AA, or 2 Bobines + 1 Ruggieri) with what feeds them. */
+const DEFENCES: Record<Nation, BuildingKind[]> = {
+  empire: ["turret", "turret", "turret", "flak-battery"],
+  republique: ["arsonval", "arsonval", "sam-site", "radar"]
+};
+const SIEGE_GROUPS: Record<Nation, UnitKind[]> = {
+  republique: ["branly", "hornet", "lancer", "jamais-contente", "wasp", "sapeurs"],
+  empire: ["mortier-280", "mortar", "vulcain", "mastodon", "gyroptere", "rocket-squad"]
+};
+
+/** `kind` × (the defences' cost) attacks `def`'s defences: seconds to raze them all, share of the attackers' value lost. */
+function siegeRun(kind: UnitKind, att: Nation, def: Nation): { razed: boolean; secs: number; lost: number; left: number } {
+  const w = nationsField(att, def, 44);
+  const blds = DEFENCES[def];
+  // front to back: the guns, the anti-air, then the République's Tour TSF behind them
+  const spots: [number, number][] = [[29, 15], [29, 19], [27, 17], [32, 17]];
+  let cost = 0;
+  const ids: number[] = [];
+  blds.forEach((k, i) => {
+    const [x, y] = spots[i]!;
+    const b = spawnBuilding(w, k, "red", x, y);
+    b.hp = buildingMaxHp(w, b);
+    cost += BUILDINGS[k].cost;
+    ids.push(b.id);
+  });
+  const n = Math.max(1, Math.round(cost / UNITS[kind].cost));
+  const army: number[] = [];
+  for (let i = 0; i < n; i++) army.push(spawnUnit(w, kind, "blue", 6 + (i % 3) * 0.8, 15 + Math.floor(i / 3) * 0.8).id);
+  const spent = n * UNITS[kind].cost;
+  const cmds: Parameters<typeof step>[1] = [{ type: "attackMove", faction: "blue", unitIds: army, x: 31, y: 17 }];
+  // a blind gun gets a spotter, out of the defences' reach
+  if ((UNITS[kind].range ?? 0) > UNITS[kind].sight) {
+    const sp = spawnUnit(w, att === "empire" ? "estafette" : "scout", "blue", 6, 20);
+    cmds.push({ type: "move", faction: "blue", unitIds: [sp.id], x: 22, y: 21 });
+  }
+  step(w, cmds);
+  let t = 0;
+  let quiet = 0;
+  for (; t < 300 * TICK_RATE; t++) {
+    step(w, []);
+    if (!ids.some((id) => w.buildings.has(id))) break;
+    if (!army.some((id) => w.units.has(id))) break;
+    quiet = w.fx.some((f) => f.type === "shot") ? 0 : quiet + 1;
+    if (t > 300 && quiet > 300) break;
+    // stragglers that lost the target: send them again
+    if (t % 50 === 0) {
+      const idle = army.filter((id) => w.units.get(id)?.order.type === "idle");
+      const tgt = ids.find((id) => w.buildings.has(id));
+      if (idle.length && tgt !== undefined) step(w, [{ type: "attack", faction: "blue", unitIds: idle, targetId: tgt }]);
+    }
+  }
+  const left = army.reduce((s, id) => {
+    const u = w.units.get(id);
+    return s + (u ? (u.hp / UNITS[u.kind].hp) * UNITS[u.kind].cost : 0);
+  }, 0);
+  const razed = !ids.some((id) => w.buildings.has(id));
+  return { razed, secs: t / TICK_RATE, lost: 1 - left / spent, left: ids.filter((id) => w.buildings.has(id)).length };
+}
+
+function siege(): void {
+  for (const [att, def] of [["republique", "empire"], ["empire", "republique"]] as [Nation, Nation][]) {
+    const cost = DEFENCES[def].reduce((s, k) => s + BUILDINGS[k].cost, 0);
+    console.log(`
+${att} groups vs ${def} defences (${DEFENCES[def].join(", ")}; ${cost} scrap list)`);
+    for (const k of SIEGE_GROUPS[att]) {
+      const r = siegeRun(k, att, def);
+      console.log(`  ${k.padEnd(13)} ${r.razed ? `razed in ${r.secs.toFixed(0)} s` : `${r.left} left after ${r.secs.toFixed(0)} s`}, lost ${Math.round(100 * r.lost)}% of its value`);
+    }
+  }
+}
+
 const tuneAt = process.argv.indexOf("--tune");
 applyTune(tuneAt >= 0 ? process.argv[tuneAt + 1] : undefined);
 
 const mode = process.argv[2] ?? "duels";
-if (mode === "duels") duels();
+if (mode === "duels") (process.argv.includes("--nations") ? nationDuels : duels)();
+else if (mode === "siege") siege();
+else if (mode === "goliath" && process.argv.includes("--vs")) superDuels();
 else if (mode === "matches") matches();
 else if (mode === "passive") passive();
 else if (mode === "goliath") goliathDuels();
