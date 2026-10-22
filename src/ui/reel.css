@@ -84,5 +84,15 @@
 /* a phone on its side: the buttons lower, clear of the card's words */
 @media (max-height: 500px) {
   .reel-ui { padding-bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px)); }
-  .reel-acts { gap: 8px; }
+  /* (one row: wrapped, the buttons climbed onto « Fin »'s result line) */
+  .reel-acts { gap: 8px; max-width: none; flex-wrap: nowrap; }
+  .reel-acts .cta { padding: 8px 16px; font-size: 15px; white-space: nowrap; }
+  .reel-acts .cta.big { min-height: 44px; font-size: 16px; }
+  .reel-note { margin-top: 6px; }
+}
+/* a small phone on its side (667 px): still one row */
+@media (max-height: 500px) and (max-width: 720px) {
+  .reel-acts { gap: 6px; }
+  .reel-acts .cta { padding: 8px 10px; font-size: 13px; }
+  .reel-acts .cta.big { font-size: 14px; }
 }
