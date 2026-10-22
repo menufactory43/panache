@@ -21,7 +21,7 @@
 import { BUILDINGS, UNITS } from "../sim/balance";
 import { agree, displayName } from "../sim/lexicon";
 import { OPENERS, OPENER_IDS } from "../sim/openers";
-import { OPS } from "../sim/ops";
+import { TRIALS } from "../sim/ops";
 import { POWER_NAMES } from "../sim/powers";
 import { THEME_NAMES } from "../sim/modes/survival";
 import type { BuildingKind, Faction, GoliathWeapon, NationOrClassic, PowerKind, UnitKind } from "../sim/types";
@@ -259,7 +259,9 @@ function build(): VoiceLine[] {
   banner("Mutateurs actifs", "info");
   for (const id of OPENER_IDS) banner(`${OPENERS[id].name} !`, "good", true);
   // ops
-  for (const op of OPS) banner(op.title, "info");
+  // (the campaign's new titles, « Mission réussie / échouée » and its scripted banners are not recorded
+  // yet: they show as subtitles until tools/voice-generate.py has them)
+  for (const op of TRIALS) banner(op.title, "info");
   banner("Tiens encore une minute", "info");
   banner("Plus qu'une minute", "bad");
   banner("Op réussie", "epic");

@@ -8,7 +8,7 @@ import type { Building, BuildingKind, Faction, FxEvent, Nation, Unit, UnitKind, 
 import { baySeats, RIDER_SCALE, SquadRig, type BotKind, type Footprint } from "../three/infantry";
 import { lookalike } from "../three/belle/placeholders";
 import { discMat, eliteUniform, setVariant, type Variant } from "../three/materials";
-import { CRAWLER_LEGS, buildingDef, instance, unitDef, unitScale, type ModelDef, type ModelInstance } from "../three/models";
+import { CRAWLER_LEGS, buildingDef, instance, landmarkDef, unitDef, unitScale, type ModelDef, type ModelInstance } from "../three/models";
 import { BELLE_EPOQUE } from "../three/theme";
 import { AIR_H, HOVER_H, type P3, type View } from "../three/view";
 import { Ease } from "../three/tween";
@@ -1208,7 +1208,9 @@ export class EntityRenderer {
     let base = 0;
     for (const [dx, dy] of [[0, 0], [-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]] as [number, number][])
       base = Math.max(base, t.heightAt(cx + dx * size, cy + dy * size));
-    const m = instance(buildingDef(b.kind, b.faction, nationOf(this.world, b.faction)));
+    // an op's landmark stands in for the building's own model (the Paris finale: the Eiffel Tower is its Tour TSF)
+    const landmark = this.world.ops?.landmarks?.[b.id];
+    const m = instance(landmark ? landmarkDef(landmark, b.faction) : buildingDef(b.kind, b.faction, nationOf(this.world, b.faction)));
     m.root.position.set(cx, base - 0.02, cy);
     this.group.add(m.root);
     const v: BuildingView = {

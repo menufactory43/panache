@@ -681,3 +681,71 @@ A["crest-empire"] = dict(
     quality="high",
     transparent=True,
 )
+
+# ------------------------------------------------------------------ campaign chapters (Panache)
+# « La Campagne de 1900 » (src/ui/cine.ts): one still per chapter, shown under the silent-film
+# intertitles before a mission (sepia-filtered on screen). Fictional nations only: the République
+# (navy blue, brass, glass, electric arcs) and the Empire de Carbonie (burgundy, rivets, coal smoke).
+# No real flags, insignia, uniforms or real battles.
+A["chap-1"] = dict(
+    prompt=(
+        "Wide cinematic shot of a stone bridge over a broad river at dawn on the edge of Paris around "
+        "1900, the Eiffel Tower faint in the mist far behind: on the near bank two tall copper "
+        "electric coil towers crackle with blue arcs beside a lattice wireless mast, slim streamlined "
+        "electric racing cars painted navy blue wait behind sandbags; on the far bank a column of "
+        "boxy burgundy steam armoured cars puffs black coal smoke toward the bridge. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["chap-carbonie"] = dict(
+    prompt=(
+        "Wide comic cinematic shot of a volcanic plateau at sunset, smoking craters and glowing lava "
+        "rivers: a pompous stout marshal with enormous waxed moustaches, a monocle, a burgundy "
+        "greatcoat covered in brass medals and a plumed bicorne hat proudly points his sabre, beside "
+        "a gigantic riveted steam mortar on a tracked locomotive carriage firing a huge shell with a "
+        "cloud of black smoke; clockwork automaton soldiers in burgundy salute stiffly. Playful, "
+        "never cruel. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["chap-2"] = dict(
+    prompt=(
+        "Wide cinematic shot of a snowy Alpine mountain pass at dusk around 1900: a convoy of padded "
+        "navy-blue electric delivery vans with spoked wheels, carrying crates that glow faint green, "
+        "climbs a winding road toward a railway tunnel mouth, escorted by a sleek navy hover-boat on "
+        "the frozen lake; above the pass, burgundy riveted steam tanks with smokestacks and dug-in "
+        "sandbag trenches wait in ambush, an eagle soars over the peaks. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["chap-3"] = dict(
+    prompt=(
+        "Wide cinematic shot of a desert of golden dunes under a violent night storm around 1900: "
+        "eerie green-white radium lightning crackles between the clouds and strikes brass machines; "
+        "in the foreground a young woman chemist in a long Edwardian dress and lab apron holds up a "
+        "glowing glass vial, beside a navy-blue officer with a magnificent moustache and a kepi; far "
+        "away burgundy steam machines advance through the sand. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)
+A["chap-paris"] = dict(
+    prompt=(
+        "Wide cinematic shot of the Champ-de-Mars in Paris on a summer evening around 1900, the Eiffel "
+        "Tower towering in the centre with a wireless antenna at its top and a festive tricolour-free "
+        "string of lanterns: a colossal two-legged riveted burgundy steam walking fortress with "
+        "smokestacks strides across the Seine bridge toward the tower, while above it a huge sleek "
+        "navy-blue rigid airship with a glazed gondola and four propellers swoops down, searchlights "
+        "blazing, fireworks bursting in the sky. " + TITLE_STYLE
+    ),
+    size="1536x1024",
+    quality="high",
+    transparent=False,
+)

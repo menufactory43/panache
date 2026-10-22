@@ -2,7 +2,7 @@ import { TICK_RATE } from "../sim/balance";
 import { MEDAL_IDS, computeMedals, type MatchRecap, type MedalId } from "../sim/awards";
 import { wavesSurvived } from "../sim/modes/survival";
 import { isMutated, rulesOf, type MutatorId } from "../sim/rules";
-import { OPS, opById, opsUnlocked } from "../sim/ops";
+import { CAMPAIGN, OPS, TRIALS, bookOf, campaignUnlocked, isCampaignOp, opById, opsUnlocked, type OpDef } from "../sim/ops";
 import { mapById } from "../sim/maps";
 import { isRandomMapId } from "../sim/mapgen";
 import type { Faction, World } from "../sim/types";
@@ -134,9 +134,11 @@ export function xpLines(r: MatchResult): XpLine[] {
   const mult = XP.difficulty[r.difficulty] ?? 1;
   const lines: XpLine[] = [];
   if (r.kind === "op") {
-    const title = opById(r.op?.id ?? "")?.title ?? "Op";
-    if (r.won) lines.push({ label: `Op réussie · ${title}`, xp: XP.opWin });
-    else lines.push({ label: `Op échouée · ${title}`, xp: Math.round(XP.opLoss * Math.max(0.2, Math.min(1, r.secs / 120))) });
+    const def = opById(r.op?.id ?? "");
+    const title = def?.title ?? "Op";
+    const name = def && isCampaignOp(def) ? "Mission" : "Épreuve";
+    if (r.won) lines.push({ label: `${name} réussie · ${title}`, xp: XP.opWin });
+    else lines.push({ label: `${name} échouée · ${title}`, xp: Math.round(XP.opLoss * Math.max(0.2, Math.min(1, r.secs / 120))) });
   } else if (r.kind === "survival") {
     const waves = r.waves ?? 0;
     lines.push({ label: `${waves} vague${waves === 1 ? "" : "s"} · ${diffLabel(r.difficulty)}`, xp: Math.round(XP.wave * waves * mult) });
@@ -196,10 +198,19 @@ export interface OpRecord {
   wins: number;
 }
 
-/** Ops completed (any stars). */
-export const opsCompleted = (c: CareerData): number => OPS.filter((o) => (c.ops[o.id]?.stars ?? 0) & 1).length;
-/** Is this op open yet? The first three are; each completion opens one more. */
-export const opUnlocked = (c: CareerData, id: string): boolean => OPS.findIndex((o) => o.id === id) < opsUnlocked(opsCompleted(c));
+/** Ops completed (any stars): both books, or one of them. */
+export const opsCompleted = (c: CareerData, book: OpDef[] = OPS): number => book.filter((o) => (c.ops[o.id]?.stars ?? 0) & 1).length;
+/** Campaign missions won. */
+export const campaignCompleted = (c: CareerData): number => opsCompleted(c, CAMPAIGN);
+/** How many of an op's book are open: the campaign's first mission plus one per mission won; the Trials' first three plus one per Trial. */
+const openIn = (c: CareerData, book: OpDef[]): number => (book === CAMPAIGN ? campaignUnlocked(opsCompleted(c, CAMPAIGN)) : opsUnlocked(opsCompleted(c, TRIALS)));
+/** Is this op open yet? */
+export function opUnlocked(c: CareerData, id: string): boolean {
+  const op = opById(id);
+  if (!op) return false;
+  const book = bookOf(op);
+  return book.indexOf(op) < openIn(c, book);
+}
 
 export function emptyCareer(): CareerData {
   return {
@@ -269,7 +280,9 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
     const id = r.op.id;
     const rec: OpRecord = c.ops[id] ?? { stars: 0, bestSecs: null, plays: 0, wins: 0 };
     const before = rec.stars;
-    const openBefore = opsUnlocked(opsCompleted(c));
+    const opDef = opById(id);
+    const book = opDef ? bookOf(opDef) : TRIALS;
+    const openBefore = openIn(c, book);
     rec.plays++;
     if (r.won) {
       rec.wins++;
@@ -281,8 +294,8 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
     if (firstClear) lines.push({ label: "Premier succès", xp: XP.opFirstClear });
     const newStars = starCount(rec.stars & ~before & 6);
     if (newStars > 0) lines.push({ label: `${newStars} nouvelle${newStars === 1 ? "" : "s"} étoile${newStars === 1 ? "" : "s"}`, xp: XP.opStar * newStars });
-    const openAfter = opsUnlocked(opsCompleted(c));
-    op = { id, starsBefore: before, starsAfter: rec.stars, firstClear, unlocked: openAfter > openBefore ? (OPS[openAfter - 1]?.id ?? null) : null };
+    const openAfter = openIn(c, book);
+    op = { id, starsBefore: before, starsAfter: rec.stars, firstClear, unlocked: openAfter > openBefore ? (book[openAfter - 1]?.id ?? null) : null };
   }
   if (r.kind === "op") {
     /* ops keep their own records: no skirmish W/L, map stars or Last Stand totals */

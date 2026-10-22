@@ -65,6 +65,12 @@ export class CallsignRegistry {
     return name;
   }
 
+  /** Give a unit its own name (an op's hero: « Valmont »), before anything asks for one. */
+  set(id: number, faction: Faction, name: string): void {
+    this.names.set(id, name);
+    this.used[faction].set(name, 1);
+  }
+
   /** The callsign if one was already assigned (no side effects). */
   peek(id: number): string | undefined {
     return this.names.get(id);

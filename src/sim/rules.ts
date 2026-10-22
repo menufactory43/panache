@@ -1,6 +1,6 @@
 import { BUILDINGS, COMBAT, ECONOMY, NATIONS, NATION_IDS, ROSTERS, UNITS } from "./balance";
 import type { Strategy } from "./ai/commander";
-import type { BuildingKind, Faction, Nation, NationOrClassic, Unit, UnitKind, World } from "./types";
+import type { BuildingKind, Faction, Nation, NationOrClassic, PowerKind, Unit, UnitKind, World } from "./types";
 
 /**
  * Match rules and the mutators that change them. `World.rules` is absent
@@ -48,7 +48,7 @@ export interface Rules {
   /** The mutators these rules came from, in canonical order (display, career). */
   mutators: MutatorId[];
   /** Ops: bans for one side only (e.g. "air only" for the player), on top of the shared ones. */
-  sideBans?: Partial<Record<Faction, { units?: UnitKind[]; buildings?: BuildingKind[] }>>;
+  sideBans?: Partial<Record<Faction, { units?: UnitKind[]; buildings?: BuildingKind[]; powers?: PowerKind[] }>>;
   /** Ops: per-side income multiplier on top of `incomeMult` (0 = a frozen economy). */
   sideIncome?: Partial<Record<Faction, number>>;
   /** What a ban no mutator explains says ("Disabled in this op"); default "Disabled: match rules". */

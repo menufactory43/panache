@@ -99,6 +99,9 @@ export interface PowerStatus {
   ready: boolean;
 }
 
+/** An op's ban on one side's power (the campaign's arsenal: Rayon Curie only once Sablon has it). */
+const powerBanned = (w: World, f: Faction, p: PowerKind): boolean => !!rulesOf(w).sideBans?.[f]?.powers?.includes(p);
+
 /** Charge / cooldown / lock state of one power, for the HUD and the AI. */
 export function powerStatus(w: World, faction: Faction, power: PowerKind): PowerStatus {
   const ps = w.powers;
@@ -109,7 +112,7 @@ export function powerStatus(w: World, faction: Faction, power: PowerKind): Power
   const charge = cost === 0 ? 1 : Math.min(1, ps.meter[faction] / cost);
   return {
     power, cost, charge, cooldown, cooldownTotal: cooldownTicks(power), locked,
-    ready: locked === 0 && cooldown === 0 && charge >= 1 && !w.winner && !rulesOf(w).noCalldowns
+    ready: locked === 0 && cooldown === 0 && charge >= 1 && !w.winner && !rulesOf(w).noCalldowns && !powerBanned(w, faction, power)
   };
 }
 
@@ -122,6 +125,7 @@ const clock = (t: number) => {
 export function powerBlocker(w: World, faction: Faction, power: PowerKind): string | null {
   if (w.winner) return "La bataille est terminée";
   if (rulesOf(w).noCalldowns) return "Pas de frappes dans cette partie";
+  if (powerBanned(w, faction, power)) return rulesOf(w).banLabel ?? "Désactivé : règles de la partie";
   if (!hqOf(w, faction) && !hasGoliath(w, faction))
     return superKindOf(w, faction) === "zenith" ? "Frappes : il faut un GQG ou un Zénith" : "Frappes : il faut un GQG ou un Gargantua";
   if (power === "droppod" && podCrew(w, faction).length === 0) return "Obus-capsule désactivé dans cette partie";
@@ -194,7 +198,7 @@ export function tickPowers(w: World): void {
   const ps = w.powers;
   for (const f of FACTIONS) {
     const late = powerSet(w, f)[3]!; // (Classique: the Sky Hammer)
-    if (w.tick === ps.readyAt[f][late] && !rulesOf(w).noCalldowns) w.fx.push({ type: "powerOnline", faction: f, power: late });
+    if (w.tick === ps.readyAt[f][late] && !rulesOf(w).noCalldowns && !powerBanned(w, f, late)) w.fx.push({ type: "powerOnline", faction: f, power: late });
   }
   if (ps.stunned.size > 0)
     for (const [id, until] of ps.stunned)
