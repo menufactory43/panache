@@ -813,7 +813,7 @@ export function createHud(api: HudApi): Hud {
         }
       } else {
         html = `<div class="group">${[...counts]
-          .map(([k, n]) => `<span class="gi"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
+          .map(([k, n]) => `<span class="gi" role="button" data-kind="${k}" title="Ne garder que ce type"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
           .join("")}${[...aboard]
           .map(([k, n]) => `<span class="gi aboard" title="À bord d'une Montgolfière"><img src="${icon(k, side)}" alt=""/><b>${n}</b></span>`)
           .join("")}</div>`;
@@ -844,6 +844,15 @@ export function createHud(api: HudApi): Hud {
     }
   }
   shield(selEl);
+  // a portrait in a group's selection: keep only that kind (aboard a Condor: not selectable, no data-kind)
+  selEl.addEventListener("click", (e) => {
+    const kind = (e.target as HTMLElement).closest<HTMLElement>(".gi[data-kind]")?.dataset.kind;
+    if (!kind) return;
+    const ids = [...api.ctrl.selectedUnits].filter((id) => w.units.get(id)?.kind === kind);
+    if (ids.length === 0 || ids.length === api.ctrl.selectedUnits.size) return;
+    sfx.play("click", 0.5);
+    api.ctrl.selectUnits(ids);
+  });
 
   // ------------------------------------------------------------- toasts ---
   function toast(msg: string, onTap?: () => void, cls = "", ms = 2200): void {

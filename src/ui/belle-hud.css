@@ -7,6 +7,8 @@
  */
 html.belle #hud.bh {
   --bh-m: 12px;
+  /* ▢ Cadre beside ⚔ Armée: its width and the gap to it */
+  --bh-frame: 52px;
   --bh-t: max(8px, env(safe-area-inset-top));
   --bh-b: max(10px, env(safe-area-inset-bottom));
   --bh-l: max(var(--bh-m), env(safe-area-inset-left));
@@ -581,8 +583,85 @@ html.belle #hud.bh .bh-squads {
 html.belle #hud.bh .bh-squads.on {
   display: flex;
 }
-html.belle #hud.bh .bh-squads .squads {
+/* the squads, then the role chips: one row where it fits, the roles wrapping above the squads where it doesn't */
+html.belle #hud.bh .bh-squads {
+  flex-wrap: wrap-reverse;
+  align-items: flex-end;
+  gap: 6px 10px;
+  max-width: calc(100vw - var(--bh-l) - var(--bh-r) - var(--bh-pow) - 16px);
+}
+html.belle #hud.bh .bh-squads .squads,
+html.belle #hud.bh .bh-squads .roles {
   gap: 6px;
+}
+html.belle #hud.bh .bh-squads .rl {
+  width: 66px;
+  height: 46px;
+  border-radius: 23px;
+  border-color: rgba(214, 170, 90, 0.55);
+  background: var(--bh-walnut);
+}
+html.belle #hud.bh .bh-squads .rl .rli {
+  top: 3px;
+  width: 27px;
+  height: 27px;
+}
+html.belle #hud.bh .bh-squads .rl .rlc {
+  top: 4px;
+  right: 7px;
+  color: var(--gold);
+}
+html.belle #hud.bh .bh-squads .rl .rll {
+  bottom: 4px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.2px;
+  color: #d8c9a6;
+}
+html.belle #hud.bh .bh-squads .rl.on {
+  border-color: var(--green);
+}
+html.belle #hud.bh .bh-squads .rl.on .rll {
+  color: var(--green);
+}
+
+/* ▢ Cadre: beside ⚔ Armée, lit while armed (the next drag on the map draws a box) */
+html.belle #hud.bh .bh-frame {
+  position: absolute;
+  z-index: 6;
+  left: calc(var(--bh-l) + var(--bh-army) + 8px);
+  bottom: calc(var(--bh-b) + (var(--bh-army) - 44px) / 2);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: radial-gradient(circle at 50% 35%, #4a3420 0%, #24180c 75%);
+  border: 1px solid #c79a4e;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 228, 170, 0.15);
+  pointer-events: auto;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html.belle #hud.bh .bh-frame .bh-ic {
+  width: 24px;
+  height: 24px;
+}
+html.belle #hud.bh .bh-frame:active {
+  transform: scale(0.94);
+}
+html.belle #hud.bh .bh-frame.on {
+  color: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(126, 242, 155, 0.45), 0 0 16px rgba(126, 242, 155, 0.45);
+  animation: bhFrame 1.1s ease-in-out infinite alternate;
+}
+@keyframes bhFrame {
+  to { box-shadow: 0 0 0 2px rgba(126, 242, 155, 0.2), 0 0 6px rgba(126, 242, 155, 0.2); }
 }
 html.belle #hud.bh .bh-squads .sq {
   width: 46px;
@@ -609,13 +688,18 @@ html.belle #hud.bh.bh-lefty .bh-pow {
 html.belle #hud.bh.bh-lefty .bh-squads {
   left: auto;
   right: var(--bh-r);
+  justify-content: flex-end;
+}
+html.belle #hud.bh.bh-lefty .bh-frame {
+  left: auto;
+  right: calc(var(--bh-r) + var(--bh-army) + 8px);
 }
 
 /* ------------------------------------------- the command bar (dock) --- */
 html.belle #hud.bh .dock {
   position: absolute;
   top: auto;
-  left: calc(var(--bh-l) + var(--bh-army) + 10px);
+  left: calc(var(--bh-l) + var(--bh-army) + var(--bh-frame) + 10px);
   right: calc(var(--bh-r) + var(--bh-build) + 10px);
   bottom: var(--bh-b);
   z-index: 5;
@@ -625,7 +709,7 @@ html.belle #hud.bh .dock {
 }
 html.belle #hud.bh.bh-lefty .dock {
   left: calc(var(--bh-l) + var(--bh-build) + 10px);
-  right: calc(var(--bh-r) + var(--bh-army) + 10px);
+  right: calc(var(--bh-r) + var(--bh-army) + var(--bh-frame) + 10px);
 }
 html.belle #hud.bh .dock::before {
   display: none;
@@ -664,6 +748,7 @@ html.belle #hud.bh .chips {
 }
 html.belle #hud.bh .chip {
   min-height: 44px;
+  min-width: 44px;
   border-radius: 14px;
 }
 html.belle #hud.bh .chip[data-id="army"],
@@ -739,6 +824,7 @@ html.belle #hud.bh .bh-count {
     width: 100%;
   }
   html.belle #hud.bh[data-bh="busy"] .bh-army,
+  html.belle #hud.bh[data-bh="busy"] .bh-frame,
   html.belle #hud.bh[data-bh="busy"] .bh-build {
     display: none;
   }
@@ -916,6 +1002,7 @@ html.belle #hud.bh .bh-sheet .bb.ready::after {
     height: 5px;
   }
   html.belle #hud.bh.bh-sheet-open .bh-army,
+  html.belle #hud.bh.bh-sheet-open .bh-frame,
   html.belle #hud.bh.bh-sheet-open .bh-build,
   html.belle #hud.bh.bh-sheet-open .bh-pow,
   html.belle #hud.bh.bh-sheet-open .bh-squads,
@@ -1038,6 +1125,66 @@ html.belle #hud.bh .bh-pill.nat-empire {
   box-shadow: var(--lift), inset 3px 0 0 #8c2432;
 }
 
+/* ------------------------------------------------ touch targets ≥ 44 px --- */
+/* Slim pills keep their look; an invisible margin brings each tap target to 44 px at least (Apple's HIG
+   minimum), on every layout. (The clock and speed chip already have theirs, style.css; the battle meter
+   and the Relays pill in the pill's panel show, they aren't tapped.) */
+/* the selection's portraits: tap one to keep only that kind (hud.ts) */
+html.belle #hud.bh .selpanel .gi[data-kind] {
+  cursor: pointer;
+}
+html.belle #hud.bh .selpanel .gi[data-kind]::after {
+  content: "";
+  position: absolute;
+  inset: -3px -3px -4px;
+  border-radius: 50%;
+}
+html.belle #hud.bh .selpanel .gi[data-kind]:active {
+  transform: scale(0.92);
+}
+/* a producer's queue: tap an item to cancel it */
+html.belle #hud.bh .qi {
+  overflow: visible;
+}
+html.belle #hud.bh .qi::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+html.belle #hud.bh .qi .qp {
+  border-radius: 0 0 5px 5px;
+}
+/* the info card's ✕ */
+html.belle #hud.bh .card .x {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -12px -10px -12px auto;
+}
+/* zoom buttons (the "Boutons de zoom" setting) */
+html.belle #hud.bh .zb {
+  width: 44px;
+  height: 44px;
+}
+/* the drawer's handle: 26 px of grip along a bottom sheet, 20–22 px beside a side panel; 44 px of target */
+html.belle #hud.bh .bh-handle {
+  position: relative;
+}
+html.belle #hud.bh .bh-handle::before {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+@media (orientation: landscape) {
+  html.belle #hud.bh .bh-handle::before {
+    inset: 0 -12px;
+  }
+}
+@media (orientation: portrait) and (min-aspect-ratio: 13/20) and (max-width: 559px) {
+  html.belle #hud.bh:not(.bh-lefty) .bh-handle::before {
+    inset: 0 -12px;
+  }
+}
+
 /* ------------------------------ closed iPhone Duo: everything on the right side --- */
 /* A portrait screen wider and shorter than a phone's (the Duo's cover screen, ~466 × 678): as Apple asks for
    it, the controls go to the right side, under the right thumb, and the map keeps its height. The drawer is a
@@ -1093,5 +1240,12 @@ html.belle #hud.bh .bh-pill.nat-empire {
   html.belle #hud.bh:not(.bh-lefty) .bh-squads {
     left: auto;
     right: calc(var(--bh-r) + var(--bh-build) + 12px);
+    justify-content: flex-end;
+    max-width: calc(100vw - var(--bh-l) - var(--bh-r) - var(--bh-build) - 12px);
+  }
+  /* ▢ Cadre to the left of ⚔ Armée, the command bar's left edge past it */
+  html.belle #hud.bh:not(.bh-lefty) .bh-frame {
+    left: auto;
+    right: calc(var(--bh-r) + var(--bh-build) + 12px + var(--bh-army) + 8px);
   }
 }

@@ -2223,6 +2223,75 @@ button {
 .sq:active {
   transform: scale(0.95);
 }
+/* role chips (src/ui/command.ts): the whole army of one role, after the squads */
+.roles {
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.roles[hidden] {
+  display: none;
+}
+.rl {
+  position: relative;
+  pointer-events: auto;
+  width: 58px;
+  height: 42px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid var(--line-hi);
+  background: var(--panel);
+  color: var(--text);
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  box-shadow: var(--lift);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.rl .rli {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 26px;
+  height: 26px;
+  transform: translateX(-50%);
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  pointer-events: none;
+}
+.rl .rlc {
+  position: absolute;
+  right: 4px;
+  top: 3px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.rl .rll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.rl.on {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green) inset, 0 0 8px rgba(126, 242, 155, 0.35), var(--lift);
+}
+.rl.on .rll {
+  color: var(--green);
+}
+.rl:active {
+  transform: scale(0.95);
+}
 
 /* placement: build here / why not */
 .chip.place.go {

@@ -14,8 +14,10 @@
  *   landscape), and ⚡ above it (a ring for the Command meter) fanning out
  *   the four calldowns;
  * - bottom left, ⚔ Armée (badge: idle units): tap selects the army,
- *   long-press the idle ones, swipe up shows the squad chips 1–3 (shown
- *   anyway while units are selected or once a squad is saved);
+ *   long-press the idle ones, swipe up shows the squad chips 1–3 and the
+ *   role chips Infanterie / Blindés / Aviation (shown anyway while units are
+ *   selected or once a squad is saved); beside it ▢ Cadre: the next drag on
+ *   the map draws a selection box, no long-press needed;
  * - with a selection, placement or an armed calldown: the selection panel
  *   and its chips as one command bar along the bottom.
  *
@@ -221,14 +223,22 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   const pow = make("button", "bh-pow", `<span class="bh-ring"></span><span class="bh-face"><span class="bh-ic">⚡</span></span><span class="bh-n">0</span>`);
   pow.title = "Pouvoirs du commandant";
   const squadsBox = make("div", "bh-squads");
+  // (a dashed frame: the box it draws)
+  const frame = make(
+    "button",
+    "bh-frame",
+    `<svg class="bh-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2.6"/></svg>`
+  );
+  frame.title = "Cadre : la prochaine glissade sur la carte encadre les unités à sélectionner";
+  frame.setAttribute("aria-label", "Sélection en cadre");
   const armyBadge = army.querySelector<HTMLElement>(".bh-badge")!;
   const buildBadge = build.querySelector<HTMLElement>(".bh-badge")!;
   const powN = pow.querySelector<HTMLElement>(".bh-n")!;
-  for (const el of [army, build, pow, squadsBox]) {
+  for (const el of [army, frame, build, pow, squadsBox]) {
     el.dataset.edgeAvoid = "";
     shield(el);
   }
-  if (!h.spectator) root.append(squadsBox, army, pow, build);
+  if (!h.spectator) root.append(squadsBox, army, frame, pow, build);
 
   // ------------------------------------------------------------ drawer ---
   const sheet = make("div", "bh-sheet", `<button class="bh-handle" aria-label="Fermer"><i></i></button>`);
@@ -345,6 +355,12 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
       ctrl.selectArmy();
     });
   }
+  // ▢ Cadre: arm (or disarm) a box for the next drag on the map (GameScene's boxNow)
+  frame.addEventListener("click", () => {
+    sfx.play("click", 0.4);
+    ctrl.boxNext = !ctrl.boxNext;
+    if (ctrl.boxNext) h.tip("Glisse sur la carte pour encadrer les unités à sélectionner.");
+  });
   function selectIdle(): void {
     const idle = ctrl.idleArmy();
     if (idle.length === 0) return h.tip("Aucune unité inactive.");
@@ -394,6 +410,8 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
     }
     const squads = q(".squads");
     if (squads && squads.parentElement !== squadsBox) squadsBox.appendChild(squads);
+    const roles = q(".roles");
+    if (roles && roles.parentElement !== squadsBox) squadsBox.appendChild(roles);
     const ctx = q(".ctx");
     if (ctx && count.parentElement !== ctx) ctx.insertBefore(count, ctx.querySelector(".chiprow") ?? q("#chips"));
     const pw = q(".powers");
@@ -418,6 +436,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   let lastArmy = "";
   let lastPow = "";
   let lastSq = "";
+  let lastFrame = false;
   let lastDock = "";
   let lastCount = "";
   let varsAt = -Infinity;
@@ -498,6 +517,13 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
       pow.classList.toggle("armed", armed);
     }
     if (fanOpen) placeFan();
+    // ▢ Cadre lit while armed (a placement or an armed calldown has the map: it disarms)
+    if (ctrl.boxNext && (placing || armed)) ctrl.boxNext = false;
+    if (ctrl.boxNext !== lastFrame) {
+      lastFrame = ctrl.boxNext;
+      frame.classList.toggle("on", lastFrame);
+      frame.setAttribute("aria-pressed", String(lastFrame));
+    }
     // squads 1–3: with a selection, once one is saved, or swiped up (a peek lasts 6 s)
     if (squadPeek && selUnits === 0 && performance.now() - peekAt > 6000) squadPeek = false;
     const showSq = !placing && (selUnits > 0 || squadPeek || !ctrl.squads.isEmpty());
