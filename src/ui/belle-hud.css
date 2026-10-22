@@ -1037,3 +1037,61 @@ html.belle #hud.bh .bh-pill.nat-republique {
 html.belle #hud.bh .bh-pill.nat-empire {
   box-shadow: var(--lift), inset 3px 0 0 #8c2432;
 }
+
+/* ------------------------------ closed iPhone Duo: everything on the right side --- */
+/* A portrait screen wider and shorter than a phone's (the Duo's cover screen, ~466 × 678): as Apple asks for
+   it, the controls go to the right side, under the right thumb, and the map keeps its height. The drawer is a
+   side panel on the right (a bottom sheet would take half of a short screen), and ⚔ Armée joins 🔨 Construire
+   and ⚡ in the bottom-right corner. (Left-handed keeps its own layout.) */
+@media (orientation: portrait) and (min-aspect-ratio: 13/20) and (max-width: 559px) {
+  html.belle #hud.bh:not(.bh-lefty) .bh-sheet {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: calc(214px + env(safe-area-inset-right));
+    max-height: none;
+    flex-direction: row;
+    border-width: 0 0 0 1px;
+    border-radius: 22px 0 0 22px;
+    padding: var(--bh-t) env(safe-area-inset-right) env(safe-area-inset-bottom) 0;
+    transform: translateX(105%);
+  }
+  html.belle #hud.bh:not(.bh-lefty).bh-sheet-open .bh-sheet {
+    transform: none;
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-handle {
+    width: 20px;
+    height: auto;
+    align-self: stretch;
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-handle i {
+    width: 5px;
+    height: 46px;
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-sheet .buildbar {
+    padding: 6px 8px 10px 0;
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-sheet .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-sheet .bb {
+    height: 62px;
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-sheet .bb .ic {
+    width: 44px;
+    height: 44px;
+  }
+  html.belle #hud.bh:not(.bh-lefty).bh-sheet-open .minimap-wrap {
+    visibility: hidden;
+  }
+  /* ⚔ Armée beside 🔨 Construire, the squads above it */
+  html.belle #hud.bh:not(.bh-lefty) .bh-army {
+    left: auto;
+    right: calc(var(--bh-r) + var(--bh-build) + 12px);
+  }
+  html.belle #hud.bh:not(.bh-lefty) .bh-squads {
+    left: auto;
+    right: calc(var(--bh-r) + var(--bh-build) + 12px);
+  }
+}

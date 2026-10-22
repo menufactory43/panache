@@ -1140,3 +1140,38 @@ html.belle .qg .qg-go {
     grid-template-columns: 70px 1fr 70px;
   }
 }
+
+/* short landscape phones: the old menu column is a two-column grid (style.css), and the columns above are
+   display: contents there, so what they hold are grid items too: full width, the difficulty beside the modes */
+@media (orientation: landscape) and (max-height: 500px) {
+  :is(.sl-l, .sl-r) > * {
+    grid-column: 1 / -1;
+  }
+  .sl-r > #diff {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .sl-r > #diff button {
+    min-height: 40px;
+    font-size: 14px;
+  }
+}
+
+/* phones (the salon scrolls there): the way back stays at the top and Play at the bottom, in reach */
+@media (max-width: 859px), (max-height: 559px) {
+  .menu[data-view="salon"] .sl-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin-top: calc(-1 * max(10px, env(safe-area-inset-top)));
+    padding-top: max(10px, env(safe-area-inset-top));
+    padding-bottom: 8px;
+    background: linear-gradient(180deg, rgba(14, 8, 3, 0.96) 70%, rgba(14, 8, 3, 0));
+  }
+  .menu[data-view="salon"] #play {
+    position: sticky;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 5;
+    box-shadow: 0 0 0 1px #6e4b1c, 0 -10px 30px rgba(14, 8, 3, 0.85), 0 6px 18px rgba(0, 0, 0, 0.5);
+  }
+}
