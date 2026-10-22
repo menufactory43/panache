@@ -614,6 +614,29 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
       attackAt: 2600,
       targets: ["arsonval"]
     }),
+    // the briefing's play: one column — Creusot in front, Ateliers roulants behind — gathered short of
+    // the République's base, Fourgons first (★★), then the Bobines and the GQG
+    column: scriptPilot({
+      build: [],
+      harvesters: 0,
+      fab: (_w, f) => {
+        const n = (k: UnitKind) => f.filter((u) => u.kind === k).length;
+        return n("mastodon") < 4 ? (n("atelier") * 2 < n("mastodon") ? "atelier" : "mastodon") : n("atelier") < 2 ? "atelier" : "stinger";
+      },
+      air: (_w, f) => (f.filter((u) => u.kind === "gyroptere").length < 2 ? "gyroptere" : null),
+      hold: () => ({ x: 12, y: 36 }),
+      attackAt: 2500,
+      gather: () => ({ x: 30, y: 5 }),
+      objective: (w) => {
+        const army = [...w.units.values()].filter((u) => u.faction === "blue" && UNITS[u.kind].dps > 0);
+        const c = centroid(army);
+        const f = [...w.units.values()]
+          .filter((u) => u.faction === "red" && behaves(u.kind, "harvester") && isVisible(w, "blue", Math.floor(u.x), Math.floor(u.y)) && dist(u.x, u.y, c.x, c.y) < 9)
+          .sort((a, b) => dist(a.x, a.y, c.x, c.y) - dist(b.x, b.y, c.x, c.y))[0];
+        return f ? { id: f.id, x: f.x, y: f.y } : null;
+      },
+      targets: ["arsonval"]
+    }),
     rush: aiPilot("rush")
   },
   "col-des-aigles": {

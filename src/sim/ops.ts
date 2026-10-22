@@ -718,19 +718,25 @@ export const CAMPAIGN: OpDef[] = [
     nations: EMP_REP,
     tagline: "Le Maréchal, 3 000 de charbon et pas un de plus",
     brief:
-      "Tu reprends le Maréchal : sa colonne est prise par les glaces. Forges, Aérodrome et Haut-fourneau tiennent, mais il n'y a que 3 000 de charbon et pas un de plus — ni Fardier, ni revenu, ni appui. La République bâtit son économie au radium. Frappe avant qu'elle ne paie : rase son GQG avant 6:00.",
-    tip: "Tes usines fabriquent deux unités à la fois. Frappe leurs Fourgons pour freiner l'économie, garde l'armée groupée : Creusot devant, Ateliers roulants derrière.",
+      "Tu reprends le Maréchal : sa colonne est prise par les glaces. Forges, Aérodrome et Haut-fourneau tiennent, mais il n'y a que 3 000 de charbon et pas un de plus — ni Fardier, ni revenu, ni appui. La République bâtit son économie au radium ; une Bobine et sa Tour TSF gardent la route de son GQG. Frappe avant qu'elle ne paie : rase son GQG avant 6:00.",
+    tip: "Tes usines fabriquent deux unités à la fois. Garde l'armée groupée et lance-la d'un bloc : Creusot devant, Ateliers roulants derrière. Une poignée de Panhard ne passe pas la Bobine. Frappe leurs Fourgons pour freiner l'économie.",
     map: "frostbite",
     ai: { strategy: "boom", difficulty: "normal" },
-    // (an early strike wins it: the Boom's Préfabriqué economy snowballs past a 3 000 budget within
-    // three minutes — measured before the nations' balance pass, re-check after WP4)
-    rules: { playerBans: { units: ["harvester"] }, playerIncome: 0, calldowns: false },
+    // (after WP4 a bare GQG fell to six Panhard at 1:24 on every seed, and anything slower met a Boom
+    // that out-built the 3 000 budget: a Bobine and a guard stop the snipe, half income lets the
+    // whole column — Creusot, Ateliers, Gyroptères, sent in one block — grind through; sent piecemeal it still loses)
+    rules: { playerBans: { units: ["harvester"] }, playerIncome: 0, enemyIncome: 0.5, calldowns: false },
     scrap: 3000,
     setup(_w, o) {
       o.removeUnits("blue", "harvester");
       o.building("blue", "fab-plant", 8, 39);
       o.building("blue", "airpad", 4, 36);
       o.building("blue", "tech-lab", 8, 43);
+      // the République's GQG isn't bare: a Bobine on the road in, its Tour TSF, and a small guard
+      o.building("red", "radar", 40, 9);
+      o.building("red", "arsonval", 38, 6);
+      o.units("red", "jamais-contente", 2, 39, 8);
+      o.units("red", "lancer", 1, 41, 8);
     },
     goals: [{ type: "destroyHq" }, { type: "within", secs: 360 }],
     stars: [

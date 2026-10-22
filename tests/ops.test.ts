@@ -402,6 +402,14 @@ describe("Campagne de 1900: nations and arsenal (§3.2 WP8)", () => {
     }
   });
 
+  it("Avoirs gelés: the briefing's column wins with the Fourgons star; the 1:24 rush is no sure thing", () => {
+    const col = runOp("frozen-assets", PILOTS["frozen-assets"]!.column!, 1).result!;
+    expect(col.won).toBe(true);
+    expect(col.stars & 2).toBe(2);
+    const rushes = [1, 2, 3, 4, 5, 6].map((s) => runOp("frozen-assets", PILOTS["frozen-assets"]!.rusher!, s).result!);
+    expect(rushes.some((r) => !r.won)).toBe(true);
+  }, 30_000);
+
   it("La Dame de fer: the commander never orders the parade; it marches at DAME_MARCH, the Maréchal's army behind it", () => {
     const op = opById("dame-de-fer")!;
     const w = opWorld("dame-de-fer");
