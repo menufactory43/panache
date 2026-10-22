@@ -589,18 +589,21 @@ export const CAMPAIGN: OpDef[] = [
     nations: REP_EMP,
     tagline: "Abats les trois ballons captifs de l'Archipel",
     brief:
-      "Bretagne. Trois Ballons captifs impériaux espionnent nos côtes depuis les îles, chacun gardé par une Hotchkiss et des Fusiliers retranchés. Le Capitaine Valmont mène l'expédition à bord de son Hydroglisseur. Abats les trois ballons avant 12:00 — et ramène le Capitaine.",
-    tip: "Les Éole frappent les îles par les airs ; les Hydroglisseurs glissent sur les hauts-fonds. La Montgolfière dépose les pioupious sur les îles. Ne laisse pas Valmont seul face à une Hotchkiss.",
+      "Bretagne. Trois Ballons captifs impériaux espionnent nos côtes depuis les îles, chacun gardé par une Hotchkiss et des Fusiliers retranchés. Le Capitaine Valmont mène l'expédition à bord de son Hydroglisseur, un De Dion pour escorte. Abats les trois ballons avant 12:00 — et ramène le Capitaine : les Gyroptères le chassent dès la troisième minute.",
+    tip: "Les Éole frappent les îles par les airs ; les Hydroglisseurs glissent sur les hauts-fonds. Valmont ne tient pas seul contre les Gyroptères : garde-le près de son De Dion, sous une Batterie Ruggieri, et ne l'envoie pas à l'assaut.",
     map: "archipelago",
     // (tuned before the nations' balance pass: the Empire out-produces the République, so a slower,
     // poorer commander; re-check after WP4)
     // (doc: assaultValue 2400, 85 % income — softened while the Empire out-produces the République,
     // before the nations' balance pass: re-check after WP4)
-    ai: { strategy: "balanced", difficulty: "normal", tweak: { assaultValue: 3600 } },
+    // (harassGroup 4, not 2: pairs of Gyroptères found Valmont by the GQG at 2:40 every time, even sat at home)
+    ai: { strategy: "balanced", difficulty: "normal", tweak: { assaultValue: 3600, harassGroup: 4 } },
     rules: { enemyIncome: 0.7, enemyPowerBans: ["hammer"] },
     focus: { x: 20, y: 86 },
     setup(_w, o) {
       o.units("blue", "lancer", 1, 19.5, 87.5, "valmont", { rank: 3, name: "Valmont" });
+      // the Capitaine's air cover: Gyroptères hunt him from 2:30, and an Hydroglisseur alone barely scratches them
+      o.units("blue", "de-dion", 1, 20.5, 88.5, "escorte");
       // the spies' balloons: the centre island, the outer isle out in the gulf, the NW gulf isle
       for (const [x, y] of [[55, 50], [22, 18], [8, 33]] as [number, number][]) {
         o.building("red", "radar", x, y, "antenne");

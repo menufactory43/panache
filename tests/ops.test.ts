@@ -391,6 +391,17 @@ describe("Campagne de 1900: nations and arsenal (§3.2 WP8)", () => {
     expect(w.units.get(w.ops!.tags.colosse![0]!)!.kind).toBe("goliath");
   });
 
+  it("Les Côtes de granit: the Capitaine, left by the GQG with his De Dion, outlives the first air raids", () => {
+    for (const seed of [1, 2, 3]) {
+      const op = opById("granit")!;
+      const w = createMapWorld(op.map, { op: op.id, seed });
+      const red = opAiState(op, seed * 7 + 3)!;
+      const [valmont] = w.ops!.tags.valmont!;
+      for (let i = 0; i < 210 * TICK_RATE && !w.winner; i++) step(w, tickAi(w, "red", red));
+      expect(w.units.has(valmont!), `seed ${seed}`).toBe(true);
+    }
+  });
+
   it("La Dame de fer: the commander never orders the parade; it marches at DAME_MARCH, the Maréchal's army behind it", () => {
     const op = opById("dame-de-fer")!;
     const w = opWorld("dame-de-fer");
