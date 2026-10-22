@@ -26,7 +26,7 @@ import {
 } from "../src/sim/ops";
 import { step } from "../src/sim/sim";
 import type { World } from "../src/sim/types";
-import { hqOf, spawnUnit, terrainAt } from "../src/sim/world";
+import { hqOf, spawnBuilding, spawnUnit, terrainAt } from "../src/sim/world";
 import { ROSTERS } from "../src/sim/balance";
 import { inRoster, nationOf } from "../src/sim/rules";
 import { buildingMaxHp } from "../src/sim/nations";
@@ -204,6 +204,26 @@ describe("Ops: goals", () => {
     const t = w.tick;
     step(w, []);
     expect(w.tick).toBe(t);
+  });
+
+  it("the victory names everything achieved, not just the first goal", () => {
+    // the Instruction: the Hotchkiss and the Halles
+    const w = createMapWorld("proving-grounds", { op: "instruction", seed: 1 });
+    const t = spawnBuilding(w, "turret", "red", 27, 33);
+    const d = spawnBuilding(w, "depot", "red", 29, 31);
+    t.hp = 0;
+    d.hp = 0;
+    for (let i = 0; i < 2 * TICK_RATE && !w.winner; i++) step(w, []);
+    expect(w.ops!.result).toMatchObject({ won: true, reason: "Détruits : 1 Hotchkiss et 1 Halles adverses" });
+    // La Dame de fer: the Citadelle razed, then the Colosse
+    const p = opWorld("dame-de-fer");
+    hqOf(p, "red")!.hp = 0;
+    step(p, []);
+    expect(p.winner).toBeFalsy();
+    p.units.get(p.ops!.tags.colosse![0]!)!.hp = 0;
+    for (let i = 0; i < 2 * TICK_RATE && !p.winner; i++) step(p, []);
+    expect(p.ops!.result).toMatchObject({ won: true, reason: "Le Colosse est tombé · Citadelle ennemie détruite" });
+    expect(p.ops!.result!.stars & 2).toBe(2);
   });
 
   it("breaking a condition loses it; a broken star condition is remembered", () => {

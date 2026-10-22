@@ -666,7 +666,7 @@ export const CAMPAIGN: OpDef[] = [
     },
     goals: [
       { type: "destroy", kind: "arsonval", count: 3 },
-      { type: "destroy", kind: "tech-lab", count: 1, tag: "institut", short: "Observatoire" },
+      { type: "destroy", kind: "tech-lab", count: 1, tag: "institut", short: "Observatoire", done: "L'observatoire est rasé" },
       { type: "within", secs: 540 }
     ],
     stars: [
@@ -1494,25 +1494,56 @@ export function starsNow(w: World, op: OpDef, st: OpsState): number {
   return mask;
 }
 
+/** « A, B et C ». */
+const andList = (xs: string[]): string => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`);
+
+/** « Citadelle ennemie détruite » / « GQG ennemi détruit ». */
+const hqDownText = (w: World, st: OpsState): string =>
+  `${displayName("hq", nationOf(w, st.enemy))} ennemi${nationOf(w, st.enemy) === "empire" ? "e détruite" : " détruit"}`;
+
+/**
+ * What a won op achieved, every part of it: each achievement goal done (the
+ * plain kills gathered in one « Détruits : … »), and the enemy HQ if it fell
+ * without being a goal (an HQ kill wins any op) — « Le Colosse est tombé ·
+ * Citadelle ennemie détruite », « Détruits : 1 Hotchkiss et 1 Halles adverses ».
+ */
 function winReason(w: World, op: OpDef, st: OpsState): string {
-  const g = op.goals.find(isAchieveGoal);
-  if (!g) return "Objectif accompli";
-  const nat = goalNation(g, stNations(w, st));
-  switch (g.type) {
-    case "survive":
-      return `Tenu ${fmtClock(g.secs)}`;
-    case "waves":
-      return `${g.count} vagues repoussées`;
-    case "deliver":
-      return `Charbon livré : ${fmtNum(w.factions[st.player].stats.scrapHarvested)}`;
-    case "destroy":
-      if (g.done) return g.done;
-      return `Détruits : ${g.count} ${plural(g.kind, g.count, nat)} ${g.count > 1 ? "adverses" : "adverse"}`;
-    case "reach":
-      return `${g.short ?? "Objectif"} atteint`;
-    default:
-      return `${displayName("hq", nationOf(w, st.enemy))} ennemi${nationOf(w, st.enemy) === "empire" ? "e détruite" : " détruit"}`;
+  const parts: string[] = [];
+  const kills: { n: number; text: string }[] = [];
+  let killsAt = -1;
+  for (const g of op.goals.filter(isAchieveGoal)) {
+    if (evalGoal(w, st, g).state !== "done") continue;
+    const nat = goalNation(g, stNations(w, st));
+    switch (g.type) {
+      case "survive":
+        parts.push(`Tenu ${fmtClock(g.secs)}`);
+        break;
+      case "waves":
+        parts.push(`${g.count} vagues repoussées`);
+        break;
+      case "deliver":
+        parts.push(`Charbon livré : ${fmtNum(w.factions[st.player].stats.scrapHarvested)}`);
+        break;
+      case "destroy":
+        if (g.done) parts.push(g.done);
+        else {
+          if (killsAt < 0) killsAt = parts.length;
+          kills.push({ n: g.count, text: `${g.count} ${plural(g.kind, g.count, nat)}` });
+        }
+        break;
+      case "reach":
+        parts.push(`${g.short ?? "Objectif"} atteint`);
+        break;
+      default:
+        parts.push(hqDownText(w, st));
+    }
   }
+  if (kills.length) {
+    const many = kills.length > 1 || kills[0]!.n > 1;
+    parts.splice(killsAt, 0, `Détruits : ${andList(kills.map((k) => k.text))} ${many ? "adverses" : "adverse"}`);
+  }
+  if ((st.killed.hq ?? 0) > 0 && !op.goals.some((g) => g.type === "destroyHq")) parts.push(hqDownText(w, st));
+  return parts.length ? parts.join(" · ") : "Objectif accompli";
 }
 
 function failReason(g: Goal): string {
@@ -1587,7 +1618,11 @@ export function tickOps(w: World): void {
     const enemyHqFell = !!deathOf(w, (ev) => ev.buildingKind === "hq" && ev.faction === st.enemy);
     const hqName = displayName("hq", nationOf(w, won ? st.enemy : st.player));
     const fem = nationOf(w, won ? st.enemy : st.player) === "empire";
-    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, `${displayName(lastGoliath.unitKind!, nationOf(w, st.enemy))} ennemi détruit`, { x: lastGoliath.x, y: lastGoliath.y }, false);
+    // (won: name what was achieved — the op's goals done, the HQ — else the Goliath that fell last)
+    const achieved = won ? winReason(w, op, st) : "";
+    const named = won && achieved !== "Objectif accompli" ? achieved : null;
+    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, named ?? `${displayName(lastGoliath.unitKind!, nationOf(w, st.enemy))} ennemi détruit`, { x: lastGoliath.x, y: lastGoliath.y }, false);
+    else if (named) finish(w, op, st, true, named, enemyHqFell || !lastGoliath ? centreOf(w, st.enemy) : { x: lastGoliath.x, y: lastGoliath.y }, false);
     else
       finish(
         w, op, st, won,
