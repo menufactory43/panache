@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { tickAi } from "../src/sim/ai/commander";
-import { BUILDINGS, TERRAIN, TICK_RATE } from "../src/sim/balance";
+import { BUILDINGS, TERRAIN, TICK_RATE, UNITS } from "../src/sim/balance";
 import { buildingBlocker, unitBlocker } from "../src/sim/economy";
 import { createMapWorld } from "../src/sim/maps";
 import {
   CAMPAIGN,
   CAMPAIGN_OPEN_AT_START,
   CAMPAIGN_UNLOCKS,
+  DAME_MARCH,
   OPS,
   OPS_OPEN_AT_START,
   TRIALS,
@@ -25,7 +26,7 @@ import {
 } from "../src/sim/ops";
 import { step } from "../src/sim/sim";
 import type { World } from "../src/sim/types";
-import { hqOf, spawnUnit, terrainAt } from "../src/sim/world";
+import { hqOf, spawnBuilding, spawnUnit, terrainAt } from "../src/sim/world";
 import { ROSTERS } from "../src/sim/balance";
 import { inRoster, nationOf } from "../src/sim/rules";
 import { buildingMaxHp } from "../src/sim/nations";
@@ -205,6 +206,26 @@ describe("Ops: goals", () => {
     expect(w.tick).toBe(t);
   });
 
+  it("the victory names everything achieved, not just the first goal", () => {
+    // the Instruction: the Hotchkiss and the Halles
+    const w = createMapWorld("proving-grounds", { op: "instruction", seed: 1 });
+    const t = spawnBuilding(w, "turret", "red", 27, 33);
+    const d = spawnBuilding(w, "depot", "red", 29, 31);
+    t.hp = 0;
+    d.hp = 0;
+    for (let i = 0; i < 2 * TICK_RATE && !w.winner; i++) step(w, []);
+    expect(w.ops!.result).toMatchObject({ won: true, reason: "Détruits : 1 Hotchkiss et 1 Halles adverses" });
+    // La Dame de fer: the Citadelle razed, then the Colosse
+    const p = opWorld("dame-de-fer");
+    hqOf(p, "red")!.hp = 0;
+    step(p, []);
+    expect(p.winner).toBeFalsy();
+    p.units.get(p.ops!.tags.colosse![0]!)!.hp = 0;
+    for (let i = 0; i < 2 * TICK_RATE && !p.winner; i++) step(p, []);
+    expect(p.ops!.result).toMatchObject({ won: true, reason: "Le Colosse est tombé · Citadelle ennemie détruite" });
+    expect(p.ops!.result!.stars & 2).toBe(2);
+  });
+
   it("breaking a condition loses it; a broken star condition is remembered", () => {
     const w = opWorld("bridgehead-classique");
     for (const id of w.ops!.tags.bridge!) w.buildings.get(id)!.hp = 0;
@@ -254,6 +275,18 @@ describe("Ops: every op is beatable, and none is won by doing nothing", () => {
       expect(Math.max(...wins.map((r) => r.run.result!.stars))).toBeGreaterThan(1);
       const lazy = runOp(op.id, idlePilot, 1);
       expect(lazy.result?.won).toBe(false);
+    }, 30_000);
+
+  // stars no pilot had ever earned (playtest of 2026-10-22): each one a skilled pilot earns
+  for (const [id, pilot, bit, seeds] of [
+    ["carbonie", "siege", 2, [1]],
+    ["sky-pirates", "ace", 2, [1]],
+    ["decapitation", "careful", 2, [1]],
+    ["last-light", "caller", 4, [4, 5, 6]]
+  ] as const)
+    it(`${id}: the ${bit === 2 ? "★★" : "★★★"} star is within reach (${pilot})`, () => {
+      const runs = seeds.map((s) => runOp(id, PILOTS[id]![pilot]!, s).result);
+      expect(runs.some((r) => r?.won && (r.stars & bit) === bit)).toBe(true);
     }, 30_000);
 
   it("replays identically from the same seed", () => {
@@ -389,6 +422,54 @@ describe("Campagne de 1900: nations and arsenal (§3.2 WP8)", () => {
     expect(w.ops!.tags.colosse).toHaveLength(1);
     expect(w.units.get(w.ops!.tags.colosse![0]!)!.kind).toBe("goliath");
   });
+
+  it("Les Côtes de granit: the Capitaine, left by the GQG with his De Dion, outlives the first air raids", () => {
+    for (const seed of [1, 2, 3]) {
+      const op = opById("granit")!;
+      const w = createMapWorld(op.map, { op: op.id, seed });
+      const red = opAiState(op, seed * 7 + 3)!;
+      const [valmont] = w.ops!.tags.valmont!;
+      for (let i = 0; i < 210 * TICK_RATE && !w.winner; i++) step(w, tickAi(w, "red", red));
+      expect(w.units.has(valmont!), `seed ${seed}`).toBe(true);
+    }
+  });
+
+  it("Avoirs gelés: the briefing's column wins with the Fourgons star; the 1:24 rush is no sure thing", () => {
+    const col = runOp("frozen-assets", PILOTS["frozen-assets"]!.column!, 1).result!;
+    expect(col.won).toBe(true);
+    expect(col.stars & 2).toBe(2);
+    const rushes = [1, 2, 3, 4, 5, 6].map((s) => runOp("frozen-assets", PILOTS["frozen-assets"]!.rusher!, s).result!);
+    expect(rushes.some((r) => !r.won)).toBe(true);
+  }, 30_000);
+
+  it("La Dame de fer: the commander never orders the parade; it marches at DAME_MARCH, the Maréchal's army behind it", () => {
+    const op = opById("dame-de-fer")!;
+    const w = opWorld("dame-de-fer");
+    const red = opAiState(op, 5)!;
+    const parade = new Set([...w.ops!.tags.colosse!, ...w.ops!.tags.parade!]);
+    const [colosse] = w.ops!.tags.colosse!;
+    const home = { x: w.units.get(colosse!)!.x, y: w.units.get(colosse!)!.y };
+    for (let i = 0; i < (DAME_MARCH - 1) * TICK_RATE; i++) {
+      const cmds = tickAi(w, "red", red);
+      for (const c of cmds) if ("unitIds" in c) for (const id of c.unitIds) expect(parade.has(id), `${c.type} ${id}`).toBe(false);
+      step(w, cmds);
+    }
+    // nobody came for it: the Colosse still waits on the bridge road
+    const c = w.units.get(colosse!)!;
+    expect(Math.hypot(c.x - home.x, c.y - home.y)).toBeLessThan(2);
+    expect(w.ops!.events.march).toBeUndefined();
+    const army = [...w.units.values()].filter((u) => u.faction === "red" && UNITS[u.kind].dps > 0).map((u) => u.id);
+    while (w.ops!.events.march === undefined) step(w, tickAi(w, "red", red));
+    // the army on the field falls in behind the Colosse, and is the script's from then on
+    const held = new Set(w.ops!.held);
+    expect(held.size).toBeGreaterThan(parade.size);
+    for (const id of army) if (w.units.has(id)) expect(held.has(id)).toBe(true);
+  });
+
+  it("La Dame de fer ★★: the Citadelle can fall before the Colosse (the raid pilot)", () => {
+    const wins = [1, 2, 3, 4].map((s) => runOp("dame-de-fer", PILOTS["dame-de-fer"]!.raid!, s).result).filter((r) => r?.won && r.stars & 2);
+    expect(wins.length).toBeGreaterThan(0);
+  }, 30_000);
 
   it("reach: the convoy at the tunnel wins Le Col des Aigles", () => {
     const w = opWorld("col-des-aigles");

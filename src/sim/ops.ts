@@ -155,6 +155,8 @@ export interface OpDef {
   dressing?: "paris" | "polygone";
   /** The chapter's still (public/assets/ui/campaign/<art>.webp), shown under the first card. */
   art?: string;
+  /** Tags of enemy units the commander never orders (the op's script moves them: the Colosse's parade). */
+  aiHeld?: string[];
 }
 
 export interface OpResult {
@@ -194,6 +196,8 @@ export interface OpsState {
   landmarks: Record<number, "eiffel">;
   /** A script's one-shot events (name → tick it happened), read by the presenter. */
   events: Record<string, number>;
+  /** Enemy unit ids the commander never orders (OpDef.aiHeld): the script alone moves them. */
+  held?: number[];
   result: OpResult | null;
 }
 
@@ -585,18 +589,21 @@ export const CAMPAIGN: OpDef[] = [
     nations: REP_EMP,
     tagline: "Abats les trois ballons captifs de l'Archipel",
     brief:
-      "Bretagne. Trois Ballons captifs impériaux espionnent nos côtes depuis les îles, chacun gardé par une Hotchkiss et des Fusiliers retranchés. Le Capitaine Valmont mène l'expédition à bord de son Hydroglisseur. Abats les trois ballons avant 12:00 — et ramène le Capitaine.",
-    tip: "Les Éole frappent les îles par les airs ; les Hydroglisseurs glissent sur les hauts-fonds. La Montgolfière dépose les pioupious sur les îles. Ne laisse pas Valmont seul face à une Hotchkiss.",
+      "Bretagne. Trois Ballons captifs impériaux espionnent nos côtes depuis les îles, chacun gardé par une Hotchkiss et des Fusiliers retranchés. Le Capitaine Valmont mène l'expédition à bord de son Hydroglisseur, un De Dion pour escorte. Abats les trois ballons avant 12:00 — et ramène le Capitaine : les Gyroptères le chassent dès la troisième minute.",
+    tip: "Les Éole frappent les îles par les airs ; les Hydroglisseurs glissent sur les hauts-fonds. Valmont ne tient pas seul contre les Gyroptères : garde-le près de son De Dion, sous une Batterie Ruggieri, et ne l'envoie pas à l'assaut.",
     map: "archipelago",
     // (tuned before the nations' balance pass: the Empire out-produces the République, so a slower,
     // poorer commander; re-check after WP4)
     // (doc: assaultValue 2400, 85 % income — softened while the Empire out-produces the République,
     // before the nations' balance pass: re-check after WP4)
-    ai: { strategy: "balanced", difficulty: "normal", tweak: { assaultValue: 3600 } },
+    // (harassGroup 4, not 2: pairs of Gyroptères found Valmont by the GQG at 2:40 every time, even sat at home)
+    ai: { strategy: "balanced", difficulty: "normal", tweak: { assaultValue: 3600, harassGroup: 4 } },
     rules: { enemyIncome: 0.7, enemyPowerBans: ["hammer"] },
     focus: { x: 20, y: 86 },
     setup(_w, o) {
       o.units("blue", "lancer", 1, 19.5, 87.5, "valmont", { rank: 3, name: "Valmont" });
+      // the Capitaine's air cover: Gyroptères hunt him from 2:30, and an Hydroglisseur alone barely scratches them
+      o.units("blue", "de-dion", 1, 20.5, 88.5, "escorte");
       // the spies' balloons: the centre island, the outer isle out in the gulf, the NW gulf isle
       for (const [x, y] of [[55, 50], [22, 18], [8, 33]] as [number, number][]) {
         o.building("red", "radar", x, y, "antenne");
@@ -659,7 +666,7 @@ export const CAMPAIGN: OpDef[] = [
     },
     goals: [
       { type: "destroy", kind: "arsonval", count: 3 },
-      { type: "destroy", kind: "tech-lab", count: 1, tag: "institut", short: "Observatoire" },
+      { type: "destroy", kind: "tech-lab", count: 1, tag: "institut", short: "Observatoire", done: "L'observatoire est rasé" },
       { type: "within", secs: 540 }
     ],
     stars: [
@@ -711,19 +718,25 @@ export const CAMPAIGN: OpDef[] = [
     nations: EMP_REP,
     tagline: "Le Maréchal, 3 000 de charbon et pas un de plus",
     brief:
-      "Tu reprends le Maréchal : sa colonne est prise par les glaces. Forges, Aérodrome et Haut-fourneau tiennent, mais il n'y a que 3 000 de charbon et pas un de plus — ni Fardier, ni revenu, ni appui. La République bâtit son économie au radium. Frappe avant qu'elle ne paie : rase son GQG avant 6:00.",
-    tip: "Tes usines fabriquent deux unités à la fois. Frappe leurs Fourgons pour freiner l'économie, garde l'armée groupée : Creusot devant, Ateliers roulants derrière.",
+      "Tu reprends le Maréchal : sa colonne est prise par les glaces. Forges, Aérodrome et Haut-fourneau tiennent, mais il n'y a que 3 000 de charbon et pas un de plus — ni Fardier, ni revenu, ni appui. La République bâtit son économie au radium ; une Bobine et sa Tour TSF gardent la route de son GQG. Frappe avant qu'elle ne paie : rase son GQG avant 6:00.",
+    tip: "Tes usines fabriquent deux unités à la fois. Garde l'armée groupée et lance-la d'un bloc : Creusot devant, Ateliers roulants derrière. Une poignée de Panhard ne passe pas la Bobine. Frappe leurs Fourgons pour freiner l'économie.",
     map: "frostbite",
     ai: { strategy: "boom", difficulty: "normal" },
-    // (an early strike wins it: the Boom's Préfabriqué economy snowballs past a 3 000 budget within
-    // three minutes — measured before the nations' balance pass, re-check after WP4)
-    rules: { playerBans: { units: ["harvester"] }, playerIncome: 0, calldowns: false },
+    // (after WP4 a bare GQG fell to six Panhard at 1:24 on every seed, and anything slower met a Boom
+    // that out-built the 3 000 budget: a Bobine and a guard stop the snipe, half income lets the
+    // whole column — Creusot, Ateliers, Gyroptères, sent in one block — grind through; sent piecemeal it still loses)
+    rules: { playerBans: { units: ["harvester"] }, playerIncome: 0, enemyIncome: 0.5, calldowns: false },
     scrap: 3000,
     setup(_w, o) {
       o.removeUnits("blue", "harvester");
       o.building("blue", "fab-plant", 8, 39);
       o.building("blue", "airpad", 4, 36);
       o.building("blue", "tech-lab", 8, 43);
+      // the République's GQG isn't bare: a Bobine on the road in, its Tour TSF, and a small guard
+      o.building("red", "radar", 40, 9);
+      o.building("red", "arsonval", 38, 6);
+      o.units("red", "jamais-contente", 2, 39, 8);
+      o.units("red", "lancer", 1, 41, 8);
     },
     goals: [{ type: "destroyHq" }, { type: "within", secs: 360 }],
     stars: [
@@ -854,10 +867,10 @@ export const CAMPAIGN: OpDef[] = [
     act: 3,
     nations: REP_EMP,
     dressing: "polygone",
-    tagline: "Un groupe d'assaut, aucune usine, 3:00",
+    tagline: "Un groupe d'assaut, aucune usine, 2:30",
     brief:
-      "Le Polygone de Carbonie, quartier général du Maréchal. Ni base ni renforts : trois Hydroglisseurs (dont celui de Valmont), trois Jamais-Contente, deux Albatros, deux Blériot et deux Pasteur. La Citadelle s'abrite derrière une Batterie de 47, trois Hotchkiss, des Faucheux et un écran d'Éperviers. Abats-la en moins de 3:00.",
-    tip: "Avance en un seul groupe. Les Jamais-Contente tuent les Faucheux, les Blériot les Éperviers, les Albatros rasent les Batteries de 47 ; puis tout sur la Citadelle.",
+      "Le Polygone de Carbonie, quartier général du Maréchal. Ni base ni renforts : trois Hydroglisseurs (dont celui de Valmont), trois Jamais-Contente, deux Albatros, deux Blériot et deux Pasteur. La Citadelle s'abrite derrière une Batterie de 47, trois Hotchkiss, des Faucheux et un écran d'Éperviers. Abats-la en moins de 2:30.",
+    tip: "Avance en un seul groupe. Les Jamais-Contente tuent les Faucheux, les Blériot les Éperviers, les Albatros rasent les Batteries de 47 ; puis tout sur la Citadelle. Les Éperviers chassent aussi les Pasteur : garde-les en retrait tant qu'ils volent.",
     map: "proving-grounds",
     ai: { strategy: "balanced", difficulty: "hard", tweak: DEFENSIVE },
     focus: { x: 10, y: 39 },
@@ -882,10 +895,11 @@ export const CAMPAIGN: OpDef[] = [
       o.units("red", "epervier", 3, 38, 4);
       w.factions.red.scrap = 400;
     },
-    goals: [{ type: "destroyHq" }, { type: "within", secs: 180 }],
+    // (3:00 and 2:00 until the playtest: the strike group won in 1:06 on every seed; Difficile, the clock is tight now)
+    goals: [{ type: "destroyHq" }, { type: "within", secs: 150 }],
     stars: [
       { type: "maxLosses", n: 4 },
-      { type: "within", secs: 120 }
+      { type: "within", secs: 90 }
     ],
     cards: {
       before: ["Le Polygone de Carbonie. Le quartier général du Maréchal.", "Pas de renforts. Pas de seconde chance.", "Valmont : « En avant, et avec panache ! »"],
@@ -901,11 +915,12 @@ export const CAMPAIGN: OpDef[] = [
     nations: REP_EMP,
     tagline: "Dix vagues impériales avant l'aube",
     brief:
-      "Les faubourgs, en amont de Paris. Les colonnes impériales arrivent des bords de la carte toutes les 40 secondes, chaque fois plus fortes. Tu commences retranché : Garage, Chalais-Meudon, deux Bobines, une Ruggieri et deux Tours TSF. Ferrand termine le Zénith. Survis à 10 vagues.",
-    tip: "La barre du haut annonce la prochaine vague : prépare la riposte. Le Zénith arrive après la cinquième vague — garde-le près des Tours TSF et des Pasteur.",
+      "Les faubourgs, en amont de Paris. Les colonnes impériales arrivent des bords de la carte toutes les 43 secondes, chaque fois plus fortes. Tu commences retranché : Garage, Chalais-Meudon, deux Bobines, une Ruggieri et deux Tours TSF. Ferrand termine le Zénith. Survis à 10 vagues.",
+    tip: "La barre du haut annonce la prochaine vague : prépare la riposte. Le Zénith arrive après la cinquième vague — garde-le près des Tours TSF et des Pasteur. Le terrain dégagé, appelle la vague suivante en avance : du charbon, et du temps gagné.",
     map: "riverlands",
     ai: "survival",
-    // (interval 43, was 40: after WP4 the defender pilot held 9/12 seeds; 11/12 now — ★★★ moved with it)
+    // (interval 43, was 40: after WP4 the defender pilot held 9/12 seeds; 11/12 now — ★★★ moved with it:
+    // the tenth wave leaves at 7:12, so 7:30 was out of reach; 8:00 takes waves called in early)
     survival: { difficulty: "normal", firstWave: 45, interval: 43 },
     scrap: 1200,
     setup(_w, o) {
@@ -930,7 +945,7 @@ export const CAMPAIGN: OpDef[] = [
     goals: [{ type: "waves", count: 10 }],
     stars: [
       { type: "maxLosses", n: 2, buildings: true },
-      { type: "within", secs: 450 }
+      { type: "within", secs: 480 }
     ],
     cards: {
       before: ["Les faubourgs. Paris voit déjà la fumée.", "Ferrand : « Le Zénith sera prêt. Tenez ! »", "Dix vagues avant l'aube."],
@@ -948,12 +963,14 @@ export const CAMPAIGN: OpDef[] = [
     art: "chap-paris",
     tagline: "Le Colosse marche sur la Tour Eiffel",
     brief:
-      "Paris, 14 juillet. Le Gargantua du Maréchal, « le Colosse », a franchi la Seine et marche sur le Champ-de-Mars. La Tour Eiffel, coiffée d'une antenne TSF, alimente tout le quartier. Le Zénith est prêt, la base aussi, et tous les pouvoirs. Abats le Colosse avant 15:00 — et que la Dame de fer reste debout.",
-    tip: "Le Colosse perd ses armes une à une : frappe-le de loin avec les Branly, le Zénith et le Rayon Curie, tiens-le à distance de la Tour avec les Hydroglisseurs. Les Pasteur réparent le Zénith.",
+      "Paris, 14 juillet. Le Gargantua du Maréchal, « le Colosse », attend sa parade sur la route du pont, de l'autre côté de la Seine. À 2:30, il marche sur le Champ-de-Mars, toute l'armée impériale derrière lui. La Tour Eiffel, coiffée d'une antenne TSF, alimente tout le quartier. Le Zénith est prêt, la base aussi, et tous les pouvoirs. Abats le Colosse avant 15:00 — et que la Dame de fer reste debout.",
+    tip: "Le Colosse perd ses armes une à une : frappe-le de loin avec les Branly, le Zénith et le Rayon Curie, tiens-le à distance de la Tour avec les Hydroglisseurs. Pour la Citadelle, frappe juste avant la parade : passe le gué au sud, remonte l'autre rive, et reviens à temps.",
     map: "riverlands",
     ai: { strategy: "ironclad", difficulty: "hard", tweak: { assaultValue: 2000 } },
     scrap: 2000,
     focus: { x: 22, y: 38 },
+    // the parade is the script's alone: the commander never sends the Colosse ahead on its own
+    aiHeld: ["colosse", "parade"],
     setup(w, o) {
       // the Champ-de-Mars: the Tower stands in the open on our bank, by the bridge
       o.building("blue", "radar", 22, 37, "eiffel", { hpMult: 4, landmark: "eiffel" });
@@ -976,19 +993,34 @@ export const CAMPAIGN: OpDef[] = [
       o.building("red", "fab-plant", 46, 3);
       o.building("red", "turret", 42, 9);
       o.building("red", "flak-battery", 47, 10);
-      // the parade forms up by the Citadelle: the Colosse, its Creusot and an Atelier roulant
-      o.superUnit("red", "goliath", 44, 17, "colosse", { name: "le Colosse", rank: 2 });
-      o.units("red", "mastodon", 3, 41, 19, "parade");
-      o.units("red", "atelier", 1, 46, 19, "parade");
-      w.factions.red.scrap = 1500;
+      // the parade forms up on the road to the bridge, off the Citadelle: the Colosse, four Creusot,
+      // two Canons de 75, two Faucheux and two Ateliers roulants
+      o.superUnit("red", "goliath", 40, 21, "colosse", { name: "le Colosse", rank: 2 });
+      o.units("red", "mastodon", 4, 37, 23, "parade");
+      o.units("red", "mortar", 2, 41, 24, "parade");
+      o.units("red", "flak-crawler", 2, 43, 21, "parade");
+      o.units("red", "atelier", 2, 43, 24, "parade");
+      w.factions.red.scrap = 500;
     },
     script(w, st) {
-      // the parade sets off at MARCH, then keeps marching on the Tower (between fights)
+      // the parade sets off at MARCH — and the Maréchal's whole army falls in behind the Colosse —
+      // then keeps marching on the Tower (between fights); until then it stands by the Galerie
       const tower = (st.tags.eiffel ?? []).map((id) => w.buildings.get(id)).find((b) => !!b);
       if (!tower) return;
       const marching = w.tick >= DAME_MARCH * TICK_RATE;
-      if (marching && st.events.march === undefined) st.events.march = w.tick;
-      for (const id of [...(st.tags.colosse ?? []), ...(st.tags.parade ?? [])]) {
+      if (marching && st.events.march === undefined) {
+        st.events.march = w.tick;
+        const held = new Set(st.held ?? []);
+        for (const u of w.units.values())
+          if (u.faction === st.enemy && !held.has(u.id) && UNITS[u.kind].dps > 0 && !behaves(u.kind, "harvester") && !u.goliath) {
+            (st.tags.parade ??= []).push(u.id);
+            held.add(u.id);
+          }
+        st.held = [...held];
+      }
+      const colosse = (st.tags.colosse ?? []).map((id) => w.units.get(id)).find((u) => !!u);
+      const tc = buildingCenter(tower);
+      for (const id of st.held ?? []) {
         const u = w.units.get(id);
         if (!u) continue;
         if (!marching) {
@@ -996,8 +1028,21 @@ export const CAMPAIGN: OpDef[] = [
           continue;
         }
         if (w.tick % (4 * TICK_RATE) !== 0) continue;
-        const busy = u.order.type === "attack" || u.autoTargetId !== null || (u.goliath && u.goliath.mode !== "walking");
-        if (!busy) u.order = { type: "attack", targetId: tower.id };
+        if (u === colosse) {
+          const busy = u.order.type === "attack" || u.autoTargetId !== null || (u.goliath && u.goliath.mode !== "walking");
+          if (!busy) {
+            u.order = { type: "attack", targetId: tower.id };
+            u.path = null;
+          }
+          continue;
+        }
+        // the escort keeps step with the Colosse, a little ahead of it, fighting whatever it meets
+        if (u.autoTargetId !== null || u.order.type === "attack") continue;
+        const lead = colosse ?? u;
+        const d = Math.max(1, hypot(tc.x - lead.x, tc.y - lead.y));
+        const ahead = Math.min(3, d);
+        u.order = { type: "attackMove", x: lead.x + ((tc.x - lead.x) / d) * ahead, y: lead.y + ((tc.y - lead.y) / d) * ahead };
+        u.path = null;
       }
     },
     goals: [
@@ -1289,6 +1334,7 @@ export function setupOp(w: World, id: string): void {
     }
   };
   op.setup?.(w, helpers);
+  if (op.aiHeld?.length) st.held = op.aiHeld.flatMap((t) => st.tags[t] ?? []);
   // the nations' building HP (and a landmark's multiplier) for everything the setup placed
   if (op.nations) nationStart(w);
   else for (const b of w.buildings.values()) if (b.hpMult) b.hp = BUILDINGS[b.kind].hp * b.hpMult;
@@ -1448,25 +1494,56 @@ export function starsNow(w: World, op: OpDef, st: OpsState): number {
   return mask;
 }
 
+/** « A, B et C ». */
+const andList = (xs: string[]): string => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`);
+
+/** « Citadelle ennemie détruite » / « GQG ennemi détruit ». */
+const hqDownText = (w: World, st: OpsState): string =>
+  `${displayName("hq", nationOf(w, st.enemy))} ennemi${nationOf(w, st.enemy) === "empire" ? "e détruite" : " détruit"}`;
+
+/**
+ * What a won op achieved, every part of it: each achievement goal done (the
+ * plain kills gathered in one « Détruits : … »), and the enemy HQ if it fell
+ * without being a goal (an HQ kill wins any op) — « Le Colosse est tombé ·
+ * Citadelle ennemie détruite », « Détruits : 1 Hotchkiss et 1 Halles adverses ».
+ */
 function winReason(w: World, op: OpDef, st: OpsState): string {
-  const g = op.goals.find(isAchieveGoal);
-  if (!g) return "Objectif accompli";
-  const nat = goalNation(g, stNations(w, st));
-  switch (g.type) {
-    case "survive":
-      return `Tenu ${fmtClock(g.secs)}`;
-    case "waves":
-      return `${g.count} vagues repoussées`;
-    case "deliver":
-      return `Charbon livré : ${fmtNum(w.factions[st.player].stats.scrapHarvested)}`;
-    case "destroy":
-      if (g.done) return g.done;
-      return `Détruits : ${g.count} ${plural(g.kind, g.count, nat)} ${g.count > 1 ? "adverses" : "adverse"}`;
-    case "reach":
-      return `${g.short ?? "Objectif"} atteint`;
-    default:
-      return `${displayName("hq", nationOf(w, st.enemy))} ennemi${nationOf(w, st.enemy) === "empire" ? "e détruite" : " détruit"}`;
+  const parts: string[] = [];
+  const kills: { n: number; text: string }[] = [];
+  let killsAt = -1;
+  for (const g of op.goals.filter(isAchieveGoal)) {
+    if (evalGoal(w, st, g).state !== "done") continue;
+    const nat = goalNation(g, stNations(w, st));
+    switch (g.type) {
+      case "survive":
+        parts.push(`Tenu ${fmtClock(g.secs)}`);
+        break;
+      case "waves":
+        parts.push(`${g.count} vagues repoussées`);
+        break;
+      case "deliver":
+        parts.push(`Charbon livré : ${fmtNum(w.factions[st.player].stats.scrapHarvested)}`);
+        break;
+      case "destroy":
+        if (g.done) parts.push(g.done);
+        else {
+          if (killsAt < 0) killsAt = parts.length;
+          kills.push({ n: g.count, text: `${g.count} ${plural(g.kind, g.count, nat)}` });
+        }
+        break;
+      case "reach":
+        parts.push(`${g.short ?? "Objectif"} atteint`);
+        break;
+      default:
+        parts.push(hqDownText(w, st));
+    }
   }
+  if (kills.length) {
+    const many = kills.length > 1 || kills[0]!.n > 1;
+    parts.splice(killsAt, 0, `Détruits : ${andList(kills.map((k) => k.text))} ${many ? "adverses" : "adverse"}`);
+  }
+  if ((st.killed.hq ?? 0) > 0 && !op.goals.some((g) => g.type === "destroyHq")) parts.push(hqDownText(w, st));
+  return parts.length ? parts.join(" · ") : "Objectif accompli";
 }
 
 function failReason(g: Goal): string {
@@ -1541,7 +1618,11 @@ export function tickOps(w: World): void {
     const enemyHqFell = !!deathOf(w, (ev) => ev.buildingKind === "hq" && ev.faction === st.enemy);
     const hqName = displayName("hq", nationOf(w, won ? st.enemy : st.player));
     const fem = nationOf(w, won ? st.enemy : st.player) === "empire";
-    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, `${displayName(lastGoliath.unitKind!, nationOf(w, st.enemy))} ennemi détruit`, { x: lastGoliath.x, y: lastGoliath.y }, false);
+    // (won: name what was achieved — the op's goals done, the HQ — else the Goliath that fell last)
+    const achieved = won ? winReason(w, op, st) : "";
+    const named = won && achieved !== "Objectif accompli" ? achieved : null;
+    if (lastGoliath && !enemyHqFell) finish(w, op, st, true, named ?? `${displayName(lastGoliath.unitKind!, nationOf(w, st.enemy))} ennemi détruit`, { x: lastGoliath.x, y: lastGoliath.y }, false);
+    else if (named) finish(w, op, st, true, named, enemyHqFell || !lastGoliath ? centreOf(w, st.enemy) : { x: lastGoliath.x, y: lastGoliath.y }, false);
     else
       finish(
         w, op, st, won,

@@ -295,7 +295,14 @@ function knownOrVisible(w: World, id: number): boolean {
  * then fighters hunt aircraft and fly cover, ground units kill Flak first,
  * bombers take out anti-air sites and turrets, and everyone finishes the HQ.
  */
-export const strikePilot: PilotFactory = () => {
+export const strikePilot: PilotFactory = () => strike(false);
+
+/**
+ * `careful` (Décapitation ★★, four losses at most): the Pasteur keep out of
+ * the Éperviers' way, then mend from outside the Citadelle's reach instead of
+ * over the melee.
+ */
+function strike(careful: boolean): Pilot {
   let gathered = false;
   return (w) => {
     if (w.tick % TICK_RATE !== 0) return [];
@@ -334,19 +341,30 @@ export const strikePilot: PilotFactory = () => {
     if (fighters.length)
       cmds.push(air ? { type: "attack", faction: "blue", unitIds: ids(fighters), targetId: air.id } : { type: "attackMove", faction: "blue", unitIds: ids(fighters), x: c.x, y: c.y });
     // (Rush the HQ once the first line is down: a hard commander rebuilds turrets faster than they fall)
-    const gT = (flak && dist(flak.x, flak.y, c.x, c.y) < 6 ? flak : null) ?? (w.tick < 60 * TICK_RATE ? tur : null) ?? hqT ?? sam;
+    const near = flak && dist(flak.x, flak.y, c.x, c.y) < 6 ? flak : null;
+    const gT = near ?? (w.tick < 60 * TICK_RATE ? tur : null) ?? hqT ?? sam;
     if (ground.length && gT) cmds.push({ type: "attack", faction: "blue", unitIds: ids(ground), targetId: gT.id });
     else if (ground.length) cmds.push({ type: "attackMove", faction: "blue", unitIds: ids(ground), x: eHq.x, y: eHq.y });
+    const g = centroid(ground.length ? ground : mine);
+    /** `p`, pulled back toward home until it is `gap` tiles from the Citadelle. */
+    const back = (p: Pt, gap: number): Pt => {
+      const d = dist(p.x, p.y, eHq.x, eHq.y);
+      if (d >= gap) return p;
+      const len = Math.max(1, dist(eHq.x, eHq.y, hqC.x, hqC.y));
+      return { x: eHq.x + ((hqC.x - eHq.x) / len) * gap, y: eHq.y + ((hqC.y - eHq.y) / len) * gap };
+    };
     const bT = sam ?? tur ?? hqT;
     if (bombers.length && bT) cmds.push({ type: "attack", faction: "blue", unitIds: ids(bombers), targetId: bT.id });
     else if (bombers.length) cmds.push({ type: "attackMove", faction: "blue", unitIds: ids(bombers), x: eHq.x, y: eHq.y });
     if (healers.length) {
-      const g = centroid(ground.length ? ground : mine);
-      cmds.push({ type: "move", faction: "blue", unitIds: ids(healers), x: g.x, y: g.y });
+      // (careful: and while Éperviers fly, back at the staging point, out of their way)
+      const hunters = foes.some((u) => UNITS[u.kind].domain === "air" && UNITS[u.kind].targets !== "ground" && UNITS[u.kind].dps > 0);
+      const p = careful ? back(g, hunters ? 10 : 8) : g;
+      cmds.push({ type: "move", faction: "blue", unitIds: ids(healers), x: p.x, y: p.y });
     }
     return cmds;
   };
-};
+}
 
 /** Last Stand ops: a defender that counters the announced wave and fights near the base. */
 export const defenderPilot: PilotFactory = (w0) => {
@@ -373,6 +391,25 @@ export const defenderPilot: PilotFactory = (w0) => {
     attackAt: Infinity
   })(w0, 0);
 };
+
+/**
+ * Dernière lueur ★★★ (« en moins de 8:00 »): the defender, who calls the next
+ * wave in early whenever the last one is beaten and the army stands at least
+ * `ready` scrap strong — what the briefing's tip suggests.
+ */
+export const callerPilot =
+  (ready: number, upTo = 9): PilotFactory =>
+  (w0, seed) => {
+    const base = defenderPilot(w0, seed);
+    return (w) => {
+      const cmds = base(w);
+      if (w.tick % TICK_RATE !== 0) return cmds;
+      const st = survivalStatus(w);
+      const army = [...w.units.values()].filter((u) => u.faction === "blue" && UNITS[u.kind].dps > 0 && !isWorker(u.kind));
+      if (st && st.wave >= 1 && st.wave < upTo && st.callBonus > 0 && armyValue(army) >= ready) cmds.push({ type: "callWave", faction: "blue" });
+      return cmds;
+    };
+  };
 
 // ------------------------------------------------------- campaign pilots ---
 
@@ -432,14 +469,16 @@ export const escortPilot =
   };
 
 /** La Dame de fer: hold the Champ-de-Mars, everything (and the Zénith) on the Colosse when it comes. */
-export const towerPilot: PilotFactory = (w0) => {
+export const towerPilot: PilotFactory = (w0) => towerDefence(w0, (army) => (army.length % 3 === 2 ? "branly" : "lancer"));
+
+function towerDefence(w0: World, fab: (army: Unit[]) => UnitKind): Pilot {
   const tower = w0.buildings.get(tagged(w0, "eiffel")[0]!)!;
   const t = buildingCenter(tower);
   const base = scriptPilot({
     build: ["fab-plant", "radar", "turret"],
     anchor: (_w, k) => (k === "turret" || k === "radar" ? { x: t.x + 2, y: t.y - 2 } : { x: 10, y: 46 }),
     harvesters: 5,
-    fab: (_w, army) => (army.length % 3 === 2 ? "branly" : "lancer"),
+    fab: (_w, army) => fab(army),
     air: (_w, army) => (army.filter((u) => behaves(u.kind, "mender")).length < 3 ? "mender" : "wasp"),
     hold: () => ({ x: t.x + 1, y: t.y + 2 }),
     attackAt: Infinity
@@ -454,6 +493,116 @@ export const towerPilot: PilotFactory = (w0) => {
     if (dist(colosse.x, colosse.y, t.x, t.y) < 16) {
       const free = army.filter((u) => !(u.order.type === "attack" && u.order.targetId === colosse.id));
       if (free.length) cmds.push({ type: "attack", faction: "blue", unitIds: free.map((u) => u.id), targetId: colosse.id });
+    }
+    return cmds;
+  };
+}
+
+/**
+ * La Dame de fer for ★★: the tower pilot, plus a raid on the Citadelle while
+ * the parade still waits on the bridge road — the ground army (not Valmont)
+ * crosses the southern ford, goes up the far bank, razes the Citadelle, then
+ * comes home for the Colosse; the Zénith, the Éole and the Bobines hold the Tower.
+ */
+export const towerRaidPilot =
+  (leave: number): PilotFactory =>
+  (w0) => {
+    const base = towerPilot(w0, 0);
+    // (over the southern ford, then up the far bank, wide of the parade on the bridge road)
+    const route: Pt[] = [{ x: 34, y: 42 }, { x: 46, y: 44 }, { x: 52, y: 36 }, { x: 54, y: 24 }, { x: 54, y: 14 }, { x: 52, y: 9 }];
+    let leg = 0;
+    let raiders: Set<number> | null = null;
+    return (w) => {
+      if (w.tick % TICK_RATE !== 0) return base(w);
+      const eHq = hqOf(w, "red");
+      if (!raiders && w.tick >= leave * TICK_RATE) {
+        const hero = new Set(tagged(w, "valmont"));
+        raiders = new Set(
+          [...w.units.values()].filter((u) => u.faction === "blue" && !hero.has(u.id) && UNITS[u.kind].domain === "ground" && UNITS[u.kind].dps > 0 && !UNITS[u.kind].squad).map((u) => u.id)
+        );
+      }
+      const out = !!raiders && !!eHq;
+      const cmds: Command[] = [];
+      for (const c of base(w)) {
+        if ("unitIds" in c && out) {
+          const ids = c.unitIds.filter((id) => !raiders!.has(id));
+          if (ids.length) cmds.push({ ...c, unitIds: ids });
+        } else cmds.push(c);
+      }
+      if (!out) return cmds;
+      const group = [...raiders!].map((id) => w.units.get(id)).filter((u): u is Unit => !!u);
+      if (!group.length) return cmds;
+      const c = centroid(group);
+      if (leg < route.length) {
+        const p = route[leg]!;
+        if (dist(c.x, c.y, p.x, p.y) < 3) leg++;
+        else if (w.tick % (3 * TICK_RATE) === 0) cmds.push({ type: "move", faction: "blue", unitIds: group.map((u) => u.id), x: p.x, y: p.y });
+        if (leg < route.length) return cmds;
+      }
+      // the Hotchkiss and the Batterie first if they're close, then the Citadelle
+      const near = knownBuildings(w, "blue").filter((b) => (b.kind === "turret" || b.kind === "flak-battery") && w.buildings.has(b.id) && dist(b.tx + 0.5, b.ty + 0.5, c.x, c.y) < 6);
+      const target = near[0]?.id ?? eHq!.id;
+      const free = group.filter((u) => !(u.order.type === "attack" && u.order.targetId === target));
+      if (free.length) cmds.push({ type: "attack", faction: "blue", unitIds: free.map((u) => u.id), targetId: target });
+      return cmds;
+    };
+  };
+
+/**
+ * Pendant ce temps, en Carbonie… for ★★ (five losses at most): a siege, not
+ * an assault. The Mortiers de 280 stay at their 11 tiles behind a screen of
+ * Panhard that the Estafette leads just ahead (it spots); they shell the Tour
+ * TSF first (the Bobines go dark), then the Bobines, then the observatory.
+ * The screen fights whatever sorties; nobody walks into the Bobines.
+ */
+export const siegePilot: PilotFactory = (w0, seed) => {
+  const base = scriptPilot({
+    build: ["fab-plant"],
+    harvesters: 4,
+    fab: (_w, f) => (f.filter((u) => u.kind === "mortier-280").length < 3 ? "mortier-280" : f.filter((u) => u.kind === "stinger").length < 6 ? "stinger" : null),
+    hold: () => ({ x: 14, y: 50 }),
+    attackAt: Infinity,
+    noArmy: true
+  })(w0, seed);
+  let going = false;
+  return (w) => {
+    const cmds = base(w);
+    if (w.tick % TICK_RATE !== 0) return cmds;
+    const mine = [...w.units.values()].filter((u) => u.faction === "blue");
+    const mortars = mine.filter((u) => u.kind === "mortier-280");
+    const screen = mine.filter((u) => UNITS[u.kind].dps > 0 && u.kind !== "mortier-280" && !isWorker(u.kind));
+    const spotters = mine.filter((u) => u.kind === "estafette");
+    if (!going && mortars.length >= 3 && screen.length >= 6) going = true;
+    if (!going) {
+      const home = { x: 14, y: 50 };
+      const strays = [...mortars, ...screen].filter((u) => u.order.type === "idle" && u.autoTargetId === null && dist(u.x, u.y, home.x, home.y) > 5);
+      if (strays.length) cmds.push({ type: "attackMove", faction: "blue", unitIds: strays.map((u) => u.id), x: home.x, y: home.y });
+      return cmds;
+    }
+    const known = knownBuildings(w, "blue").filter((b) => w.buildings.has(b.id));
+    const mc = centroid(mortars.length ? mortars : screen);
+    const pick = (k: BuildingKind) => known.filter((b) => b.kind === k).sort((a, b) => dist(a.tx, a.ty, mc.x, mc.y) - dist(b.tx, b.ty, mc.x, mc.y))[0];
+    const goal = pick("radar") ?? pick("arsonval") ?? known.find((b) => tagged(w, "institut").includes(b.id));
+    const at = goal ? { x: goal.tx + BUILDINGS[goal.kind].size / 2, y: goal.ty + BUILDINGS[goal.kind].size / 2 } : { x: 50, y: 13 };
+    const d = Math.max(1, dist(mc.x, mc.y, at.x, at.y));
+    const toward = (k: number) => ({ x: mc.x + ((at.x - mc.x) / d) * Math.min(k, d), y: mc.y + ((at.y - mc.y) / d) * Math.min(k, d) });
+    // the Mortiers: on the target once it's in reach, else up the road behind the screen
+    if (mortars.length) {
+      if (goal && d <= 11.5) {
+        const free = mortars.filter((u) => !(u.order.type === "attack" && u.order.targetId === goal.id));
+        if (free.length) cmds.push({ type: "attack", faction: "blue", unitIds: free.map((u) => u.id), targetId: goal.id });
+      } else if (w.tick % (3 * TICK_RATE) === 0) {
+        const p = toward(Math.max(0, d - 10.5));
+        cmds.push({ type: "move", faction: "blue", unitIds: mortars.map((u) => u.id), x: p.x, y: p.y });
+      }
+    }
+    // the screen: three tiles ahead of the guns, fighting what comes out; the Estafette with it
+    if (w.tick % (2 * TICK_RATE) === 0) {
+      const p = toward(3);
+      const idle = screen.filter((u) => u.autoTargetId === null);
+      if (idle.length) cmds.push({ type: "attackMove", faction: "blue", unitIds: idle.map((u) => u.id), x: p.x, y: p.y });
+      const q = toward(4.5);
+      if (spotters.length) cmds.push({ type: "move", faction: "blue", unitIds: spotters.map((u) => u.id), x: q.x, y: q.y });
     }
     return cmds;
   };
@@ -536,7 +685,8 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
       targets: ["radar", "arsonval", "tech-lab"],
       targetRadius: 30
     }),
-    balanced: aiPilot("balanced")
+    balanced: aiPilot("balanced"),
+    siege: siegePilot
   },
   "iron-tide": {
     idle: idlePilot,
@@ -560,6 +710,29 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
       air: (_w, f) => (vehicles(f) % 2 === 0 ? "gyroptere" : "epervier"),
       hold: () => ({ x: 12, y: 36 }),
       attackAt: 2600,
+      targets: ["arsonval"]
+    }),
+    // the briefing's play: one column — Creusot in front, Ateliers roulants behind — gathered short of
+    // the République's base, Fourgons first (★★), then the Bobines and the GQG
+    column: scriptPilot({
+      build: [],
+      harvesters: 0,
+      fab: (_w, f) => {
+        const n = (k: UnitKind) => f.filter((u) => u.kind === k).length;
+        return n("mastodon") < 4 ? (n("atelier") * 2 < n("mastodon") ? "atelier" : "mastodon") : n("atelier") < 2 ? "atelier" : "stinger";
+      },
+      air: (_w, f) => (f.filter((u) => u.kind === "gyroptere").length < 2 ? "gyroptere" : null),
+      hold: () => ({ x: 12, y: 36 }),
+      attackAt: 2500,
+      gather: () => ({ x: 30, y: 5 }),
+      objective: (w) => {
+        const army = [...w.units.values()].filter((u) => u.faction === "blue" && UNITS[u.kind].dps > 0);
+        const c = centroid(army);
+        const f = [...w.units.values()]
+          .filter((u) => u.faction === "red" && behaves(u.kind, "harvester") && isVisible(w, "blue", Math.floor(u.x), Math.floor(u.y)) && dist(u.x, u.y, c.x, c.y) < 9)
+          .sort((a, b) => dist(a.x, a.y, c.x, c.y) - dist(b.x, b.y, c.x, c.y))[0];
+        return f ? { id: f.id, x: f.x, y: f.y } : null;
+      },
       targets: ["arsonval"]
     }),
     rush: aiPilot("rush")
@@ -597,6 +770,16 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
       attackAt: 2800,
       targets: ["flak-battery", "turret"]
     }),
+    // ★★ (twelve losses at most): the same raid, but one Patrie only — it finds the batteries, and isn't replaced
+    ace: scriptPilot({
+      build: ["airpad", "radar"],
+      harvesters: 4,
+      air: (w, f) =>
+        !f.some((u) => u.kind === "scout") && !w.ops?.lost.scout ? "scout" : f.length % 4 === 1 ? "raptor" : f.length % 4 === 3 ? "wasp" : "hornet",
+      hold: () => ({ x: 12, y: 50 }),
+      attackAt: 2800,
+      targets: ["flak-battery", "turret"]
+    }),
     skyforce: aiPilot("skyforce")
   },
   "glass-jaw": {
@@ -614,9 +797,9 @@ export const PILOTS: Record<string, Record<string, PilotFactory>> = {
     }),
     balanced: aiPilot("balanced")
   },
-  decapitation: { idle: idlePilot, strike: strikePilot },
-  "last-light": { idle: idlePilot, defender: defenderPilot },
-  "dame-de-fer": { idle: idlePilot, tower: towerPilot },
+  decapitation: { idle: idlePilot, strike: strikePilot, careful: () => strike(true) },
+  "last-light": { idle: idlePilot, defender: defenderPilot, caller: callerPilot(0) },
+  "dame-de-fer": { idle: idlePilot, tower: towerPilot, raid: towerRaidPilot(115) },
   // ---- the Trials (Classique)
   "bridgehead-classique": {
     idle: idlePilot,
