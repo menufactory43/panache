@@ -1,7 +1,7 @@
 /**
- * Anonymous play counters (relay/README.md « Statistiques »): what is played,
- * never who. One beacon to the duel relay when a match starts and when one is
- * banked: no id, no cookie, nothing stored here. Only the published game
+ * Anonymous counters (relay/README.md « Statistiques »): how many visits and
+ * what is played, never who. One beacon to the duel relay on a visit, when a
+ * match starts and when one is banked: no id, no cookie. Only the published game
  * counts: the dev server, robots (the smoke test and the tools) and every
  * other page send nothing, and the relay drops what doesn't come from the
  * published page.
@@ -10,22 +10,43 @@ import { isCampaignOp } from "../sim/ops";
 import { gameMode, isDuelMatch } from "./mode";
 
 const STAT_URL = "https://panache-relais.meffysto.workers.dev/stat";
-/**
- * Visits: Cloudflare Web Analytics (cookieless). The site's token from the
- * dashboard (Web Analytics → menufactory43.github.io); empty: no beacon.
- */
-const WEB_ANALYTICS_TOKEN = "";
-
 const silent = (): boolean => import.meta.env.DEV || navigator.webdriver === true;
 
-/** Load the visit beacon once, at boot (published game only). */
+const SEEN_KEY = "panache.stats.vu";
+const DAY_KEY = "panache.stats.jour";
+
+/** The layout the hub uses on this screen (ui/qg.css), as the counters name it. */
+function screenKind(): string {
+  const w = innerWidth;
+  const h = innerHeight;
+  if (w <= h) return w / h >= 0.65 && w < 560 ? "duo" : w >= 560 && h >= 800 ? "tablette" : "portrait";
+  return h <= 500 ? "paysage" : w >= 860 && h >= 560 ? "large" : "paysage";
+}
+
+/**
+ * Count the visit, at boot (published game only): every page load
+ * (« visite:page »), the first of the day on this device (« visite:jour »,
+ * with its screen, « ecran:… ») and the very first (« visite:nouveau »). The
+ * device keeps only a date and a flag, to know whether it was counted; nothing
+ * identifies it.
+ */
 export function countVisit(): void {
-  if (!WEB_ANALYTICS_TOKEN || silent() || location.hostname !== "menufactory43.github.io") return;
-  const s = document.createElement("script");
-  s.defer = true;
-  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
-  s.dataset.cfBeacon = JSON.stringify({ token: WEB_ANALYTICS_TOKEN });
-  document.head.appendChild(s);
+  if (silent() || location.hostname !== "menufactory43.github.io") return;
+  track("visite:page");
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(DAY_KEY) !== day) {
+      localStorage.setItem(DAY_KEY, day);
+      track("visite:jour");
+      track(`ecran:${screenKind()}`);
+    }
+    if (!localStorage.getItem(SEEN_KEY)) {
+      localStorage.setItem(SEEN_KEY, "1");
+      track("visite:nouveau");
+    }
+  } catch {
+    /* storage blocked: the page view is counted, nothing more */
+  }
 }
 
 /** What kind of match the menu is about to start, as the counters name it. */

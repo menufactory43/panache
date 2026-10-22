@@ -11,8 +11,8 @@ const T = Date.UTC(2026, 9, 22, 13, 0, 0);
 
 describe("the relay's play counters", () => {
   it("counts the game's events and nothing else", () => {
-    for (const e of ["partie:escarmouche", "fin:campagne:victoire", "fin:survie", "nation:empire", "duel:appaire"]) expect(evenementAdmis(e)).toBe(true);
-    for (const e of ["", "partie", "partie:", "Partie:escarmouche", "visite:accueil", "partie:escarmouche:victoire:x", "fin:a", "partie:<script>", null, 3, "nation:" + "x".repeat(40)])
+    for (const e of ["partie:escarmouche", "fin:campagne:victoire", "fin:survie", "nation:empire", "duel:appaire", "visite:jour", "ecran:duo"]) expect(evenementAdmis(e)).toBe(true);
+    for (const e of ["", "partie", "partie:", "Partie:escarmouche", "clic:accueil", "partie:escarmouche:victoire:x", "fin:a", "partie:<script>", null, 3, "nation:" + "x".repeat(40)])
       expect(evenementAdmis(e)).toBe(false);
   });
 

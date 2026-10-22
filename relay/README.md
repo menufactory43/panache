@@ -34,13 +34,15 @@ racine) ; `src/index.ts` l'applique aux WebSockets et au stockage du Durable Obj
 
 ## Statistiques
 
-Le relais compte aussi ce qui se joue, jamais qui : des compteurs par jour, sans identifiant, adresse ni cookie
+Le relais compte aussi les visites et ce qui se joue, jamais qui : des compteurs par jour, sans identifiant, adresse ni cookie
 (`src/stats.ts`, le Durable Object `Stats` dans `src/index.ts`, côté jeu `src/game/stats.ts`).
 
 - **Envoi** : `POST /stat?e=<événement>` (un `navigator.sendBeacon` du jeu), compté seulement s'il vient de la page
   publiée (`Origin: https://menufactory43.github.io`) : le serveur de développement, un aperçu local et les robots
   (smoke test, outils) n'envoient rien ou ne comptent pas.
-- **Événements** : `partie:<genre>` au lancement (`escarmouche`, `survie`, `campagne`, `epreuve`, `jour`,
+- **Événements** : `visite:page` à chaque chargement, `visite:jour` au premier du jour sur un appareil (avec
+  `ecran:portrait|paysage|large|tablette|duo`), `visite:nouveau` au tout premier (l'appareil ne garde qu'une date et un
+  drapeau, `panache.stats.*`) ; `partie:<genre>` au lancement (`escarmouche`, `survie`, `campagne`, `epreuve`, `jour`,
   `instruction`, `ia`, `duel`), `nation:<nation>` pour une escarmouche, `fin:<genre>[:victoire|defaite|nul]` à la fin
   d'une partie jouée.
 - **Lecture** : `GET /stats?jours=30` (JSON par jour, public : ce ne sont que des totaux), par exemple

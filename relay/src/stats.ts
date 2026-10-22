@@ -2,11 +2,12 @@
 // que les tests les vérifient sous Node (tests/relay-stats.test.ts). Le Durable Object Stats (index.ts) ne fait
 // qu'additionner.
 //
-// Des compteurs par jour, rien d'autre : quoi est joué (« partie:escarmouche », « fin:campagne:victoire »,
-// « nation:empire »), jamais qui. Pas d'identifiant, pas d'adresse, pas de cookie.
+// Des compteurs par jour, rien d'autre : combien de visites (« visite:jour »), sur quel écran (« ecran:portrait »),
+// quoi est joué (« partie:escarmouche », « fin:campagne:victoire », « nation:empire »), jamais qui. Pas d'identifiant,
+// pas d'adresse, pas de cookie.
 
 /** Un événement : deux ou trois mots en minuscules (« genre:quoi[:issue] »). */
-const EVENT = /^(partie|fin|nation|duel):[a-z]{2,16}(:[a-z]{2,16})?$/;
+const EVENT = /^(visite|ecran|partie|fin|nation|duel):[a-z]{2,16}(:[a-z]{2,16})?$/;
 
 /** Les jours gardés (le ménage efface les plus vieux). */
 export const JOURS_GARDES = 120;
