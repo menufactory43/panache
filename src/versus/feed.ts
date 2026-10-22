@@ -107,7 +107,7 @@ import { CAPTURE_OK_MS, LEAVE_AFTER_FAILURES, RIG_ADVICE, type Rig } from "../li
 import { worldHash } from "../sim/checksum";
 import type { MutatorId } from "../sim/rules";
 import { setupWorld } from "../sim/setup";
-import type { Command, Faction, World } from "../sim/types";
+import type { Command, Faction, Nation, World } from "../sim/types";
 import { fullscreen } from "../ui/fullscreen";
 import type { DuelHud } from "../ui/hud";
 import { addReportSection } from "../ui/report";
@@ -147,6 +147,8 @@ export interface DuelSetupConfig {
   mapId: string;
   mutators: MutatorId[];
   local: Faction;
+  /** The nations the lobby agreed (absent: Classique). */
+  nations?: Partial<Record<Faction, Nation>>;
 }
 
 /** What the feed needs of the scene: GameScene, or a stand-in in tests. */
@@ -363,7 +365,7 @@ export class VersusFeed implements MatchFeed {
     this.env = { ...browserEnv(), ...o.env };
     this.local = r.local;
     this.opponent = o.opponent ?? "ton ami";
-    this.config = { mapId: r.mapId, mutators: r.setup.mutators.slice(), local: r.local };
+    this.config = { mapId: r.mapId, mutators: r.setup.mutators.slice(), local: r.local, ...(r.setup.nations ? { nations: { ...r.setup.nations } } : {}) };
     this.labels = { [r.local]: "Toi", [OTHER[r.local]]: "Ami" } as Record<Faction, string>;
     this.created = this.env.date().toISOString();
     this.world = setupWorld(r.setup);
@@ -708,6 +710,8 @@ export class VersusFeed implements MatchFeed {
       writeRematch(
         {
           role: r.role, plan: r.plan, micMode: this.rig?.micMode ?? "raw", hostSide: OTHER[r.config.hostSide], mapId: r.mapId, mutators: r.config.mutators.slice(),
+          // (the nations follow the phones, as the roles do: the sides swap)
+          ...(r.setup.nations?.[r.local] ? { nation: r.setup.nations[r.local]! } : {}),
           ...(this.online ? { online: { code: this.online.code, key: this.online.key } } : {})
         },
         this.env.session

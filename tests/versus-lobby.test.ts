@@ -14,7 +14,7 @@ import { PLURALS } from "../src/sim/lexicon";
 import type { World } from "../src/sim/types";
 import {
   GAIN_MIN, GAIN_QUIET_MS, GAIN_RISE, GAIN_RISE_MS, GAIN_START, GAIN_STEP, GAIN_STEP_MS, LOUD_MS, LOUD_OWN_SNR_DB, LobbyMachine, QUIET_MS, REMATCH_FALLBACK_MS,
-  ROUTE_GRACE_MS, ROUTE_MS, ROUTE_SNR_DB, TIPS_MS, openerGives, parseDuelParams, parsePrefs, parseRematch, routeText, rttLine, tipsText, type DuelRematch,
+  ROUTE_GRACE_MS, ROUTE_MS, ROUTE_SNR_DB, TIPS_MS, openerGives, lobbyWords, nationPicker, nationsLine, parseDuelParams, parsePrefs, parseRematch, routeText, rttLine, tipsText, type DuelRematch,
   type LobbyEnd, type LobbyEnv, type LobbyLink, type LobbyRig
 } from "../src/versus/lobby";
 import { OPENERS, OPENER_IDS } from "../src/sim/openers";
@@ -1050,5 +1050,29 @@ describe("the lobby's logic", () => {
     await flush();
     expect(b.m.state()).toMatchObject({ step: "error", error: { kind: "relay", message: "Relay not connected" } });
     expect(b.ended).toEqual(["error"]);
+  });
+});
+
+describe("the lobby's nations (LOBBY_PROTO 2)", () => {
+  it("names the openers in each side's nation", () => {
+    const rep = openerGives("blitz", lobbyWords("republique", "empire")).split(" · ");
+    expect(rep.slice(1)).toEqual(["3 Jamais-Contente", expect.stringMatching(/^2 Fourgons/), "−100 charbon"]);
+    expect(rep[0]).not.toBe(openerGives("blitz").split(" · ")[0]); // (the République's Garage, not the Forges)
+    expect(openerGives("blitz", lobbyWords("empire"))).toBe(openerGives("blitz"));
+    expect(openerGives("airwing", lobbyWords("empire"))).toMatch(/Gyroptère/);
+  });
+
+  it("offers the three choices, the one picked pressed, none in a rematch", () => {
+    const html = nationPicker({ nation: "empire", rematch: false, isOnline: true });
+    expect(html.match(/data-act="nation"/g)).toHaveLength(3);
+    expect(html).toMatch(/nat-empire on"/);
+    expect(nationPicker({ nation: "empire", rematch: true, isOnline: true })).toBe("");
+  });
+
+  it("says who plays what once paired", () => {
+    const c = { mapId: "riverlands", mutators: [], delay: 4, hostSide: "red" as const, fast: true, nations: { host: "republique" as const, guest: "empire" as const } };
+    expect(nationsLine(c, "blue")).toMatch(/Toi : <b>Empire<\/b>.*Ton ami : <b>République<\/b>/);
+    expect(nationsLine(c, "red")).toMatch(/Toi : <b>République<\/b>/);
+    expect(nationsLine({ ...c, nations: undefined }, "red")).toMatch(/Classique/);
   });
 });

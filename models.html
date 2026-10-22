@@ -100,6 +100,26 @@
       .controls button:hover { border-color: var(--blue); }
       .controls button[aria-pressed="true"] { background: #1d3a66; border-color: var(--blue); }
       .controls button.red[aria-pressed="true"] { background: #5a2020; border-color: var(--red); }
+      /* the nation filter, and each army's section under its crest (PANACHE-CONCEPTION.md §1.1) */
+      .nfilter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 16px; }
+      .nfilter > span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--dim); margin-right: 4px; }
+      .nfilter button {
+        display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 600;
+        color: var(--text); background: var(--panel); cursor: pointer; border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px;
+      }
+      .nfilter button img { width: 22px; height: 22px; object-fit: contain; margin-left: -6px; }
+      .nfilter button:hover { border-color: var(--gold); }
+      .nfilter button[aria-pressed="true"] { background: #3a2f1c; border-color: var(--gold); color: var(--gold); }
+      section.army { margin-top: 28px; }
+      section.army + section.army { border-top: 1px solid var(--line); padding-top: 12px; }
+      .armyhead { display: flex; gap: 16px; align-items: center; margin: 8px 0 4px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); }
+      .armyhead h2 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; letter-spacing: 0.02em; }
+      .armyhead p { color: var(--dim); font-size: 14px; max-width: 80ch; }
+      .armyhead .crest { width: 72px; height: 72px; object-fit: contain; flex: none; filter: drop-shadow(0 2px 4px #000a); }
+      section.army.republique .armyhead { background: linear-gradient(100deg, #12264f 0%, var(--panel) 70%); border-color: #3c5fa8; }
+      section.army.empire .armyhead { background: linear-gradient(100deg, #431018 0%, var(--panel) 70%); border-color: #8a3a44; }
+      .tag.nation.republique { color: #b9cdf3; border-color: #3c5fa8; background: #12264f; }
+      .tag.nation.empire { color: #f0c0c5; border-color: #8a3a44; background: #431018; }
       .nogl { margin: auto; padding: 24px; color: var(--dim); text-align: center; }
       @media (max-width: 820px) {
         .row { grid-template-columns: minmax(0, 1fr); }
@@ -114,16 +134,23 @@
         <h1>Panache — Modèles 3D</h1>
         <p>
           Le modèle 3D de chaque unité et bâtiment du jeu, à côté de son rôle. Glisse un modèle pour le tourner, pince ou ⌃-molette pour zoomer, et
-          lance ses animations&nbsp;: rouler, viser, tirer, marcher, voler, s'ancrer, une Galerie des Machines construisant un Gargantua. Les mêmes modèles et squelettes d'animation
+          lance ses animations&nbsp;: rouler, viser, tirer, marcher, voler, s'ancrer, une Galerie des Machines construisant un Gargantua. Le filtre Nation montre l'armée de la République et celle de l'Empire de Carbonie, à leurs couleurs. Les mêmes modèles et squelettes d'animation
           que sur le champ de bataille. <a href="./">Retour au jeu</a> · <a href="./vehicles.html">Véhicules</a>
         </p>
+        <div class="nfilter" id="nfilter" role="group" aria-label="Nation">
+          <span>Nation</span>
+          <button type="button" data-f="all" aria-pressed="true">Tout</button>
+          <button type="button" data-f="classique" aria-pressed="false">⚖ Classique</button>
+          <button type="button" data-f="republique" aria-pressed="false"><img src="./assets/ui/crest-republique.webp" alt="" />République</button>
+          <button type="button" data-f="empire" aria-pressed="false"><img src="./assets/ui/crest-empire.webp" alt="" />Empire</button>
+        </div>
         <div class="tabs" role="tablist">
           <button type="button" role="tab" data-tab="units" aria-controls="tab-units">Unités</button>
           <button type="button" role="tab" data-tab="buildings" aria-controls="tab-buildings">Bâtiments</button>
         </div>
       </header>
-      <div id="tab-units" role="tabpanel"><nav></nav><div class="rows"></div></div>
-      <div id="tab-buildings" role="tabpanel" hidden><nav></nav><div class="rows"></div></div>
+      <div id="tab-units" role="tabpanel"><div class="rows"></div></div>
+      <div id="tab-buildings" role="tabpanel" hidden><div class="rows"></div></div>
     </main>
     <script type="module" src="/src/models.ts"></script>
   </body>

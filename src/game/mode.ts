@@ -36,11 +36,26 @@ export const gameMode = {
    * "classique" plays today's symmetric rules; a nation gives the AI the
    * other one. `?nations=` in the URL wins.
    */
-  nation: "classique" as NationOrClassic
+  nation: "classique" as NationOrClassic,
+  /**
+   * The AI's nation when the player has one (saved): the other nation
+   * (default), one rolled at random for each match, or the player's own (a
+   * mirror).
+   */
+  rival: "opposite" as RivalPick
 };
 
-/** Set by duelSetup: a duel plays Classique whatever the menu's nation (both phones must agree: WP7). */
-let duelMatch = false;
+/** How the skirmish AI's nation is picked from the player's. */
+export type RivalPick = "opposite" | "random" | "same";
+export const RIVAL_PICKS: readonly RivalPick[] = ["opposite", "random", "same"];
+
+/**
+ * Set by duelSetup: a duel plays the nations its lobby agreed (LOBBY_PROTO 2,
+ * versus/pairing.ts), never the menu's pick; null: Classique. (The match's
+ * world is the feed's, built from the agreed setup: this keeps matchOptions
+ * telling the same.)
+ */
+let duelMatch: { nations: Partial<Record<Faction, Nation>> | null } | null = null;
 
 /** Is the coming match on a generated map played Uncharted (not when watching AI vs AI, an op or the Daily)? */
 export const unchartedMatch = (): boolean =>
@@ -65,7 +80,7 @@ export function activeMutators(): MutatorId[] {
  * plain skirmish played by this phone as `local`, so startGame loads the art
  * for the map both phones play. Never saved: the menu's own picks stay.
  */
-export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Faction }): void {
+export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Faction; nations?: Partial<Record<Faction, Nation>> }): void {
   gameMode.mapId = cfg.mapId;
   gameMode.mode = "skirmish";
   gameMode.mutators = cfg.mutators.slice();
@@ -73,7 +88,7 @@ export function duelSetup(cfg: { mapId: string; mutators: MutatorId[]; local: Fa
   gameMode.daily = null;
   gameMode.op = null;
   gameMode.uncharted = false;
-  duelMatch = true;
+  duelMatch = { nations: cfg.nations ? { ...cfg.nations } : null };
   setLocalSide(cfg.local);
 }
 
@@ -102,6 +117,8 @@ export function matchOptions(): MatchOptions {
   if (gameMode.op) return { seed: (Math.random() * 0x7fffffff) | 0, op: gameMode.op.id };
   const mutators = activeMutators();
   const survival = gameMode.mode === "survival";
+  // (once: a random rival is rolled here)
+  const picked = matchNationsPick();
   return {
     seed: (Math.random() * 0x7fffffff) | 0,
     // Uplinks and supply drops: skirmish (and the Daily Op); Last Stand has its waves
@@ -110,7 +127,9 @@ export function matchOptions(): MatchOptions {
     ...(mutators.length ? { mutators } : {}),
     ...(gameMode.daily ? { seed: gameMode.daily.seed } : {}),
     // nations (PANACHE-CONCEPTION.md §1.10): skirmish only (the URL's, or the menu's pick)
-    ...(!survival && !gameMode.daily && !duelMatch && matchNationsPick() ? { nations: matchNationsPick()! } : {})
+    ...(duelMatch
+      ? duelMatch.nations ? { nations: { ...duelMatch.nations } } : {}
+      : !survival && !gameMode.daily && picked ? { nations: picked } : {})
   };
 }
 
@@ -128,7 +147,14 @@ export function matchNationsPick(): Record<Faction, Nation> | null {
   const n = gameMode.nation;
   if (n === "classique") return null;
   const other: Faction = PLAYER === "blue" ? "red" : "blue";
-  return { [PLAYER]: n, [other]: rivalNation(n) } as Record<Faction, Nation>;
+  return { [PLAYER]: n, [other]: rivalFor(n, gameMode.rival) } as Record<Faction, Nation>;
+}
+
+/** The AI's nation facing `n` under a rival pick ("random": a fresh roll, render side, so Math.random is fine). */
+export function rivalFor(n: Nation, pick: RivalPick, random: () => number = Math.random): Nation {
+  if (pick === "same") return n;
+  if (pick === "random") return random() < 0.5 ? "republique" : "empire";
+  return rivalNation(n);
 }
 
 /**
@@ -156,6 +182,7 @@ export function loadSettings(): void {
     if (Array.isArray(s.mutators)) gameMode.mutators = s.mutators.filter(isMutatorId);
     gameMode.uncharted = s.uncharted === true;
     if (s.nation === "classique" || s.nation === "republique" || s.nation === "empire") gameMode.nation = s.nation;
+    if (RIVAL_PICKS.includes(s.rival as RivalPick)) gameMode.rival = s.rival!;
   } catch {
     /* storage unavailable — defaults are fine */
   }
@@ -164,7 +191,7 @@ export function loadSettings(): void {
 export function saveSettings(): void {
   if (gameMode.daily || gameMode.op) return; // the Daily Op's / an op's map and difficulty are not the player's picks
   try {
-    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, uncharted: gameMode.uncharted, nation: gameMode.nation }));
+    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, uncharted: gameMode.uncharted, nation: gameMode.nation, rival: gameMode.rival }));
   } catch {
     /* ignore */
   }

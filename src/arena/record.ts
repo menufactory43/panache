@@ -79,8 +79,6 @@ export interface BattleRecord {
   created: string;
   map: string;
   mutators: MutatorId[];
-  /** The nations blue and red played (absent: Classique). */
-  nations?: Record<Faction, Nation>;
   seed: number;
   /** Ticks per round. */
   round: number;
@@ -88,6 +86,8 @@ export interface BattleRecord {
   openers: Partial<Record<Faction, OpenerId>>;
   /** Income multiplier per side when not 1 (the built-in AI's difficulty handicap: tickAi sets it every tick). */
   income?: Partial<Record<Faction, number>>;
+  /** The nation each side played (PANACHE-CONCEPTION.md §1.10); absent: Classique. setupWorld(record) reads it. */
+  nations?: Partial<Record<Faction, Nation>>;
   seats: Record<Faction, SeatInfo>;
   /** Coordinates in `log` are each side's own frame; `turns` and `radio` ticks are true. */
   frames: "own";

@@ -1317,3 +1317,17 @@ bleu et rouge (`model-portraits.mjs --nations` ; bâtiment partagé dessiné par
 (unités, bâtiments sous leur nom de nation, pouvoirs, Citadelle, Zénith) ; « Alerte : notre Citadelle est attaquée ».
 Cris d'unités propres aux 15 genres, sons `arcShell`, `heavyShell`, `arcBolt`, `flak47`, `zenithDrone` ; lueur bleue
 discrète des unités relayées par le Réseau TSF.
+
+### 3.12 WP6 et WP7 — Interface et duel en ligne — fait
+
+Sur `feat/camps-ui`. **WP7** : `LOBBY_PROTO` 2 par une extension en fin de trame (lisible par un pair proto 1, qui
+joue alors Classique), nation de l'hôte dans l'offre, choix de l'invité dans la feuille (Rép / Emp / Classique =
+« la nation adverse »), nations dans `confHash` seulement hors Classique ; codec étendu (`CODEC_VERSION` 2) ;
+`BattleRecord.nations` et relecture ; feuille du duel en ligne au style Belle Époque. **WP6** : sélecteur de nation
+au menu (deux cartes à blason, identité, mécaniques, 3 unités, option Classique, adversaire « nation adverse /
+au hasard / miroir », réglage `rival`) ; blasons générés (`art/catalog.py crest-*`, `public/assets/ui/crest-*.webp`) ;
+blason dans la pastille du HUD, écran de fin avec blasons et ligne de nation ; cartes d'info en jeu par nation
+(contres contre l'autre nation, règle de nation) et `unit-info.ts` complet ; « Citadelle attaquée » ; conseiller
+(Estafette = éclaireur) ; rayon du Réseau électrique au placement et refus « Hors du réseau : près du GQG ou d'une
+Tour TSF » ; noms de nation du placement (« Placer Garage électrique Jeantaud ») ; `models.html` filtre Nation.
+Restes : portraits et art des cartes d'ouverture aux couleurs de nation (WP5g), page des modèles hors style Belle.

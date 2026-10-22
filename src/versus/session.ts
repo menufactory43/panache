@@ -167,7 +167,7 @@
 import type { BandRole, LinkPacket, LinkStats, LinkTransport, ModemMode } from "../link/transport";
 import { mapById } from "../sim/maps";
 import type { OpenerId } from "../sim/openers";
-import type { Command, Faction } from "../sim/types";
+import type { Command, Faction, NationOrClassic } from "../sim/types";
 import { CodecError } from "./codec";
 import { Lockstep, rxqOf, type Decision, type LockstepStatus } from "./lockstep";
 import { FAST_RXQ, Pairing, packetMs, readLobbyFrame, type HostOffer, type LobbyFrame, type PairingResult, type PairingState } from "./pairing";
@@ -229,6 +229,8 @@ export interface SessionOptions {
   proto?: number;
   /** Required for the host. */
   host?: HostOffer;
+  /** The guest's nation ask (proto 2; default none: the host's rival). */
+  nation?: NationOrClassic;
   /** Uniform in [0, 1): the pairing's nonce draw. */
   random: () => number;
   /** K for the match (default segmentsFor(D)). */
@@ -351,6 +353,7 @@ export class Session {
       build: o.build,
       ...(o.proto !== undefined ? { proto: o.proto } : {}),
       ...(o.host ? { host: o.host } : {}),
+      ...(o.nation ? { nation: o.nation } : {}),
       plan: st.plan,
       now: () => o.transport.now(),
       random: o.random

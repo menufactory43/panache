@@ -41,8 +41,19 @@
  *   hasConfig 1 (host only), then: map 4 (0–5: MAPS index; 8–12: random map of BIOMES[map − 8], then seed 32)
  *     mutators 12 (MUTATOR_IDS order, first mutator first)  delay 3 (D − 3)  hostSide 1 (0: the host plays blue)  fast 1
  *   confHash 16 (0: none yet)  pick 2 (OPENER_IDS index; 3: none)  picked 1  go 1, then theirs 2 (the peer's pick as held here)
+ *   [proto 2] nations 1 (1: the extension follows), nation 2 (the nation this phone asks for: 0 Classique / none,
+ *     1 République, 2 Empire), then, with a config: hostNation 2  guestNation 2 (both 0: Classique; else both 1–2)
  *
- * The longest frame (a random map and GO) is 157 bits.
+ * The longest frame (a random map and GO) is 164 bits (157 without the extension); the low plan carries 186.
+ *
+ * Nations (LOBBY_PROTO 2, PANACHE-CONCEPTION.md §1.10): proto 2 is proto 1's frame plus a trailing extension,
+ * so its header still says 1 (WIRE_PROTO) and a proto-1 phone reads it as its own: the bits after `theirs` are
+ * the modem's zero padding to it. A phone that hears the extension knows its peer speaks proto 2. The host
+ * offers its menu nation, the guest asks for one in every frame (none: the host's rival); the host's config
+ * names both, and they enter the confHash only when they aren't Classique, so a Classique config hashes as in
+ * proto 1. A peer without the extension (proto 1) gets no nations offered: the match falls back to Classique
+ * on its own, with no version error and no switch of protocol mid-pairing. A frame cut right before the
+ * extension reads as one without it.
  *
  * Where the spec is silent:
  *  - a nonce is drawn at construction, at reset() (the retry tap), and when
@@ -159,13 +170,17 @@ import { OPENER_IDS, allowedOpener, openerBlocked, type OpenerId } from "../sim/
 import { hash32 } from "../sim/rand";
 import { MUTATOR_IDS, isMutatorId, type MutatorId } from "../sim/rules";
 import { setupWorld, type MatchSetup } from "../sim/setup";
-import type { Faction, World } from "../sim/types";
+import type { Faction, Nation, NationOrClassic, World } from "../sim/types";
 import { BitReader, BitWriter, CodecError } from "./codec";
 
 /** The lobby protocol's version: bumped with any change to the frame or the rules, so the lobby can say which phone is older. */
-export const LOBBY_PROTO = 1;
-/** The longest lobby frame (a random map, and GO). */
-export const LOBBY_FRAME_MAX = 157;
+export const LOBBY_PROTO = 2;
+/** The longest lobby frame (a random map, GO and the nations' extension). */
+export const LOBBY_FRAME_MAX = 164;
+/** The first protocol with the nations' extension (whose frames say proto 1: the extension trails proto 1's frame). */
+const PROTO_NATIONS = 2;
+/** The header a phone of this protocol writes: proto 2's frame is proto 1's, extended. */
+export const wireProto = (proto: number): number => (proto === PROTO_NATIONS ? 1 : proto);
 /** Round trips kept; D comes from their median. */
 export const RTT_KEPT = 5;
 /** Round trips the host waits for before it offers a config. */
@@ -276,6 +291,8 @@ export interface DuelConfig {
   hostSide: Faction;
   /** The match starts in fast mode. */
   fast: boolean;
+  /** The nations the host's side and the guest's play (proto 2); absent: Classique. */
+  nations?: { host: Nation; guest: Nation };
 }
 
 /** The part of a lobby frame every protocol version lays out the same way. */
@@ -301,6 +318,8 @@ export interface LobbyFrame extends LobbyHeader {
   go: boolean;
   /** With GO: the peer's pick as this phone holds it (null otherwise). */
   theirs: OpenerId | null;
+  /** The nations' extension (proto 2): the nation this phone asks for. Absent: a proto-1 frame. */
+  nation?: NationOrClassic;
 }
 
 const ROLES: readonly BandRole[] = ["host", "guest"];
@@ -309,6 +328,18 @@ const PICK_NONE = 3;
 
 const pickCode = (p: OpenerId | null): number => (p === null ? PICK_NONE : OPENER_IDS.indexOf(p));
 const pickOf = (code: number): OpenerId | null => OPENER_IDS[code] ?? null;
+const NATION_CODES: readonly NationOrClassic[] = ["classique", "republique", "empire"];
+const nationCode = (n: NationOrClassic): number => NATION_CODES.indexOf(n);
+/** The other nation (a guest with no preference plays the host's rival). */
+export const rivalOf = (n: Nation): Nation => (n === "republique" ? "empire" : "republique");
+/** The sides' nations under a config, blue's first (absent: Classique). */
+export function configNations(c: DuelConfig): Partial<Record<Faction, Nation>> | undefined {
+  if (!c.nations) return undefined;
+  const { host, guest } = c.nations;
+  return c.hostSide === "blue" ? { blue: host, red: guest } : { blue: guest, red: host };
+}
+/** A config's copy, sharing nothing with it. */
+const copyConfig = (c: DuelConfig): DuelConfig => ({ ...c, mutators: c.mutators.slice(), ...(c.nations ? { nations: { ...c.nations } } : {}) });
 
 /** A map's code in the frame (and a random map's seed). Throws RangeError for a map no frame can name (a ninth built-in map needs a wider field, and a new LOBBY_PROTO). */
 function mapCode(mapId: string): { code: number; seed: number | null } {
@@ -336,6 +367,8 @@ export function writeLobbyFrame(f: LobbyFrame): { bits: Uint8Array; nbits: numbe
   checkField("hold", f.hold, HOLD_BITS);
   checkField("confHash", f.confHash, 16);
   if (f.config && f.role !== "host") throw new RangeError("only the host's frame carries a config");
+  if (f.nation !== undefined && nationCode(f.nation) < 0) throw new RangeError(`no nation ${f.nation}`);
+  if (f.config?.nations && f.nation === undefined) throw new RangeError("nations ride in the extension");
   if (f.go && !f.picked) throw new RangeError("GO before picking");
   const wr = new BitWriter();
   wr.bits(TYPE_LOBBY, 2);
@@ -368,6 +401,14 @@ export function writeLobbyFrame(f: LobbyFrame): { bits: Uint8Array; nbits: numbe
   wr.bit(f.picked ? 1 : 0);
   wr.bit(f.go ? 1 : 0);
   if (f.go) wr.bits(pickCode(f.theirs), 2);
+  if (f.nation !== undefined) {
+    wr.bit(1);
+    wr.bits(nationCode(f.nation), 2);
+    if (f.config) {
+      wr.bits(f.config.nations ? nationCode(f.config.nations.host) : 0, 2);
+      wr.bits(f.config.nations ? nationCode(f.config.nations.guest) : 0, 2);
+    }
+  }
   return { bits: wr.bytes(), nbits: wr.nbits };
 }
 
@@ -420,7 +461,23 @@ export function readLobbyFrame(bits: Uint8Array, nbits: number): LobbyFrame {
   const go = rd.bit() === 1;
   if (go && !picked) throw new CodecError("GO before picking");
   const theirs = go ? pickOf(rd.bits(2)) : null;
-  return { ...head, nonce, heard, rxq, ping, echo, hold, config, confHash, pick, picked, go, theirs };
+  const f: LobbyFrame = { ...head, nonce, heard, rxq, ping, echo, hold, config, confHash, pick, picked, go, theirs };
+  // the nations' extension (proto 2): a proto-1 frame ends here, or goes on in the modem's zero padding
+  if (rd.pos < rd.nbits && rd.bit() === 1) {
+    const nation = (): NationOrClassic => {
+      const n = NATION_CODES[rd.bits(2)];
+      if (!n) throw new CodecError("nation code 3");
+      return n;
+    };
+    f.nation = nation();
+    if (config) {
+      const host = nation();
+      const guest = nation();
+      if ((host === "classique") !== (guest === "classique")) throw new CodecError("one side Classique, the other a nation");
+      if (host !== "classique" && guest !== "classique") config.nations = { host, guest };
+    }
+  }
+  return f;
 }
 
 // ------------------------------------------------------------ the rules ---
@@ -478,7 +535,9 @@ export function confHash(c: DuelConfig, plan: BandPlan, hostNonce: number, guest
   const m = mapCode(c.mapId);
   let mask = 0;
   for (let i = 0; i < MUTATOR_IDS.length; i++) if (c.mutators.includes(MUTATOR_IDS[i]!)) mask |= 1 << i;
-  const h = hash32(0x5d0c, m.code, m.seed ?? 0, mask, c.delay, c.hostSide === "blue" ? 0 : 1, c.fast ? 1 : 0, plan === "high" ? 0 : 1, hostNonce, guestNonce);
+  let h = hash32(0x5d0c, m.code, m.seed ?? 0, mask, c.delay, c.hostSide === "blue" ? 0 : 1, c.fast ? 1 : 0, plan === "high" ? 0 : 1, hostNonce, guestNonce);
+  // (nations only when there are some: a Classique config hashes as in proto 1)
+  if (c.nations) h = hash32(h, 0x7a71, nationCode(c.nations.host), nationCode(c.nations.guest));
   return h & 0xffff || 0xffff;
 }
 
@@ -514,6 +573,8 @@ export interface HostOffer {
   mutators: readonly MutatorId[];
   /** The side the host plays (a rematch flips it). Default blue. */
   hostSide?: Faction;
+  /** The host's nation (the menu's pick; proto 2). Default Classique: both sides play Classique. */
+  nation?: NationOrClassic;
 }
 
 export interface PairingOptions {
@@ -526,6 +587,8 @@ export interface PairingOptions {
   plan?: BandPlan;
   /** Required for the host, ignored for the guest. */
   host?: HostOffer;
+  /** The guest's ask (proto 2) under a host's nation. Default "classique": none, it plays the host's rival. Ignored for the host (HostOffer.nation). */
+  nation?: NationOrClassic;
   /** The link's monotonic milliseconds (LinkTransport.now). */
   now: () => number;
   /** Uniform in [0, 1): the nonce draw. */
@@ -620,6 +683,10 @@ export class Pairing {
   readonly role: BandRole;
   readonly build: number;
   readonly proto: number;
+  /** The nation this phone asks for (the host: its offer's). */
+  private readonly nation: NationOrClassic;
+  /** The peer's newest frame carried the nations' extension (it speaks proto 2), and what it asked for. */
+  private peerNation: NationOrClassic | null = null;
   private plan: BandPlan;
   private readonly host: { map: string; mutators: MutatorId[]; hostSide: Faction } | null;
   private readonly now: () => number;
@@ -696,7 +763,9 @@ export class Pairing {
     this.role = o.role;
     this.build = o.build;
     this.proto = o.proto ?? LOBBY_PROTO;
-    checkField("proto", this.proto, 4);
+    checkField("proto", wireProto(this.proto), 4);
+    this.nation = (o.role === "host" ? o.host?.nation : o.nation) ?? "classique";
+    if (nationCode(this.nation) < 0) throw new RangeError(`no nation ${this.nation}`);
     this.plan = o.plan ?? "high";
     this.now = o.now;
     this.random = o.random;
@@ -749,7 +818,7 @@ export class Pairing {
     }
     const f: LobbyFrame = {
       role: this.role,
-      proto: this.proto,
+      proto: wireProto(this.proto),
       build: this.build,
       nonce: this.nonce,
       // (a failed phone names the phone it gave up on: that pairing alone starts over)
@@ -763,7 +832,8 @@ export class Pairing {
       pick: this.picked ? this.myPick : null,
       picked: this.picked,
       go: this.go,
-      theirs: this.go ? this.theirs : null
+      theirs: this.go ? this.theirs : null,
+      ...(this.proto >= PROTO_NATIONS ? { nation: this.nation } : {})
     };
     this.built = { ping, rxq: this.rxq, go: this.go, heard: this.heardAny, carried: false };
     return writeLobbyFrame(f);
@@ -793,7 +863,7 @@ export class Pairing {
     if (head.role === this.role) return;
     this.heardAny = true;
     this.lastHeardAt = p.at;
-    if (head.proto !== this.proto || head.build !== this.build) {
+    if (head.proto !== wireProto(this.proto) || head.build !== this.build) {
       // (a phone of another version nearby, or a tape of one, can't end a pairing: while the peer is there it is
       // ignored, and before that it takes three of its frames within 5 s)
       if (this.peerLive(p.at)) return;
@@ -804,14 +874,20 @@ export class Pairing {
       if (ts.length >= MISMATCH_FRAMES) this.mismatch(head);
       return;
     }
-    this.peerHead = head;
     let f: LobbyFrame;
     try {
       f = readLobbyFrame(p.bits, p.nbits);
     } catch (e) {
+      this.peerHead = head;
       if (e instanceof CodecError) return;
       throw e;
     }
+    // (a proto-1 phone ignores the extension it can't know of; the peer's protocol is what its frame shows)
+    if (this.proto < PROTO_NATIONS) {
+      delete f.nation;
+      if (f.config) delete f.config.nations;
+    }
+    this.peerHead = { ...head, proto: f.nation !== undefined ? PROTO_NATIONS : head.proto };
     if (this.versionError || this.failed) {
       this.peerRxq = f.rxq;
       return;
@@ -880,7 +956,7 @@ export class Pairing {
       rtt: { median: median(this.rtts), samples: this.rtts.slice() },
       rxq: this.rxq,
       peerRxq: this.peerRxq,
-      config: a ? { ...a.config, mutators: a.config.mutators.slice() } : null,
+      config: a ? copyConfig(a.config) : null,
       side,
       offered: a && side ? this.offeredFor(a.config, side).slice() : [],
       pick: this.myPick,
@@ -901,7 +977,8 @@ export class Pairing {
   result(): PairingResult | null {
     if (!this.done) return null;
     const r = this.done;
-    return { ...r, setup: { ...r.setup, mutators: r.setup.mutators.slice(), openers: { ...r.setup.openers } }, config: { ...r.config, mutators: r.config.mutators.slice() } };
+    const setup = { ...r.setup, mutators: r.setup.mutators.slice(), openers: { ...r.setup.openers }, ...(r.setup.nations ? { nations: { ...r.setup.nations } } : {}) };
+    return { ...r, setup, config: copyConfig(r.config) };
   }
 
   // ---------------------------------------------------------- the frames ---
@@ -964,7 +1041,9 @@ export class Pairing {
         this.peerLiveAt = at;
         this.challenger = null;
       }
-      if (this.role === "guest" && f.config && !this.locked) this.held = { config: f.config, hash: f.confHash };
+      this.peerNation = f.nation ?? null;
+      // (the guest holds only a config that gives it the nation it asks for: an offer made before the host heard it is stale)
+      if (this.role === "guest" && f.config && !this.locked && this.nationsFit(f.config)) this.held = { config: f.config, hash: f.confHash };
       // where the peer stands now: a peer that started over under the same nonce says so here, and its next pick
       // replaces the one it made before (only its GO, or this phone's own, commits a pick for the match)
       this.peerPick = me && f.picked ? { pick: f.pick } : null;
@@ -1056,7 +1135,8 @@ export class Pairing {
   private mismatch(head: LobbyHeader): void {
     if (this.versionError) return;
     this.restart(false);
-    const older = head.proto === this.proto ? null : head.proto < this.proto ? "friend" : "this";
+    const mine = wireProto(this.proto);
+    const older = head.proto === mine ? null : head.proto < mine ? "friend" : "this";
     const which = older === "this" ? " (celle de ce téléphone est plus ancienne)" : older === "friend" ? " (celle de ton ami est plus ancienne)" : "";
     this.versionError = { kind: "version", older, message: VERSION_MESSAGE + which };
   }
@@ -1147,6 +1227,10 @@ export class Pairing {
     const config: DuelConfig = {
       mapId: h.map, mutators: h.mutators.slice(), delay: delayFor(rtt, packetMs(this.plan, fast ? "fast" : "robust")), hostSide: h.hostSide, fast
     };
+    // nations (proto 2, a guest that speaks it): the host's, and the one the guest asks for (none: the host's rival)
+    const ask = this.peerNation;
+    if (this.proto >= PROTO_NATIONS && this.nation !== "classique" && ask !== null)
+      config.nations = { host: this.nation, guest: ask !== "classique" ? ask : rivalOf(this.nation) };
     const hash = this.hashOf(config);
     this.offer = { config, hash };
     if (!this.offers.some((o) => o.hash === hash)) {
@@ -1165,6 +1249,11 @@ export class Pairing {
     return this.ownRxqs.every((q) => q >= FAST_RXQ) && this.peerRxqs.every((q) => q >= FAST_RXQ);
   }
 
+  /** Guest: does a host's config give this phone the nation it asks for (any, when it asks for none)? */
+  private nationsFit(c: DuelConfig): boolean {
+    return this.nation === "classique" || !c.nations || c.nations.guest === this.nation;
+  }
+
   private sideOf(c: DuelConfig): Faction {
     return this.role === "host" ? c.hostSide : other(c.hostSide);
   }
@@ -1177,9 +1266,10 @@ export class Pairing {
   private offeredWorld(c: DuelConfig): { blue: OpenerId[]; red: OpenerId[]; world: World } {
     const n = this.nonces()!;
     const seed = matchSeed(n[0], n[1]);
-    const key = `${c.mapId}|${seed}|${c.mutators.join(",")}`;
+    const nations = configNations(c);
+    const key = `${c.mapId}|${seed}|${c.mutators.join(",")}|${nations ? `${nations.blue},${nations.red}` : ""}`;
     if (this.offered?.key !== key) {
-      const world = setupWorld({ map: c.mapId, seed, mutators: c.mutators.slice(), openers: {} });
+      const world = setupWorld({ map: c.mapId, seed, mutators: c.mutators.slice(), openers: {}, ...(nations ? { nations } : {}) });
       const allowed = (side: Faction) => OPENER_IDS.filter((id) => !openerBlocked(world, side, id));
       this.offered = { key, blue: allowed("blue"), red: allowed("red"), world };
     }
@@ -1233,11 +1323,12 @@ export class Pairing {
       const id = side === local ? this.myPick : this.theirs;
       if (id) openers[side] = id;
     }
-    const config = { ...a.config, mutators: a.config.mutators.slice() };
+    const config = copyConfig(a.config);
+    const nations = configNations(config);
     this.done = {
       role: this.role,
       local,
-      setup: { map: config.mapId, seed: matchSeed(hostNonce, guestNonce), mutators: config.mutators.slice(), openers },
+      setup: { map: config.mapId, seed: matchSeed(hostNonce, guestNonce), mutators: config.mutators.slice(), openers, ...(nations ? { nations } : {}) },
       delay: config.delay,
       fast: config.fast,
       hostNonce,

@@ -359,7 +359,7 @@ export class HeatMap {
         x: k.sx / k.w,
         y: k.sy / k.w,
         heat: k.w,
-        label: spectator ? (cls === 4 ? `${displayName("hq", nationOf(this.h.world, k.hq!))} ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : cls === 2 ? pluralName(ROLES[nationOf(this.h.world, this.h.player)].worker, nationOf(this.h.world, this.h.player)) : CLASS_LABEL[cls]!,
+        label: spectator ? (cls === 4 ? `${displayName("hq", nationOf(this.h.world, k.hq === "red" ? "red" : "blue"))} ${k.hq === "red" ? "Rouge" : "Bleu"}` : "Combat") : cls === 4 ? `${displayName("hq", nationOf(this.h.world, this.h.player))} !` : cls === 2 ? pluralName(ROLES[nationOf(this.h.world, this.h.player)].worker, nationOf(this.h.world, this.h.player)) : CLASS_LABEL[cls]!,
         priority: CLASS_PRIORITY[cls]! + Math.min(9, k.w)
       });
     }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { replay } from "../src/arena/record";
+import { replay, setupWorld } from "../src/arena/record";
+import type { MatchSetup } from "../src/sim/setup";
 import { planTicks } from "../src/game/awareness";
 import { Controller } from "../src/game/controller";
 import type { AbortReason } from "../src/game/GameScene";
@@ -15,7 +16,7 @@ import { randomMapId } from "../src/sim/mapgen";
 import type { OpenerId } from "../src/sim/openers";
 import { hash32 } from "../src/sim/rand";
 import { step } from "../src/sim/sim";
-import type { Command, Faction, World } from "../src/sim/types";
+import type { Command, Faction, NationOrClassic, World } from "../src/sim/types";
 import { C_MAX, commandBits } from "../src/versus/codec";
 import { VersusFeed, type DuelRig, type FeedEnv } from "../src/versus/feed";
 import { LobbyMachine, type LobbyEnv, type LobbyRig } from "../src/versus/lobby";
@@ -194,7 +195,12 @@ interface Phone {
 interface Case {
   seed: number;
   room: RoomLinkOptions;
-  offer: Required<HostOffer>;
+  /** The host's offer (its nation: absent, Classique). */
+  offer: Required<Omit<HostOffer, "nation">> & Pick<HostOffer, "nation">;
+  /** The guest's nation ask (LOBBY_PROTO 2). */
+  guestNation?: NationOrClassic;
+  /** The phones' lobby protocols, host's then guest's (default LOBBY_PROTO both). */
+  protos?: [number, number];
   /** Both phones through LobbyMachine: Host, and Join detecting the plan, as the lobby runs them. */
   lobby?: boolean;
   /** Each side gives a 30-id burst every 5 s besides its AI's orders. */
@@ -227,9 +233,13 @@ function phone(role: BandRole, link: RoomLink, c: Case): Phone {
     reloads: 0
   };
   const random = rng(c.seed * 2 + idx);
-  const offer = { map: c.offer.map, mutators: c.offer.mutators, hostSide: c.offer.hostSide };
+  const offer: HostOffer = { map: c.offer.map, mutators: c.offer.mutators, hostSide: c.offer.hostSide, ...(c.offer.nation ? { nation: c.offer.nation } : {}) };
+  const proto = c.protos?.[idx];
   if (!c.lobby) {
-    p.session = new Session({ transport: end, role, build: BUILD, random, ...(role === "host" ? { host: offer } : {}) });
+    p.session = new Session({
+      transport: end, role, build: BUILD, random, ...(proto !== undefined ? { proto } : {}),
+      ...(role === "host" ? { host: offer } : c.guestNation ? { nation: c.guestNation } : {})
+    });
     return p;
   }
   // the modem joins the room when the lobby asks for the link (the rig connects the worklet node then): it starts at
@@ -250,7 +260,8 @@ function phone(role: BandRole, link: RoomLink, c: Case): Phone {
       return Promise.resolve(end);
     },
     guard: (plan) => void p.guards.push(plan),
-    offer: { map: c.offer.map, mutators: c.offer.mutators.slice(), hostSide: c.offer.hostSide },
+    // (this phone's nation: the host's offer, the guest's ask)
+    offer: { map: c.offer.map, mutators: c.offer.mutators.slice(), hostSide: c.offer.hostSide, nation: (role === "host" ? c.offer.nation : c.guestNation) ?? "classique" },
     rematch: null,
     seat: null,
     prefs: { plan: c.room.plan ?? "high", micMode: "raw" },
@@ -668,6 +679,9 @@ function expectBurstsLanded(d: Duel): void {
   }
 }
 
+/** The world a setup (or a record, which is one) builds, hashed. */
+const setupWorldHash = (s: MatchSetup): string => worldHash(setupWorld(s));
+
 describe("a sound duel through the room, lobby to report", () => {
   it("high plan, 48/48 kHz, 20 cm: a built-in map", { timeout: 150_000 }, async () => {
     const d = await duel({ seed: 101, room: { seed: 101, distanceCm: 20 }, offer: { map: "riverlands", mutators: [], hostSide: "blue" } });
@@ -702,6 +716,44 @@ describe("a sound duel through the room, lobby to report", () => {
     expectGoodDuel(d, "low 48/48 20 cm, bursts");
     expect(d.host.session!.result()!.plan).toBe("low");
     expectBurstsLanded(d);
+  });
+
+  // nations (LOBBY_PROTO 2, PANACHE-CONCEPTION.md §1.10): the host offers the République, the guest asks for the
+  // Empire through the lobbies; both phones play that world tick for tick, the saved battle names the nations and
+  // replays to the same world
+  it("République against Empire through the lobbies: the nations agreed, played in sync, saved and replayed", { timeout: 180_000 }, async () => {
+    const d = await duel({
+      seed: 107, lobby: true, room: { seed: 107, distanceCm: 20 },
+      offer: { map: "riverlands", mutators: [], hostSide: "blue", nation: "republique" }, guestNation: "empire"
+    });
+    expectGoodDuel(d, "République vs Empire, through the lobby");
+    const want = { blue: "republique", red: "empire" };
+    for (const p of [d.host, d.guest]) {
+      expect(p.session!.result()!.setup.nations, p.role).toEqual(want);
+      expect(p.feed!.world.rules?.nations, p.role).toEqual(want);
+      expect(p.feed!.config.nations, p.role).toEqual(want);
+      expect(p.lobby!.state().pairing?.config?.nations, p.role).toEqual({ host: "republique", guest: "empire" });
+    }
+    // each side started with its nation's worker (Fourgon / Fardier)
+    const w = d.host.feed!.world;
+    expect([...w.units.values()].some((u) => u.faction === "blue" && u.kind === "fourgon")).toBe(true);
+    expect([...w.units.values()].some((u) => u.faction === "red" && u.kind === "fourgon")).toBe(false);
+    // the saved battle names them, and replays them (expectGoodDuel replayed it to the same world)
+    expect(d.host.feed!.record().nations).toEqual(want);
+    expect(setupWorldHash(d.host.feed!.record())).toBe(setupWorldHash(d.host.session!.result()!.setup));
+  });
+
+  it("a proto-1 phone with a proto-2 host offering a nation: Classique, in sync", { timeout: 150_000 }, async () => {
+    const d = await duel({
+      seed: 108, room: { seed: 108, distanceCm: 20 }, protos: [2, 1],
+      offer: { map: "riverlands", mutators: [], hostSide: "blue", nation: "republique" }, guestNation: "empire"
+    });
+    expectGoodDuel(d, "proto 2 host (République) vs proto 1 guest");
+    for (const p of [d.host, d.guest]) {
+      expect(p.session!.result()!.setup.nations, p.role).toBeUndefined();
+      expect(p.feed!.world.rules?.nations, p.role).toBeUndefined();
+    }
+    expect(d.host.feed!.record().nations).toBeUndefined();
   });
 
   it("a 1 s capture gap on one phone mid-match, and a 700 ms suspension (a frame jump) on the other", { timeout: 180_000 }, async () => {
@@ -773,7 +825,7 @@ describe("a sound duel through the room, lobby to report", () => {
   // Host and Join tapped in the lobby, as it runs them: the host on its band plan (Advanced), the Join listening for
   // either plan's host band from the high plan's guest band from its tap on (its Session already sending lobby
   // frames), and moving to the plan it locks on
-  const joins: [BandPlan, RoomLinkOptions["b"], string, Required<HostOffer>["mutators"]][] = [
+  const joins: [BandPlan, RoomLinkOptions["b"], string, HostOffer["mutators"]][] = [
     ["high", { sampleRate: 44100, ppm: -120 }, "frostbite", ["rapidfab", "veterans"]],
     ["low", { ppm: 150 }, "proving-grounds", []]
   ];

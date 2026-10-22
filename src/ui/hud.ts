@@ -1,4 +1,6 @@
 import { BUILDINGS, ECONOMY, GOLIATH, INFANTRY as INF, LIFELINE, OBJECTIVES, POWERS, TICK_RATE, UNITS } from "../sim/balance";
+import { nationMatchups } from "../unit-info";
+import { nationRuleNote } from "./nations-ui";
 import { buildingCostFor, buildingMaxHp, buildingMaxHpOf, nationKind } from "../sim/nations";
 import { agree, isFeminine, pluralName } from "../sim/lexicon";
 import { buildingBlocker, queuesOf, unitBlocker } from "../sim/economy";
@@ -517,7 +519,14 @@ export function createHud(api: HudApi): Hud {
   function showCard(kind: UnitKind | BuildingKind): void {
     const isUnit = kind in UNITS;
     const s = isUnit ? UNITS[kind as UnitKind] : BUILDINGS[kind as BuildingKind];
-    const m = MATCHUPS[kind];
+    // a nation's matchups are against the other nation's army (unit-info.ts NATION_COUNTERS)
+    const nm = nation !== "classique" ? nationMatchups(kind, nation) : null;
+    const m = nm
+      ? nm.strong.length || nm.weak.length
+        ? { strong: nm.strong.length ? `Bat ${nm.strong.join(", ")}` : "—", weak: nm.weak.length ? `Craint ${nm.weak.join(", ")}` : "—" }
+        : undefined
+      : MATCHUPS[kind];
+    const rule = nationRuleNote(kind, nation);
     const rows: string[] = [];
     // (a Goliath's price climbs with every one you have: the card shows today's)
     // (a nation's buildings: its multipliers, Préfabriqué or Vapeur)
@@ -547,13 +556,13 @@ export function createHud(api: HudApi): Hud {
       if (u.squad) rows.push(`<tr><td>Escouade</td><td colspan="3">${u.squad} automates · puissance de feu réduite à chaque perte</td></tr>`);
       if (u.capacity) rows.push(`<tr><td>Soute</td><td colspan="3">Transporte ${u.capacity} escouades · ${agree(kind as UnitKind, "non armé")}</td></tr>`);
       if (kind === "goliath") rows.push(`<tr><td>Réparation</td><td colspan="3">Pasteur uniquement</td></tr>`);
-      rows.push(`<tr><td>Produit à</td><td colspan="3">${BUILDINGS[u.builtAt].name}${u.requires ? ` + ${BUILDINGS[u.requires].name}` : ""}</td></tr>`);
+      rows.push(`<tr><td>Produit à</td><td colspan="3">${displayName(u.builtAt, nation)}${u.requires ? ` + ${displayName(u.requires, nation)}` : ""}</td></tr>`);
     } else {
       const b = BUILDINGS[kind as BuildingKind];
       // every prerequisite, ticked off as it stands (the Gantry needs all four)
       if (b.requiresAll)
         rows.push(`<tr><td>Requiert</td><td colspan="3" class="needs">${b.requiresAll
-          .map((k) => (hasBuilding(w, PLAYER, k) ? `<span class="have">✓ ${BUILDINGS[k].name}</span>` : `<span>${BUILDINGS[k].name}</span>`))
+          .map((k) => (hasBuilding(w, PLAYER, k) ? `<span class="have">✓ ${displayName(k, nation)}</span>` : `<span>${displayName(k, nation)}</span>`))
           .join(" ")}</td></tr>`);
       if (b.unique) rows.push(`<tr><td>Limite</td><td colspan="3">${isFeminine(kind as BuildingKind) ? "Une" : "Un"} par camp</td></tr>`);
     }
@@ -563,10 +572,11 @@ export function createHud(api: HudApi): Hud {
       ? queuesOf(w, PLAYER, kind as UnitKind).reduce((n, p) => n + p.queue.filter((q) => q.kind === kind).length + view.extra(p.id, kind as UnitKind), 0)
       : 0;
     cardEl.innerHTML = `
-      <div class="ch"><img src="${icon(kind)}" alt="" /><div><b>${s.name}</b><p>${s.role}</p></div>
+      <div class="ch"><img src="${icon(kind)}" alt="" /><div><b>${displayName(kind, nation)}</b><p>${s.role}</p></div>
       <button class="x" id="card-x">✕</button></div>
       ${weapons ? `<table>${rows.slice(0, 2).join("")}</table>${weapons}<table>${rows.slice(2).join("")}</table>` : `<table>${rows.join("")}</table>`}
       ${m ? `<p class="good">▲ ${m.strong}</p><p class="bad">▼ ${m.weak}</p>` : ""}
+      ${rule ? `<p class="ctr nat-rule">${nation === "republique" ? "⚡" : "♨"} ${rule}</p>` : ""}
       ${note ? `<p class="ctr">⚔ ${note}</p>` : ""}
       ${queuedHere > 0 ? `<button class="cta small" id="card-cancel">En annuler un (${queuedHere} en file)</button>` : ""}
       ${!isUnit && view.pending?.kind === kind ? `<button class="cta small warn" id="card-cancel-b">Annuler la construction</button>` : ""}`;
@@ -1176,7 +1186,7 @@ export function createHud(api: HudApi): Hud {
       // the ghost's spot: build it here, or why not (src/game/placement-view.ts)
       const why = ctrl.placementProblem();
       chips.push({
-        id: "place", label: why ? `⚠ ${why}` : `✓ Placer ${BUILDINGS[ctrl.placing].name}`,
+        id: "place", label: why ? `⚠ ${why}` : `✓ Placer ${displayName(ctrl.placing, nation)}`,
         cls: why ? "place bad" : "place go", on: () => ctrl.commitPlacement()
       });
       chips.push({ id: "cancel", label: "✕", cls: "warn", on: () => (ctrl.placing = null) });
@@ -1246,7 +1256,7 @@ export function createHud(api: HudApi): Hud {
     if (p?.ready && lastReady !== p.kind && !ctrl.spectator) {
       lastReady = p.kind;
       sfx.play("ready");
-      toast(`${BUILDINGS[p.kind].name} prêt — touche ici pour le placer`, () => {
+      toast(`${displayName(p.kind, nation)} ${agree(p.kind, "prêt", nation)} : touche ici pour placer`, () => {
         // (not once it has been placed: in a sound duel the placement may still be on its way)
         if (ctrl.view().pending?.ready) ctrl.placing = p.kind;
       }, "good");
@@ -1508,7 +1518,7 @@ export function createHud(api: HudApi): Hud {
 
   // Panache: the same widgets regrouped for phones (src/ui/belle-hud.ts); ?style=original keeps this layout
   const belle: BelleHud | null = BELLE_EPOQUE
-    ? mountBelleHud({ root, ctrl: api.ctrl, spectator: api.ctrl.spectator, togglePause, tip: (msg) => toast(`💡 ${msg}`, undefined, "hint", 3000) })
+    ? mountBelleHud({ root, ctrl: api.ctrl, spectator: api.ctrl.spectator, nation, togglePause, tip: (msg) => toast(`💡 ${msg}`, undefined, "hint", 3000) })
     : null;
 
   return {

@@ -25,7 +25,7 @@
  *     placeBuilding:                 tx, ty     (ceil(log2(size)) bits each)
  *     sell:                          id(buildingId)
  *     rally:                         id(buildingId), x, y
- *     calldown:                      power 2, x, y
+ *     calldown:                      power 3, x, y
  *     board:                         units, id(carrierId)
  *     unload:                        units, hasPoint 1, [x, y]
  *     lift:                          units, id(goliathId)
@@ -48,9 +48,9 @@
  *  - the decoder also rejects an id ≥ 2^24, so whatever it accepts is
  *    canonical and could be sent again unchanged.
  */
-import type { BuildingKind, ClassicBuildingKind, ClassicPowerKind, ClassicUnitKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
+import type { BuildingKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
 
-export const CODEC_VERSION = 1;
+export const CODEC_VERSION = 2;
 
 /** A split piece is at most this many bits, so any command fits in an empty turn. */
 export const C_MAX = 96;
@@ -67,32 +67,36 @@ export const COMMAND_TYPES = [
 
 export const UNIT_KINDS = [
   "harvester", "scout", "stinger", "flak-crawler", "mortar", "mastodon", "lancer", "wasp", "raptor", "hornet",
-  "mender", "trooper", "rocket-squad", "sniper", "condor", "goliath"
+  "mender", "trooper", "rocket-squad", "sniper", "condor", "goliath",
+  // the nations' (LOBBY_PROTO 2, PANACHE-CONCEPTION.md §1.5): after Classique's, whose codes don't move
+  "fourgon", "jamais-contente", "de-dion", "branly", "sapeurs", "zenith",
+  "estafette", "mortier-280", "gyroptere", "epervier", "vulcain", "atelier", "fusiliers", "carabiniers", "titan"
 ] as const satisfies readonly UnitKind[];
 
 export const BUILDING_KINDS = [
-  "hq", "fab-plant", "airpad", "tech-lab", "depot", "turret", "sam-site", "radar", "assembly-bay", "gantry"
+  "hq", "fab-plant", "airpad", "tech-lab", "depot", "turret", "sam-site", "radar", "assembly-bay", "gantry",
+  "arsonval", "flak-battery"
 ] as const satisfies readonly BuildingKind[];
 
-export const POWER_KINDS = ["barrage", "emp", "droppod", "hammer"] as const satisfies readonly PowerKind[];
+export const POWER_KINDS = ["barrage", "emp", "droppod", "hammer", "sonde", "curie", "gaz", "pression"] as const satisfies readonly PowerKind[];
 
 const TYPE_BITS = 5;
 const UNIT_BITS = 5;
 const BUILDING_BITS = 4;
-const POWER_BITS = 2;
+const POWER_BITS = 3;
 
 /**
  * True while every command type, unit, building and power the sim has is in
  * its table: one added to the sim and not here fails tsc on this line (add it,
- * and bump CODEC_VERSION). Classique kinds only: sound duels play Classique
- * (LOBBY_PROTO 1); the nations' kinds join the tables with proto 2
- * (PANACHE-CONCEPTION.md §1.10, WP7).
+ * and bump CODEC_VERSION). The nations' kinds came with LOBBY_PROTO 2
+ * (PANACHE-CONCEPTION.md §1.10, WP7), after Classique's: CODEC_VERSION 2, the
+ * power field 3 bits.
  */
 export const TABLES_COMPLETE: [
   | Exclude<Command["type"], (typeof COMMAND_TYPES)[number]>
-  | Exclude<ClassicUnitKind, (typeof UNIT_KINDS)[number]>
-  | Exclude<ClassicBuildingKind, (typeof BUILDING_KINDS)[number]>
-  | Exclude<ClassicPowerKind, (typeof POWER_KINDS)[number]>
+  | Exclude<UnitKind, (typeof UNIT_KINDS)[number]>
+  | Exclude<BuildingKind, (typeof BUILDING_KINDS)[number]>
+  | Exclude<PowerKind, (typeof POWER_KINDS)[number]>
 ] extends [never]
   ? true
   : never = true;

@@ -27,6 +27,7 @@ const CSS = `
   border-radius: 6px; padding: 2px 8px; cursor: pointer; }
 #replay-panel button.on { background: rgba(126, 193, 255, 0.35); }
 #replay-panel .rp-time { font-variant-numeric: tabular-nums; }
+#replay-panel .rp-crest { width: 18px; height: 18px; object-fit: contain; vertical-align: -4px; margin-right: 3px; }
 #replay-panel .rp-status, #replay-panel .rp-warn { margin-top: 4px; padding: 3px 10px; border-radius: 8px; background: rgba(12, 18, 26, 0.75); width: fit-content; }
 #replay-panel .rp-warn { background: rgba(140, 30, 20, 0.85); }
 #replay-panel .rp-warn a { pointer-events: auto; color: inherit; font-weight: 600; }
@@ -47,7 +48,7 @@ export function replayPanel(feed: ReplayFeed, scene: GameScene): ReplayPanel {
   const r = feed.record;
   root.innerHTML = `
     <div class="rp-bar">
-      <div class="rp-vs"><span class="blue">Bleu</span> ${esc(feed.labels.blue)} contre <span class="red">Rouge</span> ${esc(feed.labels.red)} · ${esc(r.map)} graine ${esc(String(r.seed))}</div>
+      <div class="rp-vs">${crest(r, "blue")}<span class="blue">Bleu</span> ${esc(feed.labels.blue)} contre ${crest(r, "red")}<span class="red">Rouge</span> ${esc(feed.labels.red)} · ${esc(r.map)} graine ${esc(String(r.seed))}</div>
       <span class="rp-time"></span>
       <input type="range" min="0" step="1" value="0" aria-label="Position">
       <button data-jump="-300" title="Reculer de 30 s">−30s</button><button data-jump="300" title="Avancer de 30 s">+30s</button>
@@ -146,6 +147,12 @@ function asPlayed(r: ReplayFeed["record"]): string | null {
   if (!was || (was.winner === now?.winner && Math.abs(was.tick - (now?.tick ?? 0)) < 10)) return null;
   const how = was.winner ? `${SIDE[was.winner]} a gagné à ${clock(was.tick)}` : `c'était un match nul à ${clock(was.tick)}`;
   return `Re-simulé sur une version plus récente, la fin diffère : en vrai, ${how}`;
+}
+
+/** A side's crest when it played a nation (public/assets/ui/crest-*.webp), else nothing. */
+function crest(r: ReplayFeed["record"], side: Faction): string {
+  const n = r.nations?.[side];
+  return n ? `<img class="rp-crest" src="assets/ui/crest-${n}.webp" alt="" draggable="false">` : "";
 }
 
 /** A side's name as the player reads it. */

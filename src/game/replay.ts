@@ -22,7 +22,7 @@ import { setupWorld, worldHash, type BattleRecord, type RoundLog } from "../aren
 import { TICK_RATE } from "../sim/balance";
 import { isKnownMapId } from "../sim/maps";
 import { OPENERS, isOpenerId } from "../sim/openers";
-import type { Command, Faction, World } from "../sim/types";
+import type { Command, Faction, Nation, World } from "../sim/types";
 import { replayPanel, type ReplayPanel } from "../ui/replay";
 import type { GameScene, MatchFeed } from "./GameScene";
 
@@ -35,8 +35,10 @@ export const BUILD_TAG: string | null = typeof __VERSION_TAG__ === "undefined" ?
 
 /** A keyframe every 30 s of game time. */
 const KEYFRAME_TICKS = 30 * TICK_RATE;
-/** A saved sound duel's seat (src/versus/records.ts, which the viewer may not import): which phone played it. */
-const SOUND_DUEL_SEAT = /^sound-duel:(host|guest)$/;
+/** A saved duel's seat (src/versus/records.ts, which the viewer may not import): which phone played it, over sound or online. */
+const SOUND_DUEL_SEAT = /^(?:sound|online)-duel:(host|guest)$/;
+/** The nations as the viewer names them (absent: Classique). */
+export const NATION_NAMES: Record<Nation, string> = { republique: "République", empire: "Empire" };
 
 export const clock = (tick: number) => {
   const s = Math.floor(tick / TICK_RATE);
@@ -72,6 +74,12 @@ export class ReplayFeed implements MatchFeed {
   }
 
   private label(side: Faction): string {
+    const nation = this.record.nations?.[side];
+    const base = this.seatLabel(side);
+    return nation ? `${NATION_NAMES[nation]} · ${base}` : base;
+  }
+
+  private seatLabel(side: Faction): string {
     const opener = this.record.openers[side];
     const player = this.record.seats[side].player;
     // a saved sound duel (src/versus/records.ts names its seats "sound-duel:host" and "sound-duel:guest"): the phone
@@ -198,6 +206,13 @@ export function parseRecord(text: string): BattleRecord {
     throw new Error("Ce n'est pas un enregistrement de bataille (tools/arena.ts et llm battledrones les écrivent dans battles/)");
   if (!isKnownMapId(r.map)) throw new Error(`Cette bataille s'est jouée sur « ${r.map} », une carte absente de cette version du jeu`);
   if (!r.end && !r.tick) throw new Error("Cette bataille n'a pas encore dépassé son premier tour");
+  // nations (PANACHE-CONCEPTION.md §1.10): both sides, each a nation this build knows, or none (Classique)
+  if (r.nations !== undefined) {
+    const n = r.nations as Record<string, unknown> | null;
+    const ok = (v: unknown) => v === "republique" || v === "empire";
+    if (!n || typeof n !== "object" || !ok(n.blue) || !ok(n.red))
+      throw new Error("Les nations de cette bataille sont illisibles, ou inconnues de cette version du jeu");
+  }
   return r;
 }
 
