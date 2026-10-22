@@ -217,7 +217,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
 
   // ------------------------------------------- the bottom-corner buttons ---
   const army = make("button", "bh-fab bh-army", `<span class="bh-ic">⚔</span><span class="bh-cap">Armée</span><span class="bh-badge" hidden></span>`);
-  army.title = "Touche : toute l'armée · appui long : les inactifs · glisse vers le haut : escouades";
+  army.title = "Touche : toute l'armée · appui long : les inactifs · glisse vers le haut : escouades et rôles";
   const build = make("button", "bh-fab bh-build", `<span class="bh-ic">🔨</span><span class="bh-cap">Construire</span><span class="bh-badge" hidden></span>`);
   build.title = "Construire et produire";
   const pow = make("button", "bh-pow", `<span class="bh-ring"></span><span class="bh-face"><span class="bh-ic">⚡</span></span><span class="bh-n">0</span>`);

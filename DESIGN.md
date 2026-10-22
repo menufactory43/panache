@@ -2289,7 +2289,9 @@ accidental browser gestures:
 | Tap | Ground, a lift selected | Fly the Goliath there and hover |
 | Double-tap | Own unit | Select all on-screen units of that type |
 | Drag (one finger) | Anywhere | Pan (with momentum) |
-| Long-press then drag | Anywhere | Box-select (prefers combat units over harvesters) |
+| Drag (one finger) | From a selected unit | Draw the selection's route: attack-moves through its corners (moves with ⚑ Repli); back to the start, a patrol |
+| Tap ▢ Cadre, then drag | Anywhere | Box-select at once (no long-press) |
+| Long-press then drag | Anywhere but a selected unit | Box-select (prefers combat units over harvesters) |
 | Long-press, released without dragging | Map, loaded Condors selected | Fly there and drop the squads (the rest of the selection heads there too); with a calldown armed, fire it there instead |
 | Long-press, released without dragging | Map, a lift selected | Fly there and set the Goliath down (on the nearest ground it can stand on) |
 | Two-finger drag / pinch | Anywhere | Pan / zoom |
@@ -2298,10 +2300,15 @@ accidental browser gestures:
 | Tap | Map, while placing | Move the ghost there (no build yet) |
 | Tap / drag | The ghost | Build it / slide it |
 | Long-press / tap / double-tap | Squad chip 1–3 | Save the selection / select the squad / fly the camera there |
+| Tap / double-tap | Role chip Infanterie / Blindés / Aviation | Select the whole army of that role / fly the camera there |
+| Tap | A portrait in a group's selection panel | Keep only that kind selected |
 
 Disambiguation: a touch is a *tap* if it moves < 8 px and lasts < 250 ms;
 movement beyond the slop radius before the long-press timer fires commits
-to *pan*; after the timer fires it commits to *box-select*. A box
+to *pan*; after the timer fires it commits to *box-select*. A touch drag
+that starts within a thumb (≥ 30 CSS px) of a selected unit commits to a
+*route* instead, however long it rested first (src/game/route-draw.ts
+turns the trail into a few waypoints, src/sim/route.ts queues them). A box
 released within the tap slop of where it began is a plain long-press: with
 loaded Condors (or a lift) selected it orders the drop there, otherwise it
 box-selects as usual; a box cut short by a second finger or a pointercancel is not a

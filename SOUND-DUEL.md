@@ -404,6 +404,7 @@ then by type:
   unload:                        units, hasPoint 1, [x, y]
   lift:                          units, id(goliathId)
   resign:                        –
+  waypoint, patrol:              units, x, y     (CODEC_VERSION 3: a route drawn, src/sim/route.ts)
 units  = sameAsPrevious 1 (always written; 1 = the same list as the previous command in this
          turn that had units, and it must be 0 when there is none), else
          UE(count − 1), UE(first), then UE(gap − 1) for each further id
