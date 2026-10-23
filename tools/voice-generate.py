@@ -72,14 +72,43 @@ SAY = [
 ]
 
 
+# --lang en: the English recording (public/assets/voice/en/), same voice and pipeline
+EN_BASE_STYLE = (
+    "A French Army officer around 1900 speaking English into a field telephone: "
+    "deep, steady, well-articulated voice, a light French accent, martial but never shouting, "
+    "a short radio line. Brisk and sustained pace, clear; no hesitation, "
+    "no breath before or after. Initials are spelled letter by letter (GHQ: G-H-Q)."
+)
+EN_TONE_STYLE = {
+    "bad": "Reports bad news or danger: urgent, firm, tense, without shouting.",
+    "good": "Reports good news: satisfied, confident, sober.",
+    "epic": "A high point of the battle: solemn, proud, a little more emphatic.",
+    "info": "Routine information: neutral, crisp, efficient.",
+}
+EN_PART_STYLE = {
+    "line": "",
+    "head": "This is only the start of a sentence, the rest follows at once: suspended intonation, no final fall, no pause.",
+    "mid": "This is the middle of a sentence: suspended intonation, run on, no final fall.",
+    "tail": "This ends a sentence begun just before: run straight on, natural final intonation.",
+}
+EN_SAY = [
+    (r"\bRuggieri\b", "Roo-jeh-ree"),
+    (r"\bFrench 75s?\b", lambda m: m.group(0).replace("75", "seventy-five")),
+    (r"\b280 mm\b", "two-eighty"),
+    (r"\b47 mm\b", "forty-seven"),
+]
+LANG = "fr"
+
+
 def tts_text(text: str) -> str:
-    for pat, rep in SAY:
+    for pat, rep in (EN_SAY if LANG == "en" else SAY):
         text = re.sub(pat, rep, text)
     return text
 
 
 def instructions(tone: str, part: str) -> str:
-    return " ".join(x for x in (BASE_STYLE, TONE_STYLE.get(tone, ""), PART_STYLE.get(part, "")) if x)
+    base, tones, parts = (EN_BASE_STYLE, EN_TONE_STYLE, EN_PART_STYLE) if LANG == "en" else (BASE_STYLE, TONE_STYLE, PART_STYLE)
+    return " ".join(x for x in (base, tones.get(tone, ""), parts.get(part, "")) if x)
 
 
 def synthesize(client, text: str, tone: str, part: str, voice: str, model: str) -> bytes:
@@ -98,7 +127,7 @@ def fold(s: str) -> str:
     s = unicodedata.normalize("NFD", s.lower())
     s = "".join(c for c in s if not unicodedata.combining(c))
     s = " " + re.sub(r"[^a-z0-9]+", " ", s).strip() + " "
-    for words, digits in NUMBERS:
+    for words, digits in (NUMBERS_EN if LANG == "en" else NUMBERS):
         s = s.replace(f" {words} ", f" {digits} ")
     return s.replace(" ", "")
 
@@ -107,17 +136,21 @@ _FR = ["zero", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "
        "dix sept", "dix huit", "dix neuf", "vingt", "vingt et un"] + [f"vingt {u}" for u in "deux trois quatre cinq six sept huit neuf".split()] + ["trente", "soixante quinze"]
 # number words → digits (the transcriber writes either), longest first
 NUMBERS = sorted([(w, str(i if i <= 30 else 75)) for i, w in enumerate(_FR)] + [("xv", "15")], key=lambda x: -len(x[0]))
+_EN = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+       "sixteen", "seventeen", "eighteen", "nineteen", "twenty"]
+NUMBERS_EN = sorted([(w, str(i)) for i, w in enumerate(_EN)] + [("seventy five", "75")], key=lambda x: -len(x[0]))
 # words the transcriber knows: a take that doesn't say them clearly is retaken
 MUST = ["gargantua", "victoire", "ennemi"]
+MUST_EN = ["gargantua", "victory", "enemy"]
 
 
 def score(client, clip: Path, text: str) -> tuple[float, str]:
     """How well the clip says `text`: the transcript's similarity to it (0..1)."""
     with clip.open("rb") as f:
-        heard = client.audio.transcriptions.create(model=CHECK_MODEL, file=f, language="fr").text
+        heard = client.audio.transcriptions.create(model=CHECK_MODEL, file=f, language=LANG).text
     said, want = fold(heard), fold(text)
     sc = difflib.SequenceMatcher(None, fold(text), said).ratio()
-    for w in MUST:
+    for w in (MUST_EN if LANG == "en" else MUST):
         if w in want and w not in said:
             sc *= 0.8
     return sc, heard
@@ -164,12 +197,13 @@ def encode(raw: Path, out: Path) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--lang", choices=["fr", "en"], default="fr", help="en: the English phrase book, into public/assets/voice/en/")
     ap.add_argument("--force", action="store_true", help="re-record clips that already exist")
     ap.add_argument("--only", action="append", default=[], help="record only this line (text or key; repeatable)")
     ap.add_argument("--match", help="record only lines whose text matches this regular expression")
     ap.add_argument("--voice", default=VOICE)
     ap.add_argument("--model", default=MODEL)
-    ap.add_argument("--out", type=Path, default=VOICE_DIR, help="clip folder (default: public/assets/voice)")
+    ap.add_argument("--out", type=Path, default=None, help="clip folder (default: public/assets/voice, or voice/en)")
     ap.add_argument("--cache", type=Path, default=Path(tempfile.gettempdir()) / "panache-voice-raw", help="raw TTS cache (re-encode without re-recording)")
     ap.add_argument("--audition", help="comma-separated voices: record a short sample set per voice into --out/<voice>/")
     ap.add_argument("--jobs", type=int, default=6)
@@ -177,6 +211,12 @@ def main() -> int:
     ap.add_argument("--no-check", action="store_true", help="keep the first take (no transcription check)")
     ap.add_argument("--report", type=Path, default=Path(tempfile.gettempdir()) / "panache-voice-report.json")
     args = ap.parse_args()
+    global LANG
+    LANG = args.lang
+    voice_dir = VOICE_DIR / "en" if LANG == "en" else VOICE_DIR
+    args.out = args.out or voice_dir
+    if LANG == "en":
+        args.cache = args.cache / "en"
 
     if not os.environ.get("OPENAI_API_KEY"):
         print("OPENAI_API_KEY is not set", file=sys.stderr)
@@ -184,7 +224,7 @@ def main() -> int:
     from openai import OpenAI
 
     client = OpenAI()
-    lines = json.loads(MANIFEST.read_text())["lines"]
+    lines = json.loads((voice_dir / "manifest.json").read_text())["lines"]
 
     if args.audition:
         pick = ["Alerte : notre GQG est attaqué", "Creusot ennemi détruit", "Aviation ennemie détectée", "Gargantua ennemi sur le terrain",

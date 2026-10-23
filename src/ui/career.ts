@@ -128,7 +128,7 @@ function dailyHtml(op: DailyOp, c: CareerData): string {
 
 function mutButtonHtml(): string {
   const on = gameMode.mutators;
-  if (on.length === 0) return `<span class="mb-k">${tr("🧪 Mutateurs", "🧪 Mutators")}</span><span class="mb-v">${tr("Non", "No")}</span>`;
+  if (on.length === 0) return `<span class="mb-k">${tr("🧪 Mutateurs", "🧪 Mutators")}</span><span class="mb-v">${tr("Non", "None")}</span>`;
   // (one the picked map can't be played with is left out of its matches: struck through)
   const def = mapById(gameMode.mapId);
   const names = on
