@@ -1350,7 +1350,7 @@ function errorHtml(v: LobbyView): { body: string; actions: string } {
       return { body: `<p class="duel-err">${esc(e.message)}</p>`, actions: close };
     case "modem":
       return {
-        body: `<p class="duel-err">${tr("La liaison sonore ne fonctionne plus.", "The sound link has stopped working.")}</p><p class="sh-note">${tr("Ferme, puis touche Duel pour la relancer.", "Close, then tap Duel to restart it.")} (${esc(e.message)})</p>`,
+        body: `<p class="duel-err">${tr("La liaison sonore ne fonctionne plus.", "The sound link has stopped working.")}</p><p class="sh-note">${tr("Ferme, puis touche Duel pour la relancer.", "Close, then tap Duel to restart it.")} (${esc(rigMessage(undefined, e.message))})</p>`,
         actions: close + reload
       };
     default:

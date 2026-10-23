@@ -30,6 +30,9 @@ export function rigMessage(reason: RigErrorReason | undefined, message: string):
   if (reason && reason !== "rate" && message === RIG_MESSAGES[reason]) return MESSAGES_EN[reason];
   if (message === "L'audio de ce téléphone ne peut pas porter la liaison sonore") return "This phone's audio can't carry the sound link";
   if (message === "Le dispositif audio a été fermé") return "The audio device was closed";
+  if (message === "le processeur audio de la liaison sonore a échoué") return "the sound link's audio processor failed";
+  const stopped = /^le modem s'est arrêté : (.*)$/s.exec(message);
+  if (stopped) return `the modem stopped: ${stopped[1]}`;
   const mic = /^Le micro de ce téléphone tourne à (\d+) Hz, inutilisable pour la liaison sonore$/.exec(message);
   if (mic) return `This phone's microphone runs at ${mic[1]} Hz, unusable for the sound link`;
   const audio = /^L'audio de ce téléphone tourne à (\d+) Hz, inutilisable pour la liaison sonore$/.exec(message);

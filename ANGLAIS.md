@@ -94,3 +94,23 @@ Noms propres et marques gardés ; noms communs traduits.
 | Facile, Normal, Difficile | Easy, Normal, Hard |
 | En avant ! | Forward! |
 | brouillard | fog |
+
+## Termes ajoutés pendant la traduction du jeu
+
+| Français | Anglais |
+|---|---|
+| Quartier général (menu) | Headquarters |
+| Salon (code, lien d'invitation) | Lobby |
+| Duel sonore / Duel en ligne | Sound Duel / Online Duel |
+| Défier un ami | Challenge a friend |
+| Liaison sonore | sound link |
+| Relais TSF | Wireless Relay (Relay) |
+| Caisse de ravitaillement | Supply crate |
+| Ouverture : Blitz, Industrie, Escadrille | Opening: Blitz, Industry, Air Wing |
+| Mutateurs : Ruée vers l'or, Canons de verre, Production éclair, Guerre aérienne, Guerre d'infanterie, Aéroportés, Vétérans, Ciel dégagé, Nomades, Amour mécanique, Armada de Gargantuas | Gold Rush, Glass Cannons, Lightning Production, Air War, Infantry War, Airborne, Veterans, Clear Skies, Nomads, Robot Love, Gargantua Armada |
+| Grades : Cadet, Soldat, Caporal, Sergent, Lieutenant, Capitaine, Commandant, Colonel, Général, Maréchal | Cadet, Private, Corporal, Sergeant, Lieutenant, Captain, Major, Colonel, General, Marshal |
+| Épreuve / Mission | Trial / Mission |
+| Instruction (écran) | Training |
+| Acte I, II, III | Act I — The Ultimatum, Act II — The War of the Peaks, Act III — Paris! |
+| Bleu / Rouge | Blue / Red |
+| GQG (message) | GHQ |
