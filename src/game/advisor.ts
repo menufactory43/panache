@@ -20,6 +20,7 @@ import { unitSeenBy } from "../sim/infantry";
 import { PLURALS } from "../sim/lexicon";
 import { bannedBy } from "../sim/rules";
 import type { BuildingKind, Faction, UnitKind, World } from "../sim/types";
+import { tr } from "../lang";
 
 export const ADVISOR = {
   /** A sighting is forgotten this long after the unit was last seen (sim s). */
@@ -164,7 +165,10 @@ function ownValue(w: World, faction: Faction, kind: UnitKind | BuildingKind): nu
 export function adviceNote(a: Advice): string | null {
   if (a.threats.length === 0) return null;
   const [first, ...rest] = a.threats;
-  return `Contre : ${plural(first!.kind)} (vus ×${first!.count})${rest.map((x) => `, ${plural(x.kind)} (×${x.count})`).join("")}`;
+  return tr(
+    `Contre : ${plural(first!.kind)} (vus ×${first!.count})${rest.map((x) => `, ${plural(x.kind)} (×${x.count})`).join("")}`,
+    `Counters: ${plural(first!.kind)} (seen ×${first!.count})${rest.map((x) => `, ${plural(x.kind)} (×${x.count})`).join("")}`
+  );
 }
 
 /** Factory → tab: which build-bar tab an idle factory nudges. */

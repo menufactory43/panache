@@ -25,6 +25,7 @@ import { OPENERS, isOpenerId } from "../sim/openers";
 import type { Command, Faction, Nation, World } from "../sim/types";
 import { replayPanel, type ReplayPanel } from "../ui/replay";
 import type { GameScene, MatchFeed } from "./GameScene";
+import { tr } from "../lang";
 
 declare const __SIM_HASH__: string | undefined;
 /** The sim this build plays (vite.config.ts; tools/arena/files.ts simHash), or null outside a Vite build. */
@@ -38,7 +39,7 @@ const KEYFRAME_TICKS = 30 * TICK_RATE;
 /** A saved duel's seat (src/versus/records.ts, which the viewer may not import): which phone played it, over sound or online. */
 const SOUND_DUEL_SEAT = /^(?:sound|online)-duel:(host|guest)$/;
 /** The nations as the viewer names them (absent: Classique). */
-export const NATION_NAMES: Record<Nation, string> = { republique: "République", empire: "Empire" };
+export const NATION_NAMES: Record<Nation, string> = tr({ republique: "République", empire: "Empire" }, { republique: "Republic", empire: "Empire" });
 
 export const clock = (tick: number) => {
   const s = Math.floor(tick / TICK_RATE);
@@ -82,11 +83,13 @@ export class ReplayFeed implements MatchFeed {
   private seatLabel(side: Faction): string {
     const opener = this.record.openers[side];
     const player = this.record.seats[side].player;
+    // (the viewer's own seats are saved as "Toi" / "IA")
+    const shown = player === "Toi" ? tr("Toi", "You") : player === "IA" ? tr("IA", "AI") : player;
     // a saved sound duel (src/versus/records.ts names its seats "sound-duel:host" and "sound-duel:guest"): the phone
     // and the opener as the game names them, "Host phone · Air Wing"; the record itself stays as it is
     const phone = SOUND_DUEL_SEAT.exec(player)?.[1];
-    if (phone) return `Téléphone ${phone === "host" ? "hôte" : "invité"}${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
-    return `${player.replace(/^(openai|anthropic|llm):/, "")}${opener ? ` · ${opener}` : ""}`;
+    if (phone) return `${tr(`Téléphone ${phone === "host" ? "hôte" : "invité"}`, `${phone === "host" ? "Host" : "Guest"} phone`)}${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
+    return `${shown.replace(/^(openai|anthropic|llm):/, "")}${opener ? ` · ${opener}` : ""}`;
   }
 
   private index(): void {
@@ -139,7 +142,7 @@ export class ReplayFeed implements MatchFeed {
     const want = this.hashes.get(w.tick);
     if (want !== undefined && this.divergedAt === null && worldHash(w) !== want) {
       this.divergedAt = w.tick;
-      this.scene?.alert(`⚠ Ce replay a divergé à ${clock(w.tick)}`);
+      this.scene?.alert(tr(`⚠ Ce replay a divergé à ${clock(w.tick)}`, `⚠ This replay diverged at ${clock(w.tick)}`));
     }
     if (w.tick % KEYFRAME_TICKS === 0 && !this.keyframes.has(w.tick)) this.keyframes.set(w.tick, structuredClone(w));
     const radio = this.record.radio;
@@ -200,18 +203,18 @@ export function parseRecord(text: string): BattleRecord {
   try {
     r = JSON.parse(text) as BattleRecord;
   } catch {
-    throw new Error("Ce n'est pas du JSON : colle tout le fichier .json écrit par une bataille dans battles/");
+    throw new Error(tr("Ce n'est pas du JSON : colle tout le fichier .json écrit par une bataille dans battles/", "That isn't JSON: paste the whole .json file a battle wrote to battles/"));
   }
   if (!r || typeof r !== "object" || r.v !== 1 || !Array.isArray(r.turns) || !Array.isArray(r.hashes) || !r.seats)
-    throw new Error("Ce n'est pas un enregistrement de bataille (tools/arena.ts et llm battledrones les écrivent dans battles/)");
-  if (!isKnownMapId(r.map)) throw new Error(`Cette bataille s'est jouée sur « ${r.map} », une carte absente de cette version du jeu`);
-  if (!r.end && !r.tick) throw new Error("Cette bataille n'a pas encore dépassé son premier tour");
+    throw new Error(tr("Ce n'est pas un enregistrement de bataille (tools/arena.ts et llm battledrones les écrivent dans battles/)", "That isn't a battle record (tools/arena.ts and llm battledrones write them to battles/)"));
+  if (!isKnownMapId(r.map)) throw new Error(tr(`Cette bataille s'est jouée sur « ${r.map} », une carte absente de cette version du jeu`, `This battle was played on « ${r.map} », a map missing from this version of the game`));
+  if (!r.end && !r.tick) throw new Error(tr("Cette bataille n'a pas encore dépassé son premier tour", "This battle hasn't got past its first turn yet"));
   // nations (PANACHE-CONCEPTION.md §1.10): both sides, each a nation this build knows, or none (Classique)
   if (r.nations !== undefined) {
     const n = r.nations as Record<string, unknown> | null;
     const ok = (v: unknown) => v === "republique" || v === "empire";
     if (!n || typeof n !== "object" || !ok(n.blue) || !ok(n.red))
-      throw new Error("Les nations de cette bataille sont illisibles, ou inconnues de cette version du jeu");
+      throw new Error(tr("Les nations de cette bataille sont illisibles, ou inconnues de cette version du jeu", "This battle's nations are unreadable, or unknown to this version of the game"));
   }
   return r;
 }
@@ -243,9 +246,9 @@ export async function fetchLinkedRecord(ref: string, base = location.href): Prom
   try {
     url = new URL(ref.trim(), base);
   } catch {
-    throw new Error(`« ${ref} » n'est pas une URL`);
+    throw new Error(tr(`« ${ref} » n'est pas une URL`, `« ${ref} » isn't a URL`));
   }
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("Seuls les liens http et https peuvent être chargés");
+  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error(tr("Seuls les liens http et https peuvent être chargés", "Only http and https links can be loaded"));
   const page = (url.origin + url.pathname).replace(/\/$/, "");
   const gist = GIST.exec(page);
   if (gist) {
@@ -253,10 +256,10 @@ export async function fetchLinkedRecord(ref: string, base = location.href): Prom
     // with the owner in the link, the raw file needs no API call (GitHub allows 60 an hour per address); it's the Gist's first file
     if (owner) return fetchText(`https://gist.githubusercontent.com/${owner}/${id}/raw/${revision ?? ""}`);
     const res = await fetch(`https://api.github.com/gists/${id}${revision ? `/${revision}` : ""}`).catch(() => null);
-    if (!res?.ok) throw new Error(`Impossible de trouver le Gist ${id} via l'API GitHub${res ? ` (${res.status})` : ""}`);
+    if (!res?.ok) throw new Error(tr(`Impossible de trouver le Gist ${id} via l'API GitHub${res ? ` (${res.status})` : ""}`, `Couldn't find Gist ${id} through the GitHub API${res ? ` (${res.status})` : ""}`));
     const files = Object.values(((await res.json()) as { files?: Record<string, { filename: string; raw_url: string }> }).files ?? {});
     const file = files.find((f) => /\.json$/i.test(f.filename)) ?? files[0];
-    if (!file) throw new Error(`Le Gist ${id} n'a aucun fichier`);
+    if (!file) throw new Error(tr(`Le Gist ${id} n'a aucun fichier`, `Gist ${id} has no files`));
     return fetchText(file.raw_url);
   }
   const blob = GITHUB_FILE.exec(page);
@@ -269,9 +272,9 @@ async function fetchText(url: string): Promise<string> {
     res = await fetch(url);
   } catch {
     // (to a page, a server that doesn't allow cross-origin reads looks just like no network)
-    throw new Error(`Impossible de récupérer ${url} : pas de réseau, ou son serveur interdit la lecture par d'autres sites (CORS)`);
+    throw new Error(tr(`Impossible de récupérer ${url} : pas de réseau, ou son serveur interdit la lecture par d'autres sites (CORS)`, `Couldn't fetch ${url}: no network, or its server forbids other sites from reading it (CORS)`));
   }
-  if (!res.ok) throw new Error(`Impossible de récupérer ${url} : ${res.status} ${res.statusText}`.trim());
+  if (!res.ok) throw new Error(tr(`Impossible de récupérer ${url} : ${res.status} ${res.statusText}`, `Couldn't fetch ${url}: ${res.status} ${res.statusText}`).trim());
   return res.text();
 }
 

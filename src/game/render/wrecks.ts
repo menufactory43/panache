@@ -16,6 +16,7 @@ import type { View } from "../three/view";
 import { WRECK_SMOKE } from "./belle-fx";
 import type { Fx } from "./fx";
 import { TOPPLE_SLAM_MS } from "./goliath";
+import { tr } from "../../lang";
 
 /**
  * Battlefield wrecks (sim: salvage.ts). A destroyed combat unit's own model
@@ -184,7 +185,7 @@ export class WreckRenderer {
     if (sum >= HAUL_AT && now - this.lastHaul > 30000) {
       this.lastHaul = now;
       this.haul = [];
-      announce({ key: "salvage-haul", text: "BUTIN DE RÉCUPÉRATION", sub: `+${sum} charbon tiré des épaves`, tone: "good", priority: 3, x, y });
+      announce({ key: "salvage-haul", text: tr("BUTIN DE RÉCUPÉRATION", "SALVAGE HAUL"), sub: tr(`+${sum} charbon tiré des épaves`, `+${sum} coal salvaged from the wrecks`), tone: "good", priority: 3, x, y });
     }
   }
 
@@ -434,7 +435,7 @@ export class WreckRenderer {
     v.aura.visible = shown;
     if (!shown) return;
     if (!this.hinted && visibleNow && !v.gone && w.tick >= v.coolTick)
-      this.opts.hint("Les épaves scintillantes contiennent du charbon : passe dessus avec une unité terrestre.", v.x, v.y, () => {
+      this.opts.hint(tr("Les épaves scintillantes contiennent du charbon : passe dessus avec une unité terrestre.", "Glittering wrecks hold coal: drive over one with a ground unit."), v.x, v.y, () => {
         this.hinted = true;
         try {
           localStorage.setItem(HINT_KEY, "1");

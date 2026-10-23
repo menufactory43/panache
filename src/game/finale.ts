@@ -4,6 +4,7 @@ import { agree, displayName } from "../sim/lexicon";
 import type { Fx } from "./render/fx";
 import { Ease } from "./three/tween";
 import type { View } from "./three/view";
+import { tr } from "../lang";
 
 /**
  * The cinematic end of a match (render only — the sim has already stopped
@@ -200,25 +201,27 @@ export function finaleBanner(o: {
 }): Announcement {
   const { x, y } = o;
   if (o.cause === "resign") {
-    if (o.winner === "draw") return { key: "draw", text: "Double abandon", sub: "Match nul", tone: "info", priority: 0, x, y };
+    if (o.winner === "draw") return { key: "draw", text: tr("Double abandon", "Double resignation"), sub: tr("Match nul", "A draw"), tone: "info", priority: 0, x, y };
     if (o.spectator) {
-      const won = o.winner === "blue" ? "Bleu" : "Rouge";
-      return { key: "hq-destroyed", text: `${won === "Bleu" ? "Rouge" : "Bleu"} abandonne`, sub: `${won} l'emporte`, tone: "epic", priority: 0, x, y };
+      const won = o.winner === "blue" ? tr("Bleu", "Blue") : tr("Rouge", "Red");
+      const lost = o.winner === "blue" ? tr("Rouge", "Red") : tr("Bleu", "Blue");
+      return { key: "hq-destroyed", text: tr(`${lost} abandonne`, `${lost} resigns`), sub: tr(`${won} l'emporte`, `${won} wins`), tone: "epic", priority: 0, x, y };
     }
-    if (o.winner === o.player) return { key: "victory", text: "Ton ami abandonne", sub: "Victoire", tone: "epic", priority: 0, x, y };
-    return { key: "defeat", text: "Tu as abandonné", sub: "Défaite", tone: "bad", priority: 0, x, y };
+    if (o.winner === o.player) return { key: "victory", text: tr("Ton ami abandonne", "Your friend resigns"), sub: tr("Victoire", "Victory"), tone: "epic", priority: 0, x, y };
+    return { key: "defeat", text: tr("Tu as abandonné", "You resigned"), sub: tr("Défaite", "Defeat"), tone: "bad", priority: 0, x, y };
   }
   if (o.winner === "draw" || o.cause === "love")
-    return { key: "draw", text: "💘 Ils sont tombés amoureux", sub: "Match nul", tone: "good", priority: 0, x, y, say: "Ils sont tombés amoureux. Match nul." };
-  const loser = o.winner === "blue" ? "Rouge" : "Bleu";
+    return { key: "draw", text: tr("💘 Ils sont tombés amoureux", "💘 They fell in love"), sub: tr("Match nul", "A draw"), tone: "good", priority: 0, x, y, say: tr("Ils sont tombés amoureux. Match nul.", "They fell in love. A draw.") };
+  const loser = o.winner === "blue" ? tr("Rouge", "Red") : tr("Bleu", "Blue");
+  const winnerSide = o.winner === "blue" ? tr("Bleu", "Blue") : tr("Rouge", "Red");
   // (the loser's HQ by its nation's name: "Citadelle Rouge détruite", "Notre Citadelle est tombée")
   const n = o.nations?.[o.winner === "blue" ? "red" : "blue"];
   const hq = o.cause === "goliath" ? null : displayName("hq", n);
   const what = hq ?? "Gargantua";
   const g = (word: string) => (hq ? agree("hq", word, n) : word);
-  if (o.spectator) return { key: "hq-destroyed", text: `${what} ${loser} ${g("détruit")}`, sub: `${loser === "Rouge" ? "Bleu" : "Rouge"} l'emporte`, tone: "epic", priority: 0, x, y };
-  if (o.winner === o.player) return { key: "victory", text: `${what} ${g("ennemi")} ${g("détruit")}`, sub: "Victoire", tone: "epic", priority: 0, x, y };
-  return { key: "defeat", text: o.cause === "goliath" ? "Notre dernier Gargantua est tombé" : `Notre ${what} est ${g("tombé")}`, sub: "Défaite", tone: "bad", priority: 0, x, y };
+  if (o.spectator) return { key: "hq-destroyed", text: tr(`${what} ${loser} ${g("détruit")}`, `${loser} ${what} destroyed`), sub: tr(`${winnerSide} l'emporte`, `${winnerSide} wins`), tone: "epic", priority: 0, x, y };
+  if (o.winner === o.player) return { key: "victory", text: tr(`${what} ${g("ennemi")} ${g("détruit")}`, `Enemy ${what} destroyed`), sub: tr("Victoire", "Victory"), tone: "epic", priority: 0, x, y };
+  return { key: "defeat", text: o.cause === "goliath" ? tr("Notre dernier Gargantua est tombé", "Our last Gargantua has fallen") : tr(`Notre ${what} est ${g("tombé")}`, `Our ${what} has fallen`), sub: tr("Défaite", "Defeat"), tone: "bad", priority: 0, x, y };
 }
 
 /** Zoom the finale settles at: a push-in, but never further out than `atLeast`. */

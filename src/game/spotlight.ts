@@ -23,6 +23,7 @@
  */
 import type { Announcement } from "./announce";
 import type { Faction, FxEvent } from "../sim/types";
+import { tr } from "../lang";
 
 export const SPOTLIGHT = {
   /** At most one moment per this much play (real ms, paused time not counted). */
@@ -157,7 +158,7 @@ export class Spotlight {
         this.hqHit = true;
         this.offer({
           kind: "hq-first", x: ev.x, y: ev.y, t, rank: RANK["hq-first"],
-          banner: { key: "spot-hq", text: "Leur GQG est touché !", sub: "Le premier obus est tombé", tone: "epic", priority: 1, x: ev.x, y: ev.y }
+          banner: { key: "spot-hq", text: tr("Leur GQG est touché !", "Their GHQ is hit!"), sub: tr("Le premier obus est tombé", "The first shell has landed"), tone: "epic", priority: 1, x: ev.x, y: ev.y }
         });
       } else if (ev.type === "calldownImpact" && ev.faction === me) {
         const n = (this.strikes.get(ev.id) ?? 0) + ev.hits;
@@ -209,7 +210,7 @@ export class Spotlight {
     this.offer({
       kind: "battle", x, y, t, rank: RANK.battle,
       banner: {
-        key: "spot-battle", text: "Bataille remportée", sub: `${cap(this.h.place(x, y))} : ${lost.n} pertes chez eux, ${mine} chez nous`,
+        key: "spot-battle", text: tr("Bataille remportée", "Battle won"), sub: tr(`${cap(this.h.place(x, y))} : ${lost.n} pertes chez eux, ${mine} chez nous`, `${cap(this.h.place(x, y))}: ${lost.n} losses on their side, ${mine} on ours`),
         tone: "good", priority: 2, x, y
       }
     });

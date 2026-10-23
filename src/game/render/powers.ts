@@ -13,6 +13,7 @@ import { instance, modelMesh, podDef, type ModelInstance } from "../three/models
 import { Ease } from "../three/tween";
 import type { View } from "../three/view";
 import type { Fx } from "./fx";
+import { tr } from "../../lang";
 
 /**
  * Everything the commander calldowns look and sound like: public reticles
@@ -218,12 +219,12 @@ export class PowerRenderer {
           this.hammerAnnounced = true;
           announce({
             key: "sky-hammer-online",
-            text: "Obus Méliès opérationnel",
+            text: tr("Obus Méliès opérationnel", "Méliès Shell ready"),
             sub: !this.opts.spectator
-              ? "Obus Méliès prêt. Touche son bouton, puis la carte"
+              ? tr("Obus Méliès prêt. Touche son bouton, puis la carte", "Méliès Shell ready. Tap its button, then the map")
               : this.world.survival
-                ? "Le défenseur peut tirer l'Obus Méliès" // (the waves have no commander)
-                : "Les deux commandants peuvent tirer l'Obus Méliès",
+                ? tr("Le défenseur peut tirer l'Obus Méliès", "The defender can fire the Méliès Shell") // (the waves have no commander)
+                : tr("Les deux commandants peuvent tirer l'Obus Méliès", "Both commanders can fire the Méliès Shell"),
             tone: "epic",
             priority: 1
           });
@@ -253,15 +254,15 @@ export class PowerRenderer {
     if (this.friendly(ev.faction)) return;
     if (this.opts.spectator) {
       if (ev.power === "hammer")
-        announce({ key: "sky-hammer-inbound", text: "Obus Méliès en approche !", sub: `${ev.faction === "blue" ? "Bleu" : "Rouge"} tire un obus depuis la Lune`, tone: "info", priority: 1, x: ev.x, y: ev.y });
+        announce({ key: "sky-hammer-inbound", text: tr("Obus Méliès en approche !", "Méliès Shell incoming!"), sub: tr(`${ev.faction === "blue" ? "Bleu" : "Rouge"} tire un obus depuis la Lune`, `${ev.faction === "blue" ? "Blue" : "Red"} fires a shell from the Moon`), tone: "info", priority: 1, x: ev.x, y: ev.y });
       return;
     }
     // the enemy's: warn, loudly if it threatens anything of ours
     if (ev.power === "hammer") {
       announce({
         key: "enemy-sky-hammer",
-        text: "Obus Méliès ennemi en approche !",
-        sub: "Sors du cercle rouge",
+        text: tr("Obus Méliès ennemi en approche !", "Enemy Méliès Shell incoming!"),
+        sub: tr("Sors du cercle rouge", "Get out of the red circle"),
         tone: "bad",
         priority: 0,
         x: ev.x,
@@ -272,7 +273,7 @@ export class PowerRenderer {
     }
     if (!threatened) return;
     this.opts.ping(ev.x, ev.y);
-    if (!this.onScreen(x, y, 0)) this.opts.alert(`Frappe ennemie en approche : ${name} !`, ev.x, ev.y);
+    if (!this.onScreen(x, y, 0)) this.opts.alert(tr(`Frappe ennemie en approche : ${name} !`, `Enemy strike incoming: ${name}!`), ev.x, ev.y);
   }
 
   /** An expanding ring of light on the ground (`additive` false: a painted ring that keeps a saturated colour on bright ground). */

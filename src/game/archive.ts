@@ -15,6 +15,7 @@
  */
 import type { BattleRecord, PlayedInfo } from "../arena/record";
 import { TICK_RATE } from "../sim/balance";
+import { tr } from "../lang";
 
 export const ARCHIVE = {
   max: 5,
@@ -58,8 +59,8 @@ export const encodeRecord = (r: BattleRecord): string => JSON.stringify(r);
 export function decodeRecord(text: string): BattleRecord {
   const r = JSON.parse(text) as BattleRecord;
   if (!r || typeof r !== "object" || r.v !== 1 || typeof r.map !== "string" || typeof r.seed !== "number" || !Array.isArray(r.turns) || !Array.isArray(r.hashes) || !r.seats)
-    throw new Error("Ce n'est pas un enregistrement de partie");
-  for (const t of r.turns) if (!Array.isArray(t) || typeof t[0] !== "number" || (t[1] !== "blue" && t[1] !== "red") || !Array.isArray(t[2])) throw new Error("Tour illisible");
+    throw new Error(tr("Ce n'est pas un enregistrement de partie", "That isn't a match record"));
+  for (const t of r.turns) if (!Array.isArray(t) || typeof t[0] !== "number" || (t[1] !== "blue" && t[1] !== "red") || !Array.isArray(t[2])) throw new Error(tr("Tour illisible", "Unreadable turn"));
   return r;
 }
 

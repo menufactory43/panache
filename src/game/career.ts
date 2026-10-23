@@ -8,6 +8,7 @@ import { isRandomMapId } from "../sim/mapgen";
 import type { Faction, World } from "../sim/types";
 import { chronicleOf, type Chronicle } from "./chronicle";
 import { today as todayIndex } from "./daily";
+import { tr } from "../lang";
 
 /**
  * The Commander career: XP and ten ranks, medal counts, map stars per
@@ -26,16 +27,16 @@ export interface RankDef {
 }
 
 export const RANKS: RankDef[] = [
-  { name: "Cadet", xp: 0 },
-  { name: "Soldat", xp: 100 },
-  { name: "Caporal", xp: 300 },
-  { name: "Sergent", xp: 600 },
-  { name: "Lieutenant", xp: 1000 },
-  { name: "Capitaine", xp: 1500 },
-  { name: "Commandant", xp: 2200 },
-  { name: "Colonel", xp: 3100 },
-  { name: "Général", xp: 4300 },
-  { name: "Maréchal", xp: 6000 }
+  { name: tr("Cadet", "Cadet"), xp: 0 },
+  { name: tr("Soldat", "Private"), xp: 100 },
+  { name: tr("Caporal", "Corporal"), xp: 300 },
+  { name: tr("Sergent", "Sergeant"), xp: 600 },
+  { name: tr("Lieutenant", "Lieutenant"), xp: 1000 },
+  { name: tr("Capitaine", "Captain"), xp: 1500 },
+  { name: tr("Commandant", "Major"), xp: 2200 },
+  { name: tr("Colonel", "Colonel"), xp: 3100 },
+  { name: tr("Général", "General"), xp: 4300 },
+  { name: tr("Maréchal", "Marshal"), xp: 6000 }
 ];
 
 export interface RankInfo {
@@ -88,7 +89,7 @@ export const XP = {
 
 /** Stars per map × difficulty: win · win under 8:00 (a big map gives longer) · win without losing a building. */
 export const STAR_SECS = 8 * 60;
-export const STAR_LABELS = ["Victoire", "Victoire en moins de 8:00", "Victoire sans perdre de bâtiment"];
+export const STAR_LABELS = tr(["Victoire", "Victoire en moins de 8:00", "Victoire sans perdre de bâtiment"], ["Victory", "Victory in under 8:00", "Victory without losing a building"]);
 
 /** The ★★ time on a map: 8:00, or the map's own (MapDef.starSecs). */
 export const starSecsFor = (mapId: string): number => mapById(mapId).starSecs ?? STAR_SECS;
@@ -96,7 +97,7 @@ export const starSecsFor = (mapId: string): number => mapById(mapId).starSecs ??
 /** The three star labels on a map (its ★★ time spelled out). */
 export function starLabelsFor(mapId: string): string[] {
   const s = starSecsFor(mapId);
-  return [STAR_LABELS[0]!, `Victoire en moins de ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`, STAR_LABELS[2]!];
+  return [STAR_LABELS[0]!, tr(`Victoire en moins de ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`, `Victory in under ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`), STAR_LABELS[2]!];
 }
 
 export type GameKind = "skirmish" | "survival" | "op";
@@ -126,7 +127,7 @@ export interface XpLine {
   xp: number;
 }
 
-const DIFF_FR: Record<string, string> = { easy: "Facile", normal: "Normal", hard: "Difficile" };
+const DIFF_FR: Record<string, string> = tr({ easy: "Facile", normal: "Normal", hard: "Difficile" }, { easy: "Easy", normal: "Normal", hard: "Hard" });
 const diffLabel = (d: string) => DIFF_FR[d] ?? d.charAt(0).toUpperCase() + d.slice(1);
 
 /** The XP breakdown for a result (before the daily bonus, which depends on the career). */
@@ -136,22 +137,22 @@ export function xpLines(r: MatchResult): XpLine[] {
   if (r.kind === "op") {
     const def = opById(r.op?.id ?? "");
     const title = def?.title ?? "Op";
-    const name = def && isCampaignOp(def) ? "Mission" : "Épreuve";
-    if (r.won) lines.push({ label: `${name} réussie · ${title}`, xp: XP.opWin });
-    else lines.push({ label: `${name} échouée · ${title}`, xp: Math.round(XP.opLoss * Math.max(0.2, Math.min(1, r.secs / 120))) });
+    const name = def && isCampaignOp(def) ? tr("Mission", "Mission") : tr("Épreuve", "Trial");
+    if (r.won) lines.push({ label: tr(`${name} réussie · ${title}`, `${name} complete · ${title}`), xp: XP.opWin });
+    else lines.push({ label: tr(`${name} échouée · ${title}`, `${name} failed · ${title}`), xp: Math.round(XP.opLoss * Math.max(0.2, Math.min(1, r.secs / 120))) });
   } else if (r.kind === "survival") {
     const waves = r.waves ?? 0;
-    lines.push({ label: `${waves} vague${waves === 1 ? "" : "s"} · ${diffLabel(r.difficulty)}`, xp: Math.round(XP.wave * waves * mult) });
+    lines.push({ label: tr(`${waves} vague${waves === 1 ? "" : "s"} · ${diffLabel(r.difficulty)}`, `${waves} wave${waves === 1 ? "" : "s"} · ${diffLabel(r.difficulty)}`), xp: Math.round(XP.wave * waves * mult) });
   } else if (r.won) {
-    lines.push({ label: `Victoire · ${diffLabel(r.difficulty)}`, xp: Math.round(XP.win * mult) });
+    lines.push({ label: tr(`Victoire · ${diffLabel(r.difficulty)}`, `Victory · ${diffLabel(r.difficulty)}`), xp: Math.round(XP.win * mult) });
   } else {
     // (a short match pays a fraction, a draw as a loss: no farming XP by quitting, or by a quick Robot Love)
     const k = Math.max(0.2, Math.min(1, r.secs / XP.lossFullSecs));
-    if (r.drawn) lines.push({ label: `Match nul · ${diffLabel(r.difficulty)}`, xp: Math.round(XP.draw * mult * k) });
-    else lines.push({ label: `Défaite · ${diffLabel(r.difficulty)}`, xp: Math.round(XP.loss * mult * k) });
+    if (r.drawn) lines.push({ label: tr(`Match nul · ${diffLabel(r.difficulty)}`, `Draw · ${diffLabel(r.difficulty)}`), xp: Math.round(XP.draw * mult * k) });
+    else lines.push({ label: tr(`Défaite · ${diffLabel(r.difficulty)}`, `Defeat · ${diffLabel(r.difficulty)}`), xp: Math.round(XP.loss * mult * k) });
   }
   if (r.medals.length > 0)
-    lines.push({ label: `${r.medals.length} médaille${r.medals.length === 1 ? "" : "s"}`, xp: XP.medal * r.medals.length });
+    lines.push({ label: tr(`${r.medals.length} médaille${r.medals.length === 1 ? "" : "s"}`, `${r.medals.length} medal${r.medals.length === 1 ? "" : "s"}`), xp: XP.medal * r.medals.length });
   return lines;
 }
 
@@ -267,7 +268,7 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
       c.daily.lastWin = r.daily;
       c.daily.bestStreak = Math.max(c.daily.bestStreak, c.daily.streak);
       c.daily.wins++;
-      lines.push({ label: "Op du jour", xp: XP.dailyWin });
+      lines.push({ label: tr("Op du jour", "Daily Op"), xp: XP.dailyWin });
     }
     daily = { number: opNumber, won: r.won, streak: currentStreak(c, day), firstWinToday };
   }
@@ -291,9 +292,9 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
     }
     c.ops[id] = rec;
     const firstClear = r.won && !(before & 1);
-    if (firstClear) lines.push({ label: "Premier succès", xp: XP.opFirstClear });
+    if (firstClear) lines.push({ label: tr("Premier succès", "First clear"), xp: XP.opFirstClear });
     const newStars = starCount(rec.stars & ~before & 6);
-    if (newStars > 0) lines.push({ label: `${newStars} nouvelle${newStars === 1 ? "" : "s"} étoile${newStars === 1 ? "" : "s"}`, xp: XP.opStar * newStars });
+    if (newStars > 0) lines.push({ label: tr(`${newStars} nouvelle${newStars === 1 ? "" : "s"} étoile${newStars === 1 ? "" : "s"}`, `${newStars} new star${newStars === 1 ? "" : "s"}`), xp: XP.opStar * newStars });
     const openAfter = openIn(c, book);
     op = { id, starsBefore: before, starsAfter: rec.stars, firstClear, unlocked: openAfter > openBefore ? (book[openAfter - 1]?.id ?? null) : null };
   }

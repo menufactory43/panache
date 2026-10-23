@@ -9,13 +9,14 @@
 import { UNITS } from "../sim/balance";
 import { isInfantry } from "../sim/infantry";
 import type { Unit, UnitKind } from "../sim/types";
+import { tr } from "../lang";
 
 export type Role = "infantry" | "armour" | "air";
 
 export const ROLES: readonly { id: Role; label: string; short: string; glyph: string }[] = [
-  { id: "infantry", label: "Infanterie", short: "Inf.", glyph: "♞" },
-  { id: "armour", label: "Blindés", short: "Blind.", glyph: "⛭" },
-  { id: "air", label: "Aviation", short: "Aviat.", glyph: "✈" }
+  { id: "infantry", label: tr("Infanterie", "Infantry"), short: tr("Inf.", "Inf."), glyph: "♞" },
+  { id: "armour", label: tr("Blindés", "Armour"), short: tr("Blind.", "Arm."), glyph: "⛭" },
+  { id: "air", label: tr("Aviation", "Air"), short: tr("Aviat.", "Air"), glyph: "✈" }
 ];
 
 /** The role of a unit kind. */

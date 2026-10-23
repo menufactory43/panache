@@ -1,6 +1,7 @@
 import { UNITS } from "../sim/balance";
 import { hash32 } from "../sim/rand";
 import type { Faction, UnitKind, World } from "../sim/types";
+import { tr } from "../lang";
 
 /**
  * Veteran heroes: every unit has a callsign derived from its id; from rank 2
@@ -26,7 +27,7 @@ export const CALLSIGNS: readonly string[] = [
 export const NAMED_RANK = 2;
 
 /** Promotion titles by rank (index 0 unused). */
-export const RANK_TITLES: readonly string[] = ["", "VÉTÉRAN", "AGUERRI", "ÉLITE"];
+export const RANK_TITLES: readonly string[] = tr(["", "VÉTÉRAN", "AGUERRI", "ÉLITE"], ["", "VETERAN", "SEASONED", "ELITE"]);
 
 const ROMAN = ["", "", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX"];
 
@@ -92,7 +93,7 @@ export function callsignOf(w: World, u: { id: number; faction: Faction }): strin
 
 export const stars = (rank: number): string => "★".repeat(Math.max(0, Math.min(3, rank)));
 
-export const killsLabel = (n: number): string => `${n} élim.`;
+export const killsLabel = (n: number): string => tr(`${n} élim.`, `${n} kills`);
 
 /** "Viper (Lancer, 9 kills)" — the toast form. */
 export function heroShort(w: World, u: { id: number; faction: Faction; kind: UnitKind; kills: number }): string {

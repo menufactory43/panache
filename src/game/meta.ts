@@ -6,6 +6,7 @@ import { announce } from "./announce";
 import { settleMatch, type Settlement } from "./career";
 import { matchKind, track } from "./stats";
 import { activeMutators, gameMode } from "./mode";
+import { tr } from "../lang";
 
 /**
  * Glue between the match and the meta layer (mutators, Daily Op, career):
@@ -49,7 +50,7 @@ export function announceRules(w: World): void {
   if (!line && !d) return;
   announce({
     key: "match-rules",
-    text: d ? `Op du jour n°${d.number}` : "Mutateurs actifs",
+    text: d ? tr(`Op du jour n°${d.number}`, `Daily Op #${d.number}`) : tr("Mutateurs actifs", "Mutators active"),
     sub: line,
     tone: "info",
     priority: 1

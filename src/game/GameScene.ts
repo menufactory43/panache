@@ -64,6 +64,7 @@ import { GroundGfx } from "./three/ground-gfx";
 import { RouteSketch, drawQueuedRoute } from "./route-view";
 import { Tweens } from "./three/tween";
 import { AIR_H, type P3, type View } from "./three/view";
+import { tr } from "../lang";
 
 const TICK_MS = 1000 / TICK_RATE;
 /** Zoom range in CSS px per tile at the look-at point. */
@@ -126,9 +127,9 @@ export type AbortReason = "desync" | "left" | "lost";
 
 /** The end screen's head for each abort (SOUND-DUEL.md "Hash trail", "Leaving"). */
 const ABORT_HEAD: Record<AbortReason, { title: string; cls: "lose"; sub: string }> = {
-  desync: { title: "DÉSYNCHRONISÉ", cls: "lose", sub: "Sans résultat : les deux parties ont divergé" },
-  left: { title: "AMI PARTI", cls: "lose", sub: "Sans résultat" },
-  lost: { title: "SIGNAL PERDU", cls: "lose", sub: "Tu es parti · Sans résultat" }
+  desync: { title: tr("DÉSYNCHRONISÉ", "DESYNCED"), cls: "lose", sub: tr("Sans résultat : les deux parties ont divergé", "No result: the two games diverged") },
+  left: { title: tr("AMI PARTI", "FRIEND GONE"), cls: "lose", sub: tr("Sans résultat", "No result") },
+  lost: { title: tr("SIGNAL PERDU", "SIGNAL LOST"), cls: "lose", sub: tr("Tu es parti · Sans résultat", "You left · No result") }
 };
 
 /**
@@ -443,10 +444,10 @@ export class GameScene {
         : this.blueAi
         ? {
             blue: `${this.blueAi.strategy.label}${openers.blue ? ` · ${OPENERS[openers.blue].name}` : ""}`,
-            red: !this.ai ? "les vagues" : `${this.ai.strategy.label}${openers.red ? ` · ${OPENERS[openers.red].name}` : ""}`
+            red: !this.ai ? tr("les vagues", "the waves") : `${this.ai.strategy.label}${openers.red ? ` · ${OPENERS[openers.red].name}` : ""}`
           }
         : null,
-      enemy: { strategy: this.ai?.strategy.label ?? "Survie", difficulty: gameMode.difficulty },
+      enemy: { strategy: this.ai?.strategy.label ?? tr("Survie", "Last Stand"), difficulty: gameMode.difficulty },
       cardNote: (k) => this.command?.cardNote(k) ?? null,
       busy: () => this.holdStart || !!this.finale,
       uncharted,
@@ -546,7 +547,10 @@ export class GameScene {
     if (focus && !gameMode.op) this.frameStart(); // an op opens on its own focus point
     if (this.holdStart) {
       const picker = showOpenerPicker({
-        context: `${uncharted ? "Inexplorée" : mapById(gameMode.mapId).name} · contre ${this.ai ? `IA ${this.ai.strategy.label}` : "les vagues"} (${DIFFICULTY[gameMode.difficulty].label})`,
+        context: tr(
+          `${uncharted ? "Inexplorée" : mapById(gameMode.mapId).name} · contre ${this.ai ? `IA ${this.ai.strategy.label}` : "les vagues"} (${DIFFICULTY[gameMode.difficulty].label})`,
+          `${uncharted ? "Uncharted" : mapById(gameMode.mapId).name} · vs ${this.ai ? `${this.ai.strategy.label} AI` : "the waves"} (${DIFFICULTY[gameMode.difficulty].label})`
+        ),
         onPick: (id) => this.startWithOpener(id),
         blocked: (id) => openerBlocked(this.world, PLAYER, id),
         // (a nation's cards name its own kinds: Fourgons, Jamais-Contente…)
@@ -555,7 +559,7 @@ export class GameScene {
         enemyNation: nationOf(this.world, PLAYER === "blue" ? "red" : "blue"),
         // islands are taken by troops and defended from the air: the Airpad matters most there
         // (not on an Uncharted map: that would tell what it is)
-        recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? "Idéal ici : Chalais-Meudon pour plus de Montgolfières" : null)
+        recommended: (id) => (!uncharted && mapById(gameMode.mapId).islands && id === "airwing" ? tr("Idéal ici : Chalais-Meudon pour plus de Montgolfières", "Ideal here: Chalais-Meudon for more Montgolfier Balloons") : null)
       });
       this.teardown.push(() => picker.destroy());
     }
@@ -677,7 +681,7 @@ export class GameScene {
 
   /** A commander's radio line: in the ticker, read out by the announcer. */
   commanderRadio(side: Faction, text: string): void {
-    this.radio.push({ key: `commander-${side}`, text: `${side === "blue" ? "Bleu" : "Rouge"} : ${text}`, priority: 1, tone: "info", caption: true });
+    this.radio.push({ key: `commander-${side}`, text: tr(`${side === "blue" ? "Bleu" : "Rouge"} : ${text}`, `${side === "blue" ? "Blue" : "Red"}: ${text}`), priority: 1, tone: "info", caption: true });
   }
 
   /** A line in the alert ticker. */
@@ -741,7 +745,7 @@ export class GameScene {
     }
     sfx.play("build");
     const o = OPENERS[id];
-    announce({ key: `opener-${id}`, text: `${o.name} !`, sub: nationText(o.rollout, id, this.openerWords()), tone: "good", priority: 1 });
+    announce({ key: `opener-${id}`, text: tr(`${o.name} !`, `${o.name}!`), sub: nationText(o.rollout, id, this.openerWords()), tone: "good", priority: 1 });
     announceRules(this.world); // (queued behind the roll-out)
   }
 
@@ -774,7 +778,7 @@ export class GameScene {
     if (this.cineOn) this.cine.reset({ ...this.aware.viewCentre(), zoom: this.stage.rig.zoom });
     this.cineUi?.set(this.cineOn, false);
     sfx.play("click", 0.5);
-    this.hud.notify(this.cineOn ? "🎥 Caméra cinématique activée" : "🎥 Caméra cinématique désactivée — à toi la caméra");
+    this.hud.notify(this.cineOn ? tr("🎥 Caméra cinématique activée", "🎥 Cinematic camera on") : tr("🎥 Caméra cinématique désactivée — à toi la caméra", "🎥 Cinematic camera off — the camera is yours"));
   }
 
   /**
@@ -969,7 +973,9 @@ export class GameScene {
         pov: PLAYER,
         kind: this.interactive ? "duel" : gameMode.daily ? "quotidienne" : "escarmouche",
         result: winner === "draw" ? "draw" : winner === PLAYER ? "win" : "loss",
-        against: this.interactive ? this.feed?.opponent ?? "ton ami" : `IA ${this.ai?.strategy.label ?? ""} (${DIFFICULTY[gameMode.difficulty].label})`
+        against: this.interactive
+          ? this.feed?.opponent ?? tr("ton ami", "your friend")
+          : tr(`IA ${this.ai?.strategy.label ?? ""} (${DIFFICULTY[gameMode.difficulty].label})`, `${this.ai?.strategy.label ?? ""} AI (${DIFFICULTY[gameMode.difficulty].label})`)
       };
       const rec = this.recorder ? this.recorder.record(w, played, reel) : this.feed?.saveable?.() ?? null;
       if (!rec) return;
@@ -1014,11 +1020,11 @@ export class GameScene {
       opts.actions = [
         {
           id: "copy-debug",
-          label: "Copier infos de débogage",
+          label: tr("Copier infos de débogage", "Copy debug info"),
           cls: "alt",
           on: () => {
-            const ok = () => this.hud.notify("Infos de débogage copiées", "good");
-            const no = () => this.hud.notify("Copie impossible : ce navigateur ne l'autorise pas", "bad");
+            const ok = () => this.hud.notify(tr("Infos de débogage copiées", "Debug info copied"), "good");
+            const no = () => this.hud.notify(tr("Copie impossible : ce navigateur ne l'autorise pas", "Can't copy: this browser doesn't allow it"), "bad");
             try {
               void navigator.clipboard.writeText(info).then(ok, no);
             } catch {
@@ -1087,7 +1093,7 @@ export class GameScene {
           this.ops && !love
             ? this.ops.endAnnouncement()
             : this.survival && !love
-            ? { key: "base-overrun", text: "Base submergée", sub: "Le GQG est tombé", tone: "bad", priority: 0, x: at.x, y: at.y }
+            ? { key: "base-overrun", text: tr("Base submergée", "Base overrun"), sub: tr("Le GQG est tombé", "The GHQ has fallen"), tone: "bad", priority: 0, x: at.x, y: at.y }
             : finaleBanner({ cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y, nations: { blue: nationOf(this.world, "blue"), red: nationOf(this.world, "red") } })
         );
       },
@@ -1280,7 +1286,17 @@ export class GameScene {
             const goliath = !!hitUnit?.goliath;
             // (a drop to 1× for this attack already put "Speed 1× — HQ under attack" in the ticker)
             if (!(hq && this.aware.slowedFor("hq")) && !(goliath && this.aware.slowedFor("goliath")))
-              this.hud.alert(hq ? `${displayName("hq", nationOf(w, PLAYER))} ${agree("hq", "attaqué", nationOf(w, PLAYER))} !` : goliath ? `${UNITS[hitUnit!.kind].name} attaqué !` : ev.building ? "Base attaquée !" : "Unités attaquées !", ev.x, ev.y);
+              this.hud.alert(
+              hq
+                ? tr(`${displayName("hq", nationOf(w, PLAYER))} ${agree("hq", "attaqué", nationOf(w, PLAYER))} !`, `${displayName("hq", nationOf(w, PLAYER))} under attack!`)
+                : goliath
+                  ? tr(`${UNITS[hitUnit!.kind].name} attaqué !`, `${UNITS[hitUnit!.kind].name} under attack!`)
+                  : ev.building
+                    ? tr("Base attaquée !", "Base under attack!")
+                    : tr("Unités attaquées !", "Units under attack!"),
+              ev.x,
+              ev.y
+            );
           }
         }
         this.hud.ping(ev.x, ev.y);

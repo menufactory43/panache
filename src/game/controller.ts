@@ -13,6 +13,7 @@ import { engageable } from "../sim/combat";
 import { Squads } from "./squads";
 import { roleGroups, type Role } from "./roles";
 import type { Pt } from "./route-draw";
+import { tr } from "../lang";
 
 /**
  * The side this device commands, and the other one. Live bindings: every
@@ -744,7 +745,7 @@ export class Controller {
       }
       // only anchored Goliaths, and it's beyond their guns: they stay dug in (no rally point at the enemy)
       if ([...this.selectedUnits].every((id) => this.rooted(id))) {
-        this.rootTip("Hors de portée : lève l'ancre d'abord (G) pour le poursuivre");
+        this.rootTip(tr("Hors de portée : lève l'ancre d'abord (G) pour le poursuivre", "Out of reach: weigh anchor first (G) to pursue"));
         return;
       }
       // none can: treat it as a tap on the ground there (an island drop, or a tip)
@@ -764,7 +765,7 @@ export class Controller {
         const carriers = new Set<number>();
         for (const u of boarding) if (u.order.type === "board") carriers.add(u.order.carrierId);
         this.pendingDrop = { carriers: [...carriers], x: wx, y: wy };
-        this.tip = "Embarquement : largage là-bas une fois à bord";
+        this.tip = tr("Embarquement : largage là-bas une fois à bord", "Boarding: drop there once aboard");
         this.lastFeedback = { kind: "drop", x: wx, y: wy };
         return;
       }
@@ -782,10 +783,10 @@ export class Controller {
         for (const id of rooted) this.enqueue({ type: "rally", faction: PLAYER, buildingId: id, x: wx, y: wy });
         this.lastFeedback = { kind: "rally", x: wx, y: wy };
         this.forceMove = false;
-        this.rootTip("Point de ralliement fixé : lève l'ancre d'abord (G) pour déplacer le Gargantua");
+        this.rootTip(tr("Point de ralliement fixé : lève l'ancre d'abord (G) pour déplacer le Gargantua", "Rally point set: weigh anchor first (G) to move the Gargantua"));
         return;
       }
-      if (rooted.length > 0) this.rootTip(`${rooted.length > 1 ? "Les Gargantuas ancrés restent" : "Le Gargantua ancré reste"} en place : lève l'ancre d'abord (G)`);
+      if (rooted.length > 0) this.rootTip(tr(`${rooted.length > 1 ? "Les Gargantuas ancrés restent" : "Le Gargantua ancré reste"} en place : lève l'ancre d'abord (G)`, `${rooted.length > 1 ? "Anchored Gargantuas stay" : "The anchored Gargantua stays"} put: weigh anchor first (G)`));
       const harvesters = ids.filter((id) => behaves(w.units.get(id)!.kind, "harvester"));
       const rest = ids.filter((id) => !behaves(w.units.get(id)!.kind, "harvester"));
       const onResource =
@@ -828,7 +829,7 @@ export class Controller {
     const lifting = this.orderLifts(end.x, end.y, false);
     const ids = [...this.selectedUnits].filter((id) => w.units.has(id) && !lifting.has(id) && !this.rooted(id));
     if (ids.length === 0 && lifting.size === 0) {
-      this.rootTip("Le Gargantua ancré reste en place : lève l'ancre d'abord (G)");
+      this.rootTip(tr("Le Gargantua ancré reste en place : lève l'ancre d'abord (G)", "The anchored Gargantua stays put: weigh anchor first (G)"));
       return false;
     }
     const harvesters = ids.filter((id) => behaves(w.units.get(id)!.kind, "harvester"));
@@ -893,7 +894,7 @@ export class Controller {
     if (walking.length > 0) {
       const ok = walking.filter((g) => !anchorBlocker(this.world, g));
       if (ok.length === 0) {
-        this.tip = `Impossible d'ancrer ici : ${anchorBlocker(this.world, walking[0]!)!.toLowerCase()}`;
+        this.tip = tr(`Impossible d'ancrer ici : ${anchorBlocker(this.world, walking[0]!)!.toLowerCase()}`, `Can't anchor here: ${anchorBlocker(this.world, walking[0]!)!.toLowerCase()}`);
         return null;
       }
       ids = ok.map((g) => g.id);
@@ -968,12 +969,12 @@ export class Controller {
     const hasSquads = this.selectedOwn().some((u) => isInfantry(u.kind));
     const hasGoliath = this.selectedOwn().some((u) => !!u.goliath);
     this.tip = hasCondor
-      ? "Cette Montgolfière est vide : fais-y d'abord monter tes escouades"
+      ? tr("Cette Montgolfière est vide : fais-y d'abord monter tes escouades", "This Montgolfier Balloon is empty: board your squads first")
       : hasSquads
-        ? "Les escouades ne nagent pas : touche une Montgolfière pour embarquer, puis l'île"
+        ? tr("Les escouades ne nagent pas : touche une Montgolfière pour embarquer, puis l'île", "Squads can't swim: tap a Montgolfier Balloon to board, then the island")
         : hasGoliath
-          ? "Pas de passage : deux Montgolfières vides peuvent y porter un Gargantua"
-          : "Pas de passage : seules les troupes aéroportées en Montgolfière prennent les îles";
+          ? tr("Pas de passage : deux Montgolfières vides peuvent y porter un Gargantua", "No way across: two empty Montgolfier Balloons can carry a Gargantua there")
+          : tr("Pas de passage : seules les troupes aéroportées en Montgolfière prennent les îles", "No way across: only airborne troops in a Montgolfier Balloon take the islands");
   }
 
   // ------------------------------------------------------------ transport --
@@ -1105,9 +1106,9 @@ export class Controller {
       const free = condors.filter(canCarry).length;
       const loaded = condors.filter((c) => isLoaded(c)).length;
       if (why === LIFT_NEEDS_TWO) {
-        if (free + loaded >= 2) this.tip = "Décharge d'abord les Montgolfières";
-        else if (!g.goliath?.lift) this.tip = "Deux Montgolfières vides portent un Gargantua";
-      } else this.tip = why === LIFT_PACK_FIRST ? "Lève l'ancre d'abord (G)" : why;
+        if (free + loaded >= 2) this.tip = tr("Décharge d'abord les Montgolfières", "Unload the Montgolfier Balloons first");
+        else if (!g.goliath?.lift) this.tip = tr("Deux Montgolfières vides portent un Gargantua", "Two empty Montgolfier Balloons carry a Gargantua");
+      } else this.tip = why === LIFT_PACK_FIRST ? tr("Lève l'ancre d'abord (G)", "Weigh anchor first (G)") : why;
       return false;
     }
     const pair = condors
@@ -1146,18 +1147,18 @@ export class Controller {
     if (isTransport(tapped.kind) && squads.length > 0) {
       const seats = this.openSeats(tapped, squads);
       if (seats <= 0) {
-        this.tip = `${UNITS[tapped.kind].name} plein : décharge-le d'abord`;
+        this.tip = tr(`${UNITS[tapped.kind].name} plein : décharge-le d'abord`, `${UNITS[tapped.kind].name} full: unload it first`);
         return false; // (selects it, Unload chip and all)
       }
       riders = [...squads].sort((a, b) => dist(a, tapped) - dist(b, tapped) || a.id - b.id).slice(0, seats);
-      if (riders.length < squads.length) this.tip = `Place pour ${seats} escouade${seats === 1 ? "" : "s"} seulement`;
+      if (riders.length < squads.length) this.tip = tr(`Place pour ${seats} escouade${seats === 1 ? "" : "s"} seulement`, `Room for ${seats} squad${seats === 1 ? "" : "s"} only`);
       carrier = tapped;
     } else if (isInfantry(tapped.kind) && squads.length === 0) {
       const condors = sel.filter((u) => isTransport(u.kind));
       if (condors.length === 0) return false;
       const open = condors.filter((c) => this.openSeats(c, [tapped]) > 0);
       if (open.length === 0) {
-        this.tip = condors.length > 1 ? "Ces Montgolfières sont pleines" : `${UNITS[condors[0]!.kind].name} pleine : décharge-la d'abord`;
+        this.tip = condors.length > 1 ? tr("Ces Montgolfières sont pleines", "These Montgolfier Balloons are full") : tr(`${UNITS[condors[0]!.kind].name} pleine : décharge-la d'abord`, `${UNITS[condors[0]!.kind].name} full: unload it first`);
         return false;
       }
       carrier = open.sort((a, b) => dist(a, tapped) - dist(b, tapped) || a.id - b.id)[0]!;
@@ -1231,8 +1232,8 @@ export class Controller {
     const why = powerBlocker(this.world, PLAYER, p);
     if (why || this.ahead().fired.length === 0) return why;
     const st = this.powerStatus(p);
-    if (st.cooldown > 0) return `${POWER_NAMES[p]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`;
-    if (st.charge < 1) return `${POWER_NAMES[p]} : ${st.cost} de charge requis (${Math.floor(this.powerMeter())})`;
+    if (st.cooldown > 0) return tr(`${POWER_NAMES[p]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`, `${POWER_NAMES[p]} recharging: ${Math.ceil(st.cooldown / TICK_RATE)} s`);
+    if (st.charge < 1) return tr(`${POWER_NAMES[p]} : ${st.cost} de charge requis (${Math.floor(this.powerMeter())})`, `${POWER_NAMES[p]}: ${st.cost} charge needed (${Math.floor(this.powerMeter())})`);
     return null;
   }
 
@@ -1294,6 +1295,6 @@ export function hitTest(
 
 /** The sim's placement refusal in the player's words: off the République's network, where the power comes from. */
 export function explainPlacement(why: string | null): string | null {
-  if (why === "Hors du réseau électrique") return "Hors du réseau : près du GQG ou d'une Tour TSF";
+  if (why === tr("Hors du réseau électrique", "Outside the power grid")) return tr("Hors du réseau : près du GQG ou d'une Tour TSF", "Outside the grid: near the GHQ or a Wireless Tower");
   return why;
 }

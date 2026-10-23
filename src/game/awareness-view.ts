@@ -29,6 +29,7 @@ import {
 } from "./awareness";
 import type { Hud } from "../ui/hud";
 import { MARKER, mountAwareness, type ArrowSpec, type AwarenessUi } from "../ui/awareness";
+import { tr } from "../lang";
 
 export interface AwarenessHooks {
   rig: CameraRig;
@@ -182,11 +183,11 @@ export class Awareness {
     h.radio.callouts.inbound(wn.domain, wn.t);
     if (wn.first)
       announce({
-        key: `inbound-${wn.domain}`, text: wn.short, sub: `Contre : ${wn.advice}${slowed ? " · vitesse 1×" : ""}`, tone: "bad", priority: 1,
+        key: `inbound-${wn.domain}`, text: wn.short, sub: tr(`Contre : ${wn.advice}${slowed ? " · vitesse 1×" : ""}`, `Counters: ${wn.advice}${slowed ? " · speed 1×" : ""}`), tone: "bad", priority: 1,
         x: wn.x, y: wn.y, say: wn.text
       });
     else if (!h.hud.bannerUp("inbound-")) {
-      h.hud.alert(`${slowed ? "Vitesse 1× — " : ""}${wn.text} — ${wn.advice}`, wn.x, wn.y);
+      h.hud.alert(`${slowed ? tr("Vitesse 1× — ", "Speed 1× — ") : ""}${wn.text} — ${wn.advice}`, wn.x, wn.y);
       h.radio.push({ key: "inbound", text: wn.text, priority: 1, tone: "bad", x: wn.x, y: wn.y, caption: false });
     }
     sfx.play("inbound", 0.85);
@@ -202,7 +203,7 @@ export class Awareness {
     this.ui.flashSpeed();
     this.dropped = { cause: d.cause, t };
     // a raid's warning line carries the note itself (one line per event)
-    if (d.cause !== "inbound") this.h.hud.notice(`Vitesse 1× — ${d.note}`, "bad", d.x, d.y);
+    if (d.cause !== "inbound") this.h.hud.notice(tr(`Vitesse 1× — ${d.note}`, `Speed 1× — ${d.note}`), "bad", d.x, d.y);
   }
 
   /** Did the game just drop to 1× for this cause (this tick)? Its note already tells the player. */

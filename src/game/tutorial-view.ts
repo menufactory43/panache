@@ -22,6 +22,7 @@ import { PLAYER, type Controller } from "./controller";
 import { TutorialRunner, setTutorialState, type TutControl, type TutEffect, type TutObs, type TutSpot, type TutTarget } from "./tutorial";
 import type { GroundGfx } from "./three/ground-gfx";
 import { mountTutorialOverlay, type Box, type TutOverlay } from "../ui/tutorial";
+import { tr } from "../lang";
 
 export interface TutorialViewHooks {
   world: World;
@@ -265,7 +266,7 @@ export class TutorialView {
       this.h.hudRoot.classList.remove("tuto-on");
       this.hold = false;
       setTutorialState("done");
-      this.ui.say(f.praise ?? "Tu es prêt, mon commandant !", { step: 10, tone: "end" });
+      this.ui.say(f.praise ?? tr("Tu es prêt, mon commandant !", "You're ready, commander!"), { step: 10, tone: "end" });
       this.ui.point(null, false);
       this.ui.gesture(null);
       this.ui.flag(null);

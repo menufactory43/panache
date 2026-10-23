@@ -4,6 +4,7 @@ import type { BuildingKind, Faction, FxEvent, NationOrClassic, PowerKind, UnitKi
 import { displayName, elides, isFeminine, pluralName } from "../sim/lexicon";
 import { buildingCenter, hqOf } from "../sim/world";
 import { CalldownCredit, powerName } from "./calldown-credit";
+import { EN, tr } from "../lang";
 
 /**
  * The match chronicle: a render-side recorder (full information — it is
@@ -269,13 +270,16 @@ export function placeName(refs: MapRefs, x: number, y: number, pov: Faction | nu
   for (const f of FACTIONS) {
     const h = refs.hq[f];
     if (!h || Math.hypot(h.x - x, h.y - y) > 11) continue;
-    if (pov === null) return `à la base ${f === "blue" ? "bleue" : "rouge"}`;
-    return f === pov ? "à ta base" : "à leur base";
+    if (pov === null) return tr(`à la base ${f === "blue" ? "bleue" : "rouge"}`, `at the ${f === "blue" ? "blue" : "red"} base`);
+    return f === pov ? tr("à ta base", "at your base") : tr("à leur base", "at their base");
   }
   const dx = x - refs.width / 2;
   const dy = y - refs.height / 2;
-  if (Math.hypot(dx, dy) < Math.min(refs.width, refs.height) * 0.14) return "au centre";
-  const dirs = ["au nord", "au nord-est", "à l'est", "au sud-est", "au sud", "au sud-ouest", "à l'ouest", "au nord-ouest"];
+  if (Math.hypot(dx, dy) < Math.min(refs.width, refs.height) * 0.14) return tr("au centre", "in the centre");
+  const dirs = tr(
+    ["au nord", "au nord-est", "à l'est", "au sud-est", "au sud", "au sud-ouest", "à l'ouest", "au nord-ouest"],
+    ["in the north", "in the north-east", "in the east", "in the south-east", "in the south", "in the south-west", "in the west", "in the north-west"]
+  );
   const a = Math.atan2(dx, -dy); // 0 = north, clockwise
   const i = Math.round(((a + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8;
   return dirs[i]!;
@@ -468,6 +472,7 @@ export function moments(
   const adj = (f: Faction, fem: boolean, pl: boolean) => (f === "blue" ? "bleu" + (fem ? "e" : "") : "rouge") + (pl ? "s" : "");
   /** "ton Creusot" / "leur Patrie" / "la Patrie bleue" / "l'Éole rouge" / "tes défenses"… */
   const whose = (f: Faction, noun: string, fem = false, pl = false): string => {
+    if (EN) return pov === null ? `the ${f === "blue" ? "blue" : "red"} ${noun}` : f === pov ? `your ${noun}` : `their ${noun}`;
     const vowel = elides(noun);
     if (pov === null) {
       const art = pl ? "les " : vowel ? "l'" : fem ? "la " : "le ";
@@ -479,7 +484,12 @@ export function moments(
   const unitOf = (f: Faction, k: UnitKind | null) => whose(f, unitName(k), isFeminine(k));
   const powerOf = (f: Faction, p: PowerKind) => whose(f, powerName(p), isFeminine(p));
   /** Subject and its "avoir": "tu as", "l'ennemi a", "Bleu a". */
-  const has = (f: Faction) => (pov === null ? `${f === "blue" ? "Bleu" : "Rouge"} a` : f === pov ? "tu as" : "l'ennemi a");
+  const has = (f: Faction) =>
+    EN
+      ? pov === null ? `${f === "blue" ? "Blue" : "Red"} has` : f === pov ? "you have" : "the enemy has"
+      : pov === null ? `${f === "blue" ? "Bleu" : "Rouge"} a` : f === pov ? "tu as" : "l'ennemi a";
+  /** Subject of a past-tense verb ("you took out", "the enemy took out", "Blue took out"). */
+  const subject = (f: Faction) => (pov === null ? (f === "blue" ? "Blue" : "Red") : f === pov ? "you" : "the enemy");
   const Cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const toneFor = (good: Faction | null): Moment["tone"] => (good === null || pov === null ? "neutral" : good === pov ? "good" : "bad");
 
@@ -488,13 +498,13 @@ export function moments(
     const killer = other(fb.faction);
     const victim = unitOf(fb.faction, fb.unitKind);
     const text = fb.power
-      ? `${Cap(powerOf(killer, fb.power))} a éliminé ${victim}`
+      ? tr(`${Cap(powerOf(killer, fb.power))} a éliminé ${victim}`, `${Cap(powerOf(killer, fb.power))} took out ${victim}`)
       : fb.killerKind
-        ? `${Cap(unitOf(killer, fb.killerKind))} a éliminé ${victim}`
+        ? tr(`${Cap(unitOf(killer, fb.killerKind))} a éliminé ${victim}`, `${Cap(unitOf(killer, fb.killerKind))} took out ${victim}`)
         : fb.byBuilding
-          ? `${Cap(whose(killer, "défenses", true, true))} ont éliminé ${victim}`
-          : `${Cap(has(killer))} éliminé ${victim}`;
-    out.push({ kind: "first-blood", t: fb.t, title: "Premier sang", text, tone: toneFor(killer) });
+          ? tr(`${Cap(whose(killer, "défenses", true, true))} ont éliminé ${victim}`, `${Cap(whose(killer, "defences"))} took out ${victim}`)
+          : tr(`${Cap(has(killer))} éliminé ${victim}`, `${Cap(subject(killer))} took out ${victim}`);
+    out.push({ kind: "first-blood", t: fb.t, title: tr("Premier sang", "First blood"), text, tone: toneFor(killer) });
   }
 
   const b = biggestBattle(c.deaths);
@@ -505,10 +515,13 @@ export function moments(
     const winner = b.lost.blue === b.lost.red ? null : b.lost.blue < b.lost.red ? "blue" : "red";
     // "l'ennemi a perdu 9 (dont 4 par ton Obus Méliès)"
     const to = (f: Faction) =>
-      b.strike && b.strike.victim === f ? ` (dont ${b.strike.n} par ${powerOf(other(f), b.strike.power)})` : "";
+      b.strike && b.strike.victim === f ? tr(` (dont ${b.strike.n} par ${powerOf(other(f), b.strike.power)})`, ` (${b.strike.n} of them to ${powerOf(other(f), b.strike.power)})`) : "";
     out.push({
-      kind: "battle", t: b.t, title: "Plus grande bataille",
-      text: `${Cap(where)} : ${has(p)} perdu ${b.lost[p]}${to(p)}, ${has(q)} perdu ${b.lost[q]}${to(q)}`,
+      kind: "battle", t: b.t, title: tr("Plus grande bataille", "Biggest battle"),
+      text: tr(
+        `${Cap(where)} : ${has(p)} perdu ${b.lost[p]}${to(p)}, ${has(q)} perdu ${b.lost[q]}${to(q)}`,
+        `${Cap(where)}: ${has(p)} lost ${b.lost[p]}${to(p)}, ${has(q)} lost ${b.lost[q]}${to(q)}`
+      ),
       tone: toneFor(winner)
     });
   }
@@ -516,31 +529,43 @@ export function moments(
   const turn = turningPoint(c.samples);
   if (turn) {
     const l = turn.leader;
-    const lead = `${shortK(turn.army[l])} contre ${shortK(turn.army[other(l)])}`;
+    const lead = tr(`${shortK(turn.army[l])} contre ${shortK(turn.army[other(l)])}`, `${shortK(turn.army[l])} vs ${shortK(turn.army[other(l)])}`);
     // a strike by the new leader just before the turn is the story: "… après ton Obus Méliès"
     const swing = swingStrike(c.deaths, l, turn.t);
-    const after = swing ? ` après ${powerOf(l, swing)}` : "";
-    const text =
+    const after = swing ? tr(` après ${powerOf(l, swing)}`, ` after ${powerOf(l, swing)}`) : "";
+    const text = tr(
       pov === null
         ? `L'armée ${adj(l, true, false)} a pris l'avantage${after} (${lead})${turn.toEnd ? " sans plus jamais le lâcher" : ""}`
         : l === pov
           ? `Ton armée a dépassé la leur${after} (${lead})${turn.toEnd ? " sans plus jamais être rattrapée" : ""}`
-          : `Leur armée a dépassé la tienne${after} (${lead})${turn.toEnd ? " et a gardé l'avantage" : ""}`;
-    out.push({ kind: "turn", t: turn.t, title: "Tournant", text, tone: toneFor(l) });
+          : `Leur armée a dépassé la tienne${after} (${lead})${turn.toEnd ? " et a gardé l'avantage" : ""}`,
+      pov === null
+        ? `The ${l === "blue" ? "blue" : "red"} army took the lead${after} (${lead})${turn.toEnd ? " and never gave it up" : ""}`
+        : l === pov
+          ? `Your army overtook theirs${after} (${lead})${turn.toEnd ? " and was never caught again" : ""}`
+          : `Their army overtook yours${after} (${lead})${turn.toEnd ? " and kept the advantage" : ""}`
+    );
+    out.push({ kind: "turn", t: turn.t, title: tr("Tournant", "Turning point"), text, tone: toneFor(l) });
   } else {
     // the lead never changed hands: when did it become decisive?
     const pa = pulledAway(c.samples);
     if (pa) {
       const l = pa.leader;
-      const lead = `${shortK(pa.army[l])} contre ${shortK(pa.army[other(l)])}`;
+      const lead = tr(`${shortK(pa.army[l])} contre ${shortK(pa.army[other(l)])}`, `${shortK(pa.army[l])} vs ${shortK(pa.army[other(l)])}`);
       out.push({
-        kind: "lead", t: pa.t, title: "Échappée",
-        text:
+        kind: "lead", t: pa.t, title: tr("Échappée", "Breakaway"),
+        text: tr(
           pov === null
             ? `L'armée ${adj(l, true, false)} a creusé l'écart (${lead}) et l'a gardé`
             : l === pov
               ? `Ton armée a creusé l'écart (${lead}) et l'a gardé`
               : `Leur armée a creusé l'écart (${lead}) ; tu n'as jamais rattrapé ton retard`,
+          pov === null
+            ? `The ${l === "blue" ? "blue" : "red"} army opened a gap (${lead}) and kept it`
+            : l === pov
+              ? `Your army opened a gap (${lead}) and kept it`
+              : `Their army opened a gap (${lead}); you never made up the deficit`
+        ),
         tone: toneFor(l)
       });
     }
@@ -553,7 +578,10 @@ export function moments(
     const f = fg.faction;
     out.push({
       kind: "goliath", t: fg.t, title: "Gargantua",
-      text: `${Cap(whose(f, "premier Gargantua"))} est sorti ${pov !== null && f !== pov ? "de leur" : "de la"} Galerie des Machines`,
+      text: tr(
+        `${Cap(whose(f, "premier Gargantua"))} est sorti ${pov !== null && f !== pov ? "de leur" : "de la"} Galerie des Machines`,
+        `${Cap(whose(f, "first Gargantua"))} walked out of ${pov !== null && f !== pov ? "their" : "the"} Galerie des Machines`
+      ),
       tone: toneFor(f)
     });
   }
@@ -565,8 +593,11 @@ export function moments(
     const had = c.firstBuilt?.[d.faction]["goliath"];
     if (had === undefined || had > d.t) continue;
     out.push({
-      kind: "hq", t: d.t, title: "GQG détruit",
-      text: `${Cap(whose(d.faction, "GQG"))} est tombé ; ${whose(d.faction, "Gargantua")} a tenu encore ${fmtTime(end - d.t)}`,
+      kind: "hq", t: d.t, title: tr("GQG détruit", "GHQ destroyed"),
+      text: tr(
+        `${Cap(whose(d.faction, "GQG"))} est tombé ; ${whose(d.faction, "Gargantua")} a tenu encore ${fmtTime(end - d.t)}`,
+        `${Cap(whose(d.faction, "GHQ"))} fell; ${whose(d.faction, "Gargantua")} held out for ${fmtTime(end - d.t)} more`
+      ),
       tone: toneFor(other(d.faction))
     });
   }
@@ -575,8 +606,11 @@ export function moments(
   if (c.love) {
     const where = placeName(c.refs, c.love.x, c.love.y, pov);
     out.push({
-      kind: "love", t: c.love.t, title: "Amour mécanique",
-      text: pov === null ? `Les Gargantuas bleu et rouge sont tombés amoureux ${where} : match nul` : `Ton Gargantua et le leur sont tombés amoureux ${where} : match nul`,
+      kind: "love", t: c.love.t, title: tr("Amour mécanique", "Robot Love"),
+      text: tr(
+        pov === null ? `Les Gargantuas bleu et rouge sont tombés amoureux ${where} : match nul` : `Ton Gargantua et le leur sont tombés amoureux ${where} : match nul`,
+        pov === null ? `The blue and red Gargantuas fell in love ${where}: a draw` : `Your Gargantua and theirs fell in love ${where}: a draw`
+      ),
       tone: "neutral"
     });
   }
@@ -613,7 +647,10 @@ export function pickTip(i: TipInput): string {
   if (enemyAir >= 6 && myAA <= 1)
     tips.push({
       score: 90,
-      text: `L'ennemi a aligné ${enemyAir} aéronefs ; ${myAA < 1 ? "tu n'as construit presque aucune" : "tu as construit trop peu de"} DCA. Faucheux, Blériot et Batteries Ruggieri les déchiquettent.`
+      text: tr(
+        `L'ennemi a aligné ${enemyAir} aéronefs ; ${myAA < 1 ? "tu n'as construit presque aucune" : "tu as construit trop peu de"} DCA. Faucheux, Blériot et Batteries Ruggieri les déchiquettent.`,
+        `The enemy fielded ${enemyAir} aircraft; you built ${myAA < 1 ? "almost no" : "too little"} flak. Daddy-Longlegs, Blériots and Ruggieri Batteries shred them.`
+      )
     });
 
   // the Goliath's tuned answers (GOLIATH.md); its Menders keep it alive and its weapons coming back
@@ -621,66 +658,77 @@ export function pickTip(i: TipInput): string {
   if (goliaths >= 1 && n(me, "rocket-squad", "wasp", "lancer", "hornet") <= 2)
     tips.push({
       score: 80,
-      text: `Ils ont aligné ${goliaths === 1 ? "un Gargantua" : `${goliaths} Gargantuas`}. Artificiers, Éole, Hydroglisseurs et Albatros en viennent à bout ; abats d'abord ses Pasteur.`
+      text: tr(
+        `Ils ont aligné ${goliaths === 1 ? "un Gargantua" : `${goliaths} Gargantuas`}. Artificiers, Éole, Hydroglisseurs et Albatros en viennent à bout ; abats d'abord ses Pasteur.`,
+        `They fielded ${goliaths === 1 ? "a Gargantua" : `${goliaths} Gargantuas`}. Rocketeers, Éoles, Hydrogliders and Albatros can bring it down; shoot its Pasteurs first.`
+      )
     });
 
   const mastodons = n(them, "mastodon");
   if (mastodons >= 4 && n(me, "lancer", "wasp", "hornet", "rocket-squad") <= 2)
-    tips.push({ score: 75, text: `Ils ont construit ${mastodons} Creusot. Artificiers, Hydroglisseurs et Éole percent le blindage lourd.` });
+    tips.push({ score: 75, text: tr(`Ils ont construit ${mastodons} Creusot. Artificiers, Hydroglisseurs et Éole percent le blindage lourd.`, `They built ${mastodons} Creusots. Rocketeers, Hydrogliders and Éoles pierce heavy armour.`) });
 
   // robot infantry: splash and Snipers are the answer (Mastodons only scratch them, unless they roll over them)
   const squads = n(them, "trooper", "rocket-squad", "sniper");
   if (squads >= 8 && n(me, "mortar", "hornet", "sniper", "turret") <= 1)
-    tips.push({ score: 72, text: `Ils ont aligné ${squads} escouades d'infanterie. Canons de 75, Albatros et Chasseurs alpins déchiquettent l'infanterie automate.` });
+    tips.push({ score: 72, text: tr(`Ils ont aligné ${squads} escouades d'infanterie. Canons de 75, Albatros et Chasseurs alpins déchiquettent l'infanterie automate.`, `They fielded ${squads} infantry squads. French 75s, Albatros and Alpine Chasseurs shred automaton infantry.`) });
 
   const worker = ROLES[i.nation ?? "classique"].worker;
   const harvLost = i.deaths.filter((d) => d.faction === me && !!d.unitKind && behaves(d.unitKind, "harvester")).length;
   if (harvLost >= 5)
-    tips.push({ score: 70 + harvLost, text: `Tu as perdu ${harvLost} ${pluralName(worker, i.nation)}. Une Hotchkiss près des gisements, ou deux escortes, se rentabilise vite.` });
+    tips.push({ score: 70 + harvLost, text: tr(`Tu as perdu ${harvLost} ${pluralName(worker, i.nation)}. Une Hotchkiss près des gisements, ou deux escortes, se rentabilise vite.`, `You lost ${harvLost} ${pluralName(worker, i.nation)}. A Hotchkiss near the seams, or two escorts, pays for itself quickly.`) });
 
   const late = i.samples.filter((s) => s.t >= 90);
   const avgHarv = late.length ? late.reduce((s, x) => s + x.harvesters[me], 0) / late.length : 4;
   if (i.duration > 240 && avgHarv < 2.5)
-    tips.push({ score: 65, text: `Tu as tourné avec environ ${Math.max(1, Math.round(avgHarv))} ${Math.round(avgHarv) <= 1 ? displayName(worker, i.nation) : pluralName(worker, i.nation)} presque tout le match. Les revenus gagnent les guerres : vises-en 4 ou plus dès le début.` });
+    tips.push({ score: 65, text: tr(
+        `Tu as tourné avec environ ${Math.max(1, Math.round(avgHarv))} ${Math.round(avgHarv) <= 1 ? displayName(worker, i.nation) : pluralName(worker, i.nation)} presque tout le match. Les revenus gagnent les guerres : vises-en 4 ou plus dès le début.`,
+        `You ran on about ${Math.max(1, Math.round(avgHarv))} ${Math.round(avgHarv) <= 1 ? displayName(worker, i.nation) : pluralName(worker, i.nation)} for most of the match. Income wins wars: aim for 4 or more from the start.`
+      ) });
 
   const fac = i.factories[me];
   const idle = fac.total >= 10 ? fac.idleRich / fac.total : 0;
   if (idle > 0.3)
-    tips.push({ score: 60, text: `Tes ateliers sont restés à l'arrêt avec du charbon en réserve ${Math.round(idle * 100)} % du temps. Garde toujours une unité en file.` });
+    tips.push({ score: 60, text: tr(`Tes ateliers sont restés à l'arrêt avec du charbon en réserve ${Math.round(idle * 100)} % du temps. Garde toujours une unité en file.`, `Your workshops sat idle with coal in the bank ${Math.round(idle * 100)}% of the time. Always keep a unit queued.`) });
 
   const banked = i.samples.filter((s) => s.t >= 120);
   const avgBank = banked.length ? banked.reduce((s, x) => s + x.bank[me], 0) / banked.length : 0;
   if (avgBank > 800)
-    tips.push({ score: 55, text: `Tu gardais en moyenne ${Math.round(avgBank / 100) * 100} de charbon. Dépense-le : ajoute d'autres Forges ou un Parc de Chalais-Meudon.` });
+    tips.push({ score: 55, text: tr(`Tu gardais en moyenne ${Math.round(avgBank / 100) * 100} de charbon. Dépense-le : ajoute d'autres Forges ou un Parc de Chalais-Meudon.`, `You were sitting on ${Math.round(avgBank / 100) * 100} coal on average. Spend it: add more Forges or a Chalais-Meudon Airpark.`) });
 
   const artillery = i.deaths.filter(
     (d) => d.faction === me && d.buildingKind && (d.killerKind === "mortar" || d.killerKind === "hornet")
   ).length;
   if (artillery >= 3)
-    tips.push({ score: 50, text: `Canons de 75 et Albatros ont détruit ${artillery} de tes bâtiments. Les Éole chassent les Canons de 75 ; Faucheux, Blériot et Ruggieri arrêtent les Albatros.` });
+    tips.push({ score: 50, text: tr(`Canons de 75 et Albatros ont détruit ${artillery} de tes bâtiments. Les Éole chassent les Canons de 75 ; Faucheux, Blériot et Ruggieri arrêtent les Albatros.`, `French 75s and Albatros destroyed ${artillery} of your buildings. Éoles hunt French 75s; Daddy-Longlegs, Blériots and Ruggieri stop Albatros.`) });
 
   // (a Drop Pod's thump barely counts: Barrages and Sky Hammers are the ones to dodge)
   const struck = i.deaths.filter((d) => d.faction === me && d.unitKind && d.power && d.power !== "droppod").length;
   if (struck >= 6)
     tips.push({
       score: 48,
-      text: `Les frappes ennemies ont détruit ${struck} de tes unités. Quand un cercle rouge apparaît, sélectionne ce qu'il contient et sors-le : un Feu roulant met 2,5 s à tomber.`
+      text: tr(
+        `Les frappes ennemies ont détruit ${struck} de tes unités. Quand un cercle rouge apparaît, sélectionne ce qu'il contient et sors-le : un Feu roulant met 2,5 s à tomber.`,
+        `Enemy calldowns destroyed ${struck} of your units. When a red circle appears, select what's inside and pull it out: a Rolling Barrage takes 2.5 s to land.`
+      )
     });
 
   const byTowers = i.deaths.filter((d) => d.faction === me && d.unitKind && d.byBuilding).length;
   if (byTowers >= 8)
-    tips.push({ score: 45, text: `Les défenses ont détruit ${byTowers} de tes unités. Casse les Hotchkiss aux Canons de 75 ou aux Albatros avant d'attaquer.` });
+    tips.push({ score: 45, text: tr(`Les défenses ont détruit ${byTowers} de tes unités. Casse les Hotchkiss aux Canons de 75 ou aux Albatros avant d'attaquer.`, `Defences destroyed ${byTowers} of your units. Take out the Hotchkiss with French 75s or Albatros before attacking.`) });
 
   const tech = i.firstBuilt[me]["tech-lab"];
   if (i.duration > 420 && (tech === undefined || tech > 360))
-    tips.push({ score: 40, text: "Pas de Polytechnique à 6:00. Elle débloque Creusot, Hydroglisseurs, Canons de 75, Albatros et Chasseurs alpins." });
+    tips.push({ score: 40, text: tr("Pas de Polytechnique à 6:00. Elle débloque Creusot, Hydroglisseurs, Canons de 75, Albatros et Chasseurs alpins.", "No Polytechnique by 6:00. It unlocks Creusot, Hydrogliders, French 75s, Albatros and Alpine Chasseurs.") });
 
   if (i.won)
     tips.push({
       score: 10,
-      text: i.difficulty === "hard" ? `Victoire en Difficile en ${fmtTime(i.duration)}. Peux-tu faire plus vite ?` : "Belle victoire. Prêt pour une IA plus coriace ?"
+      text: i.difficulty === "hard"
+        ? tr(`Victoire en Difficile en ${fmtTime(i.duration)}. Peux-tu faire plus vite ?`, `Victory on Hard in ${fmtTime(i.duration)}. Can you do it faster?`)
+        : tr("Belle victoire. Prêt pour une IA plus coriace ?", "Fine victory. Ready for a tougher AI?")
     });
-  tips.push({ score: 5, text: "Repère l'ennemi tôt et construis les contres : appui long sur un bouton de construction pour voir qui bat quoi." });
+  tips.push({ score: 5, text: tr("Repère l'ennemi tôt et construis les contres : appui long sur un bouton de construction pour voir qui bat quoi.", "Scout the enemy early and build the counters: long-press a build button to see what beats what.") });
   // after a win, only a serious problem outranks the congratulations
   const pool = i.won ? tips.filter((t) => t.score >= 50 || t.score === 10) : tips;
   pool.sort((a, b) => b.score - a.score);
@@ -701,9 +749,9 @@ export function commanderStory(c: Chronicle, w: World, f: Faction, label: string
       peakT = s.t;
     }
   const parts = [`${label}`];
-  if (top) parts.push(`surtout ${UNITS[top[0] as UnitKind].name} (${top[1]})`);
-  if (peak > 0) parts.push(`pic d'armée ${shortK(peak)} à ${fmtTime(peakT)}`);
-  parts.push(`${st.buildingsLost} bâtiment${st.buildingsLost <= 1 ? "" : "s"} perdu${st.buildingsLost <= 1 ? "" : "s"}`);
+  if (top) parts.push(tr(`surtout ${UNITS[top[0] as UnitKind].name} (${top[1]})`, `mostly ${UNITS[top[0] as UnitKind].name} (${top[1]})`));
+  if (peak > 0) parts.push(tr(`pic d'armée ${shortK(peak)} à ${fmtTime(peakT)}`, `army peak ${shortK(peak)} at ${fmtTime(peakT)}`));
+  parts.push(tr(`${st.buildingsLost} bâtiment${st.buildingsLost <= 1 ? "" : "s"} perdu${st.buildingsLost <= 1 ? "" : "s"}`, `${st.buildingsLost} building${st.buildingsLost === 1 ? "" : "s"} lost`));
   return parts.join(" · ");
 }
 

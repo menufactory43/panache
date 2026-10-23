@@ -1,6 +1,7 @@
 import { POWER_NAMES } from "../sim/powers";
 import type { Faction, FxEvent, PowerKind, World } from "../sim/types";
 import { hqOf } from "../sim/world";
+import { EN } from "../lang";
 
 /**
  * Which deaths a commander calldown caused. powers.ts credits calldown damage
@@ -38,6 +39,7 @@ export const powerName = (p: PowerKind): string => POWER_NAMES[p];
 export function powerPhrase(p: PowerKind): string {
   // (the late strikes and the nations' named powers take the definite article: "le Rayon Curie", "la Pression des chaudières")
   if (p === "hammer") return `l'${POWER_NAMES[p]}`;
+  if (EN) return POWER_NAMES[p]; // ("Creusot destroyed by Rolling Barrage")
   if (p === "emp" || p === "pression") return `la ${POWER_NAMES[p]}`;
   if (p === "curie" || p === "gaz") return `le ${POWER_NAMES[p]}`;
   return `un ${POWER_NAMES[p]}`;

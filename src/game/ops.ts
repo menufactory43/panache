@@ -5,6 +5,7 @@ import { buildingCenter, hqOf } from "../sim/world";
 import { playReel } from "../ui/cine";
 import { announce, type Announcement } from "./announce";
 import { callsigns } from "./heroes";
+import { tr } from "../lang";
 
 /**
  * Ops presentation (no three.js): the campaign's silent-film cards before and
@@ -28,17 +29,20 @@ export interface OpsPresenterOpts {
 
 const starName = (i: number) => (i === 0 ? "★★" : "★★★");
 
-export const ACT_NAMES: Record<1 | 2 | 3, string> = { 1: "Acte I — L'Ultimatum", 2: "Acte II — La Guerre des cimes", 3: "Acte III — Paris !" };
+export const ACT_NAMES: Record<1 | 2 | 3, string> = tr(
+  { 1: "Acte I — L'Ultimatum", 2: "Acte II — La Guerre des cimes", 3: "Acte III — Paris !" },
+  { 1: "Act I — The Ultimatum", 2: "Act II — The War of the Peaks", 3: "Act III — Paris!" }
+);
 
 /** « Acte I — L'Ultimatum · Mission 1 » / « Épreuve 3 ». */
 export function opKicker(op: OpDef): string {
-  return isCampaignOp(op) ? `${op.act ? `${ACT_NAMES[op.act]} · ` : ""}Mission ${opIndex(op.id) + 1}` : `Épreuve ${opIndex(op.id) + 1}`;
+  return isCampaignOp(op) ? `${op.act ? `${ACT_NAMES[op.act]} · ` : ""}${tr("Mission", "Mission")} ${opIndex(op.id) + 1}` : `${tr("Épreuve", "Trial")} ${opIndex(op.id) + 1}`;
 }
 
 /** What a script's one-shot events say (OpsState.events). */
 const EVENT_LINES: Record<string, { text: string; sub: string; tone: "good" | "bad" }> = {
-  zenith: { text: "Ferrand l'a fini !", sub: "Le Zénith rejoint la bataille", tone: "good" },
-  march: { text: "Le Colosse se met en marche !", sub: "Défends la Tour Eiffel", tone: "bad" }
+  zenith: { text: tr("Ferrand l'a fini !", "Ferrand's done it!"), sub: tr("Le Zénith rejoint la bataille", "The Zénith joins the battle"), tone: "good" },
+  march: { text: tr("Le Colosse se met en marche !", "The Colossus marches!"), sub: tr("Défends la Tour Eiffel", "Defend the Eiffel Tower"), tone: "bad" }
 };
 
 export class OpsPresenter {
@@ -114,10 +118,10 @@ export class OpsPresenter {
     this.starsLostSeen |= st.starsLost;
     this.op.stars.forEach((g, i) => {
       const bit = 2 << i;
-      if (lost & bit) this.o.notify(`${starName(i)} perdue : ${goalText(g, true, this.op).toLowerCase()}`, "bad", home.x, home.y);
+      if (lost & bit) this.o.notify(tr(`${starName(i)} perdue : ${goalText(g, true, this.op).toLowerCase()}`, `${starName(i)} lost: ${goalText(g, true, this.op).toLowerCase()}`), "bad", home.x, home.y);
       if (isAchieveGoal(g) && status.stars[i]!.eval.state === "done" && !(this.starsMetSeen & bit)) {
         this.starsMetSeen |= bit;
-        this.o.notify(`${starName(i)} acquise : ${goalText(g, true, this.op).toLowerCase()}`, "good", home.x, home.y);
+        this.o.notify(tr(`${starName(i)} acquise : ${goalText(g, true, this.op).toLowerCase()}`, `${starName(i)} earned: ${goalText(g, true, this.op).toLowerCase()}`), "good", home.x, home.y);
       }
     });
     // the protected group shrinking
@@ -129,7 +133,7 @@ export class OpsPresenter {
       this.tagAlive.set(g.tag, alive);
       if (alive < before && alive >= g.min) {
         const at = st.lastTagDeath ?? home;
-        this.o.notify(`⚠ ${g.short ?? "Objectif"} : ${alive} sur ${ids.length} restants — ${g.label.toLowerCase()}`, "bad", at.x, at.y);
+        this.o.notify(tr(`⚠ ${g.short ?? "Objectif"} : ${alive} sur ${ids.length} restants — ${g.label.toLowerCase()}`, `⚠ ${g.short ?? "Objective"}: ${alive} of ${ids.length} left — ${g.label.toLowerCase()}`), "bad", at.x, at.y);
       }
     }
     // countdowns and milestones
@@ -139,11 +143,11 @@ export class OpsPresenter {
         const hold = g.type === "survive";
         if (left === 60 && g.secs > 90)
           this.once(`t60:${g.type}`, () =>
-            announce({ key: "op-timer", text: hold ? "Tiens encore une minute" : "Plus qu'une minute", sub: this.op.title, tone: hold ? "info" : "bad", priority: 2 })
+            announce({ key: "op-timer", text: hold ? tr("Tiens encore une minute", "Hold one more minute") : tr("Plus qu'une minute", "One minute left"), sub: this.op.title, tone: hold ? "info" : "bad", priority: 2 })
           );
-        if (left === 15) this.once(`t15:${g.type}`, () => this.o.notify(hold ? "⏱ 15 secondes — tiens bon !" : "⏱ Plus que 15 secondes !", hold ? "good" : "bad", home.x, home.y));
+        if (left === 15) this.once(`t15:${g.type}`, () => this.o.notify(hold ? tr("⏱ 15 secondes — tiens bon !", "⏱ 15 seconds — hold on!") : tr("⏱ Plus que 15 secondes !", "⏱ Only 15 seconds left!"), hold ? "good" : "bad", home.x, home.y));
       } else if (g.type === "deliver" && e.progress >= 0.5) {
-        this.once("half", () => this.o.notify(`⚙ À mi-chemin : ${e.value} charbon`, "good", home.x, home.y));
+        this.once("half", () => this.o.notify(tr(`⚙ À mi-chemin : ${e.value} charbon`, `⚙ Halfway: ${e.value} coal`), "good", home.x, home.y));
       } else if (g.type === "reach" && e.progress > 0 && e.progress < 1) {
         this.once(`reach:${e.value}`, () => this.o.notify(`🚩 ${e.label} ${e.value}`, "good", g.x, g.y));
       } else if (g.type === "destroy") {
@@ -160,13 +164,13 @@ export class OpsPresenter {
     const r = this.w.ops?.result;
     const camp = isCampaignOp(this.op);
     // (the Trials keep « Op réussie / échouée », the campaign says « Mission »)
-    const name = camp ? "Mission" : "Op";
-    if (!r) return { key: "op-failed", text: `${name} échouée`, tone: "bad", priority: 0 };
+    const name = camp ? tr("Mission", "Mission") : tr("Op", "Op");
+    if (!r) return { key: "op-failed", text: tr(`${name} échouée`, `${name} failed`), tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);
-    if (r.won && this.op.tutorial) return { key: "op-complete", text: "Op réussie", sub: "Instruction terminée · ★★★", tone: "epic", priority: 0, x: r.x, y: r.y };
+    if (r.won && this.op.tutorial) return { key: "op-complete", text: tr("Op réussie", "Op complete"), sub: tr("Instruction terminée · ★★★", "Training complete · ★★★"), tone: "epic", priority: 0, x: r.x, y: r.y };
     return r.won
-      ? { key: "op-complete", text: `${name} réussie`, sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
-      : { key: "op-failed", text: `${name} échouée`, sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
+      ? { key: "op-complete", text: tr(`${name} réussie`, `${name} complete`), sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
+      : { key: "op-failed", text: tr(`${name} échouée`, `${name} failed`), sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
   }
 
   /** After the finale, before the end screen: the campaign's closing card (and « FIN » after the last mission). */

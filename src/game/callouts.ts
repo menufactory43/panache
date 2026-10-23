@@ -18,6 +18,7 @@ import { hqOf } from "../sim/world";
 import type { Announcement, AnnounceTone } from "./announce";
 import { baseGoliath, calldownThreatens } from "./awareness";
 import { CalldownCredit, powerName, powerPhrase, type CalldownKill } from "./calldown-credit";
+import { EN, tr } from "../lang";
 
 /** A line for the radio announcer. */
 export interface RadioLine {
@@ -96,12 +97,12 @@ export const CALLOUTS = {
    * is only worth saying while the reticle is still up.
    */
   calldownLines: {
-    barrage: { key: "enemy-barrage", text: "Artillerie en approche !", staleS: 1.5 },
-    emp: { key: "enemy-emp", text: "Fée Électricité en approche !", staleS: 1 },
-    droppod: { key: "enemy-droppod", text: "Obus-capsule ennemi !", staleS: 2.5 },
+    barrage: { key: "enemy-barrage", text: tr("Artillerie en approche !", "Barrage incoming!"), staleS: 1.5 },
+    emp: { key: "enemy-emp", text: tr("Fée Électricité en approche !", "Electricity Fairy incoming!"), staleS: 1 },
+    droppod: { key: "enemy-droppod", text: tr("Obus-capsule ennemi !", "Enemy Capsule Shell!"), staleS: 2.5 },
     // (the nations' strikes that hurt: the République's ray, the Empire's gas)
-    curie: { key: "enemy-curie", text: "Rayon Curie en approche !", staleS: 1.5 },
-    gaz: { key: "enemy-gaz", text: "Gaz de houille en approche !", staleS: 2 }
+    curie: { key: "enemy-curie", text: tr("Rayon Curie en approche !", "Curie Ray incoming!"), staleS: 1.5 },
+    gaz: { key: "enemy-gaz", text: tr("Gaz de houille en approche !", "Coal Gas incoming!"), staleS: 2 }
   } as Partial<Record<PowerKind, { key: string; text: string; staleS: number }>>,
   /** A streak mostly made by one calldown is its own banner ("Sky Hammer: triple kill"), with this cooldown. */
   calldownStreakCooldownS: 10,
@@ -118,9 +119,9 @@ export const CALLOUTS = {
   streakHoldS: 0.6,
   /** Streak tiers (kills in the window) and each tier's own cooldown. */
   tiers: [
-    { n: 5, key: "streak-5", text: "Carnage", tone: "epic", priority: 2, cooldownS: 45 },
-    { n: 3, key: "streak-3", text: "Triplé", tone: "good", priority: 2, cooldownS: 30 },
-    { n: 2, key: "streak-2", text: "Doublé", tone: "good", priority: 3, cooldownS: 30 }
+    { n: 5, key: "streak-5", text: tr("Carnage", "Carnage"), tone: "epic", priority: 2, cooldownS: 45 },
+    { n: 3, key: "streak-3", text: tr("Triplé", "Triple kill"), tone: "good", priority: 2, cooldownS: 30 },
+    { n: 2, key: "streak-2", text: tr("Doublé", "Double kill"), tone: "good", priority: 3, cooldownS: 30 }
   ] as { n: number; key: string; text: string; tone: AnnounceTone; priority: number; cooldownS: number }[],
   /** Kills of units worth at least this much scrap get their own banner. */
   bigKillValue: 350,
@@ -152,26 +153,40 @@ export interface CalloutHooks {
   announce(a: Announcement): void;
 }
 
-export const SIDE: Record<Faction, string> = { blue: "Bleu", red: "Rouge" };
+export const SIDE: Record<Faction, string> = tr({ blue: "Bleu", red: "Rouge" }, { blue: "Blue", red: "Red" });
 /** Shorter names where a banner must fit a phone ("ELITE FLAK DOWN"). */
-export const SHORT: Partial<Record<UnitKind, string>> = { sniper: "Section alpine" };
+export const SHORT: Partial<Record<UnitKind, string>> = tr({ sniper: "Section alpine" }, { sniper: "Alpine section" });
 const enemyOf = (f: Faction): Faction => (f === "blue" ? "red" : "blue");
 /** Gender and number come from sim/lexicon.ts: agree("turret", "détruit") = "détruite", agree("fab-plant", "détruit") = "détruites". */
 /** "ennemi" / "ennemie" / "ennemies". */
 const hostile = (kind: UnitKind | BuildingKind | null | undefined): string => agree(kind, "ennemi");
 
 /** The Goliath's counters, as its rollout banner names them (GOLIATH.md tunes it against these). */
-export const GOLIATH_COUNTERS = "Artificiers, Éole, Hydroglisseurs, Albatros";
+export const GOLIATH_COUNTERS = tr("Artificiers, Éole, Hydroglisseurs, Albatros", "Rocketeers, Éole, Hydrogliders, Albatros");
 /** Spoken names of the weapon systems a Goliath can lose (the machine guns never go offline). */
-export const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "mortiers", laser: "arc électrique", cannons: "canons" };
+export const GOLIATH_WORD: Partial<Record<GoliathWeapon, string>> = tr(
+  { mortars: "mortiers", laser: "arc électrique", cannons: "canons" },
+  { mortars: "mortars", laser: "electric arc", cannons: "cannons" }
+);
 /** The Zénith's systems, in the Goliath's slots (sim/goliath.ts ZENITH_SLOTS), and what beats it. */
-export const ZENITH_WORD: Partial<Record<GoliathWeapon, string>> = { mortars: "canons Branly", laser: "arc de proue", cannons: "soute à bombes" };
-const ZENITH_COUNTERS = "Éperviers, Faucheux, Batteries de 47, Artificiers";
+export const ZENITH_WORD: Partial<Record<GoliathWeapon, string>> = tr(
+  { mortars: "canons Branly", laser: "arc de proue", cannons: "soute à bombes" },
+  { mortars: "Branly guns", laser: "bow arc", cannons: "bomb bay" }
+);
+const ZENITH_COUNTERS = tr("Éperviers, Faucheux, Batteries de 47, Artificiers", "Sparrowhawks, Daddy-Longlegs, 47 mm Batteries, Rocketeers");
 /**
  * A Goliath line reworded for the Zénith (the République's super-unit moors
  * where the Goliath anchors). voice-lines.ts records each one reworded so.
  */
 export function zenithLine(text: string): string {
+  if (EN)
+    return text
+      .split(GOLIATH_COUNTERS).join(ZENITH_COUNTERS)
+      .split("Galerie des Machines").join("Zénith Hangar")
+      .split("weighing anchor").join("casting off")
+      .split("anchoring").join("mooring")
+      .split("anchored").join("moored")
+      .split("Gargantua").join("Zénith");
   return text
     .split(GOLIATH_COUNTERS).join(ZENITH_COUNTERS)
     .split("Galerie des Machines").join("Hangar du Zénith")
@@ -182,9 +197,21 @@ export function zenithLine(text: string): string {
 }
 /** "mortars", "mortars and laser", "mortars, laser and cannons". */
 export const listWords = (xs: readonly string[]): string =>
-  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`;
+  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")}${tr(" et ", " and ")}${xs[xs.length - 1]}`;
 /** "Gargantua continue le combat" / "Gargantuas continuent le combat" (after "son"/"ses", "notre"/"nos"). */
-const fightsOn = (n: number): string => (n > 1 ? "Gargantuas continuent le combat" : "Gargantua continue le combat");
+const fightsOn = (n: number): string =>
+  tr(n > 1 ? "Gargantuas continuent le combat" : "Gargantua continue le combat", n > 1 ? "Gargantuas fight on" : "Gargantua fights on");
+
+/** Shared phrasing (the phrase book in voice-lines.ts builds the same lines): "Creusot ennemi détruit" / "Enemy Creusot destroyed". */
+export const enemyDestroyed = (name: string, kind: UnitKind | BuildingKind | null | undefined, nation?: Parameters<typeof agree>[2]): string =>
+  tr(`${name} ${agree(kind, "ennemi", nation)} ${agree(kind, "détruit", nation)}`, `Enemy ${name} destroyed`);
+/** "Creusot perdu" / "Creusot vétéran perdu" / "Veteran Creusot lost". */
+export const unitLost = (name: string, kind: UnitKind | BuildingKind | null | undefined, veteran: boolean): string =>
+  tr(`${name}${veteran ? ` ${agree(kind, "vétéran")}` : ""} ${agree(kind, "perdu")}`, `${veteran ? "Veteran " : ""}${name} lost`);
+/** A unit's label as a kill banner says it ("Section alpine d'élite" / "Elite Alpine section"). */
+export const eliteLabel = (label: string, elite: boolean): string => (elite ? tr(`${label} d'élite`, `elite ${label}`) : label);
+/** "<label> abattu" / "<label> down". */
+export const downText = (label: string, kind: UnitKind | BuildingKind | null | undefined): string => tr(`${label} ${agree(kind, "abattu")}`, `${label.charAt(0).toUpperCase()}${label.slice(1)} down`);
 
 interface Streak {
   /** Sim times of kills inside the window… */
@@ -280,9 +307,9 @@ export class BattleCallouts {
   cue(key: RadioCueKey, t: number): void {
     if (this.h.spectator || this.ended) return;
     if (key === "no-scrap" && this.ready("no-scrap", t))
-      this.say({ key, text: "Charbon insuffisant", priority: 3, tone: "info", caption: false }, t);
+      this.say({ key, text: tr("Charbon insuffisant", "Not enough coal"), priority: 3, tone: "info", caption: false }, t);
     if (key === "cant-build" && this.ready("cant-build", t))
-      this.say({ key, text: "Construction impossible ici", priority: 3, tone: "info", caption: false }, t);
+      this.say({ key, text: tr("Construction impossible ici", "Can't build here"), priority: 3, tone: "info", caption: false }, t);
   }
 
   // ------------------------------------------------------------- helpers --
@@ -354,21 +381,21 @@ export class BattleCallouts {
         if (h.spectator) {
           const key = `hq-attack-${b.faction}`;
           if (this.ready(key, t, 40))
-            this.say({ key, text: `${this.hqName(b.faction)} ${SIDE[b.faction]} ${this.hqAgree(b.faction, "attaqué")}`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+            this.say({ key, text: tr(`${this.hqName(b.faction)} ${SIDE[b.faction]} ${this.hqAgree(b.faction, "attaqué")}`, `${SIDE[b.faction]} ${this.hqName(b.faction)} under attack`), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
           return;
         }
         if (b.faction !== h.player) return;
         // in view, the player already knows: remind less often
         const seen = h.onScreen(ev.x, ev.y);
         if (this.ready("hq-attack", t, seen ? CALLOUTS.cooldownS["hq-attack-seen"] : CALLOUTS.cooldownS["hq-attack"])) {
-          this.say({ key: "hq-attack", text: `Alerte : notre ${this.hqName(b.faction)} est ${this.hqAgree(b.faction, "attaqué")}`, priority: 0, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
+          this.say({ key: "hq-attack", text: tr(`Alerte : notre ${this.hqName(b.faction)} est ${this.hqAgree(b.faction, "attaqué")}`, `Alert: our ${this.hqName(b.faction)} is under attack`), priority: 0, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
           this.last.set("base-attack", t);
         }
         return;
       }
       if (h.spectator || b.faction !== h.player || t < this.strikeQuietUntil) return;
       if (!h.onScreen(ev.x, ev.y) && this.ready("base-attack", t) && this.ready("hq-attack", t, 8))
-        this.say({ key: "base-attack", text: "Notre base est attaquée", priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
+        this.say({ key: "base-attack", text: tr("Notre base est attaquée", "Our base is under attack"), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
       return;
     }
     const g = h.world.units.get(ev.id);
@@ -378,7 +405,7 @@ export class BattleCallouts {
     }
     if (h.spectator || ev.faction !== h.player || h.onScreen(ev.x, ev.y) || t < this.strikeQuietUntil) return;
     if (this.ready("units-attack", t) && this.ready("squad-lost", t, 10))
-      this.say({ key: "units-attack", text: "Nos unités sont sous le feu", priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
+      this.say({ key: "units-attack", text: tr("Nos unités sont sous le feu", "Our units are under fire"), priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
   }
 
   /**
@@ -394,7 +421,7 @@ export class BattleCallouts {
     if (h.spectator) {
       const key = `goliath-attack-${ev.faction}`;
       if (last && this.ready(key, t, 40))
-        this.say({ key, text: `Gargantua ${SIDE[ev.faction]} attaqué`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key, text: tr(`Gargantua ${SIDE[ev.faction]} attaqué`, `${SIDE[ev.faction]} Gargantua under attack`), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
       return;
     }
     if (ev.faction !== h.player) return;
@@ -405,7 +432,7 @@ export class BattleCallouts {
     const cd = CALLOUTS.cooldownS[seen ? "goliath-attack-seen" : "goliath-attack"];
     if (!this.ready("goliath-attack", t, cd)) return;
     // (the HUD's own "under attack" toast shows it: no caption)
-    this.say({ key: "goliath-attack", text: "Notre Gargantua est attaqué", priority: last ? 0 : 1, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
+    this.say({ key: "goliath-attack", text: tr("Notre Gargantua est attaqué", "Our Gargantua is under attack"), priority: last ? 0 : 1, tone: "bad", x: ev.x, y: ev.y, caption: false }, t);
     this.last.set("units-attack", t);
   }
 
@@ -422,20 +449,21 @@ export class BattleCallouts {
       const nation = nationOf(h.world, victim);
       const name = displayName(ev.buildingKind, nation);
       const hostileB = agree(ev.buildingKind, "ennemi", nation);
-      const destroyed = agree(ev.buildingKind, "détruit", nation);
+      const destroyed = tr(agree(ev.buildingKind, "détruit", nation), "destroyed");
+      const foeDown = enemyDestroyed(name, ev.buildingKind, nation);
       if (by && !h.spectator && killer === h.player) {
         // our strike flattened a building: worth a cheer, not just a radio line —
         // under the strike's own streak banner if it's about to call one
         const s = this.streaks[killer];
         if (s.pending) {
-          s.big ??= `${name} ${destroyed}`;
+          s.big ??= tr(`${name} ${destroyed}`, `${name} destroyed`);
           this.last.set("structure-killed", t);
           return;
         }
         if (t - this.lastKillBanner >= CALLOUTS.killBannerGapS) {
           this.last.set("structure-killed", t);
           this.banner(
-            { key: "calldown-hit", text: "Coup au but !", say: "Coup en plein au but !", sub: `${powerName(by.power)} : ${name} ${hostileB} ${destroyed}`, tone: "good", priority: 3, x: ev.x, y: ev.y },
+            { key: "calldown-hit", text: tr("Coup au but !", "Direct hit!"), say: tr("Coup en plein au but !", "Right on target!"), sub: tr(`${powerName(by.power)} : ${name} ${hostileB} ${destroyed}`, `${powerName(by.power)}: ${foeDown}`), tone: "good", priority: 3, x: ev.x, y: ev.y },
             t
           );
           return;
@@ -444,12 +472,12 @@ export class BattleCallouts {
       if (h.spectator) {
         const key = `structure-killed-${victim}`;
         if (this.ready(key, t, 20))
-          this.say({ key, text: `${name} ${SIDE[victim]} ${destroyed}`, priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
+          this.say({ key, text: tr(`${name} ${SIDE[victim]} ${destroyed}`, `${SIDE[victim]} ${name} destroyed`), priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
       } else if (victim === h.player) {
         if (this.ready("structure-lost", t))
-          this.say({ key: "structure-lost", text: `Bâtiment perdu : ${name}`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+          this.say({ key: "structure-lost", text: tr(`Bâtiment perdu : ${name}`, `Building lost: ${name}`), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
       } else if (this.ready("structure-killed", t)) {
-        this.say({ key: "structure-killed", text: `${name} ${hostileB} ${destroyed}`, priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key: "structure-killed", text: tr(`${name} ${hostileB} ${destroyed}`, `Enemy ${name} destroyed`), priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
       }
       return;
     }
@@ -478,16 +506,16 @@ export class BattleCallouts {
     const f = ev.faction;
     const n = goliathsOf(w, f).length;
     if (h.spectator)
-      this.raise({ key: `hq-fell-${f}`, text: `${this.hqName(f)} ${SIDE[f]} ${this.hqAgree(f, "détruit")}`, sub: `${SIDE[f]} : ${n > 1 ? "ses" : "son"} ${fightsOn(n)}`, tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
+      this.raise({ key: `hq-fell-${f}`, text: tr(`${this.hqName(f)} ${SIDE[f]} ${this.hqAgree(f, "détruit")}`, `${SIDE[f]} ${this.hqName(f)} destroyed`), sub: tr(`${SIDE[f]} : ${n > 1 ? "ses" : "son"} ${fightsOn(n)}`, `${SIDE[f]}: ${fightsOn(n)}`), tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
     else if (f === h.player)
-      this.raise({ key: "hq-fell", text: `Notre ${this.hqName(f)} est ${this.hqAgree(f, "tombé")}`, sub: `${n > 1 ? "Nos" : "Notre"} ${fightsOn(n)}`, tone: "bad", priority: 0, x: ev.x, y: ev.y }, t);
+      this.raise({ key: "hq-fell", text: tr(`Notre ${this.hqName(f)} est ${this.hqAgree(f, "tombé")}`, `Our ${this.hqName(f)} has fallen`), sub: tr(`${n > 1 ? "Nos" : "Notre"} ${fightsOn(n)}`, `Our ${fightsOn(n)}`), tone: "bad", priority: 0, x: ev.x, y: ev.y }, t);
     else {
       // our kill: a banner like any other big kill (it spaces out the streak banners after it)
       this.last.set("enemy-hq-fell", t);
       this.banner(
         {
-          key: "enemy-hq-fell", text: `${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")}`, sub: `Détruis ${n > 1 ? "ses Gargantuas" : "son Gargantua"} pour gagner`, tone: "epic", priority: 1,
-          x: ev.x, y: ev.y, ...(by ? { say: `${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")} par ${powerPhrase(by.power)}` } : {})
+          key: "enemy-hq-fell", text: tr(`${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")}`, `Enemy ${this.hqName(f)} destroyed`), sub: tr(`Détruis ${n > 1 ? "ses Gargantuas" : "son Gargantua"} pour gagner`, `Destroy ${n > 1 ? "their Gargantuas" : "their Gargantua"} to win`), tone: "epic", priority: 1,
+          x: ev.x, y: ev.y, ...(by ? { say: tr(`${this.hqName(f)} ${this.hqAgree(f, "ennemi")} ${this.hqAgree(f, "détruit")} par ${powerPhrase(by.power)}`, `Enemy ${this.hqName(f)} destroyed by ${powerPhrase(by.power)}`) } : {})
         },
         t
       );
@@ -503,12 +531,15 @@ export class BattleCallouts {
     if (w.winner) return; // our last one: the defeat line says it
     const last = !hqOf(w, h.player);
     const left = goliathsOf(w, h.player).length;
-    const parts = [dropped ? "Perdu dans la chute" : null, last && left > 0 ? (left === 1 ? "Notre dernier Gargantua résiste" : `${left} Gargantuas restants`) : null];
+    const parts = [
+      dropped ? tr("Perdu dans la chute", "Lost in the drop") : null,
+      last && left > 0 ? (left === 1 ? tr("Notre dernier Gargantua résiste", "Our last Gargantua holds out") : tr(`${left} Gargantuas restants`, `${left} Gargantuas left`)) : null
+    ];
     const sub = parts.filter((x): x is string => !!x).join(" · ");
     this.raise(
       {
-        key: "goliath-lost", text: "Gargantua perdu", tone: "bad", priority: last ? 0 : 1, x: ev.x, y: ev.y,
-        ...(sub ? { sub } : {}), ...(dropped ? { say: "Gargantua perdu dans la chute" } : {})
+        key: "goliath-lost", text: tr("Gargantua perdu", "Gargantua lost"), tone: "bad", priority: last ? 0 : 1, x: ev.x, y: ev.y,
+        ...(sub ? { sub } : {}), ...(dropped ? { say: tr("Gargantua perdu dans la chute", "Gargantua lost in the drop") } : {})
       },
       t
     );
@@ -522,17 +553,16 @@ export class BattleCallouts {
     while (d.length && t - d[0]! > CALLOUTS.squadWindowS) d.shift();
     if (d.length >= CALLOUTS.squadDeaths && this.ready("squad-lost", t)) {
       d.length = 0;
-      this.say({ key: "squad-lost", text: "Escouade perdue", priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+      this.say({ key: "squad-lost", text: tr("Escouade perdue", "Squad lost"), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
       return;
     }
     if (h.onScreen(ev.x, ev.y) || !this.ready("squad-lost", t, 4)) return;
     const kind = ev.unitKind!;
     if (kind === "harvester") {
       if (this.ready("harvester-lost", t))
-        this.say({ key: "harvester-lost", text: "Fardier perdu", priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key: "harvester-lost", text: tr("Fardier perdu", "Steam Wagon lost"), priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
     } else if ((ev.value >= CALLOUTS.bigLossValue || ev.rank >= 2) && this.ready("unit-lost", t)) {
-      const vet = ev.rank >= 2 ? ` ${agree(kind, "vétéran")}` : "";
-      this.say({ key: "unit-lost", text: `${UNITS[kind].name}${vet} ${agree(kind, "perdu")}`, priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+      this.say({ key: "unit-lost", text: unitLost(UNITS[kind].name, kind, ev.rank >= 2), priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
     }
   }
 
@@ -544,14 +574,14 @@ export class BattleCallouts {
     if (!this.firstBlood) {
       this.firstBlood = true;
       const sub = h.spectator
-        ? `${SIDE[killer]} frappe en premier${power ? ` (${powerName(power)})` : ""}`
+        ? tr(`${SIDE[killer]} frappe en premier${power ? ` (${powerName(power)})` : ""}`, `${SIDE[killer]} draws first blood${power ? ` (${powerName(power)})` : ""}`)
         : power
-          ? `${SHORT[ev.unitKind!] ?? name} ${hostile(ev.unitKind)} ${agree(ev.unitKind, "détruit")} par ${powerPhrase(power)}`
-          : `${name} ${hostile(ev.unitKind)} ${agree(ev.unitKind, "détruit")}`;
+          ? tr(`${SHORT[ev.unitKind!] ?? name} ${hostile(ev.unitKind)} ${agree(ev.unitKind, "détruit")} par ${powerPhrase(power)}`, `${enemyDestroyed(SHORT[ev.unitKind!] ?? name, ev.unitKind)} by ${powerPhrase(power)}`)
+          : enemyDestroyed(name, ev.unitKind);
       this.banner(
         {
-          key: "first-blood", text: "Premier sang", tone: "epic", priority: 2, x: ev.x, y: ev.y, sub,
-          ...(h.spectator ? { say: `Premier sang pour ${SIDE[killer]}` } : {})
+          key: "first-blood", text: tr("Premier sang", "First blood"), tone: "epic", priority: 2, x: ev.x, y: ev.y, sub,
+          ...(h.spectator ? { say: tr(`Premier sang pour ${SIDE[killer]}`, `First blood for ${SIDE[killer]}`) } : {})
         },
         t
       );
@@ -577,18 +607,18 @@ export class BattleCallouts {
     }
     const big = ev.value >= CALLOUTS.bigKillValue || ev.rank >= 3;
     if (big) {
-      const label = `${SHORT[ev.unitKind!] ?? name}${ev.rank >= 3 ? " d'élite" : ""}`;
+      const label = eliteLabel(SHORT[ev.unitKind!] ?? name, ev.rank >= 3);
       const k = ev.unitKind;
-      if (s.pending) s.big = `${label} ${agree(k, "détruit")}`; // rides along under the streak banner
+      if (s.pending) s.big = tr(`${label} ${agree(k, "détruit")}`, `${label} destroyed`); // rides along under the streak banner
       else if (t - this.lastBigKill >= CALLOUTS.bigKillCooldownS && t - this.lastKillBanner >= CALLOUTS.killBannerGapS) {
         this.lastBigKill = t;
         // short on the banner ("MASTODON DOWN" fits a phone), complete on the radio
-        const how = power ? ` par ${powerPhrase(power)}` : "";
+        const how = power ? tr(` par ${powerPhrase(power)}`, ` by ${powerPhrase(power)}`) : "";
         this.banner(
           h.spectator
-            ? { key: `kill-${ev.unitKind}`, text: `${label} ${SIDE[ev.faction]} ${agree(k, "abattu")}`, sub: `${SIDE[killer]} marque${power ? ` · ${powerName(power)}` : ""}`, tone: "good", priority: 3, x: ev.x, y: ev.y }
+            ? { key: `kill-${ev.unitKind}`, text: tr(`${label} ${SIDE[ev.faction]} ${agree(k, "abattu")}`, `${SIDE[ev.faction]} ${label} down`), sub: tr(`${SIDE[killer]} marque${power ? ` · ${powerName(power)}` : ""}`, `${SIDE[killer]} scores${power ? ` · ${powerName(power)}` : ""}`), tone: "good", priority: 3, x: ev.x, y: ev.y }
             : {
-                key: `kill-${ev.unitKind}`, text: `${label} ${agree(k, "abattu")}`, say: `${label} ${hostile(k)} ${agree(k, "détruit")}${how}`, tone: "good", priority: 3, x: ev.x, y: ev.y,
+                key: `kill-${ev.unitKind}`, text: downText(label, k), say: tr(`${label} ${hostile(k)} ${agree(k, "détruit")}${how}`, `${enemyDestroyed(label, k)}${how}`), tone: "good", priority: 3, x: ev.x, y: ev.y,
                 ...(power ? { sub: powerName(power) } : {})
               },
           t
@@ -609,21 +639,21 @@ export class BattleCallouts {
     if (w.winner) return;
     this.lastBigKill = t;
     const victim = ev.faction;
-    const label = ev.rank >= 3 ? "Gargantua d'élite" : "Gargantua";
+    const label = ev.rank >= 3 ? tr("Gargantua d'élite", "elite Gargantua") : "Gargantua";
     const left = goliathsOf(w, victim).length;
-    const leftNote = hqOf(w, victim) || left === 0 ? null : left === 1 ? "Plus qu'un Gargantua" : `${left} Gargantuas restants`;
-    const dropped = this.droppedDead.has(ev.id) ? "Lâché par ses Montgolfières" : null;
+    const leftNote = hqOf(w, victim) || left === 0 ? null : left === 1 ? tr("Plus qu'un Gargantua", "Only one Gargantua left") : tr(`${left} Gargantuas restants`, `${left} Gargantuas left`);
+    const dropped = this.droppedDead.has(ev.id) ? tr("Lâché par ses Montgolfières", "Dropped by its Montgolfier Balloons") : null;
     const parts = (xs: (string | null)[]) => xs.filter((x): x is string => !!x).join(" · ");
     if (h.spectator) {
-      const sub = parts([`${SIDE[killer]} marque`, power ? powerName(power) : dropped, leftNote]);
-      this.banner({ key: "kill-goliath", text: `${label} ${SIDE[victim]} abattu`, sub, tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
+      const sub = parts([tr(`${SIDE[killer]} marque`, `${SIDE[killer]} scores`), power ? powerName(power) : dropped, leftNote]);
+      this.banner({ key: "kill-goliath", text: tr(`${label} ${SIDE[victim]} abattu`, `${SIDE[victim]} ${label} down`), sub, tone: "epic", priority: 1, x: ev.x, y: ev.y }, t);
       return;
     }
     const sub = parts([power ? powerName(power) : dropped, leftNote]);
-    const how = power ? ` par ${powerPhrase(power)}` : "";
+    const how = power ? tr(` par ${powerPhrase(power)}`, ` by ${powerPhrase(power)}`) : "";
     this.banner(
       {
-        key: "kill-goliath", text: `${label} abattu`, say: `${label} ennemi détruit${how}`, tone: "epic", priority: 1, x: ev.x, y: ev.y,
+        key: "kill-goliath", text: tr(`${label} abattu`, `${label.charAt(0).toUpperCase()}${label.slice(1)} down`), say: tr(`${label} ennemi détruit${how}`, `Enemy ${label} destroyed${how}`), tone: "epic", priority: 1, x: ev.x, y: ev.y,
         ...(sub ? { sub } : {})
       },
       t
@@ -635,7 +665,10 @@ export class BattleCallouts {
     if (h.spectator) return;
     const u = h.world.units.get(id);
     if (!u || u.faction !== h.player || u.rank < 2 || !this.ready("promoted", t)) return;
-    const text = u.rank >= 3 ? `${UNITS[u.kind].name} ${agree(u.kind, "promu")} élite` : `${UNITS[u.kind].name} ${agree(u.kind, "promu")}`;
+    const text =
+      u.rank >= 3
+        ? tr(`${UNITS[u.kind].name} ${agree(u.kind, "promu")} élite`, `${UNITS[u.kind].name} promoted to elite`)
+        : tr(`${UNITS[u.kind].name} ${agree(u.kind, "promu")}`, `${UNITS[u.kind].name} promoted`);
     this.say({ key: "promoted", text, priority: 3, tone: "good", x: u.x, y: u.y, caption: true }, t);
   }
 
@@ -652,7 +685,7 @@ export class BattleCallouts {
       if (w.winner === "draw") {
         // Robot Love (rules.ts): two enemy Goliaths met and fell in love. Nobody won and nobody lost,
         // for players and spectators alike: its own last word, never a victory or a defeat
-        const text = w.love ? "Ils sont tombés amoureux. Match nul." : "Match nul.";
+        const text = w.love ? tr("Ils sont tombés amoureux. Match nul.", "They fell in love. A draw.") : tr("Match nul.", "A draw.");
         this.say({ key: "draw", text, priority: 0, tone: "good", caption: false, ...(w.love ? { x: w.love.x, y: w.love.y } : {}) }, t);
         return;
       }
@@ -660,16 +693,26 @@ export class BattleCallouts {
       const byGoliath = decidedByGoliath(fx, enemyOf(w.winner));
       if (w.survival) {
         // (watched or played, Last Stand only ends one way: matches the banner and the lament)
-        const text = byGoliath ? "Base submergée. Le dernier Gargantua est tombé." : "Base submergée. Le GQG est tombé.";
+        const text = byGoliath
+          ? tr("Base submergée. Le dernier Gargantua est tombé.", "Base overrun. The last Gargantua has fallen.")
+          : tr("Base submergée. Le GQG est tombé.", "Base overrun. The GHQ has fallen.");
         this.say({ key: "defeat", text, priority: 0, tone: "bad", caption: false }, t);
         return;
       }
       const loser = SIDE[enemyOf(w.winner)];
+      const loserHq = this.hqName(enemyOf(w.winner));
       const text = h.spectator
-        ? `${byGoliath ? `Dernier Gargantua ${loser} détruit. ` : ""}${SIDE[w.winner]} remporte la bataille`
+        ? tr(
+            `${byGoliath ? `Dernier Gargantua ${loser} détruit. ` : ""}${SIDE[w.winner]} remporte la bataille`,
+            `${byGoliath ? `${loser} last Gargantua destroyed. ` : ""}${SIDE[w.winner]} wins the battle`
+          )
         : w.winner === h.player
-          ? byGoliath ? "Dernier Gargantua ennemi détruit. Victoire !" : `${this.hqName(enemyOf(w.winner))} ${this.hqAgree(enemyOf(w.winner), "ennemi")} ${this.hqAgree(enemyOf(w.winner), "détruit")}. Victoire !`
-          : byGoliath ? "Notre dernier Gargantua est tombé. Mission échouée." : `Notre ${this.hqName(enemyOf(w.winner))} est ${this.hqAgree(enemyOf(w.winner), "tombé")}. Mission échouée.`;
+          ? byGoliath
+            ? tr("Dernier Gargantua ennemi détruit. Victoire !", "Last enemy Gargantua destroyed. Victory!")
+            : tr(`${this.hqName(enemyOf(w.winner))} ${this.hqAgree(enemyOf(w.winner), "ennemi")} ${this.hqAgree(enemyOf(w.winner), "détruit")}. Victoire !`, `Enemy ${loserHq} destroyed. Victory!`)
+          : byGoliath
+            ? tr("Notre dernier Gargantua est tombé. Mission échouée.", "Our last Gargantua has fallen. Mission failed.")
+            : tr(`Notre ${this.hqName(enemyOf(w.winner))} est ${this.hqAgree(enemyOf(w.winner), "tombé")}. Mission échouée.`, `Our ${loserHq} has fallen. Mission failed.`);
       this.say({ key: w.winner === h.player || h.spectator ? "victory" : "defeat", text, priority: 0, tone: w.winner === h.player || h.spectator ? "epic" : "bad", caption: false }, t);
       return;
     }
@@ -678,7 +721,7 @@ export class BattleCallouts {
     if (!h.spectator) {
       const ready = !!w.factions[h.player].pending?.ready;
       if (ready && !this.wasReady)
-        this.say({ key: "construction", text: "Construction terminée", priority: 3, tone: "good", caption: false }, t);
+        this.say({ key: "construction", text: tr("Construction terminée", "Construction complete"), priority: 3, tone: "good", caption: false }, t);
       this.wasReady = ready;
     }
     if (t - this.lastAirScan >= CALLOUTS.airScanS) {
@@ -706,10 +749,10 @@ export class BattleCallouts {
       // the streak was called recently: a big kill inside it still gets its own line
       if (big && t - this.lastBigKill >= CALLOUTS.bigKillCooldownS) {
         this.lastBigKill = t;
-        const down = big.replace(/ détruit(e?)$/, " abattu$1");
+        const down = EN ? big.replace(/ destroyed$/, " down") : big.replace(/ détruit(e?)$/, " abattu$1");
         this.banner(
           this.h.spectator
-            ? { key: "kill-big", text: down, sub: `${SIDE[f]} marque`, tone: "good", priority: 3, x: s.x, y: s.y }
+            ? { key: "kill-big", text: down, sub: tr(`${SIDE[f]} marque`, `${SIDE[f]} scores`), tone: "good", priority: 3, x: s.x, y: s.y }
             : { key: "kill-big", text: down, say: big, tone: "good", priority: 3, x: s.x, y: s.y },
           t
         );
@@ -721,13 +764,13 @@ export class BattleCallouts {
     // a calldown's streak names it under the title (one line on a phone) and says it: "Sky Hammer: triple kill"
     const parts = [this.h.spectator ? SIDE[f] : null, power ? powerName(power) : null, big].filter((x): x is string => !!x);
     const sub = parts.length ? parts.join(" · ") : undefined;
-    const said = power ? `${powerName(power)} : ${tier.text.toLowerCase()}` : tier.text;
+    const said = power ? tr(`${powerName(power)} : ${tier.text.toLowerCase()}`, `${powerName(power)}: ${tier.text.toLowerCase()}`) : tier.text;
     this.banner(
       {
         key: tier.key, text: tier.text, tone: tier.tone, priority: tier.priority, x: s.x, y: s.y,
         ...(sub ? { sub } : {}),
         // the caster says whose streak it is
-        ...(this.h.spectator ? { say: `${said} pour ${SIDE[f]}` } : power ? { say: said } : {})
+        ...(this.h.spectator ? { say: tr(`${said} pour ${SIDE[f]}`, `${said} for ${SIDE[f]}`) } : power ? { say: said } : {})
       },
       t
     );
@@ -755,7 +798,7 @@ export class BattleCallouts {
         // (a bail-out is announced by its disembark below)
         if (n === 0 || bailed?.has(ev.id) || h.spectator || ev.faction !== h.player || !this.ready("condor-down", t)) continue;
         this.say(
-          { key: "condor-down", text: `Montgolfière abattue avec ${n === 1 ? "une escouade" : `${n} escouades`} à bord`, priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true },
+          { key: "condor-down", text: tr(`Montgolfière abattue avec ${n === 1 ? "une escouade" : `${n} escouades`} à bord`, `Montgolfier Balloon shot down with ${n === 1 ? "a squad" : `${n} squads`} aboard`), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true },
           t
         );
         this.last.set("squad-lost", t); // (the squads' own deaths are this news)
@@ -763,7 +806,7 @@ export class BattleCallouts {
         // a free replacement Condor flying in (lifeline.ts)
         if (h.spectator || ev.faction !== h.player || !this.ready("lifeline", t, 10)) continue;
         this.say(
-          { key: "lifeline", text: ev.squad ? "Montgolfière de remplacement en approche, une escouade à bord" : "Montgolfière de remplacement en approche", priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true },
+          { key: "lifeline", text: ev.squad ? tr("Montgolfière de remplacement en approche, une escouade à bord", "Replacement Montgolfier Balloon inbound, one squad aboard") : tr("Montgolfière de remplacement en approche", "Replacement Montgolfier Balloon inbound"), priority: 2, tone: "good", x: ev.x, y: ev.y, caption: true },
           t
         );
       } else if (ev.type === "disembark") {
@@ -780,20 +823,20 @@ export class BattleCallouts {
     if (h.spectator) {
       const key = `drop-${ev.faction}`;
       if (!ev.bailout && this.ready(key, t, 30))
-        this.say({ key, text: `Débarquement ${SIDE[ev.faction]}`, priority: 3, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key, text: tr(`Débarquement ${SIDE[ev.faction]}`, `${SIDE[ev.faction]} landing`), priority: 3, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
       return;
     }
     if (ev.faction === h.player) {
       if (ev.bailout) {
         if (this.ready("condor-down", t))
-          this.say({ key: "condor-down", text: "Montgolfière abattue ! Les troupes sautent", priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+          this.say({ key: "condor-down", text: tr("Montgolfière abattue ! Les troupes sautent", "Montgolfier Balloon down! The troops are jumping"), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
       } else if (this.ready("troops-deployed", t))
-        this.say({ key: "troops-deployed", text: "Troupes déployées", priority: 3, tone: "good", x: ev.x, y: ev.y, caption: !h.onScreen(ev.x, ev.y) }, t);
+        this.say({ key: "troops-deployed", text: tr("Troupes déployées", "Troops deployed"), priority: 3, tone: "good", x: ev.x, y: ev.y, caption: !h.onScreen(ev.x, ev.y) }, t);
       return;
     }
     // the enemy lands troops where we can see it
     if (ev.bailout || !isVisible(h.world, h.player, Math.floor(ev.x), Math.floor(ev.y)) || !this.ready("enemy-drop", t)) return;
-    this.say({ key: "enemy-drop", text: "Débarquement ennemi !", priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true, staleS: 3 }, t);
+    this.say({ key: "enemy-drop", text: tr("Débarquement ennemi !", "Enemy landing!"), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true, staleS: 3 }, t);
   }
 
   /** An enemy calldown aimed at our units or buildings: say what's coming while there's time to move. */
@@ -825,7 +868,7 @@ export class BattleCallouts {
       const key = `${started ? "goliath-build" : "goliath-soon"}-${f}`;
       if (this.ready(key, t, 20))
         this.say(
-          { key, text: `Gargantua ${SIDE[f]} ${started ? "en production" : "presque terminé"}`, priority: started ? 2 : 3, tone: "info", x: ev.x, y: ev.y, caption: true },
+          { key, text: tr(`Gargantua ${SIDE[f]} ${started ? "en production" : "presque terminé"}`, `${SIDE[f]} Gargantua ${started ? "in production" : "nearly complete"}`), priority: started ? 2 : 3, tone: "info", x: ev.x, y: ev.y, caption: true },
           t
         );
       return;
@@ -833,9 +876,9 @@ export class BattleCallouts {
     if (f === h.player) return;
     if (started) {
       if (this.ready("enemy-goliath-build", t))
-        this.raise({ key: "enemy-goliath-build", text: "Gargantua ennemi en production", sub: "Leur Galerie des Machines en construit un", tone: "bad", priority: 1, x: ev.x, y: ev.y }, t);
+        this.raise({ key: "enemy-goliath-build", text: tr("Gargantua ennemi en production", "Enemy Gargantua in production"), sub: tr("Leur Galerie des Machines en construit un", "Their Galerie des Machines is building one"), tone: "bad", priority: 1, x: ev.x, y: ev.y }, t);
     } else if (this.ready("enemy-goliath-soon", t))
-      this.say({ key: "enemy-goliath-soon", text: "Gargantua ennemi presque terminé", priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true, staleS: 6 }, t);
+      this.say({ key: "enemy-goliath-soon", text: tr("Gargantua ennemi presque terminé", "Enemy Gargantua nearly complete"), priority: 1, tone: "bad", x: ev.x, y: ev.y, caption: true, staleS: 6 }, t);
   }
 
   /**
@@ -849,12 +892,12 @@ export class BattleCallouts {
     const f = ev.faction;
     if (h.spectator) {
       const key = `goliath-field-${f}`;
-      if (this.ready(key, t, 10)) this.raise({ key, text: `Gargantua ${SIDE[f]} sur le terrain`, tone: "epic", priority: 2, x: ev.x, y: ev.y }, t);
+      if (this.ready(key, t, 10)) this.raise({ key, text: tr(`Gargantua ${SIDE[f]} sur le terrain`, `${SIDE[f]} Gargantua on the field`), tone: "epic", priority: 2, x: ev.x, y: ev.y }, t);
     } else if (f === h.player) {
       if (this.ready("goliath-ready", t))
-        this.say({ key: "goliath-ready", text: "Gargantua prêt", priority: 1, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key: "goliath-ready", text: tr("Gargantua prêt", "Gargantua ready"), priority: 1, tone: "good", x: ev.x, y: ev.y, caption: true }, t);
     } else if (this.ready("enemy-goliath", t))
-      this.raise({ key: "enemy-goliath", text: "Gargantua ennemi sur le terrain", sub: `Contre : ${GOLIATH_COUNTERS}`, tone: "bad", priority: 1, x: ev.x, y: ev.y }, t);
+      this.raise({ key: "enemy-goliath", text: tr("Gargantua ennemi sur le terrain", "Enemy Gargantua on the field"), sub: tr(`Contre : ${GOLIATH_COUNTERS}`, `Counters: ${GOLIATH_COUNTERS}`), tone: "bad", priority: 1, x: ev.x, y: ev.y }, t);
   }
 
   /**
@@ -868,18 +911,18 @@ export class BattleCallouts {
     if (h.spectator) {
       const key = `goliath-dig-${f}`;
       if (ev.mode === "anchoring" && this.ready(key, t, 20))
-        this.say({ key, text: `Gargantua ${SIDE[f]} en ancrage`, priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
+        this.say({ key, text: tr(`Gargantua ${SIDE[f]} en ancrage`, `${SIDE[f]} Gargantua anchoring`), priority: 2, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
       return;
     }
     if (f === h.player) {
       if (ev.mode === "anchored" && this.ready("goliath-anchored", t))
-        this.say({ key: "goliath-anchored", text: "Gargantua ancré", priority: 3, tone: "good", x: ev.x, y: ev.y, caption: !h.onScreen(ev.x, ev.y) }, t);
+        this.say({ key: "goliath-anchored", text: tr("Gargantua ancré", "Gargantua anchored"), priority: 3, tone: "good", x: ev.x, y: ev.y, caption: !h.onScreen(ev.x, ev.y) }, t);
       return;
     }
     if (ev.mode === "anchoring" && this.ready("enemy-goliath-dig", t))
-      this.say({ key: "enemy-goliath-dig", text: "Gargantua ennemi en ancrage", priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
+      this.say({ key: "enemy-goliath-dig", text: tr("Gargantua ennemi en ancrage", "Enemy Gargantua anchoring"), priority: 2, tone: "bad", x: ev.x, y: ev.y, caption: true }, t);
     else if (ev.mode === "packing" && this.ready("enemy-goliath-pack", t))
-      this.say({ key: "enemy-goliath-pack", text: "Gargantua ennemi lève l'ancre", priority: 3, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
+      this.say({ key: "enemy-goliath-pack", text: tr("Gargantua ennemi lève l'ancre", "Enemy Gargantua weighing anchor"), priority: 3, tone: "info", x: ev.x, y: ev.y, caption: true }, t);
   }
 
   /**
@@ -920,11 +963,11 @@ export class BattleCallouts {
       const what = listWords(fresh.map((k) => (this.zenithNews ? ZENITH_WORD : GOLIATH_WORD)[k]!));
       const key = fresh.map(keyOf).join("+");
       const at = { x: ev.x, y: ev.y };
-      if (h.spectator) this.say({ key, text: `Gargantua ${SIDE[f]} : ${what} hors service`, priority: 2, tone: "info", ...at, caption: true }, t);
-      else if (mine && down) this.say({ key, text: `Gargantua : ${what} hors ligne`, priority: 1, tone: "bad", ...at, caption: true }, t);
-      else if (mine) this.say({ key, text: `Gargantua : ${what} de nouveau en ligne`, priority: 3, tone: "good", ...at, caption: !h.onScreen(ev.x, ev.y) }, t);
-      else if (down) this.say({ key, text: `Gargantua ennemi : ${what} hors service !`, priority: 2, tone: "good", ...at, caption: true }, t);
-      else this.say({ key, text: `Gargantua ennemi : ${what} de nouveau en ligne`, priority: 2, tone: "bad", ...at, caption: true }, t);
+      if (h.spectator) this.say({ key, text: tr(`Gargantua ${SIDE[f]} : ${what} hors service`, `${SIDE[f]} Gargantua: ${what} out of action`), priority: 2, tone: "info", ...at, caption: true }, t);
+      else if (mine && down) this.say({ key, text: tr(`Gargantua : ${what} hors ligne`, `Gargantua: ${what} offline`), priority: 1, tone: "bad", ...at, caption: true }, t);
+      else if (mine) this.say({ key, text: tr(`Gargantua : ${what} de nouveau en ligne`, `Gargantua: ${what} back online`), priority: 3, tone: "good", ...at, caption: !h.onScreen(ev.x, ev.y) }, t);
+      else if (down) this.say({ key, text: tr(`Gargantua ennemi : ${what} hors service !`, `Enemy Gargantua: ${what} knocked out!`), priority: 2, tone: "good", ...at, caption: true }, t);
+      else this.say({ key, text: tr(`Gargantua ennemi : ${what} de nouveau en ligne`, `Enemy Gargantua: ${what} back online`), priority: 2, tone: "bad", ...at, caption: true }, t);
     }
   }
 
@@ -945,20 +988,20 @@ export class BattleCallouts {
     const at = { x: ev.x, y: ev.y };
     if (h.spectator) {
       const key = `goliath-${hooked ? "airborne" : "dropped"}-${f}`;
-      if (this.ready(key, t, 20)) this.say({ key, text: `Gargantua ${SIDE[f]} ${hooked ? "en vol" : "lâché !"}`, priority: 2, tone: "info", ...at, caption: true }, t);
+      if (this.ready(key, t, 20)) this.say({ key, text: tr(`Gargantua ${SIDE[f]} ${hooked ? "en vol" : "lâché !"}`, `${SIDE[f]} Gargantua ${hooked ? "airborne" : "dropped!"}`), priority: 2, tone: "info", ...at, caption: true }, t);
       return;
     }
     if (f === h.player) {
       if (hooked && this.ready("goliath-airborne", t))
-        this.say({ key: "goliath-airborne", text: "Gargantua en vol", priority: 3, tone: "good", ...at, caption: !h.onScreen(ev.x, ev.y) }, t);
+        this.say({ key: "goliath-airborne", text: tr("Gargantua en vol", "Gargantua airborne"), priority: 3, tone: "good", ...at, caption: !h.onScreen(ev.x, ev.y) }, t);
       else if (!hooked && this.ready("goliath-dropped", t))
-        this.say({ key: "goliath-dropped", text: "Gargantua lâché !", priority: 1, tone: "bad", ...at, caption: true }, t);
+        this.say({ key: "goliath-dropped", text: tr("Gargantua lâché !", "Gargantua dropped!"), priority: 1, tone: "bad", ...at, caption: true }, t);
       return;
     }
     if (hooked && this.ready("enemy-goliath-airborne", t))
-      this.say({ key: "enemy-goliath-airborne", text: "Gargantua ennemi en vol", priority: 2, tone: "bad", ...at, caption: true }, t);
+      this.say({ key: "enemy-goliath-airborne", text: tr("Gargantua ennemi en vol", "Enemy Gargantua airborne"), priority: 2, tone: "bad", ...at, caption: true }, t);
     else if (!hooked && this.ready("enemy-goliath-dropped", t))
-      this.say({ key: "enemy-goliath-dropped", text: "Gargantua ennemi lâché !", priority: 2, tone: "good", ...at, caption: true }, t);
+      this.say({ key: "enemy-goliath-dropped", text: tr("Gargantua ennemi lâché !", "Enemy Gargantua dropped!"), priority: 2, tone: "good", ...at, caption: true }, t);
   }
 
   /** "Enemy aircraft detected": the first visible enemy combat aircraft (re-armed after a long absence). */
@@ -980,7 +1023,7 @@ export class BattleCallouts {
         if (this.airArmed[f]) {
           this.airArmed[f] = false;
           const key = h.spectator ? `air-${f}` : "enemy-air";
-          const text = h.spectator ? `Aviation ${SIDE[f]} en approche` : "Aviation ennemie détectée";
+          const text = h.spectator ? tr(`Aviation ${SIDE[f]} en approche`, `${SIDE[f]} aircraft inbound`) : tr("Aviation ennemie détectée", "Enemy aircraft detected");
           this.say({ key, text, priority: h.spectator ? 2 : 1, tone: "bad", x: spotted.x, y: spotted.y, caption: true }, t);
         }
         this.airSeen[f] = t;
@@ -1116,7 +1159,7 @@ export function speakable(text: string): string {
   const letters = s.replace(/[^\p{L}]/gu, "");
   if (letters.length >= 4 && letters === letters.toUpperCase()) {
     s = s.toLowerCase().replace(/^\p{L}/u, (c) => c.toUpperCase());
-    s = s.replace(/\b(hq|qg|gqg|tsf|sam|emp|iem|dca|ia|mvp)\b/gi, (m) => m.toUpperCase());
+    s = s.replace(/\b(hq|ghq|qg|gqg|tsf|sam|emp|iem|dca|ia|mvp)\b/gi, (m) => m.toUpperCase());
   }
   return s;
 }

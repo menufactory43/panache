@@ -2,6 +2,7 @@ import { STRATEGIES, type StrategyName } from "../sim/ai/commander";
 import { mapById } from "../sim/maps";
 import { hash32, saltOf } from "../sim/rand";
 import { MUTATOR_IDS, makeRules, mutatorsCompatible, strategyFits, type MutatorId } from "../sim/rules";
+import { tr } from "../lang";
 
 /**
  * The Daily Op: one seeded skirmish per calendar day, identical for every
@@ -26,8 +27,11 @@ export interface DailyOp {
 
 const MS_DAY = 86_400_000;
 const EPOCH_DAY = Date.UTC(2026, 0, 1) / MS_DAY;
-const DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
-const MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const DAYS = tr(["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."], ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+const MONTHS = tr(
+  ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+  ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+);
 
 /** The local calendar date as a day index (so "today" flips at local midnight). */
 export function dayIndexOf(d: Date): number {

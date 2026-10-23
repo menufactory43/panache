@@ -1,3 +1,4 @@
+import { tr } from "../lang";
 /**
  * L'Instruction (« Premier jour »): the guided first mission, one gesture at
  * a time. Engine-free and tested (tests/tutorial.test.ts): this module only
@@ -124,15 +125,15 @@ const look = (text: string, target: TutTarget | null): TutGuide => ({ text, targ
 
 /** Open the drawer on a tab first, else point at what's on it. */
 function inDrawer(o: TutObs, tab: "build" | "ground", then: TutGuide): TutGuide {
-  if (o.belle && !o.drawerOpen && o.busy) return tap("Touche ✕ pour fermer la sélection", dom("deselect"));
-  if (o.belle && !o.drawerOpen) return tap("Touche 🔨 Construire", dom("build"));
-  if (o.tab !== tab) return tap(tab === "build" ? "Ouvre l'onglet Base" : "Ouvre l'onglet Véhicules", dom(tab === "build" ? "tab-build" : "tab-ground"));
+  if (o.belle && !o.drawerOpen && o.busy) return tap(tr("Touche ✕ pour fermer la sélection", "Tap ✕ to close the selection"), dom("deselect"));
+  if (o.belle && !o.drawerOpen) return tap(tr("Touche 🔨 Construire", "Tap 🔨 Build"), dom("build"));
+  if (o.tab !== tab) return tap(tab === "build" ? tr("Ouvre l'onglet Base", "Open the Base tab") : tr("Ouvre l'onglet Véhicules", "Open the Vehicles tab"), dom(tab === "build" ? "tab-build" : "tab-ground"));
   return then;
 }
 
 /** Select the army first (⚔ Armée), else `then`. */
 function withArmy(o: TutObs, then: TutGuide): TutGuide {
-  if (o.selected === 0) return tap(o.belle ? "Touche ⚔ Armée d'abord" : "Touche Toute l'armée d'abord", dom("army"));
+  if (o.selected === 0) return tap(o.belle ? tr("Touche ⚔ Armée d'abord", "Tap ⚔ Army first") : tr("Touche Toute l'armée d'abord", "Tap All army first"), dom("army"));
   return then;
 }
 
@@ -142,70 +143,70 @@ export const TUT_BEATS: TutBeat[] = [
     step: 1,
     guide: (o) =>
       o.touch
-        ? { text: "Glisse un doigt pour regarder autour", target: { kind: "gesture", g: "drag" }, hand: true }
-        : { text: "Flèches du clavier pour regarder autour", target: { kind: "gesture", g: "keys" }, hand: false },
+        ? { text: tr("Glisse un doigt pour regarder autour", "Drag a finger to look around"), target: { kind: "gesture", g: "drag" }, hand: true }
+        : { text: tr("Flèches du clavier pour regarder autour", "Arrow keys to look around"), target: { kind: "gesture", g: "keys" }, hand: false },
     done: (o) => o.panned >= 3,
-    praise: "Parfait !",
+    praise: tr("Parfait !", "Perfect!"),
     fresh: true,
-    voice: "Essai radio"
+    voice: tr("Essai radio", "Radio check")
   },
   {
     id: "zoom",
     step: 1,
     guide: (o) =>
       o.touch
-        ? { text: "Pince avec deux doigts pour zoomer", target: { kind: "gesture", g: "pinch" }, hand: true }
-        : { text: "Molette de la souris pour zoomer", target: { kind: "gesture", g: "wheel" }, hand: false },
+        ? { text: tr("Pince avec deux doigts pour zoomer", "Pinch with two fingers to zoom"), target: { kind: "gesture", g: "pinch" }, hand: true }
+        : { text: tr("Molette de la souris pour zoomer", "Mouse wheel to zoom"), target: { kind: "gesture", g: "wheel" }, hand: false },
     done: (o) => o.zoomRatio >= 1.2 || o.zoomRatio <= 1 / 1.2,
-    praise: "Très bien !",
+    praise: tr("Très bien !", "Very good!"),
     fresh: true
   },
   {
     id: "select",
     step: 2,
     enter: ["glide-starters"],
-    guide: () => tap("Touche un de tes Panhard", spot("starters")),
+    guide: () => tap(tr("Touche un de tes Panhard", "Tap one of your Panhards"), spot("starters")),
     done: (o) => o.startersSelected > 0,
-    praise: "Panhard à tes ordres !"
+    praise: tr("Panhard à tes ordres !", "Panhard at your command!")
   },
   {
     id: "move",
     step: 3,
     guide: (o) => {
-      if (o.headingToFlag) return look("En route vers le drapeau…", spot("flag"));
-      if (o.startersSelected === 0) return tap("Touche d'abord un Panhard", spot("starters"));
-      return tap("Touche le drapeau pour y aller", spot("flag"));
+      if (o.headingToFlag) return look(tr("En route vers le drapeau…", "On the way to the flag…"), spot("flag"));
+      if (o.startersSelected === 0) return tap(tr("Touche d'abord un Panhard", "Tap a Panhard first"), spot("starters"));
+      return tap(tr("Touche le drapeau pour y aller", "Tap the flag to go there"), spot("flag"));
     },
     done: (o) => o.atFlag,
-    praise: "Bien arrivé !"
+    praise: tr("Bien arrivé !", "Well arrived!")
   },
   {
     id: "attack",
     step: 4,
     enter: ["spawn-patrol"],
     guide: (o) => {
-      if (!o.patrolSeen) return look("Une patrouille ennemie approche…", spot("patrol"));
-      if (o.patrolAttacked) return look("Feu à volonté !", spot("patrol"));
-      if (o.selected === 0) return { ...tap("Touche d'abord un Panhard", spot("starters")), hold: true };
-      return { ...tap("Touche l'ennemi pour attaquer", spot("patrol")), hold: true };
+      if (!o.patrolSeen) return look(tr("Une patrouille ennemie approche…", "An enemy patrol approaches…"), spot("patrol"));
+      if (o.patrolAttacked) return look(tr("Feu à volonté !", "Fire at will!"), spot("patrol"));
+      if (o.selected === 0) return { ...tap(tr("Touche d'abord un Panhard", "Tap a Panhard first"), spot("starters")), hold: true };
+      return { ...tap(tr("Touche l'ennemi pour attaquer", "Tap the enemy to attack"), spot("patrol")), hold: true };
     },
     done: (o) => o.patrolSpawned && o.patrolAlive === 0,
-    praise: "Victoire ! Patrouille détruite.",
-    voice: "Blindés ennemis en approche"
+    praise: tr("Victoire ! Patrouille détruite.", "Victory! Patrol destroyed."),
+    voice: tr("Blindés ennemis en approche", "Enemy armour inbound")
   },
   {
     id: "forges",
     step: 5,
     enter: ["deselect", "fund-forges"],
-    guide: (o) => inDrawer(o, "build", tap("Touche Forges pour les bâtir", dom("tile-forges"))),
+    guide: (o) => inDrawer(o, "build", tap(tr("Touche Forges pour les bâtir", "Tap Forges to build them"), dom("tile-forges"))),
     done: (o) => o.pending?.kind === "fab-plant" || o.forges > 0,
-    praise: "Chantier lancé !"
+    praise: tr("Chantier lancé !", "Construction started!")
   },
   {
     id: "forges-wait",
     step: 5,
     guide: (o) =>
-      o.belle && !o.drawerOpen ? look("Les Forges se construisent…", dom("build")) : look("Les Forges se construisent…", dom("tile-forges")),
+      o.belle && !o.drawerOpen ? look(tr("Les Forges se construisent…", "The Forges are going up…"), dom("build")) : look(tr("Les Forges se construisent…", "The Forges are going up…"), dom("tile-forges")),
     done: (o) => !!o.pending?.ready || o.forges > 0 || !!o.placing,
     praise: null
   },
@@ -213,27 +214,27 @@ export const TUT_BEATS: TutBeat[] = [
     id: "place",
     step: 5,
     guide: (o) => {
-      if (o.placing === "fab-plant") return tap("Touche le fantôme pour bâtir ici", spot("ghost"));
-      return inDrawer(o, "build", tap("Prêtes ! Touche Forges pour les placer", dom("tile-forges")));
+      if (o.placing === "fab-plant") return tap(tr("Touche le fantôme pour bâtir ici", "Tap the ghost to build here"), spot("ghost"));
+      return inDrawer(o, "build", tap(tr("Prêtes ! Touche Forges pour les placer", "Ready! Tap Forges to place them"), dom("tile-forges")));
     },
     done: (o) => o.forges > 0,
-    praise: "Les Forges sont debout !"
+    praise: tr("Les Forges sont debout !", "The Forges stand!")
   },
   {
     id: "produce",
     step: 6,
     enter: ["fund-panhard"],
-    guide: (o) => inDrawer(o, "ground", tap("Touche Panhard pour en produire un", dom("tile-panhard"))),
+    guide: (o) => inDrawer(o, "ground", tap(tr("Touche Panhard pour en produire un", "Tap Panhard to produce one"), dom("tile-panhard"))),
     done: (o) => o.panhardsQueued > 0,
-    praise: "En production !"
+    praise: tr("En production !", "In production!")
   },
   {
     id: "produce-wait",
     step: 6,
-    guide: () => look("Ton Panhard sort des Forges…", spot("forges")),
+    guide: () => look(tr("Ton Panhard sort des Forges…", "Your Panhard rolls out of the Forges…"), spot("forges")),
     // (one fewer queued than before means it rolled out; or the queue simply emptied)
     done: (o) => o.panhardsQueued === 0,
-    praise: "Un Panhard de plus !"
+    praise: tr("Un Panhard de plus !", "One more Panhard!")
   },
   {
     id: "army",
@@ -241,46 +242,46 @@ export const TUT_BEATS: TutBeat[] = [
     enter: ["close-drawer", "deselect"],
     guide: (o) =>
       o.busy && !o.armySelected
-        ? tap("Touche ✕ pour fermer la sélection", dom("deselect"))
-        : tap(o.belle ? "Touche ⚔ Armée : toutes tes unités" : "Touche Toute l'armée", dom("army")),
+        ? tap(tr("Touche ✕ pour fermer la sélection", "Tap ✕ to close the selection"), dom("deselect"))
+        : tap(o.belle ? tr("Touche ⚔ Armée : toutes tes unités", "Tap ⚔ Army: all your units") : tr("Touche Toute l'armée", "Tap All army"), dom("army")),
     done: (o) => o.army > 0 && o.armySelected,
-    praise: "Toute l'armée est prête !"
+    praise: tr("Toute l'armée est prête !", "The whole army is ready!")
   },
   {
     id: "coal",
     step: 8,
     enter: ["glide-harvester"],
-    guide: () => look("Ton Fardier extrait le charbon seul", spot("harvester")),
+    guide: () => look(tr("Ton Fardier extrait le charbon seul", "Your Steam Wagon mines coal by itself"), spot("harvester")),
     done: (o) => o.t >= 4,
     praise: null
   },
   {
     id: "coal-pill",
     step: 8,
-    guide: () => look("Le charbon livré s'ajoute ici", dom("pill")),
+    guide: () => look(tr("Le charbon livré s'ajoute ici", "Delivered coal adds up here"), dom("pill")),
     done: (o) => o.t >= 4.5,
-    praise: "Le charbon paie tout !"
+    praise: tr("Le charbon paie tout !", "Coal pays for everything!")
   },
   {
     id: "power",
     step: 9,
     enter: ["spawn-convoy", "fill-meter"],
     guide: (o) => {
-      if (!o.convoySeen) return look("Un convoi ennemi approche…", spot("convoy"));
-      if (!o.barrageReady && o.barrageFired === 0) return { ...look("La jauge ⚡ se remplit…", dom("power")), hold: true };
-      if (o.armed === "barrage") return { ...tap("Touche le convoi ennemi", spot("convoy")), hold: true };
-      if (o.belle && !o.fanOpen) return { ...tap("Touche ⚡ : tes pouvoirs", dom("power")), hold: true };
-      return { ...tap("Choisis Feu roulant", dom("power-barrage")), hold: true };
+      if (!o.convoySeen) return look(tr("Un convoi ennemi approche…", "An enemy convoy approaches…"), spot("convoy"));
+      if (!o.barrageReady && o.barrageFired === 0) return { ...look(tr("La jauge ⚡ se remplit…", "The ⚡ gauge is filling…"), dom("power")), hold: true };
+      if (o.armed === "barrage") return { ...tap(tr("Touche le convoi ennemi", "Tap the enemy convoy"), spot("convoy")), hold: true };
+      if (o.belle && !o.fanOpen) return { ...tap(tr("Touche ⚡ : tes pouvoirs", "Tap ⚡: your powers"), dom("power")), hold: true };
+      return { ...tap(tr("Choisis Feu roulant", "Choose Rolling Barrage"), dom("power-barrage")), hold: true };
     },
     done: (o) => o.barrageFired > 0,
-    praise: "Feu roulant en route !"
+    praise: tr("Feu roulant en route !", "Rolling Barrage on its way!")
   },
   {
     id: "power-wait",
     step: 9,
-    guide: () => look("Attention… les obus arrivent !", spot("convoy")),
+    guide: () => look(tr("Attention… les obus arrivent !", "Careful… shells incoming!"), spot("convoy")),
     done: (o) => o.convoyAlive === 0 || o.t >= 7,
-    praise: "En plein dans le mille !"
+    praise: tr("En plein dans le mille !", "Right on the mark!")
   },
   {
     id: "outpost",
@@ -288,12 +289,12 @@ export const TUT_BEATS: TutBeat[] = [
     enter: ["spawn-outpost"],
     guide: (o) => {
       // (one building down and the army stood idle: point at the last one)
-      if (o.outpostOrdered && o.outpostAlive === 1 && o.armyIdle) return withArmy(o, tap("Achève l'avant-poste !", spot("outpost")));
-      if (o.outpostOrdered) return look("À l'assaut de l'avant-poste !", spot("outpost"));
-      return withArmy(o, tap("Touche l'avant-poste ennemi", spot("outpost")));
+      if (o.outpostOrdered && o.outpostAlive === 1 && o.armyIdle) return withArmy(o, tap(tr("Achève l'avant-poste !", "Finish off the outpost!"), spot("outpost")));
+      if (o.outpostOrdered) return look(tr("À l'assaut de l'avant-poste !", "Storm the outpost!"), spot("outpost"));
+      return withArmy(o, tap(tr("Touche l'avant-poste ennemi", "Tap the enemy outpost"), spot("outpost")));
     },
     done: (o) => o.outpostSpawned && o.outpostAlive === 0,
-    praise: "Tu es prêt, mon commandant !"
+    praise: tr("Tu es prêt, mon commandant !", "You're ready, commander!")
   }
 ];
 

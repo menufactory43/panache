@@ -11,6 +11,7 @@ import { buildingCenter, hqOf } from "../sim/world";
 import { announce } from "./announce";
 import { sfx } from "./audio";
 import type { GroundGfx } from "./three/ground-gfx";
+import { tr } from "../lang";
 
 /**
  * Last Stand presentation: wave announcements, the on-map spawn marker,
@@ -27,10 +28,16 @@ export const THEME_ICONS: Record<WaveTheme, string> = {
 };
 
 /** Compass directions (sim data, English) as the banners say them. */
-const DIR_FR: Record<string, string> = {
-  north: "nord", south: "sud", east: "est", west: "ouest",
-  "north-east": "nord-est", "north-west": "nord-ouest", "south-east": "sud-est", "south-west": "sud-ouest"
-};
+const DIR_FR: Record<string, string> = tr(
+  {
+    north: "nord", south: "sud", east: "est", west: "ouest",
+    "north-east": "nord-est", "north-west": "nord-ouest", "south-east": "sud-est", "south-west": "sud-ouest"
+  },
+  {
+    north: "north", south: "south", east: "east", west: "west",
+    "north-east": "north-east", "north-west": "north-west", "south-east": "south-east", "south-west": "south-west"
+  }
+);
 const dirFr = (d: string): string => DIR_FR[d] ?? d;
 
 // ------------------------------------------------------------- records ---
@@ -138,8 +145,8 @@ export class SurvivalPresenter {
         const boss = ev.theme === "boss";
         // the theme is the headline (it's what to react to), then where and when, then what beats
         // it (the wave before's "cleared" banner names it too, but wave 1 has none)
-        const sub = [`${THEME_ICONS[ev.theme]} ${boss ? "Vague du boss" : "Vague"} ${ev.wave} depuis le ${dirFr(ev.dir)} dans ${Math.round(ev.eta / TICK_RATE)} s`];
-        if (ev.early > 0) sub.push(`+${ev.early} charbon`);
+        const sub = [tr(`${THEME_ICONS[ev.theme]} ${boss ? "Vague du boss" : "Vague"} ${ev.wave} depuis le ${dirFr(ev.dir)} dans ${Math.round(ev.eta / TICK_RATE)} s`, `${THEME_ICONS[ev.theme]} ${boss ? "Boss wave" : "Wave"} ${ev.wave} from the ${dirFr(ev.dir)} in ${Math.round(ev.eta / TICK_RATE)} s`)];
+        if (ev.early > 0) sub.push(tr(`+${ev.early} charbon`, `+${ev.early} coal`));
         announce({
           key: boss ? "boss-incoming" : "wave-incoming",
           text: ev.name,
@@ -162,8 +169,8 @@ export class SurvivalPresenter {
         const milestone = ev.wave % 10 === 0;
         announce({
           key: "wave-cleared",
-          text: milestone ? `Vague ${ev.wave} repoussée !` : `Vague ${ev.wave} repoussée`,
-          sub: `+${ev.bonus} charbon · suivante : ${THEME_ICONS[ev.nextTheme]} ${ev.next} — ${THEME_COUNTERS[ev.nextTheme]}`,
+          text: tr(milestone ? `Vague ${ev.wave} repoussée !` : `Vague ${ev.wave} repoussée`, milestone ? `Wave ${ev.wave} repelled!` : `Wave ${ev.wave} repelled`),
+          sub: tr(`+${ev.bonus} charbon · suivante : ${THEME_ICONS[ev.nextTheme]} ${ev.next} — ${THEME_COUNTERS[ev.nextTheme]}`, `+${ev.bonus} coal · next: ${THEME_ICONS[ev.nextTheme]} ${ev.next} — ${THEME_COUNTERS[ev.nextTheme]}`),
           tone: milestone ? "epic" : "good",
           priority: 2
         });
@@ -181,7 +188,7 @@ export class SurvivalPresenter {
     const waves = wavesSurvived(this.w);
     if (waves <= this.prevBest) return;
     this.recordAnnounced = true;
-    announce({ key: "new-record", text: "Nouveau record !", sub: `${waves} vagues — ton record était ${this.prevBest}`, tone: "epic", priority: 2 });
+    announce({ key: "new-record", text: tr("Nouveau record !", "New record!"), sub: tr(`${waves} vagues — ton record était ${this.prevBest}`, `${waves} waves — your record was ${this.prevBest}`), tone: "epic", priority: 2 });
   }
 
   /** Pulsing marker and chevrons at the edge the next (or current) wave comes from. */

@@ -12,6 +12,7 @@ import type { ReelMoment } from "../arena/record";
 import { TICK_RATE } from "../sim/balance";
 import type { Faction } from "../sim/types";
 import { biggestBattle, firstBlood, fmtTime, placeName, pulledAway, turningPoint, type Chronicle } from "./chronicle";
+import { tr } from "../lang";
 
 export const REEL = {
   /** A clip starts this long before its moment and runs this long (game seconds). */
@@ -46,9 +47,9 @@ export interface ReelEnd {
 
 /** The end's intertitle, from the player's point of view (null: a spectator's). */
 export function endTitle(winner: Faction | "draw" | null, pov: Faction | null): string {
-  if (winner === null || winner === "draw") return "Le match nul";
-  if (pov === null) return winner === "blue" ? "La victoire bleue" : "La victoire rouge";
-  return winner === pov ? "La victoire" : "La défaite";
+  if (winner === null || winner === "draw") return tr("Le match nul", "The Draw");
+  if (pov === null) return winner === "blue" ? tr("La victoire bleue", "The Blue Victory") : tr("La victoire rouge", "The Red Victory");
+  return winner === pov ? tr("La victoire", "The Victory") : tr("La défaite", "The Defeat");
 }
 
 /**
@@ -64,21 +65,21 @@ export function reelMoments(
   const tick = (t: number) => Math.max(0, Math.round(t * TICK_RATE));
   const out: ReelMoment[] = [];
   const fb = firstBlood(c.deaths);
-  if (fb) out.push({ kind: "first-blood", tick: tick(fb.t), x: fb.x, y: fb.y, title: "Le premier sang" });
+  if (fb) out.push({ kind: "first-blood", tick: tick(fb.t), x: fb.x, y: fb.y, title: tr("Le premier sang", "The First Blood") });
   const b = biggestBattle(c.deaths);
-  if (b) out.push({ kind: "battle", tick: tick(b.t), x: b.x, y: b.y, title: `La grande bataille, ${placeName(c.refs, b.x, b.y, pov)}` });
+  if (b) out.push({ kind: "battle", tick: tick(b.t), x: b.x, y: b.y, title: tr(`La grande bataille, ${placeName(c.refs, b.x, b.y, pov)}`, `The Great Battle, ${placeName(c.refs, b.x, b.y, pov)}`) });
   const turn = turningPoint(c.samples);
-  if (turn) out.push({ kind: "turn", tick: tick(turn.t), title: pov === null || turn.leader === pov ? "Le tournant" : "Le vent tourne" });
+  if (turn) out.push({ kind: "turn", tick: tick(turn.t), title: pov === null || turn.leader === pov ? tr("Le tournant", "The Turning Point") : tr("Le vent tourne", "The Tide Turns") });
   else {
     const pa = pulledAway(c.samples);
-    if (pa) out.push({ kind: "lead", tick: tick(pa.t), title: pov !== null && pa.leader !== pov ? "Leur échappée" : "L'échappée" });
+    if (pa) out.push({ kind: "lead", tick: tick(pa.t), title: pov !== null && pa.leader !== pov ? tr("Leur échappée", "Their Breakaway") : tr("L'échappée", "The Breakaway") });
   }
   let g: { f: Faction; t: number } | null = null;
   for (const f of ["blue", "red"] as const) {
     const t = c.firstBuilt[f]["goliath"];
     if (t !== undefined && (!g || t < g.t)) g = { f, t };
   }
-  if (g) out.push({ kind: "goliath", tick: tick(g.t), title: pov !== null && g.f === other(pov) ? "Leur Gargantua entre en scène" : "Le Gargantua entre en scène" });
+  if (g) out.push({ kind: "goliath", tick: tick(g.t), title: pov !== null && g.f === other(pov) ? tr("Leur Gargantua entre en scène", "Their Gargantua Takes the Stage") : tr("Le Gargantua entre en scène", "The Gargantua Takes the Stage") });
   out.push({ kind: "end", tick: end.tick, ...(end.x !== undefined && end.y !== undefined ? { x: end.x, y: end.y } : {}), title: endTitle(end.winner, pov) });
   // (nothing past the end: a chronicle sample can round a little after it)
   return out.filter((m) => m.tick <= end.tick);

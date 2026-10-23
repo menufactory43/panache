@@ -24,6 +24,7 @@ import type { View } from "./three/view";
 import { radioCue } from "./announcer";
 import { PLAYER, type Controller } from "./controller";
 import type { GesturePointer } from "./gestures";
+import { tr } from "../lang";
 
 type Pt = { x: number; y: number };
 
@@ -122,9 +123,9 @@ export class PlacementView {
     if (s && !this.h.inView(s.tx + size / 2, s.ty + size / 2)) this.h.glideTo(s.tx + size / 2, s.ty + size / 2);
     this.pulse = 0;
     if (onGrid(this.h.world, PLAYER) && needsPower(kind))
-      this.h.hint("power", "Réseau électrique : un bâtiment de la République doit toucher le cercle d'un GQG ou d'une Tour TSF. Hors réseau, il s'arrête.");
+      this.h.hint("power", tr("Réseau électrique : un bâtiment de la République doit toucher le cercle d'un GQG ou d'une Tour TSF. Hors réseau, il s'arrête.", "Power grid: a Republic building must touch the circle of a GHQ or a Wireless Tower. Off the grid, it stops."));
     else if (this.lastType !== "mouse")
-      this.h.hint("place", "Touche la carte (ou glisse) pour déplacer le fantôme, puis touche-le ou ✓ Placer pour bâtir.");
+      this.h.hint("place", tr("Touche la carte (ou glisse) pour déplacer le fantôme, puis touche-le ou ✓ Placer pour bâtir.", "Tap the map (or drag) to move the ghost, then tap it or ✓ Place to build."));
   }
 
   /** Every frame, before drawing. */
