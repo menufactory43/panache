@@ -5,9 +5,10 @@ import { applySpawnRank, goliathBase, inRoster, nationOf, rulesOf } from "./rule
 import type { Command, Faction, GoliathMode, GoliathState, GoliathWeapon, NationOrClassic, Unit, UnitKind, World } from "./types";
 import { buildingCenter, hqOf, inBounds, newGoliathState, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
 import { hypot } from "./fmath";
+import { tr } from "../lang";
 
 /** Placement refused because a ground unit stands there (it may move off: callers compare with this). */
-export const UNIT_IN_THE_WAY = "Une unité gêne";
+export const UNIT_IN_THE_WAY = tr("Une unité gêne", "A unit is in the way");
 
 /**
  * The Goliath (GOLIATH.md): a giant walking mech that is also a mobile base.
@@ -94,12 +95,12 @@ export const SUPER: Readonly<Record<SuperKind, SuperDef>> = {
     repairedBy: null,
     liftable: true,
     words: {
-      settled: "Déjà ancré",
-      settling: "Déjà ancré",
-      leaving: "Levée de l'ancre en cours",
-      notSettled: "Pas ancré",
-      notOne: "Pas un Gargantua",
-      trainHint: "Ancre-le pour produire"
+      settled: tr("Déjà ancré", "Already anchored"),
+      settling: tr("Déjà ancré", "Already anchored"),
+      leaving: tr("Levée de l'ancre en cours", "Weighing anchor"),
+      notSettled: tr("Pas ancré", "Not anchored"),
+      notOne: tr("Pas un Gargantua", "Not a Gargantua"),
+      trainHint: tr("Ancre-le pour produire", "Anchor it to produce")
     }
   },
   zenith: {
@@ -111,12 +112,12 @@ export const SUPER: Readonly<Record<SuperKind, SuperDef>> = {
     repairedBy: ZENITH.repairedBy,
     liftable: false,
     words: {
-      settled: "Déjà amarré",
-      settling: "Amarrage en cours",
-      leaving: "Largage des amarres en cours",
-      notSettled: "Pas amarré",
-      notOne: "Pas un Zénith",
-      trainHint: "Amarre-le pour produire"
+      settled: tr("Déjà amarré", "Already moored"),
+      settling: tr("Amarrage en cours", "Mooring"),
+      leaving: tr("Largage des amarres en cours", "Casting off"),
+      notSettled: tr("Pas amarré", "Not moored"),
+      notOne: tr("Pas un Zénith", "Not a Zénith"),
+      trainHint: tr("Amarre-le pour produire", "Moor it to produce")
     }
   }
 };
@@ -345,7 +346,7 @@ export function anchorBlocker(w: World, u: Unit): string | null {
   const g = u.goliath;
   const words = sup(u.kind).words;
   if (!g && !isSuperKind(u.kind)) return SUPER.goliath.words.notOne;
-  if (g?.lift) return "En cours de levage";
+  if (g?.lift) return tr("En cours de levage", "Being lifted");
   if (g?.mode === "anchored") return words.settled;
   if (g?.mode === "anchoring") return words.settling;
   if (g?.mode === "packing") return words.leaving;
@@ -354,11 +355,11 @@ export function anchorBlocker(w: World, u: Unit): string | null {
     for (let dx = 0; dx < size; dx++) {
       const x = tx + dx;
       const y = ty + dy;
-      if (!inBounds(w, x, y)) return "Hors de la carte";
-      if (w.occupancy[y * w.width + x] !== 0) return "Bloqué"; // (a building, or another dug-in Goliath)
-      if (!TERRAIN[terrainAt(w, x, y)].buildable) return "Sol dégagé requis";
+      if (!inBounds(w, x, y)) return tr("Hors de la carte", "Off the map");
+      if (w.occupancy[y * w.width + x] !== 0) return tr("Bloqué", "Blocked"); // (a building, or another dug-in Goliath)
+      if (!TERRAIN[terrainAt(w, x, y)].buildable) return tr("Sol dégagé requis", "Clear ground needed");
     }
-  if (blocksObjective(w, tx, ty, size)) return "Bloqué";
+  if (blocksObjective(w, tx, ty, size)) return tr("Bloqué", "Blocked");
   for (const o of w.units.values())
     if (
       o.id !== u.id &&
@@ -661,11 +662,11 @@ export function anchorBlockedAt(w: World, faction: Faction, x: number, y: number
     for (let dx = 0; dx < size; dx++) {
       const fx = tx + dx;
       const fy = ty + dy;
-      if (!inBounds(w, fx, fy)) return "Hors de la carte";
-      if (w.occupancy[fy * w.width + fx] !== 0) return "Bloqué"; // (a building, or another dug-in Goliath)
-      if (!TERRAIN[terrainAt(w, fx, fy)].buildable) return "Sol dégagé requis";
+      if (!inBounds(w, fx, fy)) return tr("Hors de la carte", "Off the map");
+      if (w.occupancy[fy * w.width + fx] !== 0) return tr("Bloqué", "Blocked"); // (a building, or another dug-in Goliath)
+      if (!TERRAIN[terrainAt(w, fx, fy)].buildable) return tr("Sol dégagé requis", "Clear ground needed");
     }
-  if (blocksObjective(w, tx, ty, size)) return "Bloqué";
+  if (blocksObjective(w, tx, ty, size)) return tr("Bloqué", "Blocked");
   for (const o of w.units.values())
     if (o.id !== selfId && UNITS[o.kind].domain === "ground" && !isLifted(o) && o.x >= tx && o.x < tx + size && o.y >= ty && o.y < ty + size)
       return UNIT_IN_THE_WAY;

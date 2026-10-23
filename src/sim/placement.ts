@@ -11,28 +11,32 @@ import { Terrain, type BuildingKind, type Faction, type World } from "./types";
 import { inPowerRange, needsPower, onGrid, powerSources } from "./nations";
 import { buildingAtTile, buildingCenter, domainOf, inBounds, terrainAt } from "./world";
 import { hypot } from "./fmath";
+import { tr } from "../lang";
 
 /** Short names for unbuildable ground, per biome where it differs. */
 function groundName(w: World, t: Terrain): string {
   switch (t) {
     case Terrain.Water:
-      return w.biome === "volcanic" ? "la lave" : "l'eau";
+      return w.biome === "volcanic" ? tr("la lave", "lava") : tr("l'eau", "water");
     case Terrain.Deep:
-      return "la haute mer";
+      return tr("la haute mer", "deep sea");
     case Terrain.Rock:
-      return "la roche";
+      return tr("la roche", "rock");
     case Terrain.Rough:
-      return { temperate: "la boue", desert: "les éboulis", arctic: "la neige fondue", volcanic: "les cendres", tropical: "la vase" }[w.biome];
+      return tr(
+        { temperate: "la boue", desert: "les éboulis", arctic: "la neige fondue", volcanic: "les cendres", tropical: "la vase" },
+        { temperate: "mud", desert: "scree", arctic: "slush", volcanic: "ash", tropical: "silt" }
+      )[w.biome];
     case Terrain.Forest:
-      return "les bois";
+      return tr("les bois", "woods");
     case Terrain.Scrap:
-      return "le charbon";
+      return tr("le charbon", "coal");
     case Terrain.Crystal:
-      return "le radium";
+      return tr("le radium", "radium");
     case Terrain.Bridge:
-      return "un pont";
+      return tr("un pont", "a bridge");
     case Terrain.Shallows:
-      return "un gué";
+      return tr("un gué", "a ford");
     default:
       return TERRAIN[t].name.toLowerCase();
   }
@@ -66,19 +70,19 @@ export function placementBlocker(
       if (buildingAtTile(w, x, y)) building = true;
       else if (!TERRAIN[terrainAt(w, x, y)].buildable && ground === null) ground = terrainAt(w, x, y);
     }
-  if (offMap) return "Hors de la carte";
+  if (offMap) return tr("Hors de la carte", "Off the map");
   // the most fundamental problem first: nothing nearby can be fixed by nudging
   const grid = onGrid(w, faction) && needsPower(kind);
-  if (grid && !inPowerRange(w, faction, kind, tx, ty) && !inGoliathRing(w, faction, tx, ty, size)) return "Hors du réseau électrique";
+  if (grid && !inPowerRange(w, faction, kind, tx, ty) && !inGoliathRing(w, faction, tx, ty, size)) return tr("Hors du réseau électrique", "Outside the power grid");
   if (!grid && !inBuildRange(w, faction, tx + size / 2, ty + size / 2) && (kind === "hq" || !inGoliathRing(w, faction, tx, ty, size)))
-    return "Trop loin de la base";
-  if (ground !== null) return `Impossible sur ${groundName(w, ground)}`;
-  if (building) return "Bloqué";
+    return tr("Trop loin de la base", "Too far from base");
+  if (ground !== null) return tr(`Impossible sur ${groundName(w, ground)}`, `Can't build on ${groundName(w, ground)}`);
+  if (building) return tr("Bloqué", "Blocked");
   for (const u of w.units.values())
     if (domainOf(u) === "ground" && u.x >= tx && u.x < tx + size && u.y >= ty && u.y < ty + size)
       return UNIT_IN_THE_WAY;
   if (overlapsGoliath(w, tx, ty, size)) return UNIT_IN_THE_WAY;
-  return "Bloqué"; // a rule this explainer doesn't know about yet
+  return tr("Bloqué", "Blocked"); // a rule this explainer doesn't know about yet
 }
 
 /**

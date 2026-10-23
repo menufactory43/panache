@@ -21,6 +21,7 @@ import {
 // type-only: the AI module imports the sim, never the other way round at runtime
 import type { StrategyName } from "./ai/commander";
 import { atan2, hypot } from "./fmath";
+import { tr } from "../lang";
 
 /**
  * Quick-start openers. Instead of the classic "HQ + one harvester, now wait"
@@ -51,8 +52,8 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   blitz: {
     id: "blitz",
     name: "Blitz",
-    tagline: "Frappe en premier. Raide leurs Fardiers avant qu'ils soient prêts.",
-    rollout: "3 Panhard prêts. Frappe leurs Fardiers !",
+    tagline: tr("Frappe en premier. Raide leurs Fardiers avant qu'ils soient prêts.", "Strike first. Raid their Steam Wagons before they're ready."),
+    rollout: tr("3 Panhard prêts. Frappe leurs Fardiers !", "3 Panhards ready. Hit their Steam Wagons!"),
     building: "fab-plant",
     units: ["stinger", "stinger", "stinger"],
     harvesters: 2,
@@ -61,9 +62,9 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   },
   industry: {
     id: "industry",
-    name: "Industrie",
-    tagline: "Extrais plus qu'eux maintenant, produis plus qu'eux ensuite.",
-    rollout: "3 Fardiers au travail. Surproduis-les.",
+    name: tr("Industrie", "Industry"),
+    tagline: tr("Extrais plus qu'eux maintenant, produis plus qu'eux ensuite.", "Out-mine them now, out-produce them later."),
+    rollout: tr("3 Fardiers au travail. Surproduis-les.", "3 Steam Wagons at work. Outproduce them."),
     building: "fab-plant",
     units: [],
     harvesters: 3,
@@ -71,9 +72,9 @@ export const OPENERS: Record<OpenerId, OpenerDef> = {
   },
   airwing: {
     id: "airwing",
-    name: "Escadrille",
-    tagline: "Domine le ciel. Les Éole chassent chars et Fardiers.",
-    rollout: "3 Éole prêts. Gare à leur DCA.",
+    name: tr("Escadrille", "Air Wing"),
+    tagline: tr("Domine le ciel. Les Éole chassent chars et Fardiers.", "Rule the sky. Éoles hunt tanks and Steam Wagons."),
+    rollout: tr("3 Éole prêts. Gare à leur DCA.", "3 Éoles ready. Mind their flak."),
     building: "airpad",
     // the Airpad is a side-grade (you still want a Fab for anti-air and
     // tanks), so the wing carries a third Wasp
@@ -123,7 +124,7 @@ export function pickAiOpener(strategy: StrategyName, seed: number, faction: Fact
 
 /** Why this side can't take this opener under the match rules (a banned factory or crew), or null. */
 export function openerBlocked(w: World, faction: Faction, id: OpenerId): string | null {
-  if (rulesOf(w).armada) return `Désactivé : ${MUTATORS.armada.name}`; // (a side starts with its Goliaths and nothing else)
+  if (rulesOf(w).armada) return tr(`Désactivé : ${MUTATORS.armada.name}`, `Disabled: ${MUTATORS.armada.name}`); // (a side starts with its Goliaths and nothing else)
   const o = OPENERS[id];
   // (with nations, each Classique unit stands for its nation's kind of the same role: a République blitz brings Jamais-Contente)
   for (const kind of [o.building, ...o.units.map((k) => nationKind(w, faction, k))]) {

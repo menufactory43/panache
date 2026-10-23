@@ -13,6 +13,7 @@ import { armadaStart } from "./lift";
 import { behaves, nationKind, nationStart } from "./nations";
 import { hypot } from "./fmath";
 import { isRandomMapId, randomMapDef } from "./mapgen";
+import { tr } from "../lang";
 
 /**
  * Skirmish maps, in map-picker order (the classic Proving Grounds first, to
@@ -80,7 +81,7 @@ export interface RandomMapInfo {
 
 /** Why a mutator can't be played on this map (null: it can). */
 export function mapBansMutator(def: MapDef, id: MutatorId): string | null {
-  return def.bannedMutators?.includes(id) ? `Pas sur ${def.name} : les Relais des îles exigent Montgolfières et infanterie` : null;
+  return def.bannedMutators?.includes(id) ? tr(`Pas sur ${def.name} : les Relais des îles exigent Montgolfières et infanterie`, `Not on ${def.name}: the island Relays call for Montgolfier Balloons and infantry`) : null;
 }
 
 // ---------------------------------------------------------------- noise ---
@@ -185,10 +186,10 @@ const LAND = [Terrain.Ground, Terrain.Rough, Terrain.Forest, Terrain.Rock];
 export const MAPS: MapDef[] = [
   {
     id: "proving-grounds",
-    name: "Terrain d'essai",
+    name: tr("Terrain d'essai", "Proving Grounds"),
     biome: "temperate",
     size: 48,
-    blurb: "Le classique : crêtes rocheuses, un champ disputé. Idéal pour apprendre.",
+    blurb: tr("Le classique : crêtes rocheuses, un champ disputé. Idéal pour apprendre.", "The classic: rocky ridges, one contested field. Ideal for learning."),
     hq: [4, 40],
     seed: 5,
     uplinks: [[35.5, 35.5]], // the open corners either side of the ridge
@@ -199,10 +200,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "riverlands",
-    name: "Terres fluviales",
+    name: tr("Terres fluviales", "River Lands"),
     biome: "temperate",
     size: 56,
-    blurb: "Un large fleuve coupe la vallée. Un pont, deux gués boueux.",
+    blurb: tr("Un large fleuve coupe la vallée. Un pont, deux gués boueux.", "A broad river cuts the valley. One bridge, two muddy fords."),
     hq: [4, 48],
     seed: 11,
     uplinks: [[28, 28], [45.5, 45.5]], // the bridge at the centre and the two fords
@@ -237,10 +238,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "dune-sea",
-    name: "Mer de dunes",
+    name: tr("Mer de dunes", "Sea of Dunes"),
     biome: "desert",
     size: 56,
-    blurb: "Sables ouverts entre de hautes mesas. Trois voies, riches épaves.",
+    blurb: tr("Sables ouverts entre de hautes mesas. Trois voies, riches épaves.", "Open sands between tall mesas. Three routes, rich wrecks."),
     hq: [4, 48],
     seed: 23,
     uplinks: [[41.5, 41.5]], // out on the two open flanks (the oasis holds the centre)
@@ -272,10 +273,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "frostbite",
-    name: "Engelure",
+    name: tr("Engelure", "Frostbite"),
     biome: "arctic",
     size: 48,
-    blurb: "Une mer gelée au centre. Courte, brutale, idéale pour aéroglisseurs.",
+    blurb: tr("Une mer gelée au centre. Courte, brutale, idéale pour aéroglisseurs.", "A frozen sea in the middle. Short, brutal, ideal for hovercraft."),
     hq: [4, 40],
     seed: 37,
     uplinks: [[35.5, 35.5]], // the two lanes around the frozen sea, by the lane crystals
@@ -305,10 +306,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "ashlands",
-    name: "Terres de cendres",
+    name: tr("Terres de cendres", "Ashlands"),
     biome: "volcanic",
     size: 64,
-    blurb: "Des rivières de lave taillent trois plateaux. Ponts stratégiques, l'air domine.",
+    blurb: tr("Des rivières de lave taillent trois plateaux. Ponts stratégiques, l'air domine.", "Lava rivers carve out three plateaus. Strategic bridges, air rules."),
     hq: [5, 55],
     seed: 53,
     uplinks: [[44.5, 44.5]], // the outer plateaus, past the bridges
@@ -342,10 +343,10 @@ export const MAPS: MapDef[] = [
   },
   {
     id: "archipelago",
-    name: "Archipel",
+    name: tr("Archipel", "Archipelago"),
     biome: "tropical",
     size: 108,
-    blurb: "Relais insulaires que seule l'infanterie peut prendre : amène-la en Montgolfière. Deux ponts.",
+    blurb: tr("Relais insulaires que seule l'infanterie peut prendre : amène-la en Montgolfière. Deux ponts.", "Island relays only infantry can take: bring them by Montgolfier Balloon. Two bridges."),
     hq: [14, 88],
     seed: 71,
     // island relays: infantry only, paid while crewed; the richer ones sit

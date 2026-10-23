@@ -1,5 +1,6 @@
 import { UNITS } from "./balance";
 import type { BuildingKind, Faction, FactionStats, PowerKind, UnitKind } from "./types";
+import { tr } from "../lang";
 
 /**
  * Medals: pure functions of an end-of-match recap (stats, the army-strength
@@ -72,28 +73,28 @@ export const AWARDS = {
 } as const;
 
 /** 1500 → "1 500" */
-const n = (x: number) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
+const n = (x: number) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, tr("\u00a0", ","));
 
 export const MEDALS: Record<MedalId, MedalDef> = {
-  lightning: { id: "lightning", name: "Guerre éclair", icon: "⚡", desc: "Gagne en moins de 5:00", mode: "skirmish" },
-  untouchable: { id: "untouchable", name: "Intouchable", icon: "🛡️", desc: "Gagne sans perdre de bâtiment", mode: "skirmish" },
-  comeback: { id: "comeback", name: "Remontada", icon: "🔄", desc: "Gagne après être tombé à la moitié de leur armée", mode: "skirmish" },
-  flawless: { id: "flawless", name: "Sans faute", icon: "💎", desc: "Gagne en perdant 5 unités au plus", mode: "skirmish" },
-  tycoon: { id: "tycoon", name: "Magnat", icon: "💰", desc: "Gagne en récoltant deux fois plus de charbon que l'ennemi", mode: "skirmish" },
-  ace: { id: "ace", name: "As", icon: "🎖️", desc: "Une unité totalise 9 victimes", mode: "skirmish" },
-  "giant-slayer": { id: "giant-slayer", name: "Tueur de géants", icon: "🗿", desc: "Détruis 3 Creusot ennemis", mode: "skirmish" },
-  "goliath-slayer": { id: "goliath-slayer", name: "Tueur de Gargantua", icon: "🪨", desc: "Abats un Gargantua ennemi", mode: "skirmish" },
-  "air-superiority": { id: "air-superiority", name: "Supériorité aérienne", icon: "✈️", desc: "Abats 30 appareils ennemis", mode: "skirmish" },
-  "iron-wall": { id: "iron-wall", name: "Mur d'acier", icon: "🧱", desc: "Tes défenses détruisent 30 unités ennemies", mode: "skirmish" },
-  exterminator: { id: "exterminator", name: "Exterminateur", icon: "☠️", desc: "Détruis 60 unités ennemies", mode: "skirmish" },
-  "wrecking-crew": { id: "wrecking-crew", name: "Démolisseurs", icon: "🏚", desc: "Détruis 12 bâtiments ennemis", mode: "skirmish" },
-  orbital: { id: "orbital", name: "Voyage dans la Lune", icon: "🛰️", desc: `Détruis ${n(AWARDS.orbitalValue)} de charbon d'un seul Obus Méliès`, mode: "skirmish" },
-  scavenger: { id: "scavenger", name: "Charognard", icon: "♻️", desc: `Récupère ${n(AWARDS.scavengerScrap)} de charbon sur les épaves`, mode: "skirmish" },
+  lightning: { id: "lightning", name: tr("Guerre éclair", "Blitzkrieg"), icon: "⚡", desc: tr("Gagne en moins de 5:00", "Win in under 5:00"), mode: "skirmish" },
+  untouchable: { id: "untouchable", name: tr("Intouchable", "Untouchable"), icon: "🛡️", desc: tr("Gagne sans perdre de bâtiment", "Win without losing a building"), mode: "skirmish" },
+  comeback: { id: "comeback", name: tr("Remontada", "Comeback"), icon: "🔄", desc: tr("Gagne après être tombé à la moitié de leur armée", "Win after falling to half the enemy's army"), mode: "skirmish" },
+  flawless: { id: "flawless", name: tr("Sans faute", "Flawless"), icon: "💎", desc: tr("Gagne en perdant 5 unités au plus", "Win losing 5 units at most"), mode: "skirmish" },
+  tycoon: { id: "tycoon", name: tr("Magnat", "Tycoon"), icon: "💰", desc: tr("Gagne en récoltant deux fois plus de charbon que l'ennemi", "Win having harvested twice the enemy's coal"), mode: "skirmish" },
+  ace: { id: "ace", name: tr("As", "Ace"), icon: "🎖️", desc: tr("Une unité totalise 9 victimes", "One unit scores 9 kills"), mode: "skirmish" },
+  "giant-slayer": { id: "giant-slayer", name: tr("Tueur de géants", "Giant Slayer"), icon: "🗿", desc: tr("Détruis 3 Creusot ennemis", "Destroy 3 enemy Creusots"), mode: "skirmish" },
+  "goliath-slayer": { id: "goliath-slayer", name: tr("Tueur de Gargantua", "Gargantua Slayer"), icon: "🪨", desc: tr("Abats un Gargantua ennemi", "Bring down an enemy Gargantua"), mode: "skirmish" },
+  "air-superiority": { id: "air-superiority", name: tr("Supériorité aérienne", "Air Superiority"), icon: "✈️", desc: tr("Abats 30 appareils ennemis", "Shoot down 30 enemy aircraft"), mode: "skirmish" },
+  "iron-wall": { id: "iron-wall", name: tr("Mur d'acier", "Wall of Steel"), icon: "🧱", desc: tr("Tes défenses détruisent 30 unités ennemies", "Your defences destroy 30 enemy units"), mode: "skirmish" },
+  exterminator: { id: "exterminator", name: tr("Exterminateur", "Exterminator"), icon: "☠️", desc: tr("Détruis 60 unités ennemies", "Destroy 60 enemy units"), mode: "skirmish" },
+  "wrecking-crew": { id: "wrecking-crew", name: tr("Démolisseurs", "Wrecking Crew"), icon: "🏚", desc: tr("Détruis 12 bâtiments ennemis", "Destroy 12 enemy buildings"), mode: "skirmish" },
+  orbital: { id: "orbital", name: tr("Voyage dans la Lune", "A Trip to the Moon"), icon: "🛰️", desc: tr(`Détruis ${n(AWARDS.orbitalValue)} de charbon d'un seul Obus Méliès`, `Destroy ${n(AWARDS.orbitalValue)} coal with a single Méliès Shell`), mode: "skirmish" },
+  scavenger: { id: "scavenger", name: tr("Charognard", "Scavenger"), icon: "♻️", desc: tr(`Récupère ${n(AWARDS.scavengerScrap)} de charbon sur les épaves`, `Salvage ${n(AWARDS.scavengerScrap)} coal from wrecks`), mode: "skirmish" },
   "steady-hands": {
-    id: "steady-hands", name: "Sang-froid", icon: "💨", desc: `Esquive ${AWARDS.steadyDodges} Feux roulants ou Obus Méliès ennemis`, mode: "skirmish"
+    id: "steady-hands", name: tr("Sang-froid", "Cool Head"), icon: "💨", desc: tr(`Esquive ${AWARDS.steadyDodges} Feux roulants ou Obus Méliès ennemis`, `Dodge ${AWARDS.steadyDodges} enemy Rolling Barrages or Méliès Shells`), mode: "skirmish"
   },
-  holdout: { id: "holdout", name: "Résistant", icon: "🏰", desc: "Survie : tiens 10 vagues", mode: "survival" },
-  unbreakable: { id: "unbreakable", name: "Inébranlable", icon: "🗼", desc: "Survie : tiens 20 vagues", mode: "survival" }
+  holdout: { id: "holdout", name: tr("Résistant", "Holdout"), icon: "🏰", desc: tr("Survie : tiens 10 vagues", "Last Stand: hold out 10 waves"), mode: "survival" },
+  unbreakable: { id: "unbreakable", name: tr("Inébranlable", "Unshakeable"), icon: "🗼", desc: tr("Survie : tiens 20 vagues", "Last Stand: hold out 20 waves"), mode: "survival" }
 };
 
 export const MEDAL_IDS = Object.keys(MEDALS) as MedalId[];

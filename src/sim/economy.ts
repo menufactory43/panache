@@ -52,13 +52,14 @@ import {
   unitTicks
 } from "./nations";
 import { atan2, hypot } from "./fmath";
+import { tr } from "../lang";
 
 // ---------------------------------------------------------- tech rules ----
 
 /** Why this building can't be started right now (null = it can). */
 export function buildingBlocker(w: World, faction: Faction, kind: BuildingKind): string | null {
   const stats = BUILDINGS[kind];
-  if (kind === "hq") return "Unique";
+  if (kind === "hq") return tr("Unique", "Unique");
   const banned = bannedBy(w, kind, faction);
   if (banned) return banned;
   // a Gantry builds nothing but its side's super-unit (a Goliath; the République's Hangar, a Zénith): banned with it
@@ -66,16 +67,16 @@ export function buildingBlocker(w: World, faction: Faction, kind: BuildingKind):
     const noGoliaths = bannedBy(w, superKindOf(w, faction), faction);
     if (noGoliaths) return noGoliaths;
   }
-  if (stats.unique && (hasBuilding(w, faction, kind) || w.factions[faction].pending?.kind === kind)) return "Un par camp";
+  if (stats.unique && (hasBuilding(w, faction, kind) || w.factions[faction].pending?.kind === kind)) return tr("Un par camp", "One per side");
   if (stats.requires && !stats.requires.some((k) => hasBuilding(w, faction, k)))
-    return `Requiert ${stats.requires.map((k) => BUILDINGS[k].name).join(" ou ")}`;
+    return tr(`Requiert ${stats.requires.map((k) => BUILDINGS[k].name).join(" ou ")}`, `Requires ${stats.requires.map((k) => BUILDINGS[k].name).join(" or ")}`);
   const missing = (stats.requiresAll ?? []).filter((k) => !hasBuilding(w, faction, k));
-  if (missing.length > 0) return `Requiert ${andList(missing.map((k) => BUILDINGS[k].name))}`;
+  if (missing.length > 0) return tr(`Requiert ${andList(missing.map((k) => BUILDINGS[k].name))}`, `Requires ${andList(missing.map((k) => BUILDINGS[k].name))}`);
   return null;
 }
 
 /** "A", "A et B", "A, B et C". */
-const andList = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} et ${xs[xs.length - 1]}`);
+const andList = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} ${tr("et", "and")} ${xs[xs.length - 1]}`);
 
 /** Why this unit can't be queued right now (null = it can). An anchored Goliath stands in for an Assembly Bay. */
 export function unitBlocker(w: World, faction: Faction, kind: UnitKind): string | null {
@@ -85,10 +86,10 @@ export function unitBlocker(w: World, faction: Faction, kind: UnitKind): string 
   if (!hasBuilding(w, faction, stats.builtAt) && !(trainableAt(w, kind) && anchoredGoliaths(w, faction).length > 0))
     // (with a Goliath on the move and no HQ, which can never be built: say how to get the button back)
     return trainableAt(w, kind) && hasGoliath(w, faction) && stats.builtAt === "hq"
-      ? superKindOf(w, faction) === "zenith" ? "Amarre un Zénith" : "Ancre un Gargantua"
-      : `Requiert ${BUILDINGS[stats.builtAt].name}`;
+      ? superKindOf(w, faction) === "zenith" ? tr("Amarre un Zénith", "Moor a Zénith") : tr("Ancre un Gargantua", "Anchor a Gargantua")
+      : tr(`Requiert ${BUILDINGS[stats.builtAt].name}`, `Requires ${BUILDINGS[stats.builtAt].name}`);
   if (stats.requires && !hasBuilding(w, faction, stats.requires))
-    return `Requiert ${BUILDINGS[stats.requires].name}`;
+    return tr(`Requiert ${BUILDINGS[stats.requires].name}`, `Requires ${BUILDINGS[stats.requires].name}`);
   return null;
 }
 
@@ -194,12 +195,12 @@ const queueCap = (kind: UnitKind): number => (isSuperKind(kind) ? superTune(kind
  * usual tech and bans — but no Assembly Bay needed (the Goliath is the barracks).
  */
 export function trainBlocker(w: World, g: Unit, kind: UnitKind): string | null {
-  if (!g.goliath || !trainableBy(w, g, kind)) return "Production impossible";
+  if (!g.goliath || !trainableBy(w, g, kind)) return tr("Production impossible", "Can't produce");
   const banned = bannedBy(w, kind, g.faction);
   if (banned) return banned;
   const req = UNITS[kind].requires;
-  if (req && !hasBuilding(w, g.faction, req)) return `Requiert ${BUILDINGS[req].name}`;
-  if (!isAnchored(g)) return superOf(g.kind)?.words.trainHint ?? "Ancre-le pour produire";
+  if (req && !hasBuilding(w, g.faction, req)) return tr(`Requiert ${BUILDINGS[req].name}`, `Requires ${BUILDINGS[req].name}`);
+  if (!isAnchored(g)) return superOf(g.kind)?.words.trainHint ?? tr("Ancre-le pour produire", "Anchor it to produce");
   return null;
 }
 

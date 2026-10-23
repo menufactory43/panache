@@ -136,16 +136,16 @@ const clock = (t: number) => {
 
 /** Why the power can't be fired at all right now (charge, cooldown, lock), or null. */
 export function powerBlocker(w: World, faction: Faction, power: PowerKind): string | null {
-  if (w.winner) return "La bataille est terminée";
-  if (rulesOf(w).noCalldowns) return "Pas de frappes dans cette partie";
-  if (powerBanned(w, faction, power)) return rulesOf(w).banLabel ?? "Désactivé : règles de la partie";
+  if (w.winner) return tr("La bataille est terminée", "The battle is over");
+  if (rulesOf(w).noCalldowns) return tr("Pas de frappes dans cette partie", "No calldowns in this match");
+  if (powerBanned(w, faction, power)) return rulesOf(w).banLabel ?? tr("Désactivé : règles de la partie", "Disabled: match rules");
   if (!hqOf(w, faction) && !hasGoliath(w, faction))
-    return superKindOf(w, faction) === "zenith" ? "Frappes : il faut un GQG ou un Zénith" : "Frappes : il faut un GQG ou un Gargantua";
-  if (power === "droppod" && podCrew(w, faction).length === 0) return "Obus-capsule désactivé dans cette partie";
+    return superKindOf(w, faction) === "zenith" ? tr("Frappes : il faut un GQG ou un Zénith", "Calldowns need a GHQ or a Zénith") : tr("Frappes : il faut un GQG ou un Gargantua", "Calldowns need a GHQ or a Gargantua");
+  if (power === "droppod" && podCrew(w, faction).length === 0) return tr("Obus-capsule désactivé dans cette partie", "Capsule Shell disabled in this match");
   const st = powerStatus(w, faction, power);
-  if (st.locked > 0) return `${POWER_NAMES[power]} disponible à ${clock(st.locked + w.tick)}`;
-  if (st.cooldown > 0) return `${POWER_NAMES[power]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`;
-  if (st.charge < 1) return `${POWER_NAMES[power]} : ${st.cost} de charge requis (${Math.floor(w.powers.meter[faction])})`;
+  if (st.locked > 0) return tr(`${POWER_NAMES[power]} disponible à ${clock(st.locked + w.tick)}`, `${POWER_NAMES[power]} available at ${clock(st.locked + w.tick)}`);
+  if (st.cooldown > 0) return tr(`${POWER_NAMES[power]} en recharge : ${Math.ceil(st.cooldown / TICK_RATE)} s`, `${POWER_NAMES[power]} recharging: ${Math.ceil(st.cooldown / TICK_RATE)} s`);
+  if (st.charge < 1) return tr(`${POWER_NAMES[power]} : ${st.cost} de charge requis (${Math.floor(w.powers.meter[faction])})`, `${POWER_NAMES[power]}: ${st.cost} charge needed (${Math.floor(w.powers.meter[faction])})`);
   return null;
 }
 
@@ -153,13 +153,13 @@ export function powerBlocker(w: World, faction: Faction, power: PowerKind): stri
 export function targetBlocker(w: World, faction: Faction, power: PowerKind, x: number, y: number): string | null {
   const tx = Math.floor(x);
   const ty = Math.floor(y);
-  if (!inBounds(w, tx, ty)) return "Hors de la carte";
+  if (!inBounds(w, tx, ty)) return tr("Hors de la carte", "Off the map");
   // (the Ballon-sonde is how a side looks into the unknown)
-  if (power !== "sonde" && !isExplored(w, faction, tx, ty)) return "Zone inexplorée : cible impossible";
+  if (power !== "sonde" && !isExplored(w, faction, tx, ty)) return tr("Zone inexplorée : cible impossible", "Unexplored area: can't target");
   if (power === "droppod") {
-    if (!isVisible(w, faction, tx, ty)) return "Obus-capsule : zone d'atterrissage non visible";
-    if (!passable(w, tx, ty, "ground")) return "Obus-capsule : il faut un sol dégagé";
-    if (!onHomeLand(w, faction, tx, ty)) return "Obus-capsule impossible sur une île : amène tes troupes en Montgolfière";
+    if (!isVisible(w, faction, tx, ty)) return tr("Obus-capsule : zone d'atterrissage non visible", "Capsule Shell: landing zone not visible");
+    if (!passable(w, tx, ty, "ground")) return tr("Obus-capsule : il faut un sol dégagé", "Capsule Shell: needs clear ground");
+    if (!onHomeLand(w, faction, tx, ty)) return tr("Obus-capsule impossible sur une île : amène tes troupes en Montgolfière", "No Capsule Shell on an island: bring your troops by Montgolfier Balloon");
   }
   return null;
 }

@@ -16,6 +16,7 @@ import {
   type MoveClass
 } from "../world";
 import { atan2, pow } from "../fmath";
+import { tr } from "../../lang";
 
 /**
  * Last Stand: a survival mode. The red side has no base or economy; a wave
@@ -174,26 +175,46 @@ export interface SurvivalState {
   wreckShare: number;
 }
 
-export const THEME_NAMES: Record<WaveTheme, string> = {
-  air: "Raid aérien",
-  armour: "Colonne blindée",
-  artillery: "Artillerie",
-  mixed: "Assaut mixte",
-  swarm: "Essaim d'automates",
-  boss: "Boss"
-};
+export const THEME_NAMES: Record<WaveTheme, string> = tr(
+  {
+    air: "Raid aérien",
+    armour: "Colonne blindée",
+    artillery: "Artillerie",
+    mixed: "Assaut mixte",
+    swarm: "Essaim d'automates",
+    boss: "Boss"
+  },
+  {
+    air: "Air Raid",
+    armour: "Armoured Column",
+    artillery: "Artillery",
+    mixed: "Combined Assault",
+    swarm: "Automaton Swarm",
+    boss: "Boss"
+  }
+);
 
 /** What beats each theme (shown to the player ahead of the wave). */
-export const THEME_COUNTERS: Record<WaveTheme, string> = {
-  air: "Faucheux, Hotchkiss, Ruggieri, Blériot",
-  armour: "Hydroglisseurs, Creusot, Éole",
-  artillery: "fonce sur les canons avec Panhard, Éole",
-  mixed: "une armée mixte, Hotchkiss",
-  swarm: "Canons de 75, Hotchkiss, Albatros, Chasseurs alpins",
-  boss: "tout ce que tu as"
-};
+export const THEME_COUNTERS: Record<WaveTheme, string> = tr(
+  {
+    air: "Faucheux, Hotchkiss, Ruggieri, Blériot",
+    armour: "Hydroglisseurs, Creusot, Éole",
+    artillery: "fonce sur les canons avec Panhard, Éole",
+    mixed: "une armée mixte, Hotchkiss",
+    swarm: "Canons de 75, Hotchkiss, Albatros, Chasseurs alpins",
+    boss: "tout ce que tu as"
+  },
+  {
+    air: "Daddy-Longlegs, Hotchkiss, Ruggieri, Blériot",
+    armour: "Hydrogliders, Creusot, Éole",
+    artillery: "charge the guns with Panhards, Éoles",
+    mixed: "a mixed army, Hotchkiss",
+    swarm: "French 75s, Hotchkiss, Albatros, Alpine Chasseurs",
+    boss: "everything you've got"
+  }
+);
 
-const BOSS_NAMES = ["Fer de lance Creusot", "Escadre de bombardiers", "Force d'élite"];
+const BOSS_NAMES = tr(["Fer de lance Creusot", "Escadre de bombardiers", "Force d'élite"], ["Creusot Spearhead", "Bomber Squadron", "Elite Force"]);
 /** The regular theme each boss grows out of: the four waves before it always include one. */
 const BOSS_PREVIEW: RegularTheme[] = ["armour", "air", "mixed"];
 

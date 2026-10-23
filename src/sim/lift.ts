@@ -8,6 +8,7 @@ import type { Command, Unit, World } from "./types";
 import { spawnSuper, superKindOf, superOf } from "./goliath";
 import { buildingCenter, hqOf, inBounds, passable, removeBuilding, sideFrame, spawnUnit, terrainAt } from "./world";
 import { atan2, cos, hypot, sin } from "./fmath";
+import { tr } from "../lang";
 
 /**
  * The two-Condor lift (GOLIATH.md). Two empty Condors hook onto a walking
@@ -43,21 +44,21 @@ export const canCarry = (c: Unit): boolean =>
   isTransport(c.kind) && (c.passengers?.length ?? 0) === 0 && c.order.type !== "lift" && c.hp > 0;
 
 /** liftBlocker's reasons the controller rephrases (compare with these, not the text). */
-export const LIFT_NEEDS_TWO = "Il faut deux Montgolfières vides";
-export const LIFT_PACK_FIRST = "Lève l'ancre d'abord";
+export const LIFT_NEEDS_TWO = tr("Il faut deux Montgolfières vides", "Needs two empty Montgolfier Balloons");
+export const LIFT_PACK_FIRST = tr("Lève l'ancre d'abord", "Weigh anchor first");
 /** A flying super-unit (the Zénith) is never lifted. */
-export const LIFT_FLIES = "Il vole déjà";
+export const LIFT_FLIES = tr("Il vole déjà", "It already flies");
 
 /**
  * Why `condors` can't lift Goliath `g` (null: they can). Two empty Condors
  * of its side, a walking Goliath not already on a lift.
  */
 export function liftBlocker(condors: readonly Unit[], g: Unit): string | null {
-  if (!g.goliath) return "Pas un Gargantua";
+  if (!g.goliath) return tr("Pas un Gargantua", "Not a Gargantua");
   if (!superOf(g.kind)?.liftable) return LIFT_FLIES;
   const free = condors.filter((c) => c.faction === g.faction && canCarry(c));
   if (free.length < 2) return LIFT_NEEDS_TWO;
-  if (g.goliath.lift) return "Déjà en levage";
+  if (g.goliath.lift) return tr("Déjà en levage", "Already being lifted");
   if (g.goliath.mode !== "walking") return LIFT_PACK_FIRST;
   return null;
 }

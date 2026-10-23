@@ -5,6 +5,7 @@ import { worldPick, worldRandom } from "./rand";
 import type { Crate, CrateReward, Faction, ObjectiveState, Unit, UnitKind, Uplink, World } from "./types";
 import { buildingAtTile, inBounds, passable, spawnUnit } from "./world";
 import { hypot } from "./fmath";
+import { tr } from "../lang";
 
 /**
  * Map objectives: reasons to fight in the middle of the map.
@@ -30,11 +31,11 @@ export const CRATE_REWARDS: CrateReward[] = ["scrap", "veterans", "repair", "cha
 
 /** Short names for HUD lines ("Supply drop inbound: Veterans"). */
 export const CRATE_NAMES: Record<CrateReward, string> = {
-  scrap: `${D.scrap} de charbon`,
-  veterans: "Vétérans",
-  repair: "Réparation de campagne",
-  charge: `+${D.charge} de charge de commandement`,
-  unit: "Hydroglisseur offert"
+  scrap: tr(`${D.scrap} de charbon`, `${D.scrap} coal`),
+  veterans: tr("Vétérans", "Veterans"),
+  repair: tr("Réparation de campagne", "Field repairs"),
+  charge: tr(`+${D.charge} de charge de commandement`, `+${D.charge} command charge`),
+  unit: tr("Hydroglisseur offert", "Free Hydroglider")
 };
 
 export function createObjectiveState(): ObjectiveState {

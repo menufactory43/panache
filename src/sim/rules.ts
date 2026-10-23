@@ -1,6 +1,7 @@
 import { BUILDINGS, COMBAT, ECONOMY, NATIONS, NATION_IDS, ROSTERS, UNITS } from "./balance";
 import type { Strategy } from "./ai/commander";
 import type { BuildingKind, Faction, Nation, NationOrClassic, PowerKind, Unit, UnitKind, World } from "./types";
+import { tr } from "../lang";
 
 /**
  * Match rules and the mutators that change them. `World.rules` is absent
@@ -161,39 +162,39 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
     id: "blitz",
     name: "Blitz",
     icon: "⚡",
-    desc: "Chaque camp démarre avec 3 000 de charbon",
+    desc: tr("Chaque camp démarre avec 3 000 de charbon", "Each side starts with 3,000 coal"),
     apply: (r) => (r.startScrap = 3000)
   },
   goldrush: {
     id: "goldrush",
-    name: "Ruée vers l'or",
+    name: tr("Ruée vers l'or", "Gold Rush"),
     icon: "💰",
-    desc: "Récolte et revenu du GQG ×1,5",
+    desc: tr("Récolte et revenu du GQG ×1,5", "Harvesting and GHQ income ×1.5"),
     apply: (r) => (r.incomeMult *= 1.5)
   },
   glass: {
     id: "glass",
-    name: "Canons de verre",
+    name: tr("Canons de verre", "Glass Cannons"),
     icon: "💥",
-    desc: "Toutes les armes infligent double dégâts",
+    desc: tr("Toutes les armes infligent double dégâts", "Every weapon deals double damage"),
     apply: (r) => (r.dmgMult *= 2)
   },
   rapidfab: {
     id: "rapidfab",
-    name: "Production éclair",
+    name: tr("Production éclair", "Lightning Production"),
     icon: "🔧",
-    desc: "Unités et bâtiments construits deux fois plus vite",
+    desc: tr("Unités et bâtiments construits deux fois plus vite", "Units and buildings built twice as fast"),
     apply: (r) => (r.buildSpeed *= 2)
   },
   airwar: {
     id: "airwar",
-    name: "Guerre aérienne",
+    name: tr("Guerre aérienne", "Air War"),
     icon: "✈️",
     // SAM sites go too: measured, aircraft-only armies never crack a SAM line (every
     // AI-vs-AI Air War drew at 25:00); turrets and the HQ gun still shoot back.
     // Infantry and their Assembly Bay are ground combat too (the starting squad stays home,
     // so no Condor either: NO_GROUND_COMBAT)
-    desc: "Ni unités terrestres de combat, ni Montgolfières, Forges, Manufactures ou Batteries Ruggieri : les duels aériens décident",
+    desc: tr("Ni unités terrestres de combat, ni Montgolfières, Forges, Manufactures ou Batteries Ruggieri : les duels aériens décident", "No ground combat units, Montgolfier Balloons, Forges, Manufactories or Ruggieri Batteries: aerial duels decide"),
     bansUnits: NO_GROUND_COMBAT,
     // (and no Goliath, which Nomads, Robot Love and Goliath Armada are about)
     conflicts: ["infantrywar", "airborne", "nomads", "robotlove", "armada"],
@@ -205,11 +206,11 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
   },
   infantrywar: {
     id: "infantrywar",
-    name: "Guerre d'infanterie",
+    name: tr("Guerre d'infanterie", "Infantry War"),
     icon: "🤖",
     // the Airpad stays for Condors, Scouts and Menders; Turrets and SAM sites stay too
     // (Rocket Squads crack them, and SAMs are the answer to Condor drops)
-    desc: "Infanterie seule : ni véhicules, ni appareils de combat, ni Forges",
+    desc: tr("Infanterie seule : ni véhicules, ni appareils de combat, ni Forges", "Infantry only: no vehicles, no combat aircraft, no Forges"),
     bansUnits: NO_VEHICLES,
     bansBuildings: ["fab-plant"],
     conflicts: ["airwar", "nomads", "robotlove", "armada"],
@@ -220,10 +221,10 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
   },
   airborne: {
     id: "airborne",
-    name: "Aéroportés",
+    name: tr("Aéroportés", "Airborne"),
     icon: "🪂",
     // the classic start already has the Trooper Squad: this adds the other two and a ride
-    desc: "Chaque camp démarre avec une Montgolfière et une escouade de chaque type",
+    desc: tr("Chaque camp démarre avec une Montgolfière et une escouade de chaque type", "Each side starts with a Montgolfier Balloon and one squad of each type"),
     // (Goliath Armada starts with nothing but its Goliaths and their Condors)
     conflicts: ["airwar", "armada"],
     apply: (r) => {
@@ -232,41 +233,41 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
   },
   veterans: {
     id: "veterans",
-    name: "Vétérans",
+    name: tr("Vétérans", "Veterans"),
     icon: "🎖️",
-    desc: "Les unités de combat sortent au rang 1 (+15 % de dégâts)",
+    desc: tr("Les unités de combat sortent au rang 1 (+15 % de dégâts)", "Combat units roll out at rank 1 (+15% damage)"),
     apply: (r) => (r.startRank = Math.max(r.startRank, 1))
   },
   clearskies: {
     id: "clearskies",
-    name: "Ciel dégagé",
+    name: tr("Ciel dégagé", "Clear Skies"),
     icon: "☀️",
-    desc: "Pas de brouillard de guerre : chaque camp voit tout",
+    desc: tr("Pas de brouillard de guerre : chaque camp voit tout", "No fog of war: each side sees everything"),
     apply: (r) => (r.fogOff = true)
   },
   nomads: {
     id: "nomads",
-    name: "Nomades",
+    name: tr("Nomades", "Nomads"),
     icon: "🦿",
     // the base walks: anchored, it takes scrap, builds Harvesters and squads, and buildings go up round it
-    desc: "Chaque camp démarre avec un Gargantua au lieu d'une base",
+    desc: tr("Chaque camp démarre avec un Gargantua au lieu d'une base", "Each side starts with a Gargantua instead of a base"),
     conflicts: ["airwar", "infantrywar", "armada"],
     apply: (r) => (r.nomads = true)
   },
   robotlove: {
     id: "robotlove",
-    name: "Amour mécanique",
+    name: tr("Amour mécanique", "Robot Love"),
     icon: "💘",
-    desc: "Deux Gargantuas ennemis qui se croisent tombent amoureux : match nul",
+    desc: tr("Deux Gargantuas ennemis qui se croisent tombent amoureux : match nul", "Two enemy Gargantuas that cross paths fall in love: a draw"),
     conflicts: ["airwar", "infantrywar"],
     apply: (r) => (r.robotLove = true)
   },
   armada: {
     id: "armada",
-    name: "Armada de Gargantuas",
+    name: tr("Armada de Gargantuas", "Gargantua Armada"),
     icon: "🚁",
     // no base at all: anchored, the Goliaths build Harvesters and squads, and buildings go up round them
-    desc: "Chaque camp démarre avec quatre Gargantuas en vol, portés chacun par deux Montgolfières, et rien d'autre",
+    desc: tr("Chaque camp démarre avec quatre Gargantuas en vol, portés chacun par deux Montgolfières, et rien d'autre", "Each side starts with four airborne Gargantuas, each carried by two Montgolfier Balloons, and nothing else"),
     // (Air War and Infantry War ban the Goliath; Nomads and Airborne start a side some other way)
     conflicts: ["airwar", "infantrywar", "airborne", "nomads"],
     apply: (r) => (r.armada = true)
@@ -374,7 +375,7 @@ export function inRoster(nation: NationOrClassic, kind: UnitKind | BuildingKind)
  */
 export function rosterBan(w: World, kind: UnitKind | BuildingKind, faction?: Faction): string | null {
   const nations = rulesOf(w).nations;
-  const reserved = (n: Nation | null) => (n ? `Réservé à ${NATIONS[n].name}` : "Désactivé : règles de la partie");
+  const reserved = (n: Nation | null) => (n ? tr(`Réservé à ${NATIONS[n].name}`, `Reserved for ${NATIONS[n].name}`) : tr("Désactivé : règles de la partie", "Disabled: match rules"));
   if (!nations) {
     const own = kindNation(kind);
     return own ? reserved(own) : null;
@@ -412,7 +413,7 @@ export function bannedBy(w: World, kind: UnitKind | BuildingKind, faction?: Fact
   const side = faction ? r.sideBans?.[faction] : undefined;
   if (!inList(r.bannedUnits, r.bannedBuildings) && !inList(side?.units, side?.buildings)) return null;
   const by = r.mutators.find((id) => inList(MUTATORS[id].bansUnits, MUTATORS[id].bansBuildings));
-  return by ? `Désactivé : ${MUTATORS[by].name}` : r.banLabel ?? "Désactivé : règles de la partie";
+  return by ? tr(`Désactivé : ${MUTATORS[by].name}`, `Disabled: ${MUTATORS[by].name}`) : r.banLabel ?? tr("Désactivé : règles de la partie", "Disabled: match rules");
 }
 
 /** Veterans mutator: a freshly built combat unit starts ranked (with the XP to match). */
