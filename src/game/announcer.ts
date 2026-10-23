@@ -293,10 +293,10 @@ export function radioCheck(): void {
   // link mode (a sound duel) speaks no words: the code stands in
   if (!sfx.settings.speech || sfx.linkMode) return fallback();
   const spoken = () => {
-    if (!speech.usable || !speech.speak("Essai radio", "info", () => squelch(false), fallback)) fallback();
+    if (!speech.usable || !speech.speak(tr("Essai radio", "Radio check"), "info", () => squelch(false), fallback)) fallback();
   };
   // (Panache: the recorded voice; the tap still primes speech for the lines it can't say)
-  const plan = BELLE_EPOQUE ? voicePack.plan("Essai radio") : null;
+  const plan = BELLE_EPOQUE ? voicePack.plan(tr("Essai radio", "Radio check")) : null;
   const e = sfx.engine;
   if (!plan || !e) return spoken();
   void voicePack.load(e.ctx, plan).then((bufs) => {

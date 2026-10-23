@@ -172,6 +172,7 @@ import { MUTATOR_IDS, isMutatorId, type MutatorId } from "../sim/rules";
 import { setupWorld, type MatchSetup } from "../sim/setup";
 import type { Faction, Nation, NationOrClassic, World } from "../sim/types";
 import { BitReader, BitWriter, CodecError } from "./codec";
+import { tr } from "../lang";
 
 /** The lobby protocol's version: bumped with any change to the frame or the rules, so the lobby can say which phone is older. */
 export const LOBBY_PROTO = 2;
@@ -232,9 +233,9 @@ export const DELAY_MAX = 8;
  */
 export const DELAY_MARGIN_MS = 50;
 
-export const VERSION_MESSAGE = "Ces téléphones n'ont pas la même version : recharge les deux";
-export const FAILED_MESSAGE = "Échec de l'appairage : touche pour réessayer";
-export const NOTHING_HEARD_MESSAGE = "Rien entendu pour l'instant. Un téléphone touche Héberger, l'autre Rejoindre";
+export const VERSION_MESSAGE = tr("Ces téléphones n'ont pas la même version : recharge les deux", "These phones are on different versions: reload both");
+export const FAILED_MESSAGE = tr("Échec de l'appairage : touche pour réessayer", "Pairing failed: tap to try again");
+export const NOTHING_HEARD_MESSAGE = tr("Rien entendu pour l'instant. Un téléphone touche Héberger, l'autre Rejoindre", "Nothing heard yet. One phone taps Host, the other Join");
 
 const TYPE_LOBBY = 0b10;
 /** `hold` and `echo` saying nothing usable: no ping heard, or one heard too long ago. */
@@ -1137,7 +1138,7 @@ export class Pairing {
     this.restart(false);
     const mine = wireProto(this.proto);
     const older = head.proto === mine ? null : head.proto < mine ? "friend" : "this";
-    const which = older === "this" ? " (celle de ce téléphone est plus ancienne)" : older === "friend" ? " (celle de ton ami est plus ancienne)" : "";
+    const which = older === "this" ? tr(" (celle de ce téléphone est plus ancienne)", " (this phone's is older)") : older === "friend" ? tr(" (celle de ton ami est plus ancienne)", " (your friend's is older)") : "";
     this.versionError = { kind: "version", older, message: VERSION_MESSAGE + which };
   }
 

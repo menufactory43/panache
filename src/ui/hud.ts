@@ -1068,7 +1068,7 @@ export function createHud(api: HudApi): Hud {
         <div id="p-sound"></div>
         ${BELLE_EPOQUE ? `<div id="p-hud"></div>` : ""}
         <button class="cta alt" id="p-help">${tr("Comment jouer", "How to play")}</button>
-        ${uncharted || duel || !DEBUG ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? "Révéler la carte (debug)" : "Rétablir le brouillard"}</button>`}
+        ${uncharted || duel || !DEBUG ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? tr("Révéler la carte (debug)", "Reveal the map (debug)") : tr("Rétablir le brouillard", "Restore the fog")}</button>`}
         ${duel ? `<div id="p-duel" class="p-duel"></div>` : `<button class="cta alt" id="p-quit">${tr("Quitter vers le menu", "Quit to menu")}</button>`}
         <div id="p-helptext" class="help" hidden>${HELP_HTML}</div>
       </div>`;

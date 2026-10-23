@@ -67,7 +67,7 @@ function setupPageZoomRescue(): void {
   if (!vv) return;
   const btn = document.createElement("button");
   btn.id = "unzoom";
-  btn.textContent = "⤺ Dézoomer";
+  btn.textContent = tr("⤺ Dézoomer", "⤺ Zoom out");
   btn.hidden = true;
   document.body.appendChild(btn);
 
@@ -124,7 +124,7 @@ const canDuel = (): boolean =>
 const canDuelOnline = (): boolean => typeof WebSocket === "function";
 /** An invite link's room code (`?salon=ABCD`): the menu opens the online duel's lobby on it (the URL loses it at boot). */
 const salonLink = new URLSearchParams(location.search).get("salon");
-const DUEL_UPDATE = "Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)";
+const DUEL_UPDATE = tr("Une nouvelle version est prête : recharge ce téléphone (et celui de ton ami)", "A new version is ready: reload this phone (and your friend's)");
 /**
  * sessionStorage: what the next boot skips into (the end screen's Rematch: "1", "spectate", "daily", "op:<id>",
  * or a sound duel's "duel"). The duel's records.ts owns the key and the duel's token; main.ts may import the
@@ -152,8 +152,8 @@ async function startGame(feed?: MatchFeed): Promise<void> {
   loading.className = "screen";
   const def = mapById(gameMode.mapId);
   // (Uncharted: not even the name gives the map away)
-  const where = unchartedMatch() ? "territoire inconnu" : def.id === gameMode.mapId ? def.name : "champ de bataille";
-  loading.innerHTML = `<div class="loadbox"><p>Déploiement : ${where}…</p><div class="loadtrack"><div id="loadbar"></div></div></div>`;
+  const where = unchartedMatch() ? tr("territoire inconnu", "unknown territory") : def.id === gameMode.mapId ? def.name : tr("champ de bataille", "battlefield");
+  loading.innerHTML = `<div class="loadbox"><p>${tr("Déploiement", "Deploying")}${tr(" :", ":")} ${where}…</p><div class="loadtrack"><div id="loadbar"></div></div></div>`;
   hud.appendChild(loading);
   const bar = loading.querySelector<HTMLElement>("#loadbar");
   // the painted terrain is draped over the 3D landscape; a failed chunk falls back to flat colours
@@ -178,7 +178,10 @@ async function startGame(feed?: MatchFeed): Promise<void> {
 
 const BIOME_ICON: Record<Biome, string> = { temperate: "🌳", desert: "🏜️", arctic: "❄️", volcanic: "🌋", tropical: "🌴" };
 /** Biome names as the player reads them. */
-const BIOME_FR: Record<Biome, string> = { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" };
+const BIOME_FR: Record<Biome, string> = tr(
+  { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" },
+  { temperate: "temperate", desert: "desert", arctic: "arctic", volcanic: "volcanic", tropical: "tropical" }
+);
 const RANDOM_KEY = "battledrones.randommaps";
 /** A transparent pixel: the Uncharted card keeps its image box (the fog sits on it) with nothing of the map in it. */
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -283,9 +286,9 @@ function showMenu(linkedMap?: string | null): void {
   const diffs = Object.keys(DIFFICULTY) as Difficulty[];
   menu.innerHTML = `
     <div class="keyart"></div>
-    <button class="round menu-mute" id="menu-mute" title="Tout couper">🔊</button>
+    <button class="round menu-mute" id="menu-mute" title="${tr("Tout couper", "Mute everything")}">🔊</button>
     <div class="menu-inner">
-      <div class="sl-head"><button class="sl-back" id="sl-back" type="button">‹ Quartier général</button></div>
+      <div class="sl-head"><button class="sl-back" id="sl-back" type="button">${tr("‹ Quartier général", "‹ Headquarters")}</button></div>
       <h1 class="logo panache">PANACHE</h1>
       <div class="menu-side" id="menuside">
         <button class="rankbadge" id="rankbadge"></button>
@@ -294,9 +297,9 @@ function showMenu(linkedMap?: string | null): void {
       </div>
       <p class="sub" id="sub"></p>
       <div class="seg modes" id="gmode">
-        <button data-m="skirmish">⚔ Escarmouche</button>
-        <button data-m="survival">🛡 Survie</button>
-        <button data-m="ops">🎖 Opérations</button>
+        <button data-m="skirmish">${tr("⚔ Escarmouche", "⚔ Skirmish")}</button>
+        <button data-m="survival">${tr("🛡 Survie", "🛡 Last Stand")}</button>
+        <button data-m="ops">${tr("🎖 Opérations", "🎖 Operations")}</button>
       </div>
       <p class="lsbest" id="lsbest" hidden></p>
       <p class="lsbest opsum" id="opsum" hidden></p>
@@ -321,26 +324,26 @@ function showMenu(linkedMap?: string | null): void {
           <span class="mb"></span>
           <span class="mbest" hidden></span>
           <span class="mstars" hidden></span>
-          <span class="mrnd">🎲 Aléatoire</span>
+          <span class="mrnd">${tr("🎲 Aléatoire", "🎲 Random")}</span>
         </button>
       </div>
       <div class="rndpanel" id="rndpanel" hidden>
         <div class="seg rndbiome" id="rndbiome">
-          <button data-b="" title="Les relances choisissent n'importe quel biome">🎲 Tous</button>
+          <button data-b="" title="${tr("Les relances choisissent n'importe quel biome", "Rerolls pick any biome")}">${tr("🎲 Tous", "🎲 Any")}</button>
           ${BIOMES.map((b) => `<button data-b="${b}" title="${cap(BIOME_FR[b])}">${BIOME_ICON[b]}<span> ${cap(BIOME_FR[b])}</span></button>`).join("")}
         </div>
         <div class="rndrow">
-          <label class="rndseed" title="Graine : tape ou colle un code pour générer cette carte">#<input id="rndseed" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" /></label>
-          <button class="cta alt" id="rndroll">🎲 Relancer</button>
-          <button class="cta alt" id="rndcopy">🔗 Copier le lien</button>
+          <label class="rndseed" title="${tr("Graine : tape ou colle un code pour générer cette carte", "Seed: type or paste a code to generate that map")}">#<input id="rndseed" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" /></label>
+          <button class="cta alt" id="rndroll">${tr("🎲 Relancer", "🎲 Reroll")}</button>
+          <button class="cta alt" id="rndcopy">${tr("🔗 Copier le lien", "🔗 Copy the link")}</button>
         </div>
-        <p class="rndhint"><b>Avant de jouer</b> <span id="rndhint"></span></p>
+        <p class="rndhint"><b>${tr("Avant de jouer", "Before playing")}</b> <span id="rndhint"></span></p>
         <div class="rndrow">
-          <div class="seg rndview" id="rndview" role="radiogroup" aria-label="Avant de jouer">
-            <button data-u="0" role="radio" title="Voir toute la carte avant le match">👁️ Aperçu</button>
-            <button data-u="1" role="radio" title="La carte reste noire tant que tu ne l'as pas explorée">🌫️ Inconnue</button>
+          <div class="seg rndview" id="rndview" role="radiogroup" aria-label="${tr("Avant de jouer", "Before playing")}">
+            <button data-u="0" role="radio" title="${tr("Voir toute la carte avant le match", "See the whole map before the match")}">${tr("👁️ Aperçu", "👁️ Preview")}</button>
+            <button data-u="1" role="radio" title="${tr("La carte reste noire tant que tu ne l'as pas explorée", "The map stays black until you've explored it")}">${tr("🌫️ Inconnue", "🌫️ Uncharted")}</button>
           </div>
-          <button class="cta alt" id="rndfull">🔍 Voir<span class="wide"> toute la</span> carte</button>
+          <button class="cta alt" id="rndfull">${tr(`🔍 Voir<span class="wide"> toute la</span> carte`, `🔍 View<span class="wide"> the whole</span> map`)}</button>
         </div>
         <div class="rndrecent" id="rndrecent"></div>
       </div>
@@ -349,8 +352,8 @@ function showMenu(linkedMap?: string | null): void {
         ${diffs.map((d) => `<button data-d="${d}">${DIFFICULTY[d].label}</button>`).join("")}
       </div>
       <div class="natpick" id="nation">
-        <p class="np-head">Ta nation</p>
-        <div class="np-cards" role="radiogroup" aria-label="Nation">
+        <p class="np-head">${tr("Ta nation", "Your nation")}</p>
+        <div class="np-cards" role="radiogroup" aria-label="${tr("Nation", "Nation")}">
           ${NATION_IDS.map((n) => {
             const c = NATION_CARDS[n];
             return `<button class="npcard nat-${n}" data-n="${n}" role="radio">
@@ -360,32 +363,32 @@ function showMenu(linkedMap?: string | null): void {
                 <i class="np-line">${c.line}</i>
                 <span class="np-mech">${c.mechanics.map((m) => `<span>${m}</span>`).join("")}</span>
               </span>
-              <span class="np-units">${c.signature.map((k) => `<span class="np-unit"><img src="${nationIcon(k, n)}" alt="" draggable="false"/><small>${UNITS[k].name.replace(/^Escouade de |^Section de /, "")}</small></span>`).join("")}</span>
+              <span class="np-units">${c.signature.map((k) => `<span class="np-unit"><img src="${nationIcon(k, n)}" alt="" draggable="false"/><small>${UNITS[k].name.replace(tr(/^Escouade de |^Section de /, / Squad$| Section$/), "")}</small></span>`).join("")}</span>
             </button>`;
           }).join("")}
         </div>
         <div class="np-foot">
-          <button class="npclassic" data-n="classique" role="radio">⚖ Classique <small>les mêmes unités des deux côtés</small></button>
-          <div class="seg np-rival" id="rival" role="radiogroup" aria-label="Nation de l'adversaire">
-            <span class="np-rl">Adversaire</span>
-            <button data-r="opposite" role="radio" title="L'IA joue l'autre nation">Nation adverse</button>
-            <button data-r="random" role="radio" title="L'IA tire sa nation au sort à chaque partie">🎲 Au hasard</button>
-            <button data-r="same" role="radio" title="L'IA joue ta nation : un miroir">Miroir</button>
+          <button class="npclassic" data-n="classique" role="radio">${tr("⚖ Classique", "⚖ Classic")} <small>${tr("les mêmes unités des deux côtés", "the same units on both sides")}</small></button>
+          <div class="seg np-rival" id="rival" role="radiogroup" aria-label="${tr("Nation de l'adversaire", "Opponent's nation")}">
+            <span class="np-rl">${tr("Adversaire", "Opponent")}</span>
+            <button data-r="opposite" role="radio" title="${tr("L'IA joue l'autre nation", "The AI plays the other nation")}">${tr("Nation adverse", "Opposing nation")}</button>
+            <button data-r="random" role="radio" title="${tr("L'IA tire sa nation au sort à chaque partie", "The AI draws its nation at random each match")}">${tr("🎲 Au hasard", "🎲 Random")}</button>
+            <button data-r="same" role="radio" title="${tr("L'IA joue ta nation : un miroir", "The AI plays your nation: a mirror")}">${tr("Miroir", "Mirror")}</button>
           </div>
         </div>
       </div>
       <button class="mutbtn main"></button>
-      <button class="cta big" id="play">▶ Jouer</button>
-      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>🔊 Défier un ami (son)</button><button class="cta alt" id="play-online" disabled>🌐 Défier un ami (en ligne)</button></div>
+      <button class="cta big" id="play">${tr("▶ Jouer", "▶ Play")}</button>
+      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-duel" disabled>${tr("🔊 Défier un ami (son)", "🔊 Challenge a friend (sound)")}</button><button class="cta alt" id="play-online" disabled>${tr("🌐 Défier un ami (en ligne)", "🌐 Challenge a friend (online)")}</button></div>
       <div class="row">
-        <button class="cta alt" id="play-tuto" title="L'instruction guidée : un geste à la fois, 3 minutes">🎓 Instruction</button>
-        <button class="cta alt" id="play-spectate">🤖 IA contre IA</button>
-        <button class="cta alt" id="play-replay">🎬 Voir une rediffusion</button>
-        <button class="cta alt" id="howto">? Comment jouer</button>
+        <button class="cta alt" id="play-tuto" title="${tr("L'instruction guidée : un geste à la fois, 3 minutes", "The guided training: one gesture at a time, 3 minutes")}">${tr("🎓 Instruction", "🎓 Training")}</button>
+        <button class="cta alt" id="play-spectate">${tr("🤖 IA contre IA", "🤖 AI against AI")}</button>
+        <button class="cta alt" id="play-replay">${tr("🎬 Voir une rediffusion", "🎬 Watch a replay")}</button>
+        <button class="cta alt" id="howto">? ${tr("Comment jouer", "How to play")}</button>
       </div>
       <div class="help" id="helpbox" hidden>${HELP_HTML}</div>
-      ${BELLE_EPOQUE ? `<button class="linkbtn" id="replay-intro" type="button">🎞 Revoir l'intro</button>` : ""}
-      <p class="credits">D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct</p>
+      ${BELLE_EPOQUE ? `<button class="linkbtn" id="replay-intro" type="button">${tr("🎞 Revoir l'intro", "🎞 Watch the intro again")}</button>` : ""}
+      <p class="credits">${tr(`D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct`, `Based on <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> by Simon Willison · visuals by OpenAI gpt-image-2.5 · sound synthesised live`)}</p>
     </div>
   `;
   hud.appendChild(menu);
@@ -510,9 +513,11 @@ function showMenu(linkedMap?: string | null): void {
       card.classList.toggle("uncharted", blind);
       const img = card.querySelector("img")!;
       img.src = blind ? BLANK_IMG : mapThumbUrl(randomId);
-      card.querySelector(".mn")!.textContent = blind ? "Inconnue" : def.name;
+      card.querySelector(".mn")!.textContent = blind ? tr("Inconnue", "Uncharted") : def.name;
       card.querySelector(".mb")!.textContent = `${RANDOM_MAP_SIZE}×${RANDOM_MAP_SIZE} · ${BIOME_FR[def.biome]} · #${code}`;
-      card.title = blind ? `Inconnue (${BIOME_FR[def.biome]}, graine ${code})` : `${def.name} (${BIOME_FR[def.biome]}, graine ${code}) · touche encore pour voir toute la carte`;
+      card.title = blind
+        ? tr(`Inconnue (${BIOME_FR[def.biome]}, graine ${code})`, `Uncharted (${BIOME_FR[def.biome]}, seed ${code})`)
+        : tr(`${def.name} (${BIOME_FR[def.biome]}, graine ${code}) · touche encore pour voir toute la carte`, `${def.name} (${BIOME_FR[def.biome]}, seed ${code}) · tap again to see the whole map`);
     }
     menu.querySelectorAll<HTMLElement>("#rndview button").forEach((el) => {
       const on = (el.dataset.u === "1") === blind;
@@ -521,8 +526,8 @@ function showMenu(linkedMap?: string | null): void {
     });
     menu.querySelector<HTMLElement>("#rndfull")!.hidden = blind;
     menu.querySelector("#rndhint")!.textContent = blind
-      ? "Pars à l'aveugle : explore pour révéler la carte."
-      : "Étudie d'abord toute la carte.";
+      ? tr("Pars à l'aveugle : explore pour révéler la carte.", "Go in blind: explore to reveal the map.")
+      : tr("Étudie d'abord toute la carte.", "Study the whole map first.");
     const box = menu.querySelector<HTMLInputElement>("#rndseed")!;
     if (document.activeElement !== box) box.value = code;
     menu.querySelectorAll<HTMLElement>("#rndbiome button").forEach((el) => el.classList.toggle("on", (el.dataset.b || null) === rnd.biome));
@@ -532,7 +537,7 @@ function showMenu(linkedMap?: string | null): void {
         const on = r.id === randomId ? " on" : "";
         // (uncharted: code and biome only, no names)
         const name = blind ? "" : `${esc(r.name)} `;
-        const title = blind ? `Inconnue · ${BIOME_FR[p.biome]}` : `${esc(r.name)} · ${BIOME_FR[p.biome]}`;
+        const title = blind ? `${tr("Inconnue", "Uncharted")} · ${BIOME_FR[p.biome]}` : `${esc(r.name)} · ${BIOME_FR[p.biome]}`;
         return `<button class="rndchip${on}" data-id="${r.id}" title="${title}">${BIOME_ICON[p.biome]} ${name}<b>#${seedCode(p.seed)}</b></button>`;
       })
       .join("");
@@ -601,28 +606,28 @@ function showMenu(linkedMap?: string | null): void {
     });
     const m = mapById(shown);
     const blind = gameMode.uncharted && isRandomMapId(shown);
-    menu.querySelector("#blurb")!.textContent = blind ? "Un champ de bataille inconnu. Explore-le pour en découvrir la forme." : m.blurb;
+    menu.querySelector("#blurb")!.textContent = blind ? tr("Un champ de bataille inconnu. Explore-le pour en découvrir la forme.", "An unknown battlefield. Explore it to discover its shape.") : m.blurb;
     menu.querySelector<HTMLElement>("#rndpanel")!.hidden = opsMode || !isRandomMapId(shown);
     menu.querySelector("#sub")!.textContent = opsMode
-      ? "Des missions courtes à rebondissement. Trois étoiles chacune : sauras-tu toutes les prendre ?"
+      ? tr("Des missions courtes à rebondissement. Trois étoiles chacune : sauras-tu toutes les prendre ?", "Short missions with a twist. Three stars each: can you take them all?")
       : survival
-        ? "Tiens ta base face à des vagues sans fin. Combien de temps tiendras-tu ?"
-        : "Extrais le charbon. Bâtis ton escadre. Détruis le GQG ennemi et ses Gargantuas.";
+        ? tr("Tiens ta base face à des vagues sans fin. Combien de temps tiendras-tu ?", "Hold your base against endless waves. How long will you last?")
+        : tr("Extrais le charbon. Bâtis ton escadre. Détruis le GQG ennemi et ses Gargantuas.", "Mine the coal. Build your squadron. Destroy the enemy GHQ and its Gargantuas.");
     const best = menu.querySelector<HTMLElement>("#lsbest")!;
     best.hidden = !survival;
     if (survival) {
       const rec = loadBest(shown, gameMode.difficulty);
-      const where = `${blind ? `Inconnue #${m.random?.code ?? ""}` : m.name} · ${DIFFICULTY[gameMode.difficulty].label}`;
+      const where = `${blind ? `${tr("Inconnue", "Uncharted")} #${m.random?.code ?? ""}` : m.name} · ${DIFFICULTY[gameMode.difficulty].label}`;
       best.innerHTML = rec
-        ? `🏆 Record sur ${where} : <b>${rec.best} vague${rec.best === 1 ? "" : "s"}</b>`
-        : `Aucun record sur ${where} : établis-en un !`;
+        ? tr(`🏆 Record sur ${where} : <b>${rec.best} vague${rec.best === 1 ? "" : "s"}</b>`, `🏆 Record on ${where}: <b>${rec.best} wave${rec.best === 1 ? "" : "s"}</b>`)
+        : tr(`Aucun record sur ${where} : établis-en un !`, `No record on ${where}: set one!`);
     }
     const sel = ops.selected();
     menu.querySelector("#play")!.textContent = opsMode
-      ? ops.locked(sel) ? "🔒 Verrouillée" : `▶ Op : ${sel.title}`
-      : survival ? "▶ Lancer la Survie" : "▶ Jouer";
+      ? ops.locked(sel) ? tr("🔒 Verrouillée", "🔒 Locked") : tr(`▶ Op : ${sel.title}`, `▶ Op: ${sel.title}`)
+      : survival ? tr("▶ Lancer la Survie", "▶ Start Last Stand") : tr("▶ Jouer", "▶ Play");
     menu.querySelector("#play")!.classList.toggle("locked", opsMode && ops.locked(sel));
-    menu.querySelector("#play-spectate")!.textContent = survival ? "🤖 Voir l'IA défendre" : "🤖 IA contre IA";
+    menu.querySelector("#play-spectate")!.textContent = survival ? tr("🤖 Voir l'IA défendre", "🤖 Watch the AI defend") : tr("🤖 IA contre IA", "🤖 AI against AI");
     hub?.sync();
   };
   sync();
@@ -670,9 +675,9 @@ function showMenu(linkedMap?: string | null): void {
     void navigator.clipboard
       ?.writeText(mapLink(randomId))
       .then(() => {
-        copyBtn.textContent = "✓ Copié !";
+        copyBtn.textContent = tr("✓ Copié !", "✓ Copied!");
         clearTimeout(copiedTimer);
-        copiedTimer = window.setTimeout(() => (copyBtn.textContent = "🔗 Copier le lien"), 1600);
+        copiedTimer = window.setTimeout(() => (copyBtn.textContent = tr("🔗 Copier le lien", "🔗 Copy the link")), 1600);
       })
       .catch(() => {
         /* no clipboard (insecure context, denied): fail quietly */
@@ -695,7 +700,7 @@ function showMenu(linkedMap?: string | null): void {
     sfx.play("click", 0.5);
     openMapPreview(mapById(randomId), {
       host: menu,
-      playLabel: gameMode.mode === "survival" ? "▶ Lancer la Survie" : "▶ Jouer cette carte",
+      playLabel: gameMode.mode === "survival" ? tr("▶ Lancer la Survie", "▶ Start Last Stand") : tr("▶ Jouer cette carte", "▶ Play this map"),
       onPlay: () => {
         gameMode.mapId = randomId;
         saveSettings(); // (a Rematch reloads the saved pick)
@@ -794,7 +799,7 @@ function showMenu(linkedMap?: string | null): void {
     play();
   });
   const tutoBtn = menu.querySelector<HTMLElement>("#play-tuto")!;
-  if (tutorialState() === "done") tutoBtn.textContent = "🎓 Instruction ✓";
+  if (tutorialState() === "done") tutoBtn.textContent = tr("🎓 Instruction ✓", "🎓 Training ✓");
   tutoBtn.addEventListener("click", startTuto);
   menu.querySelector("#play-spectate")!.addEventListener("click", () => begin(true));
   /** A match from the Archives (ui/archives.ts): its highlight reel (ui/reel.ts), or the whole of it in the viewer. */
@@ -919,9 +924,9 @@ function showMenu(linkedMap?: string | null): void {
     scr.innerHTML = `<div class="loadbox">
         <button class="cta big" id="duel-rematch" disabled>${
           // (a practice link has no sound to reconnect and asks for no microphone)
-          duelPractice ? "Revanche · touche pour lancer" : "Revanche · touche pour te reconnecter<br /><small>(autorise le micro si demandé)</small>"
+          duelPractice ? tr("Revanche · touche pour lancer", "Rematch · tap to start") : tr("Revanche · touche pour te reconnecter<br /><small>(autorise le micro si demandé)</small>", "Rematch · tap to reconnect<br /><small>(allow the microphone if asked)</small>")
         }</button>
-        <button class="cta alt" id="duel-menu">Menu</button>
+        <button class="cta alt" id="duel-menu">${tr("Menu", "Menu")}</button>
       </div>`;
     menu.appendChild(scr);
     const btn = scr.querySelector<HTMLButtonElement>("#duel-rematch")!;
@@ -933,7 +938,7 @@ function showMenu(linkedMap?: string | null): void {
       (d) => {
         btn.disabled = false;
         // (an online rematch: no microphone, the same room)
-        if (d.tapPlan(true).online) btn.textContent = "Revanche · touche pour retrouver ton ami";
+        if (d.tapPlan(true).online) btn.textContent = tr("Revanche · touche pour retrouver ton ami", "Rematch · tap to find your friend");
       },
       () => {
         btn.disabled = false;
@@ -964,7 +969,7 @@ function showMenu(linkedMap?: string | null): void {
         const blind = !opsMode && gameMode.uncharted && isRandomMapId(id);
         return {
           pick,
-          map: { name: blind ? "Inconnue" : mapById(id).name, thumb: blind ? BLANK_IMG : mapThumbUrl(id) },
+          map: { name: blind ? tr("Inconnue", "Uncharted") : mapById(id).name, thumb: blind ? BLANK_IMG : mapThumbUrl(id) },
           difficulty: DIFFICULTY[gameMode.difficulty].label,
           nation: gameMode.nation,
           op: { title: op.title, n: opIndex(op.id) + 1, total: book.length, done: opsCompleted(loadCareer(), book), campaign: isCampaignOp(op), locked: ops.locked(op) },
@@ -978,7 +983,7 @@ function showMenu(linkedMap?: string | null): void {
             const stars = rnd || gameMode.mode === "survival" ? 0 : starCount(career.starsFor(mid));
             return {
               id: mid,
-              name: hide ? "Inconnue" : rnd ? `🎲 ${mapById(mid).name}` : mapById(mid).name,
+              name: hide ? tr("Inconnue", "Uncharted") : rnd ? `🎲 ${mapById(mid).name}` : mapById(mid).name,
               thumb: hide ? BLANK_IMG : mapThumbUrl(mid),
               on: mid === shownMap(),
               badge: rec ? `🛡 ${rec.best}` : stars ? "★".repeat(stars) : ""
@@ -987,7 +992,7 @@ function showMenu(linkedMap?: string | null): void {
           diffs: diffs.map((d) => ({ id: d, label: DIFFICULTY[d].label, on: d === gameMode.difficulty })),
           rivals: gameMode.mode !== "skirmish" || gameMode.nation === "classique" || urlNations()
             ? null
-            : [["opposite", "Nation adverse"], ["random", "🎲 Au hasard"], ["same", "Miroir"]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
+            : [["opposite", tr("Nation adverse", "Opposing nation")], ["random", tr("🎲 Au hasard", "🎲 Random")], ["same", tr("Miroir", "Mirror")]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
           mutators: activeMutators().map((m) => MUTATORS[m].name).join(" · "),
           missions: (() => {
             const i = book.indexOf(op);
@@ -1165,13 +1170,13 @@ function showMenu(linkedMap?: string | null): void {
 async function watchLinked(url: string, follow: boolean): Promise<void> {
   const note = document.createElement("div");
   note.className = "screen";
-  note.innerHTML = `<div class="loadbox"><p>Chargement de l'enregistrement…</p></div>`;
+  note.innerHTML = `<div class="loadbox"><p>${tr("Chargement de l'enregistrement…", "Loading the record…")}</p></div>`;
   document.getElementById("hud")!.appendChild(note);
   const feed = await import("./game/replay")
     .then((m) => m.loadReplay(url, follow))
     .catch((e: unknown) => {
-      note.innerHTML = `<div class="panel"><p class="time"></p><button class="cta">Menu principal</button></div>`;
-      note.querySelector("p")!.textContent = `Impossible de lire cet enregistrement. ${e instanceof Error ? e.message : String(e)}`;
+      note.innerHTML = `<div class="panel"><p class="time"></p><button class="cta">${tr("Menu principal", "Main menu")}</button></div>`;
+      note.querySelector("p")!.textContent = `${tr("Impossible de lire cet enregistrement.", "Can't read that record.")} ${e instanceof Error ? e.message : String(e)}`;
       note.querySelector("button")!.addEventListener("click", () => location.assign("./"));
       return null;
     });

@@ -32,7 +32,7 @@ export function archiveLine(m: ArchiveMeta): { head: string; sub: string } {
 /** Fill `host` with the saved matches (async); `watch` plays one, as its reel or whole. */
 export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel: boolean) => Promise<void> | void): void {
   host.classList.add("arch-list");
-  host.innerHTML = `<p class="sh-note">Chargement des archives…</p>`;
+  host.innerHTML = `<p class="sh-note">${tr("Chargement des archives…", "Loading the archives…")}</p>`;
   void archives()
     .list()
     .then((list) => {

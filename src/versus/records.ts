@@ -51,6 +51,7 @@ import { isKnownMapId } from "../sim/maps";
 import { isMutatorId, type MutatorId } from "../sim/rules";
 import type { MatchSetup } from "../sim/setup";
 import type { Command, Faction, Nation } from "../sim/types";
+import { EN, tr } from "../lang";
 
 /** A world hash goes into the saved record every this many ticks (the arena's rate: the viewer checks them). */
 export const HASH_EVERY = 100;
@@ -131,13 +132,13 @@ export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | n
   return back;
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n <= 1 ? one : many}`;
+const plural = (n: number, one: string, many: string) => `${n} ${(EN ? n === 1 : n <= 1) ? one : many}`;
 
 /** "3 wins · 1 loss · 0 draws", and the matches with no result when there were any. */
 export function tallyLine(t: DuelTally): string {
-  const parts = [plural(t.w, "victoire", "victoires"), plural(t.l, "défaite", "défaites"), plural(t.d, "nul", "nuls")];
+  const parts = [plural(t.w, tr("victoire", "win"), tr("victoires", "wins")), plural(t.l, tr("défaite", "loss"), tr("défaites", "losses")), plural(t.d, tr("nul", "draw"), tr("nuls", "draws"))];
   const none = t.abandoned + t.noContest;
-  if (none > 0) parts.push(`${none} sans résultat`);
+  if (none > 0) parts.push(tr(`${none} sans résultat`, `${none} no result`));
   return parts.join(" · ");
 }
 

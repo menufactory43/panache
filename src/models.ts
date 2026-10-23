@@ -27,6 +27,7 @@ import { BUILDINGS, GOLIATH, TICK_RATE, UNITS, ZENITH } from "./sim/balance";
 import { behaves } from "./sim/nations";
 import type { Building, BuildingKind, Faction, Nation, NationOrClassic, UnitKind } from "./sim/types";
 import { buildingGroups, card, rowId, siteCard, siteName, unitGroups, type SiteKind } from "./unit-info";
+import { EN, tr } from "./lang";
 
 /**
  * A model on its pad, and how it plays each of its animations. `step` poses
@@ -853,13 +854,22 @@ class Viewer {
   }
 
   private renderUi(): void {
-    const ANIM_LABEL: Record<string, string> = {
-      Hover: "Surplace", Fly: "Vol", Bank: "Virage", Fire: "Tir", Repair: "Réparation", Wreck: "Épave", Walk: "Marche",
-      Drive: "Rouler", Idle: "Repos", Haul: "Transport", Aim: "Visée", Drop: "Largage", March: "Marche", Fall: "Chute",
-      Stand: "Debout", Anchor: "Ancrage", Damaged: "Endommagé", Reboot: "Redémarrage", Love: "Amour", Sweep: "Balayage",
-      "Build Goliath": "Construire Gargantua", Construct: "Construction", Rubble: "Ruines", Held: "Tenu", Capturing: "Capture",
-      Neutral: "Neutre", Landed: "Posée"
-    };
+    const ANIM_LABEL: Record<string, string> = tr(
+      {
+        Hover: "Surplace", Fly: "Vol", Bank: "Virage", Fire: "Tir", Repair: "Réparation", Wreck: "Épave", Walk: "Marche",
+        Drive: "Rouler", Idle: "Repos", Haul: "Transport", Aim: "Visée", Drop: "Largage", March: "Marche", Fall: "Chute",
+        Stand: "Debout", Anchor: "Ancrage", Damaged: "Endommagé", Reboot: "Redémarrage", Love: "Amour", Sweep: "Balayage",
+        "Build Goliath": "Construire Gargantua", Construct: "Construction", Rubble: "Ruines", Held: "Tenu", Capturing: "Capture",
+        Neutral: "Neutre", Landed: "Posée"
+      },
+      {
+        Hover: "Hover", Fly: "Fly", Bank: "Bank", Fire: "Fire", Repair: "Repair", Wreck: "Wreck", Walk: "Walk",
+        Drive: "Drive", Idle: "Idle", Haul: "Haul", Aim: "Aim", Drop: "Drop", March: "March", Fall: "Fall",
+        Stand: "Stand", Anchor: "Anchor", Damaged: "Damaged", Reboot: "Reboot", Love: "Love", Sweep: "Sweep",
+        "Build Goliath": "Build Gargantua", Construct: "Construct", Rubble: "Rubble", Held: "Held", Capturing: "Capturing",
+        Neutral: "Neutral", Landed: "Landed"
+      }
+    );
     const b = (label: string, pressed: boolean, act: string, cls = "") =>
       `<button type="button" data-act="${act}" aria-pressed="${pressed}"${cls ? ` class="${cls}"` : ""}>${label}</button>`;
     this.ui.innerHTML =
@@ -867,8 +877,8 @@ class Viewer {
       `<span class="sep"></span>` +
       (this.model.neutral
         ? ""
-        : b("Bleu", this.faction === "blue", "faction:blue") + b("Rouge", this.faction === "red", "faction:red", "red")) +
-      b("↻ Rotation", this.controls.autoRotate, "spin");
+        : b(tr("Bleu", "Blue"), this.faction === "blue", "faction:blue") + b(tr("Rouge", "Red"), this.faction === "red", "faction:red", "red")) +
+      b(tr("↻ Rotation", "↻ Rotate"), this.controls.autoRotate, "spin");
   }
 
   click(act: string): void {
@@ -929,12 +939,19 @@ class Viewer {
 /** The armies the page shows, each in its own section of both tabs (the nation filter picks which). */
 const ARMIES: Army[] = ["classique", "republique", "empire"];
 type Filter = Army | "all";
-const ARMY_TITLE: Record<Army, string> = { classique: "Classique", republique: "La République", empire: "L'Empire de Carbonie" };
-const ARMY_LINE: Record<Army, string> = {
-  classique: "Les règles symétriques : les seize unités et dix bâtiments d'origine, aux couleurs bleue et rouge des camps.",
-  republique: "Ingénieurs, aviateurs et savants : rapide, aérien, nombreux, électrique, fragile. Ses bâtiments doivent être alimentés par le GQG ou une Tour TSF.",
-  empire: "Charbon, vapeur et acier : lent, blindé, l'artillerie la plus longue, des positions qu'on ne déloge pas. Chaque usine fabrique deux unités à la fois."
-};
+const ARMY_TITLE: Record<Army, string> = tr({ classique: "Classique", republique: "La République", empire: "L'Empire de Carbonie" }, { classique: "Classic", republique: "The Republic", empire: "The Empire of Carbonia" });
+const ARMY_LINE: Record<Army, string> = tr(
+  {
+    classique: "Les règles symétriques : les seize unités et dix bâtiments d'origine, aux couleurs bleue et rouge des camps.",
+    republique: "Ingénieurs, aviateurs et savants : rapide, aérien, nombreux, électrique, fragile. Ses bâtiments doivent être alimentés par le GQG ou une Tour TSF.",
+    empire: "Charbon, vapeur et acier : lent, blindé, l'artillerie la plus longue, des positions qu'on ne déloge pas. Chaque usine fabrique deux unités à la fois."
+  },
+  {
+    classique: "The symmetrical rules: the original sixteen units and ten buildings, in the blue and red of the sides.",
+    republique: "Engineers, aviators and scientists: fast, aerial, numerous, electric, fragile. Its buildings must be powered by the GHQ or a Wireless Tower.",
+    empire: "Coal, steam and steel: slow, armoured, the longest-ranged artillery, positions that can't be dislodged. Every factory builds two units at a time."
+  }
+);
 /** A kind's portrait in its army's paint: the Empire wears the red set (as the menu's picker), and its own HQ the Citadelle. */
 const icon = (k: string, n: Army = "classique"): string =>
   `./assets/icons/${n === "empire" && k !== "supply-crate" && k !== "uplink" ? "red/" : ""}${portraitKind(k, n)}.webp`;
@@ -944,19 +961,19 @@ const crest = (n: Army): string => (n === "classique" ? "" : `<img class="crest"
 const TABS = {
   units: {
     groups: (n: Army): { title: string; kinds: Shown[] }[] => unitGroups(n),
-    name: (k: string) => (k === "eiffel" ? "Tour Eiffel" : UNITS[k as UnitKind].name),
+    name: (k: string) => (k === "eiffel" ? tr("Tour Eiffel", "Eiffel Tower") : UNITS[k as UnitKind].name),
     card: (k: string, n: Army) => card(k as UnitKind, { portrait: false, id: false, nation: n })
   },
   buildings: {
     groups: (n: Army): { title: string; kinds: Shown[] }[] => [
       ...buildingGroups(n),
       // the campaign's landmark stands in Paris: the République's
-      ...(n === "republique" ? [{ title: "Monument de campagne", kinds: ["eiffel" as Shown] }] : [])
+      ...(n === "republique" ? [{ title: tr("Monument de campagne", "Campaign landmark"), kinds: ["eiffel" as Shown] }] : [])
     ],
-    name: (k: string, n: Army = "classique") => (k === "eiffel" ? "Tour Eiffel" : siteName(k as SiteKind, n)),
+    name: (k: string, n: Army = "classique") => (k === "eiffel" ? tr("Tour Eiffel", "Eiffel Tower") : siteName(k as SiteKind, n)),
     card: (k: string, n: Army) =>
       k === "eiffel"
-        ? `<article><div class="head"><div><h3>Tour Eiffel</h3><div class="role">Le clou de l'Exposition de 1889, décor des missions parisiennes de la Campagne de 1900.</div><div class="tags"><span class="tag">Décor</span><span class="tag">Campagne</span></div></div></div><ul class="features"><li>Un monument, pas un bâtiment : on ne le construit pas et on ne le détruit pas.</li><li>Sa silhouette se voit de loin sur la carte de Paris : un repère pour tes colonnes.</li></ul></article>`
+        ? tr(`<article><div class="head"><div><h3>Tour Eiffel</h3><div class="role">Le clou de l'Exposition de 1889, décor des missions parisiennes de la Campagne de 1900.</div><div class="tags"><span class="tag">Décor</span><span class="tag">Campagne</span></div></div></div><ul class="features"><li>Un monument, pas un bâtiment : on ne le construit pas et on ne le détruit pas.</li><li>Sa silhouette se voit de loin sur la carte de Paris : un repère pour tes colonnes.</li></ul></article>`, `<article><div class="head"><div><h3>Eiffel Tower</h3><div class="role">The showpiece of the 1889 Exposition, setting of the Paris missions of the 1900 Campaign.</div><div class="tags"><span class="tag">Scenery</span><span class="tag">Campaign</span></div></div></div><ul class="features"><li>A monument, not a building: it can't be built and it can't be destroyed.</li><li>Its silhouette can be seen from afar on the Paris map: a landmark for your columns.</li></ul></article>`)
         : siteCard(k as SiteKind, { id: false, nation: n })
   }
 };
@@ -978,7 +995,7 @@ for (const [tab, t] of Object.entries(TABS) as [Tab, (typeof TABS)[Tab]][]) {
                 (k) => `<section class="row" id="${rowId(k, n)}">
               ${t.card(k, n)}
               <div class="viewer" data-kind="${k}" data-army="${n}">
-                ${renderer ? `<canvas aria-label="Modèle 3D ${t.name(k, n)}"></canvas><div class="hint">Glisse pour tourner · pince ou ⌃-molette pour zoomer</div>` : `<p class="nogl">Ce navigateur ne peut pas afficher les modèles 3D (WebGL désactivé ou indisponible).</p>`}
+                ${renderer ? `<canvas aria-label="${tr("Modèle 3D", "3D model")} ${t.name(k, n)}"></canvas><div class="hint">${tr("Glisse pour tourner · pince ou ⌃-molette pour zoomer", "Drag to turn · pinch or ⌃-scroll to zoom")}</div>` : `<p class="nogl">${tr("Ce navigateur ne peut pas afficher les modèles 3D (WebGL désactivé ou indisponible).", "This browser can't display the 3D models (WebGL disabled or unavailable).")}</p>`}
                 <div class="controls"></div>
               </div>
             </section>`
@@ -1065,4 +1082,30 @@ if (renderer) {
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
+}
+
+// the page's own static French (models.html), in English for an English player
+if (EN) {
+  const set = (sel: string, html: string): void => {
+    const el = document.querySelector(sel);
+    if (el) el.innerHTML = html;
+  };
+  const label = (sel: string, text: string): void => {
+    const el = document.querySelector(sel);
+    const last = el?.lastChild;
+    if (last && last.nodeType === Node.TEXT_NODE) last.textContent = text;
+    else if (el) el.textContent = text;
+  };
+  document.title = "Panache — 3D Models";
+  set("h1", "Panache — 3D Models");
+  set(
+    "header > p",
+    `The 3D model of every unit and building in the game, beside its role. Drag a model to turn it, pinch or ⌃-scroll to zoom, and run its animations: drive, aim, fire, walk, fly, anchor, a Galerie des Machines building a Gargantua. The Nation filter shows the army of the Republic and that of the Empire of Carbonia, in their own colours. The same models and animation skeletons as on the battlefield. <a href="./">Back to the game</a> · <a href="./vehicles.html">Vehicles</a>`
+  );
+  label('#nfilter [data-f="all"]', "All");
+  label('#nfilter [data-f="classique"]', "⚖ Classic");
+  label('#nfilter [data-f="republique"]', "Republic");
+  label('#nfilter [data-f="empire"]', "Empire");
+  label('[data-tab="units"]', "Units");
+  label('[data-tab="buildings"]', "Buildings");
 }

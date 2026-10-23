@@ -103,7 +103,8 @@
 import type { BattleRecord } from "../arena/record";
 import type { Controller } from "../game/controller";
 import type { AbortReason, MatchFeed } from "../game/GameScene";
-import { CAPTURE_OK_MS, LEAVE_AFTER_FAILURES, RIG_ADVICE, type Rig } from "../link/rig";
+import { CAPTURE_OK_MS, LEAVE_AFTER_FAILURES, type Rig } from "../link/rig";
+import { rigAdvice, rigMessage } from "./rig-text";
 import { worldHash } from "../sim/checksum";
 import type { MutatorId } from "../sim/rules";
 import { setupWorld } from "../sim/setup";
@@ -119,6 +120,7 @@ import {
   type DuelOutcome, type DuelTally
 } from "./records";
 import { PEER_HEARD_MS, type Session } from "./session";
+import { tr } from "../lang";
 
 declare const __SIM_HASH__: string | undefined;
 /** The sim this build plays (vite.config.ts), or null outside a Vite build (tests). */
@@ -364,9 +366,9 @@ export class VersusFeed implements MatchFeed {
     this.onFrame = o.onFrame ?? null;
     this.env = { ...browserEnv(), ...o.env };
     this.local = r.local;
-    this.opponent = o.opponent ?? "ton ami";
+    this.opponent = o.opponent ?? tr("ton ami", "your friend");
     this.config = { mapId: r.mapId, mutators: r.setup.mutators.slice(), local: r.local, ...(r.setup.nations ? { nations: { ...r.setup.nations } } : {}) };
-    this.labels = { [r.local]: "Toi", [OTHER[r.local]]: "Ami" } as Record<Faction, string>;
+    this.labels = { [r.local]: tr("Toi", "You"), [OTHER[r.local]]: tr("Ami", "Friend") } as Record<Faction, string>;
     this.created = this.env.date().toISOString();
     this.world = setupWorld(r.setup);
     o.session.beginMatch(parseInt(worldHash(this.world), 16));
@@ -381,7 +383,7 @@ export class VersusFeed implements MatchFeed {
       resigning: () => this.resignAt !== null,
       rematch: () => this.exit("rematch"),
       menu: () => this.exit("menu"),
-      actions: () => (this.env.document ? [{ id: "duel-save", label: "Enregistrer la bataille", cls: "alt", on: () => this.save() }] : [])
+      actions: () => (this.env.document ? [{ id: "duel-save", label: tr("Enregistrer la bataille", "Save the battle"), cls: "alt", on: () => this.save() }] : [])
     };
 
     const env = this.env;
@@ -631,8 +633,9 @@ export class VersusFeed implements MatchFeed {
   private failedWhy(): string | null {
     const e = this.linkPhase === "failed" ? this.rig?.lastError : null;
     if (!e) return null;
-    const advice = RIG_ADVICE[e.reason];
-    return advice ? `${e.message}. ${advice}` : `${e.message}.`;
+    const advice = rigAdvice(e.reason);
+    const message = rigMessage(e.reason, e.message);
+    return advice ? `${message}. ${advice}` : `${message}.`;
   }
 
   /** Save battle: the record as a .json download. */

@@ -41,6 +41,7 @@
  */
 import type { BandRole, LinkPacket, LinkStats, LinkTransport, ModemMode, OutFrame } from "../link/transport";
 import { RelayTransport, type RelayTimers, type RelayWindow } from "./relay-transport";
+import { tr } from "../lang";
 
 /** The relay the published game uses (relay/README.md). `?relais=` overrides it (a `wrangler dev` on localhost). */
 export const RELAY_URL = "wss://panache-relais.meffysto.workers.dev";
@@ -184,14 +185,14 @@ export function browserOnlineEnv(): OnlineEnv {
 export type OnlineFailure = "unknown" | "full" | "taken" | "expired" | "origin" | "unreachable" | "replaced" | "abuse";
 
 export const FAILURE_TEXT: Record<OnlineFailure, string> = {
-  unknown: "Aucun salon sous ce code : vérifie-le, ou demande à ton ami d'en créer un.",
-  full: "Ce salon est complet : deux joueurs y sont déjà.",
-  taken: "Ce code est déjà pris.",
-  expired: "Ce salon a expiré : créez-en un nouveau.",
-  origin: "Le relais refuse cette page.",
-  unreachable: "Impossible de joindre le relais : vérifie ta connexion Internet.",
-  replaced: "Ce salon a été repris depuis un autre onglet.",
-  abuse: "Le relais a coupé la liaison (trop de messages)."
+  unknown: tr("Aucun salon sous ce code : vérifie-le, ou demande à ton ami d'en créer un.", "No lobby under that code: check it, or ask your friend to create one."),
+  full: tr("Ce salon est complet : deux joueurs y sont déjà.", "This lobby is full: two players are already in."),
+  taken: tr("Ce code est déjà pris.", "That code is already taken."),
+  expired: tr("Ce salon a expiré : créez-en un nouveau.", "This lobby has expired: create a new one."),
+  origin: tr("Le relais refuse cette page.", "The relay refuses this page."),
+  unreachable: tr("Impossible de joindre le relais : vérifie ta connexion Internet.", "Can't reach the relay: check your Internet connection."),
+  replaced: tr("Ce salon a été repris depuis un autre onglet.", "This lobby was taken over from another tab."),
+  abuse: tr("Le relais a coupé la liaison (trop de messages).", "The relay cut the link (too many messages).")
 };
 
 export class OnlineError extends Error {

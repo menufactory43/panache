@@ -128,7 +128,8 @@ import "./lobby.css";
 import { sfx } from "../game/audio";
 import { gameMode } from "../game/mode";
 import type { ModemStats } from "../link/modem/core";
-import { CAPTURE_OK_MS, RIG_ADVICE, RigError, type MicMode, type Rig, type RigErrorReason } from "../link/rig";
+import { CAPTURE_OK_MS, RigError, type MicMode, type Rig, type RigErrorReason } from "../link/rig";
+import { rigAdvice, rigMessage } from "./rig-text";
 import type { BandPlan, BandRole, LinkTransport } from "../link/transport";
 import { ROLES, UNITS } from "../sim/balance";
 import { displayName, pluralName } from "../sim/lexicon";
@@ -148,6 +149,7 @@ import { OnlineError, browserOnlineEnv, drawKey, hostRoom, inviteUrl, joinRoom, 
 import { DUEL_KEY, parseRematch, type RematchPlan } from "./records";
 import { RelayTransport } from "./relay-transport";
 import { PEER_HEARD_MS, RX_SILENT_MS, Session } from "./session";
+import { tr } from "../lang";
 
 export { openRig } from "../link/rig";
 
@@ -690,7 +692,7 @@ export class LobbyMachine {
     }
     if (p.phase === "failed") return { kind: "failed", message: p.error?.message ?? FAILED_MESSAGE };
     // (from this phone's GO on: the friend may have started on it, and the session says it has gone)
-    if (peerEnded && (p.go || this.step === "loading")) return { kind: "left", message: "Ton ami est parti" };
+    if (peerEnded && (p.go || this.step === "loading")) return { kind: "left", message: tr("Ton ami est parti", "Your friend left") };
     return null;
   }
 
@@ -935,12 +937,12 @@ const esc = (s: string): string => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;",
 export function tipsText(v: Pick<LobbyView, "practice" | "rematch"> & Partial<Pick<LobbyView, "online">>): string {
   if (v.online)
     return v.online.role === "host"
-      ? `Toujours personne ? Vérifie que ton ami a saisi le code ${v.online.code} (ou ouvert ton lien), et qu'il est en ligne.`
-      : "Toujours rien ? Ton ami a peut-être fermé son salon : demande-lui le code affiché sur son écran.";
-  if (v.practice === "loop") return "Toujours rien ? Recharge la page et touche Duel à nouveau.";
-  if (v.practice === "relay") return "Toujours rien ? Vérifie que l'autre page est dans le salon et que le relais relie les deux.";
-  const sound = "Toujours rien ? Monte le volume et coupe le mode silencieux. Débranche les écouteurs et coupe le Bluetooth. Garde les téléphones à 10–30 cm.";
-  return v.rematch ? sound : `${sound} Ou essaie la bande Basse sur l'hôte (Avancé).`;
+      ? tr(`Toujours personne ? Vérifie que ton ami a saisi le code ${v.online.code} (ou ouvert ton lien), et qu'il est en ligne.`, `Still nobody? Check that your friend has entered the code ${v.online.code} (or opened your link), and is online.`)
+      : tr("Toujours rien ? Ton ami a peut-être fermé son salon : demande-lui le code affiché sur son écran.", "Still nothing? Your friend may have closed their lobby: ask them for the code on their screen.");
+  if (v.practice === "loop") return tr("Toujours rien ? Recharge la page et touche Duel à nouveau.", "Still nothing? Reload the page and tap Duel again.");
+  if (v.practice === "relay") return tr("Toujours rien ? Vérifie que l'autre page est dans le salon et que le relais relie les deux.", "Still nothing? Check that the other page is in the lobby and that the relay links the two.");
+  const sound = tr("Toujours rien ? Monte le volume et coupe le mode silencieux. Débranche les écouteurs et coupe le Bluetooth. Garde les téléphones à 10–30 cm.", "Still nothing? Turn the volume up and switch silent mode off. Unplug headphones and switch Bluetooth off. Keep the phones 10–30 cm apart.");
+  return v.rematch ? sound : `${sound} ${tr("Ou essaie la bande Basse sur l'hôte (Avancé).", "Or try the Low band on the host (Advanced).")}`;
 }
 /**
  * The route warning. Band Low is advice only where it can be taken: not in a
@@ -948,21 +950,25 @@ export function tipsText(v: Pick<LobbyView, "practice" | "rematch"> & Partial<Pi
  * hosts on band Low already.
  */
 export function routeText(v: Pick<LobbyView, "rematch" | "role" | "prefs">): string {
-  const head = "Ce téléphone n'entend pas son propre signal : le son part peut-être vers l'écouteur ou le Bluetooth, ou il ne peut pas jouer cette bande.";
+  const head = tr("Ce téléphone n'entend pas son propre signal : le son part peut-être vers l'écouteur ou le Bluetooth, ou il ne peut pas jouer cette bande.", "This phone can't hear its own signal: the sound may be going to the earpiece or Bluetooth, or it can't play this band.");
   return v.rematch || (v.role === "host" && v.prefs.plan === "low")
-    ? `${head} Débranche les écouteurs ou monte le volume.`
-    : `${head} Débranche les écouteurs, monte le volume, ou passe l'hôte en bande Basse.`;
+    ? `${head} ${tr("Débranche les écouteurs ou monte le volume.", "Unplug the headphones or turn the volume up.")}`
+    : `${head} ${tr("Débranche les écouteurs, monte le volume, ou passe l'hôte en bande Basse.", "Unplug the headphones, turn the volume up, or switch the host to the Low band.")}`;
 }
-const QUIET_TEXT = "Le téléphone de ton ami s'est tu. Rapproche les téléphones, ou touche Annuler si ton ami est parti.";
-const QUIET_ONLINE = "Ton ami ne répond plus. Attends-le un instant, ou touche Annuler s'il est parti.";
+const QUIET_TEXT = tr("Le téléphone de ton ami s'est tu. Rapproche les téléphones, ou touche Annuler si ton ami est parti.", "Your friend's phone has gone quiet. Bring the phones closer, or tap Cancel if your friend has left.");
+const QUIET_ONLINE = tr("Ton ami ne répond plus. Attends-le un instant, ou touche Annuler s'il est parti.", "Your friend isn't responding. Give them a moment, or tap Cancel if they've left.");
 /** Under the online sheet's title. */
-const ONLINE_NOTE = "Par Internet, où que soit ton ami : l'un crée un salon, l'autre entre son code (ou ouvre le lien partagé).";
-const PLACEMENT =
-  "Pose les deux téléphones à plat, à 10–30 cm. Volume à environ 75 %, mode silencieux coupé. Sur iPhone, le son peut sortir de l'écouteur en haut : tourne les téléphones jusqu'à ce que les deux barres ci-dessous soient pleines.";
+const ONLINE_NOTE = tr("Par Internet, où que soit ton ami : l'un crée un salon, l'autre entre son code (ou ouvre le lien partagé).", "Over the Internet, wherever your friend is: one creates a lobby, the other enters its code (or opens the shared link).");
+const PLACEMENT = tr(
+  "Pose les deux téléphones à plat, à 10–30 cm. Volume à environ 75 %, mode silencieux coupé. Sur iPhone, le son peut sortir de l'écouteur en haut : tourne les téléphones jusqu'à ce que les deux barres ci-dessous soient pleines.",
+  "Lay both phones flat, 10–30 cm apart. Volume at about 75%, silent mode off. On an iPhone, the sound may come out of the earpiece at the top: turn the phones until both bars below are full."
+);
 
 /** Above every step of a sound link (not a practice link, which plays none), before any of it is heard. */
-const NOISE_WARNING =
-  "⚠️ <b>Attention : bruit désagréable.</b> La liaison sonore émet un sifflement aigu continu pendant toute la partie. Beaucoup le trouvent désagréable, et il peut même donner mal à la tête. Arrête si ça te gêne.";
+const NOISE_WARNING = tr(
+  "⚠️ <b>Attention : bruit désagréable.</b> La liaison sonore émet un sifflement aigu continu pendant toute la partie. Beaucoup le trouvent désagréable, et il peut même donner mal à la tête. Arrête si ça te gêne.",
+  "⚠️ <b>Warning: unpleasant noise.</b> The sound link emits a continuous high-pitched whistle for the whole match. Many find it unpleasant, and it can even cause headaches. Stop if it bothers you."
+);
 
 const iconUrl = (kind: string, side: Faction): string => `assets/icons/${side === "red" ? "red/" : ""}${kind}.webp`;
 
@@ -972,15 +978,15 @@ function mapLine(mapId: string, mutators: readonly MutatorId[]): string {
   const name = def.random ? `${esc(def.name)} <span class="duel-code">#${esc(def.random.code)}</span>` : esc(def.name);
   const muts = mutators.length
     ? mutators.map((id) => `<span class="duel-mut" title="${esc(MUTATORS[id].desc)}">${MUTATORS[id].icon} ${esc(MUTATORS[id].name)}</span>`).join("")
-    : `<span class="duel-mut none">Aucun mutateur</span>`;
+    : `<span class="duel-mut none">${tr("Aucun mutateur", "No mutators")}</span>`;
   return `<p class="duel-map"><b>🗺 ${name}</b></p><p class="duel-muts">${muts}</p>`;
 }
 
 /** The nations as the lobby names them, with a one-line identity (PANACHE-CONCEPTION.md §1.1). */
 const NATION_LABEL: Record<NationOrClassic, { name: string; line: string }> = {
-  classique: { name: "Classique", line: "Mêmes unités" },
-  republique: { name: "République", line: "Rapide, aérienne, électrique" },
-  empire: { name: "Empire", line: "Vapeur, acier, artillerie" }
+  classique: { name: tr("Classique", "Classic"), line: tr("Mêmes unités", "Same units") },
+  republique: { name: tr("République", "Republic"), line: tr("Rapide, aérienne, électrique", "Fast, aerial, electric") },
+  empire: { name: tr("Empire", "Empire"), line: tr("Vapeur, acier, artillerie", "Steam, steel, artillery") }
 };
 
 /** A nation's crest (public/assets/ui/crest-*.webp); Classique has a scale instead. */
@@ -1000,9 +1006,9 @@ export function nationPicker(v: Pick<LobbyView, "nation" | "rematch" | "isOnline
   const btn = (n: NationOrClassic) =>
     `<button class="duel-nat nat-${n}${v.nation === n ? " on" : ""}" data-act="nation" data-v="${n}" aria-pressed="${v.nation === n}">${crestHtml(n)}<b>${NATION_LABEL[n].name}</b><small>${NATION_LABEL[n].line}</small></button>`;
   return `<div class="duel-nation">
-      <p class="duel-lbl">Ta nation</p>
+      <p class="duel-lbl">${tr("Ta nation", "Your nation")}</p>
       <div class="duel-nats">${btn("republique")}${btn("empire")}${btn("classique")}</div>
-      <p class="duel-natnote">L'hôte décide : en Classique, les deux camps jouent Classique. Sinon chacun joue sa nation${v.nation === "classique" ? " (toi, celle qui affronte l'hôte)" : ""}.</p>
+      <p class="duel-natnote">${tr(`L'hôte décide : en Classique, les deux camps jouent Classique. Sinon chacun joue sa nation${v.nation === "classique" ? " (toi, celle qui affronte l'hôte)" : ""}.`, `The host decides: in Classic, both sides play Classic. Otherwise each plays their own nation${v.nation === "classique" ? " (you, the one facing the host)" : ""}.`)}</p>
     </div>`;
 }
 
@@ -1011,8 +1017,12 @@ export function myNationLine(v: Pick<LobbyView, "nation" | "role">): string {
   const n = v.nation;
   const what =
     v.role === "host"
-      ? n === "classique" ? "Partie Classique : les mêmes unités des deux côtés" : `Tu joues la <b>${NATION_LABEL[n].name}</b> · ton ami choisit la sienne`
-      : n === "classique" ? "Tu joueras la nation qui affronte celle de l'hôte" : `Tu demandes la <b>${NATION_LABEL[n].name}</b> (si l'hôte joue une nation)`;
+      ? n === "classique"
+        ? tr("Partie Classique : les mêmes unités des deux côtés", "Classic match: the same units on both sides")
+        : tr(`Tu joues la <b>${NATION_LABEL[n].name}</b> · ton ami choisit la sienne`, `You play the <b>${NATION_LABEL[n].name}</b> · your friend picks theirs`)
+      : n === "classique"
+        ? tr("Tu joueras la nation qui affronte celle de l'hôte", "You'll play the nation facing the host's")
+        : tr(`Tu demandes la <b>${NATION_LABEL[n].name}</b> (si l'hôte joue une nation)`, `You ask for the <b>${NATION_LABEL[n].name}</b> (if the host plays a nation)`);
   return `<p class="duel-nations">${crestHtml(n)}<span>${what}</span></p>`;
 }
 
@@ -1020,10 +1030,10 @@ export function myNationLine(v: Pick<LobbyView, "nation" | "role">): string {
 export function nationsLine(config: DuelConfig | null, side: Faction | null): string {
   const n = config ? configNations(config) : undefined;
   if (!config || !side) return "";
-  if (!n) return `<p class="duel-nations">${crestHtml("classique")}<span>Classique : les mêmes unités des deux côtés</span></p>`;
+  if (!n) return `<p class="duel-nations">${crestHtml("classique")}<span>${tr("Classique : les mêmes unités des deux côtés", "Classic: the same units on both sides")}</span></p>`;
   const mine = n[side]!;
   const theirs = n[side === "blue" ? "red" : "blue"]!;
-  return `<p class="duel-nations"><span class="dn-side">${crestHtml(mine)}<span>Toi : <b>${NATION_LABEL[mine].name}</b></span></span><span class="dn-vs">contre</span><span class="dn-side">${crestHtml(theirs)}<span>Ton ami : <b>${NATION_LABEL[theirs].name}</b></span></span></p>`;
+  return `<p class="duel-nations"><span class="dn-side">${crestHtml(mine)}<span>${tr("Toi", "You")}${tr(" :", ":")} <b>${NATION_LABEL[mine].name}</b></span></span><span class="dn-vs">${tr("contre", "vs")}</span><span class="dn-side">${crestHtml(theirs)}<span>${tr("Ton ami", "Your friend")}${tr(" :", ":")} <b>${NATION_LABEL[theirs].name}</b></span></span></p>`;
 }
 
 /**
@@ -1040,8 +1050,8 @@ export function openerGives(id: OpenerId, words: Words = CLASSIC): string {
   for (const [k, c] of counts) parts.push(`${c} ${c > 1 ? pluralName(k, n) : UNITS[k].name}`);
   const worker = words.kindFor("harvester");
   parts.push(`${o.harvesters} ${o.harvesters > 1 ? pluralName(worker, n) : UNITS[worker].name}`);
-  if (o.scrap > 0) parts.push(`+${o.scrap} charbon`);
-  if (o.scrap < 0) parts.push(`−${-o.scrap} charbon`);
+  if (o.scrap > 0) parts.push(tr(`+${o.scrap} charbon`, `+${o.scrap} coal`));
+  if (o.scrap < 0) parts.push(tr(`−${-o.scrap} charbon`, `−${-o.scrap} coal`));
   return parts.join(" · ");
 }
 
@@ -1090,10 +1100,10 @@ function meterHtml(v: LobbyView): string {
   const m = v.meter;
   if (!m) return "";
   if (v.step === "self-test")
-    return `<div class="duel-meter"><div class="dm-row"><span class="dm-l">Ce téléphone s'entend</span>${bar(m.rxq)}<span class="dm-v" data-m="rx"></span></div></div>`;
+    return `<div class="duel-meter"><div class="dm-row"><span class="dm-l">${tr("Ce téléphone s'entend", "This phone hears itself")}</span>${bar(m.rxq)}<span class="dm-v" data-m="rx"></span></div></div>`;
   return `<div class="duel-meter">
-      <div class="dm-row"><span class="dm-l">Tu entends ton ami</span>${bar(m.rxq)}<span class="dm-v" data-m="rx"></span></div>
-      <div class="dm-row"><span class="dm-l">Ton ami t'entend</span>${bar(m.peerRxq)}<span class="dm-v" data-m="tx"></span></div>
+      <div class="dm-row"><span class="dm-l">${tr("Tu entends ton ami", "You hear your friend")}</span>${bar(m.rxq)}<span class="dm-v" data-m="rx"></span></div>
+      <div class="dm-row"><span class="dm-l">${tr("Ton ami t'entend", "Your friend hears you")}</span>${bar(m.peerRxq)}<span class="dm-v" data-m="tx"></span></div>
       <p class="dm-rtt" data-m="rtt"></p>
     </div>`;
 }
@@ -1107,10 +1117,10 @@ function meterHtml(v: LobbyView): string {
 export function rttLine(v: Pick<LobbyView, "practice" | "pairing" | "meter">): string {
   if (v.practice === "loop") {
     const d = v.pairing?.config?.delay;
-    return d === undefined ? "Liaison d'entraînement" : `Liaison d'entraînement · délai d'entrée ${d * 100} ms`;
+    return d === undefined ? tr("Liaison d'entraînement", "Practice link") : tr(`Liaison d'entraînement · délai d'entrée ${d * 100} ms`, `Practice link · input delay ${d * 100} ms`);
   }
   const rtt = v.meter?.rttMs ?? null;
-  return rtt === null ? "Aller-retour : mesure…" : `Aller-retour ${Math.round(rtt)} ms`;
+  return rtt === null ? tr("Aller-retour : mesure…", "Round trip: measuring…") : tr(`Aller-retour ${Math.round(rtt)} ms`, `Round trip ${Math.round(rtt)} ms`);
 }
 
 /** The online duel's line in place of the sound meter: the relay, the friend in the room, the round trip. */
@@ -1121,12 +1131,12 @@ function onlineHtml(v: LobbyView): string {
 /** That line's words. */
 export function onlineLine(v: Pick<LobbyView, "online" | "meter" | "practice" | "pairing">): string {
   const o = v.online;
-  if (!o) return "🌐 Connexion au relais…";
-  if (o.state === "closed") return "🌐 Hors ligne";
-  if (o.state !== "open") return "🌐 Relais : reconnexion…";
-  const friend = o.peer ? "ton ami est là" : o.peerGoneMs !== null ? "ton ami s'est déconnecté" : "ton ami n'est pas encore là";
+  if (!o) return tr("🌐 Connexion au relais…", "🌐 Connecting to the relay…");
+  if (o.state === "closed") return tr("🌐 Hors ligne", "🌐 Offline");
+  if (o.state !== "open") return tr("🌐 Relais : reconnexion…", "🌐 Relay: reconnecting…");
+  const friend = o.peer ? tr("ton ami est là", "your friend is here") : o.peerGoneMs !== null ? tr("ton ami s'est déconnecté", "your friend disconnected") : tr("ton ami n'est pas encore là", "your friend isn't here yet");
   const rtt = v.meter?.rttMs ?? null;
-  return `🌐 Salon ${o.code} · ${friend}${o.peer && rtt !== null ? ` · aller-retour ${Math.round(rtt)} ms` : ""}`;
+  return tr(`🌐 Salon ${o.code} · ${friend}${o.peer && rtt !== null ? ` · aller-retour ${Math.round(rtt)} ms` : ""}`, `🌐 Lobby ${o.code} · ${friend}${o.peer && rtt !== null ? ` · round trip ${Math.round(rtt)} ms` : ""}`);
 }
 
 /** The meter's numbers and bars, every frame. */
@@ -1142,7 +1152,7 @@ function fillMeter(root: HTMLElement, v: LobbyView): void {
     const el = root.querySelector<HTMLElement>(`[data-m="${k}"]`);
     if (el && el.textContent !== text) el.textContent = text;
   };
-  set("rx", `${m.snrDb === null ? "–" : `${Math.round(m.snrDb)} dB`} · ${m.good} bons`);
+  set("rx", `${m.snrDb === null ? "–" : `${Math.round(m.snrDb)} dB`} · ${m.good} ${tr("bons", "good")}`);
   set("tx", m.peerRxq === null ? "–" : `${m.peerRxq * 3}+ dB`);
   set("rtt", rttLine(v));
   const bars = root.querySelectorAll<HTMLElement>(".dm-bar");
@@ -1178,42 +1188,42 @@ export interface OnlineSheet {
 
 /** The online duel's steps where they differ from the sound's: choosing, connecting, waiting in the room. */
 function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: string } | null {
-  const cancel = `<button class="cta alt" data-act="cancel">Annuler</button>`;
-  const back = v.canBack ? `<button class="cta alt" data-act="back">Retour</button>` : "";
+  const cancel = `<button class="cta alt" data-act="cancel">${tr("Annuler", "Cancel")}</button>`;
+  const back = v.canBack ? `<button class="cta alt" data-act="back">${tr("Retour", "Back")}</button>` : "";
   const o = v.online;
   switch (v.step) {
     case "choose": {
       const linked = sheet.linked;
-      const bad = sheet.badCode ? `<p class="duel-err">Un code, ce sont 4 lettres.</p>` : "";
+      const bad = sheet.badCode ? `<p class="duel-err">${tr("Un code, ce sont 4 lettres.", "A code is 4 letters.")}</p>` : "";
       const join = `<div class="duel-join">
-          <p class="duel-lbl">${linked ? "Ton ami t'invite" : "Rejoindre avec un code"}</p>
-          <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="Code du salon" value="${esc(sheet.typed ?? linked ?? "")}"/><button class="cta" data-act="join">Rejoindre</button></div>
+          <p class="duel-lbl">${linked ? tr("Ton ami t'invite", "Your friend invites you") : tr("Rejoindre avec un code", "Join with a code")}</p>
+          <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="${tr("Code du salon", "Lobby code")}" value="${esc(sheet.typed ?? linked ?? "")}"/><button class="cta" data-act="join">${tr("Rejoindre", "Join")}</button></div>
           ${bad}
         </div>`;
-      const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>🏛 Créer un salon</b><small>Ta carte et tes mutateurs · un code à partager</small></button></div>`;
+      const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>${tr("🏛 Créer un salon", "🏛 Create a lobby")}</b><small>${tr("Ta carte et tes mutateurs · un code à partager", "Your map and your mutators · a code to share")}</small></button></div>`;
       return {
-        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${linked ? join + `<p class="duel-or">ou</p>` + create : create + `<p class="duel-or">ou</p>` + join}`,
+        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${linked ? join + `<p class="duel-or">${tr("ou", "or")}</p>` + create : create + `<p class="duel-or">${tr("ou", "or")}</p>` + join}`,
         actions: cancel
       };
     }
     case "connecting":
-      return { body: `<p class="duel-status">${v.role === "host" ? "Création du salon…" : "Connexion au salon…"}</p>`, actions: cancel };
+      return { body: `<p class="duel-status">${v.role === "host" ? tr("Création du salon…", "Creating the lobby…") : tr("Connexion au salon…", "Joining the lobby…")}</p>`, actions: cancel };
     case "pairing": {
       const quiet = v.quiet ? `<p class="duel-hint">${QUIET_ONLINE}</p>` : "";
       const tips = v.tips ? `<p class="duel-hint">${tipsText(v)}</p>` : "";
       if (v.role === "host") {
-        const status = v.pairing?.phase === "linking" || o?.peer ? "Ton ami est là. Appairage…" : v.rematch ? "En attente que ton ami touche Revanche…" : "En attente de ton ami…";
+        const status = v.pairing?.phase === "linking" || o?.peer ? tr("Ton ami est là. Appairage…", "Your friend is here. Pairing…") : v.rematch ? tr("En attente que ton ami touche Revanche…", "Waiting for your friend to tap Rematch…") : tr("En attente de ton ami…", "Waiting for your friend…");
         return {
-          body: `<p class="duel-lbl duel-codelbl">Code du salon</p>
+          body: `<p class="duel-lbl duel-codelbl">${tr("Code du salon", "Lobby code")}</p>
             <p class="duel-bigcode" data-code="${esc(o?.code ?? "")}">${esc(o?.code ?? "····")}</p>
-            <div class="duel-share"><button class="cta" data-act="share">🔗 Partager le lien</button><button class="cta alt" data-act="copy">Copier</button></div>
-            <p class="duel-copied" hidden>Lien copié</p>
+            <div class="duel-share"><button class="cta" data-act="share">${tr("🔗 Partager le lien", "🔗 Share the link")}</button><button class="cta alt" data-act="copy">${tr("Copier", "Copy")}</button></div>
+            <p class="duel-copied" hidden>${tr("Lien copié", "Link copied")}</p>
             <p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`,
           actions: back + cancel
         };
       }
-      const status = v.pairing?.phase === "linking" || o?.peer ? "Ton ami est là. Appairage…" : v.rematch ? "En attente que ton ami touche Revanche…" : "En attente de l'hôte…";
-      return { body: `<p class="duel-lbl duel-codelbl">Salon</p><p class="duel-bigcode small">${esc(o?.code ?? "")}</p><p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`, actions: back + cancel };
+      const status = v.pairing?.phase === "linking" || o?.peer ? tr("Ton ami est là. Appairage…", "Your friend is here. Pairing…") : v.rematch ? tr("En attente que ton ami touche Revanche…", "Waiting for your friend to tap Rematch…") : tr("En attente de l'hôte…", "Waiting for the host…");
+      return { body: `<p class="duel-lbl duel-codelbl">${tr("Salon", "Lobby")}</p><p class="duel-bigcode small">${esc(o?.code ?? "")}</p><p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`, actions: back + cancel };
     }
     default:
       return null;
@@ -1225,36 +1235,36 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
     const own = onlineBody(v, sheet);
     if (own) return own;
   }
-  const cancel = `<button class="cta alt" data-act="cancel">Annuler</button>`;
-  const back = v.canBack ? `<button class="cta alt" data-act="back">Retour</button>` : "";
+  const cancel = `<button class="cta alt" data-act="cancel">${tr("Annuler", "Cancel")}</button>`;
+  const back = v.canBack ? `<button class="cta alt" data-act="back">${tr("Retour", "Back")}</button>` : "";
   const notes: string[] = [];
-  if (v.noWakeLock && (v.step === "choose" || v.step === "pairing")) notes.push(`<p class="sh-note">Règle le verrouillage auto sur Jamais : ce téléphone ne peut pas garder l'écran allumé tout seul.</p>`);
+  if (v.noWakeLock && (v.step === "choose" || v.step === "pairing")) notes.push(`<p class="sh-note">${tr("Règle le verrouillage auto sur Jamais : ce téléphone ne peut pas garder l'écran allumé tout seul.", "Set auto-lock to Never: this phone can't keep the screen on by itself.")}</p>`);
   if (v.lost && v.step !== "error")
-    notes.push(`<div class="duel-warn"><p>La liaison sonore s'est arrêtée.</p><button class="cta" data-act="tap">Touche pour reconnecter la liaison sonore</button></div>`);
+    notes.push(`<div class="duel-warn"><p>${tr("La liaison sonore s'est arrêtée.", "The sound link has stopped.")}</p><button class="cta" data-act="tap">${tr("Touche pour reconnecter la liaison sonore", "Tap to reconnect the sound link")}</button></div>`);
   if (v.route) notes.push(`<p class="duel-warn">${routeText(v)}</p>`);
-  if (v.loud) notes.push(`<p class="sh-note">Ton propre signal est fort ici : ce téléphone émet maintenant un peu moins fort.</p>`);
+  if (v.loud) notes.push(`<p class="sh-note">${tr("Ton propre signal est fort ici : ce téléphone émet maintenant un peu moins fort.", "Your own signal is strong here: this phone is now transmitting a little quieter.")}</p>`);
   const quiet = v.quiet ? `<p class="duel-hint">${QUIET_TEXT}</p>` : "";
   const p = v.pairing;
   switch (v.step) {
     case "opening":
-      return { body: `<p class="duel-status">Démarrage du micro… Autorise-le si demandé.</p>`, actions: cancel };
+      return { body: `<p class="duel-status">${tr("Démarrage du micro… Autorise-le si demandé.", "Starting the microphone… Allow it if asked.")}</p>`, actions: cancel };
     case "tap-to-start":
-      return { body: `<button class="cta big duel-tap" data-act="tap">Touche pour lancer le son</button>`, actions: cancel };
+      return { body: `<button class="cta big duel-tap" data-act="tap">${tr("Touche pour lancer le son", "Tap to start the sound")}</button>`, actions: cancel };
     case "choose": {
       const plan = v.prefs.plan;
       const mic = v.prefs.micMode;
-      const adv = `<details class="duel-adv"${advOpen ? " open" : ""}><summary>Avancé</summary>
-          <p class="duel-lbl">Bande <small>(hôte uniquement)</small></p>
-          <div class="seg"><button data-act="plan" data-v="high" class="${plan === "high" ? "on" : ""}">Haute · discrète</button><button data-act="plan" data-v="low" class="${plan === "low" ? "on" : ""}">Basse · audible</button></div>
-          ${v.practice ? "" : `<p class="duel-lbl">Micro</p>
-          <div class="seg"><button data-act="mic" data-v="raw" class="${mic === "raw" ? "on" : ""}">Brut</button><button data-act="mic" data-v="ec" class="${mic === "ec" ? "on" : ""}">Anti-écho</button></div>
-          <button class="cta alt" data-act="selftest">Auto-test : ce téléphone s'écoute</button>`}
+      const adv = `<details class="duel-adv"${advOpen ? " open" : ""}><summary>${tr("Avancé", "Advanced")}</summary>
+          <p class="duel-lbl">${tr("Bande <small>(hôte uniquement)</small>", "Band <small>(host only)</small>")}</p>
+          <div class="seg"><button data-act="plan" data-v="high" class="${plan === "high" ? "on" : ""}">${tr("Haute · discrète", "High · discreet")}</button><button data-act="plan" data-v="low" class="${plan === "low" ? "on" : ""}">${tr("Basse · audible", "Low · audible")}</button></div>
+          ${v.practice ? "" : `<p class="duel-lbl">${tr("Micro", "Microphone")}</p>
+          <div class="seg"><button data-act="mic" data-v="raw" class="${mic === "raw" ? "on" : ""}">${tr("Brut", "Raw")}</button><button data-act="mic" data-v="ec" class="${mic === "ec" ? "on" : ""}">${tr("Anti-écho", "Echo cancel")}</button></div>
+          <button class="cta alt" data-act="selftest">${tr("Auto-test : ce téléphone s'écoute", "Self-test: this phone listens to itself")}</button>`}
         </details>`;
       return {
         body: `<p class="sh-sub duel-place">${PLACEMENT}</p>
           <div class="duel-roles">
-            <button class="duel-role" data-act="host"><b>📡 Héberger</b><small>Ta carte et tes mutateurs</small></button>
-            <button class="duel-role" data-act="join"><b>📲 Rejoindre</b><small>Ton ami héberge</small></button>
+            <button class="duel-role" data-act="host"><b>${tr("📡 Héberger", "📡 Host")}</b><small>${tr("Ta carte et tes mutateurs", "Your map and your mutators")}</small></button>
+            <button class="duel-role" data-act="join"><b>${tr("📲 Rejoindre", "📲 Join")}</b><small>${tr("Ton ami héberge", "Your friend hosts")}</small></button>
           </div>
           ${nationPicker(v)}
           ${notes.join("")}${adv}`,
@@ -1262,23 +1272,23 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
       };
     }
     case "connecting":
-      return { body: `<p class="duel-status">Démarrage de la liaison sonore…</p>`, actions: cancel };
+      return { body: `<p class="duel-status">${tr("Démarrage de la liaison sonore…", "Starting the sound link…")}</p>`, actions: cancel };
     case "self-test":
       return {
-        body: `<p class="duel-status">Auto-test : ce téléphone écoute son propre signal. De bons paquets = toute la liaison fonctionne ici.</p>${meterHtml(v)}${notes.join("")}`,
+        body: `<p class="duel-status">${tr("Auto-test : ce téléphone écoute son propre signal. De bons paquets = toute la liaison fonctionne ici.", "Self-test: this phone listens to its own signal. Good packets = the whole link works here.")}</p>${meterHtml(v)}${notes.join("")}`,
         actions: back + cancel
       };
     case "pairing": {
       const heard = p?.phase === "linking";
       const status = heard
-        ? "Le téléphone de ton ami est là. Liaison…"
+        ? tr("Le téléphone de ton ami est là. Liaison…", "Your friend's phone is here. Linking…")
         : v.rematch
-          ? "En attente que ton ami touche Revanche…"
+          ? tr("En attente que ton ami touche Revanche…", "Waiting for your friend to tap Rematch…")
           : v.role === "host"
-            ? "Tu héberges. En attente que ton ami touche Rejoindre…"
-            : "À l'écoute du téléphone de ton ami (l'hôte)…";
+            ? tr("Tu héberges. En attente que ton ami touche Rejoindre…", "You're hosting. Waiting for your friend to tap Join…")
+            : tr("À l'écoute du téléphone de ton ami (l'hôte)…", "Listening for your friend's phone (the host)…");
       const hint = v.switchRole
-        ? `<div class="duel-hint"><p>${NOTHING_HEARD_MESSAGE}.</p><button class="cta alt" data-act="switch">Passer à ${v.role === "host" ? "Rejoindre" : "Héberger"}</button></div>`
+        ? `<div class="duel-hint"><p>${NOTHING_HEARD_MESSAGE}.</p><button class="cta alt" data-act="switch">${tr(`Passer à ${v.role === "host" ? "Rejoindre" : "Héberger"}`, `Switch to ${v.role === "host" ? "Join" : "Host"}`)}</button></div>`
         : "";
       const tips = v.tips ? `<p class="duel-hint">${tipsText(v)}</p>` : "";
       return {
@@ -1295,17 +1305,17 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
       const words = nations ? lobbyWords(nations[side]!, nations[side === "blue" ? "red" : "blue"]!) : CLASSIC;
       const cards = offered.length
         ? `<div class="duel-cards${picked ? " chosen" : ""}">${offered.map((id) => openerCard(id, side, picked && p?.pick === id, words)).join("")}</div>`
-        : `<p class="duel-status">Aucune ouverture n'est permise avec ces règles.</p>`;
-      const head = picked ? `<p class="duel-status">En attente du choix de ton ami…</p>` : `<h3>Choisis ton ouverture <small data-m="pickleft"></small></h3>`;
+        : `<p class="duel-status">${tr("Aucune ouverture n'est permise avec ces règles.", "No opening is allowed under these rules.")}</p>`;
+      const head = picked ? `<p class="duel-status">${tr("En attente du choix de ton ami…", "Waiting for your friend's choice…")}</p>` : `<h3>${tr("Choisis ton ouverture", "Choose your opening")} <small data-m="pickleft"></small></h3>`;
       return {
-        body: `<p class="duel-paired">✓ Appairés · tu joues <b class="duel-side ${side}">${side === "red" ? "rouge" : "bleu"}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${nationsLine(p?.config ?? null, p?.side ?? null)}${head}${quiet}${cards}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`,
+        body: `<p class="duel-paired">${tr("✓ Appairés · tu joues", "✓ Paired · you play")} <b class="duel-side ${side}">${side === "red" ? tr("rouge", "red") : tr("bleu", "blue")}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${nationsLine(p?.config ?? null, p?.side ?? null)}${head}${quiet}${cards}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`,
         actions: back + cancel
       };
     }
     case "go":
-      return { body: `<p class="duel-go">GO !</p><p class="duel-status">En attente de ton ami…</p>${quiet}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
+      return { body: `<p class="duel-go">${tr("GO !", "GO!")}</p><p class="duel-status">${tr("En attente de ton ami…", "Waiting for your friend…")}</p>${quiet}${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
     case "loading":
-      return { body: `<p class="duel-go">GO !</p><p class="duel-status">Lancement de la partie…</p>${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
+      return { body: `<p class="duel-go">${tr("GO !", "GO!")}</p><p class="duel-status">${tr("Lancement de la partie…", "Starting the match…")}</p>${v.isOnline ? onlineHtml(v) : meterHtml(v)}${notes.join("")}`, actions: cancel };
     case "error":
       return errorHtml(v);
     default:
@@ -1315,20 +1325,20 @@ function bodyHtml(v: LobbyView, advOpen: boolean, sheet: OnlineSheet = { linked:
 
 function errorHtml(v: LobbyView): { body: string; actions: string } {
   const e = v.error;
-  const close = `<button class="cta alt" data-act="cancel">Fermer</button>`;
+  const close = `<button class="cta alt" data-act="cancel">${tr("Fermer", "Close")}</button>`;
   if (!e) return { body: "", actions: close };
-  const reload = `<button class="cta" data-act="reload">Recharger</button>`;
+  const reload = `<button class="cta" data-act="reload">${tr("Recharger", "Reload")}</button>`;
   switch (e.kind) {
     case "failed":
-      return { body: `<button class="cta big duel-tap" data-act="retry">${esc(e.message)}</button>`, actions: `<button class="cta alt" data-act="cancel">Annuler</button>` };
+      return { body: `<button class="cta big duel-tap" data-act="retry">${esc(rigMessage(undefined, e.message))}</button>`, actions: `<button class="cta alt" data-act="cancel">${tr("Annuler", "Cancel")}</button>` };
     case "version": {
-      const who = e.older === "this" ? "Ce téléphone a l'ancienne version." : e.older === "friend" ? "Le téléphone de ton ami a l'ancienne version." : "";
+      const who = e.older === "this" ? tr("Ce téléphone a l'ancienne version.", "This phone has the older version.") : e.older === "friend" ? tr("Le téléphone de ton ami a l'ancienne version.", "Your friend's phone has the older version.") : "";
       return { body: `<p class="duel-err">${esc(e.message)}</p>${who ? `<p class="sh-note">${who}</p>` : ""}`, actions: close + reload };
     }
     case "rig": {
-      const advice = e.reason ? RIG_ADVICE[e.reason] ?? "" : "";
+      const advice = e.reason ? rigAdvice(e.reason) ?? "" : "";
       return {
-        body: `<p class="duel-err">${esc(e.message)}</p>${advice ? `<p class="sh-note">${advice}</p>` : ""}`,
+        body: `<p class="duel-err">${esc(rigMessage(e.reason, e.message))}</p>${advice ? `<p class="sh-note">${advice}</p>` : ""}`,
         actions: e.reason === "update" ? close + reload : close
       };
     }
@@ -1340,11 +1350,11 @@ function errorHtml(v: LobbyView): { body: string; actions: string } {
       return { body: `<p class="duel-err">${esc(e.message)}</p>`, actions: close };
     case "modem":
       return {
-        body: `<p class="duel-err">La liaison sonore ne fonctionne plus.</p><p class="sh-note">Ferme, puis touche Duel pour la relancer. (${esc(e.message)})</p>`,
+        body: `<p class="duel-err">${tr("La liaison sonore ne fonctionne plus.", "The sound link has stopped working.")}</p><p class="sh-note">${tr("Ferme, puis touche Duel pour la relancer.", "Close, then tap Duel to restart it.")} (${esc(e.message)})</p>`,
         actions: close + reload
       };
     default:
-      return { body: `<p class="duel-err">Un problème est survenu : ${esc(e.message)}</p>`, actions: close };
+      return { body: `<p class="duel-err">${tr("Un problème est survenu", "Something went wrong")}${tr(" :", ":")} ${esc(e.message)}</p>`, actions: close };
   }
 }
 
@@ -1371,9 +1381,9 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   o.host.querySelector(".duel-wrap")?.remove();
   const wrap = document.createElement("div");
   wrap.className = "sheet-wrap duel-wrap";
-  wrap.innerHTML = `<div class="sheet duelsheet" role="dialog" aria-label="Défier un ami">
-      <h2>${online ? "🌐" : "🔊"} ${rematch ? "Revanche" : online ? "Défier un ami (en ligne)" : "Défier un ami"}</h2>
-      ${online ? "" : practice ? `<p class="duel-practice">Liaison d'entraînement (sans son) : ${practice === "loop" ? "un ami dans la page" : "le relais"}</p>` : `<p class="duel-noise" role="note">${NOISE_WARNING}</p>`}
+  wrap.innerHTML = `<div class="sheet duelsheet" role="dialog" aria-label="${tr("Défier un ami", "Challenge a friend")}">
+      <h2>${online ? "🌐" : "🔊"} ${rematch ? tr("Revanche", "Rematch") : online ? tr("Défier un ami (en ligne)", "Challenge a friend (online)") : tr("Défier un ami", "Challenge a friend")}</h2>
+      ${online ? "" : practice ? `<p class="duel-practice">${tr(`Liaison d'entraînement (sans son) : ${practice === "loop" ? "un ami dans la page" : "le relais"}`, `Practice link (no sound): ${practice === "loop" ? "a friend in the page" : "the relay"}`)}</p>` : `<p class="duel-noise" role="note">${NOISE_WARNING}</p>`}
       <div class="duel-body"></div>
       <div class="sh-actions duel-actions"></div>
     </div>`;
@@ -1558,7 +1568,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     const copied = body.querySelector<HTMLElement>(".duel-copied");
     if (share && typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: "Panache : un duel ?", text: `Viens m'affronter dans Panache ! Code du salon : ${code}`, url });
+        await navigator.share({ title: tr("Panache : un duel ?", "Panache: a duel?"), text: tr(`Viens m'affronter dans Panache ! Code du salon : ${code}`, `Come and face me in Panache! Lobby code: ${code}`), url });
         return;
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") return;
@@ -1573,7 +1583,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     }
     if (copied) {
       copied.hidden = false;
-      copied.textContent = ok ? "Lien copié : envoie-le à ton ami" : url;
+      copied.textContent = ok ? tr("Lien copié : envoie-le à ton ami", "Link copied: send it to your friend") : url;
     }
   };
   if (online) {
