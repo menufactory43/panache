@@ -15,6 +15,7 @@
  * HUD stays one file other features can extend.
  */
 import type { Rect } from "../game/awareness";
+import { tr } from "../lang";
 
 export interface ArrowSpec {
   key: string;
@@ -109,7 +110,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   const speed = document.createElement("button");
   speed.id = "speed";
   speed.className = "speed";
-  speed.title = "Vitesse (.) : maintiens l'horloge pour accélérer";
+  speed.title = tr("Vitesse (.) : maintiens l'horloge pour accélérer", "Speed (.): hold the clock to speed up");
   speed.textContent = "1×";
   // the clock and its speed chip share one row (pills added next to the clock land in it too)
   const tempo = document.createElement("div");
@@ -124,7 +125,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   let pid: number | null = null;
   if (clock && !h.fixedSpeed) {
     clock.classList.add("holdable");
-    clock.title = "Maintiens pour accélérer (3×)";
+    clock.title = tr("Maintiens pour accélérer (3×)", "Hold to speed up (3×)");
     const release = () => {
       if (pid === null) return;
       pid = null;
@@ -153,7 +154,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   const meter = document.createElement("div");
   meter.className = "bmeter";
   meter.hidden = true;
-  meter.innerHTML = `<span class="bm-side bm-own">${h.spectator ? "B" : "Toi"}</span><span class="bm-bar"><i class="bm-fill"></i><i class="bm-knob"></i></span><span class="bm-side bm-foe">${h.spectator ? "R" : "Ennemi"}</span><span class="bm-tp"></span>`;
+  meter.innerHTML = `<span class="bm-side bm-own">${h.spectator ? tr("B", "B") : tr("Toi", "You")}</span><span class="bm-bar"><i class="bm-fill"></i><i class="bm-knob"></i></span><span class="bm-side bm-foe">${h.spectator ? tr("R", "R") : tr("Ennemi", "Enemy")}</span><span class="bm-tp"></span>`;
   root.querySelector(".topbar")?.appendChild(meter);
   const fill = meter.querySelector<HTMLElement>(".bm-fill")!;
   const knob = meter.querySelector<HTMLElement>(".bm-knob")!;
@@ -179,7 +180,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   // ------------------------------------------------------------- jump ---
   const jump = document.createElement("button");
   jump.className = "zb jump";
-  jump.title = "Aller à l'action (J)";
+  jump.title = tr("Aller à l'action (J)", "Go to the action (J)");
   jump.innerHTML = `<span class="ji">⚡</span><span class="jdot" hidden></span>`;
   root.querySelector(".zoombtns")?.appendChild(jump);
   jump.addEventListener("click", () => h.onJump());
@@ -275,7 +276,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
       meter.classList.toggle("losing", share <= 0.4);
     },
     turning(dir) {
-      tp.textContent = "Tournant !";
+      tp.textContent = tr("Tournant !", "Turning point!");
       // spectators have no side: the swing is news, not good or bad
       tp.className = `bm-tp ${h.spectator ? "neutral" : dir}`;
       void tp.offsetWidth;

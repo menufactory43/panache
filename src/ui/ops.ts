@@ -35,6 +35,7 @@ import { campaignCompleted, loadCareer, opUnlocked, opsCompleted, settlementOf, 
 import { addReportSection, type ReportContext, type ReportOpts } from "./report";
 import { pickMode } from "../game/mode";
 import { fullscreen } from "./fullscreen";
+import { tr } from "../lang";
 
 /**
  * Ops UI: the menu's op cards and briefing sheet, the in-match goal pill
@@ -48,11 +49,11 @@ const STAR_KEYS = ["★", "★★", "★★★"];
 
 /** "vs Rush · Hard", "Last Stand waves", "no enemy commander". */
 export function enemyLine(op: OpDef): string {
-  if (op.ai === "survival") return op.nations ? `vagues de ${NATIONS[op.nations.enemy].name}` : "vagues de Survie";
-  if (!op.ai) return "une garnison statique";
+  if (op.ai === "survival") return op.nations ? tr(`vagues de ${NATIONS[op.nations.enemy].name}`, `waves of ${NATIONS[op.nations.enemy].name}`) : tr("vagues de Survie", "Last Stand waves");
+  if (!op.ai) return tr("une garnison statique", "a static garrison");
   const name = PERSONALITIES[op.ai.strategy].label;
   const who = op.nations ? `${NATIONS[op.nations.enemy].name} (${name})` : name;
-  return `contre ${who} · ${DIFFICULTY[op.ai.difficulty].label}`;
+  return tr(`contre ${who} · ${DIFFICULTY[op.ai.difficulty].label}`, `vs ${who} · ${DIFFICULTY[op.ai.difficulty].label}`);
 }
 
 /** "★★☆" for a star mask. */
@@ -60,7 +61,7 @@ const starRow = (mask: number) => [1, 2, 4].map((b) => (mask & b ? "★" : "☆"
 
 /** Star conditions as list items: what each star needs (and which you hold). */
 function starListHtml(op: OpDef, mask: number, live?: OpStatus): string {
-  const rows: { text: string; cls: string }[] = [{ text: isCampaignOp(op) ? "Réussir la mission" : "Réussir l'épreuve", cls: mask & 1 ? "got" : "" }];
+  const rows: { text: string; cls: string }[] = [{ text: isCampaignOp(op) ? tr("Réussir la mission", "Complete the mission") : tr("Réussir l'épreuve", "Complete the trial"), cls: mask & 1 ? "got" : "" }];
   op.stars.forEach((g, i) => {
     const bit = 2 << i;
     const e = live?.stars[i]?.eval;
@@ -125,7 +126,7 @@ export function unlockNames(u: CampaignUnlock): string {
     ...(u.buildings ?? []).filter((k) => k !== "hq").map((k) => displayName(k, u.nation)),
     ...(u.powers ?? []).map((p) => POWER_NAMES[p])
   ];
-  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")}${tr(" et ", " and ")}${names[names.length - 1]}`;
 }
 
 /** Rules line for the briefing: the op's own bans, frozen income, mutators. */
@@ -133,25 +134,27 @@ function rulesNote(op: OpDef): string {
   const bits: string[] = [];
   const bans = op.rules?.playerBans;
   const nat = op.nations?.player;
-  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push("⛔ Aucune production");
+  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push(tr("⛔ Aucune production", "⛔ No production"));
   else {
-    if (bans?.buildings?.length) bits.push(`⛔ Interdits : ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`);
+    if (bans?.buildings?.length) bits.push(tr(`⛔ Interdits : ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`, `⛔ Banned: ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`));
     if (bans?.units?.length) {
       const ground = bans.units.filter((k) => UNITS[k].domain === "ground" && UNITS[k].dps > 0).length >= 4;
       const named = bans.units.filter((k) => !ground || !(UNITS[k].domain === "ground" && UNITS[k].dps > 0)).map((k) => pluralName(k, nat));
-      bits.push(`⛔ Interdits : ${[...(ground ? ["unités terrestres"] : []), ...named].join(", ")}`);
+      bits.push(tr(`⛔ Interdits : ${[...(ground ? ["unités terrestres"] : []), ...named].join(", ")}`, `⛔ Banned: ${[...(ground ? ["ground units"] : []), ...named].join(", ")}`));
     }
   }
-  if (op.rules?.playerIncome === 0) bits.push("❄ Aucun revenu");
-  if (op.rules?.calldowns === false) bits.push("⚡ Aucun appui");
+  if (op.rules?.playerIncome === 0) bits.push(tr("❄ Aucun revenu", "❄ No income"));
+  if (op.rules?.calldowns === false) bits.push(tr("⚡ Aucun appui", "⚡ No calldowns"));
   for (const id of op.rules?.mutators ?? []) bits.push(`${MUTATORS[id].icon} ${MUTATORS[id].name}`);
   return bits.join(" · ");
 }
 
 /** « Tu joues la République » / « Tu joues l'Empire de Carbonie (le Maréchal Mâchefer) ». */
 function sideLine(op: OpDef): string {
-  if (!op.nations) return "Classique";
-  return op.nations.player === "empire" ? "Tu joues l'Empire de Carbonie — le Maréchal Mâchefer" : "Tu joues la République — Capitaine Valmont";
+  if (!op.nations) return tr("Classique", "Classic");
+  return op.nations.player === "empire"
+    ? tr("Tu joues l'Empire de Carbonie — le Maréchal Mâchefer", "You play the Empire of Carbonia — Marshal Mâchefer")
+    : tr("Tu joues la République — Capitaine Valmont", "You play the Republic — Captain Valmont");
 }
 
 // ---------------------------------------------------------------- in match ---
@@ -216,7 +219,7 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
   card.addEventListener("click", closeCard);
 
   const cardHtml = (st: OpStatus) => `
-    <div class="oi-head"><em>${op.icon}</em><b>${esc(op.title)}</b><span>${isCampaignOp(op) ? "Mission" : "Épreuve"} ${opIndex(op.id) + 1}</span></div>
+    <div class="oi-head"><em>${op.icon}</em><b>${esc(op.title)}</b><span>${isCampaignOp(op) ? tr("Mission", "Mission") : tr("Épreuve", "Trial")} ${opIndex(op.id) + 1}</span></div>
     ${goalListHtml(op, st)}
     ${starListHtml(op, 0, st)}`;
   function renderCard(): void {
@@ -233,15 +236,15 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
     let label = main.eval.label;
     let value = main.eval.value;
     if (main.goal.type === "destroyHq") {
-      label = op.nations?.enemy === "empire" ? "Détruire la Citadelle" : "Détruire le GQG";
+      label = op.nations?.enemy === "empire" ? tr("Détruire la Citadelle", "Destroy the Citadel") : tr("Détruire le GQG", "Destroy the GHQ");
       value = timer ? timer.eval.value : main.eval.value;
     }
     const others = st.goals.filter((g) => g !== main && !(main.goal.type === "destroyHq" && g === timer)).map((g) => compact(g.goal, g.eval));
     if (main.goal.type === "destroyHq") {
       // their HQ's health, once we have seen it
       const known = [...w.fog[w.ops!.player].known.values()].some((b) => b.kind === "hq" && b.faction === w.ops!.enemy);
-      const hqName = op.nations?.enemy === "empire" ? "Citadelle" : "GQG";
-      others.unshift(known ? `${hqName} ${main.eval.value}` : `${hqName} non repérée`.replace("GQG non repérée", "GQG non repéré"));
+      const hqName = op.nations?.enemy === "empire" ? tr("Citadelle", "Citadel") : tr("GQG", "GHQ");
+      others.unshift(known ? `${hqName} ${main.eval.value}` : tr(`${hqName} non repérée`.replace("GQG non repérée", "GQG non repéré"), `${hqName} not spotted`));
     }
     // nothing else to track: show the star conditions' progress instead
     if (others.length === 0) for (const g of st.stars) if (g.eval.state !== "failed") others.push(compact(g.goal, g.eval));
@@ -272,16 +275,16 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
     const career = loadCareer();
     const actions: ReportOpts["actions"] = [];
     if (won && nxt && opUnlocked(career, nxt.id))
-      actions.push({ id: "op-next", label: `▶ Suivante : ${nxt.title}`, on: () => opts.rematch(`op:${nxt.id}`) });
-    const name = isCampaignOp(op) ? "MISSION" : "ÉPREUVE";
+      actions.push({ id: "op-next", label: tr(`▶ Suivante : ${nxt.title}`, `▶ Next: ${nxt.title}`), on: () => opts.rematch(`op:${nxt.id}`) });
+    const name = isCampaignOp(op) ? tr("MISSION", "MISSION") : tr("ÉPREUVE", "TRIAL");
     return {
       head: {
-        title: won ? `${name} RÉUSSIE` : `${name} ÉCHOUÉE`,
+        title: won ? tr(`${name} RÉUSSIE`, `${name} COMPLETE`) : tr(`${name} ÉCHOUÉE`, `${name} FAILED`),
         cls: won ? "win" : "lose",
         sub: `${opKicker(op)} · ${op.title} · ${mapName(op.map)} · ${fmtClock(r?.secs ?? 0)}`
       },
       actions,
-      rematchLabel: won ? "↻ Rejouer" : "↻ Réessayer"
+      rematchLabel: won ? tr("↻ Rejouer", "↻ Replay") : tr("↻ Réessayer", "↻ Try again")
     };
   }
 
@@ -301,20 +304,20 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
 function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }): OpsHud {
   return {
     update() {},
-    pauseLine: () => `${op.icon} Instruction · ${op.title}`,
+    pauseLine: () => `${op.icon} ${tr("Instruction", "Training")} · ${op.title}`,
     pauseHtml: () => "",
     reportOpts() {
       const won = !!w.ops?.result?.won;
       return {
         head: {
-          title: won ? "INSTRUCTION RÉUSSIE" : "INSTRUCTION",
+          title: won ? tr("INSTRUCTION RÉUSSIE", "TRAINING COMPLETE") : tr("INSTRUCTION", "TRAINING"),
           cls: won ? "win" : "lose",
-          sub: won ? "Tu es prêt, mon commandant !" : op.title
+          sub: won ? tr("Tu es prêt, mon commandant !", "You're ready, commander!") : op.title
         },
         actions: [
           {
             id: "tuto-skirmish",
-            label: "⚔ Escarmouche",
+            label: tr("⚔ Escarmouche", "⚔ Skirmish"),
             on: () => {
               // (a first skirmish: the Easy commander, unless one was picked before)
               pickMode("skirmish", true);
@@ -323,7 +326,7 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
           },
           {
             id: "tuto-ops",
-            label: "🎖 Opérations",
+            label: tr("🎖 Opérations", "🎖 Operations"),
             cls: "alt",
             on: () => {
               pickMode("ops");
@@ -331,7 +334,7 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
             }
           }
         ],
-        rematchLabel: "↻ Rejouer l'instruction"
+        rematchLabel: tr("↻ Rejouer l'instruction", "↻ Replay the training")
       };
     }
   };
@@ -364,9 +367,9 @@ function opSectionHtml(ctx: ReportContext): string | null {
     <p class="op-reason">${esc(r?.reason ?? "")}</p>
     ${starListHtml(op, mask)}
     ${bestLine}
-    ${unlocked ? `<p class="op-unlock">🔓 ${isCampaignOp(unlocked) ? "Nouvelle mission" : "Nouvelle épreuve"} : <b>${unlocked.icon} ${esc(unlocked.title)}</b></p>` : ""}
-    ${r?.won && kit ? `<p class="op-unlock op-unlock-kit">🔧 ${esc(kit.by ?? "L'arsenal")} apporte : <b>${esc(unlockNames(kit))}</b></p>` : ""}
-    ${r?.won ? "" : `<p class="op-tip"><b>Conseil</b><span>${esc(op.tip)}</span></p>`}
+    ${unlocked ? `<p class="op-unlock">${tr(`🔓 ${isCampaignOp(unlocked) ? "Nouvelle mission" : "Nouvelle épreuve"} : <b>${unlocked.icon} ${esc(unlocked.title)}</b>`, `🔓 ${isCampaignOp(unlocked) ? "New mission" : "New trial"}: <b>${unlocked.icon} ${esc(unlocked.title)}</b>`)}</p>` : ""}
+    ${r?.won && kit ? `<p class="op-unlock op-unlock-kit">${tr(`🔧 ${esc(kit.by ?? "L'arsenal")} apporte : <b>${esc(unlockNames(kit))}</b>`, `🔧 ${esc(kit.by ?? "The arsenal")} brings: <b>${esc(unlockNames(kit))}</b>`)}</p>` : ""}
+    ${r?.won ? "" : `<p class="op-tip"><b>${tr("Conseil", "Tip")}</b><span>${esc(op.tip)}</span></p>`}
   </div>`;
 }
 
@@ -376,9 +379,9 @@ function tutorialSectionHtml(won: boolean): string | null {
   const stars = [0, 1, 2].map((i) => `<i class="on new" style="--i:${i}">★</i>`).join("");
   return `<div class="op-res won tuto-res">
     <div class="op-bigstars">${stars}</div>
-    <p class="op-reason">Instruction terminée</p>
-    <ul class="op-starlist"><li class="got"><b>★</b><span>Caméra, ordres et combat</span></li><li class="got"><b>★★</b><span>Forges et production</span></li><li class="got"><b>★★★</b><span>Armée, charbon et Feu roulant</span></li></ul>
-    <p class="op-tip"><b>Et maintenant ?</b><span>Une Escarmouche contre l'IA, ou la campagne des Opérations.</span></p>
+    <p class="op-reason">${tr("Instruction terminée", "Training complete")}</p>
+    <ul class="op-starlist"><li class="got"><b>★</b><span>${tr("Caméra, ordres et combat", "Camera, orders and combat")}</span></li><li class="got"><b>★★</b><span>${tr("Forges et production", "Forges and production")}</span></li><li class="got"><b>★★★</b><span>${tr("Armée, charbon et Feu roulant", "Army, coal and Rolling Barrage")}</span></li></ul>
+    <p class="op-tip"><b>${tr("Et maintenant ?", "What now?")}</b><span>${tr("Une Escarmouche contre l'IA, ou la campagne des Opérations.", "A Skirmish against the AI, or the Operations campaign.")}</span></p>
   </div>`;
 }
 
@@ -415,8 +418,8 @@ function summaryHtml(c: CareerData, book: Book): string {
   const stars = ops.reduce((n, o) => n + starCount(c.ops[o.id]?.stars ?? 0), 0);
   const done = opsCompleted(c, ops);
   return book === "campaign"
-    ? `📜 La Campagne de 1900 · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`
-    : `🎖 Épreuves classiques · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`;
+    ? tr(`📜 La Campagne de 1900 · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`, `📜 The 1900 Campaign · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`)
+    : tr(`🎖 Épreuves classiques · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`, `🎖 Classic Trials · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`);
 }
 
 function cardHtml(op: OpDef, c: CareerData): string {
@@ -427,7 +430,7 @@ function cardHtml(op: OpDef, c: CareerData): string {
       <span class="op-n">${opIndex(op.id) + 1}</span>
       <span class="op-ic">${locked ? "🔒" : op.icon}</span>
       <span class="mn">${esc(op.title)}</span>
-      <span class="mstars${mask ? " got" : ""}">${locked ? "Verrouillée" : starRow(mask)}</span>
+      <span class="mstars${mask ? " got" : ""}">${locked ? tr("Verrouillée", "Locked") : starRow(mask)}</span>
     </button>`;
 }
 
@@ -439,7 +442,7 @@ function chapterHtml(op: OpDef, c: CareerData): string {
   return `<button class="campch${locked ? " locked" : ""}${mask & 1 ? " done" : ""}" data-op="${op.id}">
       <span class="cn">${locked ? "🔒" : opIndex(op.id) + 1}</span>
       <span class="ct">${esc(op.title)}</span>
-      <span class="cs"><i class="nat ${nat}">${nat === "empire" ? "Empire" : "République"}</i>${locked ? "" : `<span class="stars">${starRow(mask)}</span>`}</span>
+      <span class="cs"><i class="nat ${nat}">${nat === "empire" ? tr("Empire", "Empire") : tr("République", "Republic")}</i>${locked ? "" : `<span class="stars">${starRow(mask)}</span>`}</span>
     </button>`;
 }
 
@@ -462,14 +465,14 @@ function actsHtml(c: CareerData): string {
  */
 export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void; selectedId(): string; select(id: string): void }): MenuOps {
   const tab = menu.querySelector<HTMLElement>('[data-m="ops"]');
-  if (tab) tab.textContent = "📜 Campagne";
+  if (tab) tab.textContent = tr("📜 Campagne", "📜 Campaign");
   const sum = menu.querySelector<HTMLElement>("#opsum");
   const cards = menu.querySelector<HTMLElement>("#opcards");
   const blurb = menu.querySelector<HTMLElement>("#opblurb");
   // the book switch and the chapter list sit round the Trials' row
   const seg = document.createElement("div");
   seg.className = "seg campseg";
-  seg.innerHTML = `<button data-b="campaign">📜 Campagne</button><button data-b="trials">🎖 Épreuves</button>`;
+  seg.innerHTML = `<button data-b="campaign">${tr("📜 Campagne", "📜 Campaign")}</button><button data-b="trials">${tr("🎖 Épreuves", "🎖 Trials")}</button>`;
   const acts = document.createElement("div");
   acts.className = "campacts";
   sum?.before(seg);
@@ -533,8 +536,8 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
       const need = opIndex(sel.id) + 1 - (book === "campaign" ? 1 + campaignCompleted(career) : 3 + opsCompleted(career, TRIALS));
       blurb.innerHTML = locked(sel)
         ? book === "campaign"
-          ? `🔒 Gagne la mission précédente pour ouvrir <b>${esc(sel.title)}</b>`
-          : `🔒 Réussis encore ${need} épreuve${need === 1 ? "" : "s"} pour débloquer <b>${esc(sel.title)}</b>`
+          ? tr(`🔒 Gagne la mission précédente pour ouvrir <b>${esc(sel.title)}</b>`, `🔒 Win the previous mission to open <b>${esc(sel.title)}</b>`)
+          : tr(`🔒 Réussis encore ${need} épreuve${need === 1 ? "" : "s"} pour débloquer <b>${esc(sel.title)}</b>`, `🔒 Complete ${need} more trial${need === 1 ? "" : "s"} to unlock <b>${esc(sel.title)}</b>`)
         : `<b>${esc(sel.tagline)}</b><small>${opKicker(sel)} · ${mapName(sel.map)} · ${enemyLine(sel)}</small>`;
     }
   };
@@ -552,25 +555,25 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
     wrap.innerHTML = `<div class="sheet opbrief" role="dialog">
       <div class="ob-head">
         <img src="${mapAssetBase(op.map)}/thumb.webp" alt="" draggable="false"/>
-        <div><span class="ob-n">${camp ? `${op.act ? ACT_NAMES[op.act] + " · " : ""}Mission ${opIndex(op.id) + 1} sur ${total}` : `Épreuve ${opIndex(op.id) + 1} sur ${total}`}</span><h2>${op.icon} ${esc(op.title)}</h2>
-          <p class="ob-where">${mapName(op.map)}${op.dressing === "paris" ? " — Paris, le Champ-de-Mars" : ""} · ${enemyLine(op)}</p></div>
-        <button class="sheet-close x" aria-label="Fermer">✕</button>
+        <div><span class="ob-n">${camp ? tr(`${op.act ? ACT_NAMES[op.act] + " · " : ""}Mission ${opIndex(op.id) + 1} sur ${total}`, `${op.act ? ACT_NAMES[op.act] + " · " : ""}Mission ${opIndex(op.id) + 1} of ${total}`) : tr(`Épreuve ${opIndex(op.id) + 1} sur ${total}`, `Trial ${opIndex(op.id) + 1} of ${total}`)}</span><h2>${op.icon} ${esc(op.title)}</h2>
+          <p class="ob-where">${mapName(op.map)}${op.dressing === "paris" ? tr(" — Paris, le Champ-de-Mars", " — Paris, the Champ-de-Mars") : ""} · ${enemyLine(op)}</p></div>
+        <button class="sheet-close x" aria-label="${tr("Fermer", "Close")}">✕</button>
       </div>
       <div class="ob-cols">
         <div class="ob-l">
           <p class="ob-brief">${esc(op.brief)}</p>
           <p class="ob-rules">${esc(sideLine(op))}${note ? ` · ${esc(note)}` : ""}</p>
-          ${fresh ? `<p class="ob-unlock">🔓 Nouveau${fresh.by ? ` (${esc(fresh.by)})` : ""} : <b>${esc(unlockNames(fresh))}</b></p>` : ""}
-          <h3>Objectif</h3>
+          ${fresh ? `<p class="ob-unlock">${tr(`🔓 Nouveau${fresh.by ? ` (${esc(fresh.by)})` : ""} : <b>${esc(unlockNames(fresh))}</b>`, `🔓 New${fresh.by ? ` (${esc(fresh.by)})` : ""}: <b>${esc(unlockNames(fresh))}</b>`)}</p>` : ""}
+          <h3>${tr("Objectif", "Objective")}</h3>
           <p class="ob-obj">${esc(objectiveLine(op))}</p>
         </div>
         <div class="ob-r">
-          <h3>Étoiles ${mask ? `<small>record ${starRow(mask)}${rec?.bestSecs != null ? ` · ${fmtClock(rec.bestSecs)}` : ""}</small>` : ""}</h3>
+          <h3>${tr("Étoiles", "Stars")} ${mask ? `<small>${tr("record", "best")} ${starRow(mask)}${rec?.bestSecs != null ? ` · ${fmtClock(rec.bestSecs)}` : ""}</small>` : ""}</h3>
           ${starListHtml(op, mask)}
           <p class="ob-tip">💡 ${esc(op.tip)}</p>
         </div>
       </div>
-      <div class="sh-actions"><button class="cta" id="ob-start">▶ ${camp ? "Lancer la mission" : "Lancer l'épreuve"}</button></div>
+      <div class="sh-actions"><button class="cta" id="ob-start">▶ ${camp ? tr("Lancer la mission", "Start the mission") : tr("Lancer l'épreuve", "Start the trial")}</button></div>
     </div>`;
     menu.appendChild(wrap);
     const close = () => wrap.remove();

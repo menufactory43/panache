@@ -10,6 +10,7 @@
 import { projectorStart } from "../game/audio-title";
 import { FILMFX, fleuron, grain, ornament } from "./title";
 import "./campaign.css";
+import { tr } from "../lang";
 
 const CARD_MS = 2600;
 const STILL_MS = 2800;
@@ -50,7 +51,7 @@ export function playReel(r: Reel): () => void {
     return `<div class="fl-part fl-card${big ? " cine-fin" : ""}"><div class="fc-frame"><i class="fc-c tl">${ornament}</i><i class="fc-c tr">${ornament}</i><i class="fc-c bl">${ornament}</i><i class="fc-c br">${ornament}</i>${kick}${fleuron}<p>${esc(t)}</p>${fleuron}</div></div>`;
   });
   const still = r.art ? `<div class="fl-part fl-shot cine-still"><img class="fl-pic" src="assets/ui/campaign/${r.art}.webp" alt="" draggable="false" /></div>` : "";
-  el.innerHTML = `<div class="fl-gate">${still}${cards.join("")}</div><div class="fl-fx">${FILMFX}</div><button class="fl-skip" type="button">Passer ›</button>`;
+  el.innerHTML = `<div class="fl-gate">${still}${cards.join("")}</div><div class="fl-fx">${FILMFX}</div><button class="fl-skip" type="button">${tr("Passer ›", "Skip ›")}</button>`;
   document.body.appendChild(el);
   grain(el);
   const parts = [...el.querySelectorAll<HTMLElement>(".fl-part")];

@@ -14,6 +14,7 @@
  */
 
 import { fullscreen } from "./fullscreen";
+import { tr } from "../lang";
 
 /** While the page is open, ask for a new build this often… */
 const CHECK_EVERY_MS = 30 * 60_000;
@@ -108,12 +109,12 @@ export function mountUpdatePill(menu: HTMLElement, update: AppUpdate = appUpdate
   pill.className = "update-pill";
   pill.setAttribute("role", "status");
   pill.hidden = true;
-  pill.innerHTML = `<span class="up-t"><b>✨ Nouvelle version prête</b><span>Touche Mettre à jour pour l'installer</span></span><button class="up-go">Mettre à jour ↻</button>`;
+  pill.innerHTML = `<span class="up-t"><b>${tr("✨ Nouvelle version prête", "✨ New version ready")}</b><span>${tr("Touche Mettre à jour pour l'installer", "Tap Update to install it")}</span></span><button class="up-go">${tr("Mettre à jour ↻", "Update ↻")}</button>`;
   menu.appendChild(pill);
   const btn = pill.querySelector<HTMLButtonElement>(".up-go")!;
   btn.addEventListener("click", () => {
     btn.disabled = true;
-    btn.textContent = "Mise à jour…";
+    btn.textContent = tr("Mise à jour…", "Updating…");
     fullscreen.reload();
   });
   return update.onReady(() => {

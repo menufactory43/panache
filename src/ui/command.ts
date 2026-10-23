@@ -31,6 +31,7 @@ import { ROLES, leadKind, type Role } from "../game/roles";
 import { ADVISOR, COUNTERS, EnemyIntel, FACTORY_TAB, IdleWatch, adviceNote, counterAdvice, type FactoryTab } from "../game/advisor";
 import { HINTS, type HintOffer } from "../game/hints";
 import { portraitKind } from "../game/three/belle/placeholders";
+import { tr } from "../lang";
 
 export interface CommandHooks {
   root: HTMLElement;
@@ -71,13 +72,13 @@ const DEFENCES = (Object.keys(COUNTERS) as (UnitKind | BuildingKind)[]).filter((
 
 /** One-time tips offered when the selection calls for them (CommandUi.update). */
 const SELECTION_HINTS: [string, string][] = [
-  ["route", "Route : pose le doigt sur tes unités sélectionnées et trace leur chemin sur la carte. Reviens à ton point de départ pour une patrouille."],
-  ["roles", "Infanterie, Blindés, Aviation : touche pour prendre toute l'armée de ce type, double-touche pour y aller."],
-  ["squads", "Escouades : maintiens 1, 2 ou 3 pour enregistrer la sélection. Touche pour la sélectionner, double-touche pour y aller."],
-  ["infantry", "L'infanterie traverse les bois à pleine vitesse et y subit moitié moins de dégâts. Tiens-la loin des Creusot : ils l'écrasent."],
-  ["condor", "Montgolfière : sélectionne des escouades, puis touche la Montgolfière pour les embarquer. Appui long sur la carte (ou touche une île) pour les y larguer, ou touche ⇣ Larguer."],
-  ["goliath", `⚓ Ancre-le (G) pour prendre le charbon, former des escouades et construire à ${GOLIATH.buildRing} cases. Lève l'ancre pour bouger.`],
-  ["lift", "Deux Montgolfières vides soulèvent un Gargantua : touche ton Gargantua pour l'accrocher, puis appui long là où le poser."]
+  ["route", tr("Route : pose le doigt sur tes unités sélectionnées et trace leur chemin sur la carte. Reviens à ton point de départ pour une patrouille.", "Route: put your finger on your selected units and trace their path across the map. Return to your starting point for a patrol.")],
+  ["roles", tr("Infanterie, Blindés, Aviation : touche pour prendre toute l'armée de ce type, double-touche pour y aller.", "Infantry, Armour, Air: tap to take the whole army of that type, double-tap to go there.")],
+  ["squads", tr("Escouades : maintiens 1, 2 ou 3 pour enregistrer la sélection. Touche pour la sélectionner, double-touche pour y aller.", "Squads: hold 1, 2 or 3 to save the selection. Tap to select it, double-tap to go there.")],
+  ["infantry", tr("L'infanterie traverse les bois à pleine vitesse et y subit moitié moins de dégâts. Tiens-la loin des Creusot : ils l'écrasent.", "Infantry cross woods at full speed and take half damage there. Keep them away from Creusots: they crush them.")],
+  ["condor", tr("Montgolfière : sélectionne des escouades, puis touche la Montgolfière pour les embarquer. Appui long sur la carte (ou touche une île) pour les y larguer, ou touche ⇣ Larguer.", "Montgolfier Balloon: select squads, then tap the Montgolfier Balloon to board them. Long-press the map (or tap an island) to drop them there, or tap ⇣ Drop.")],
+  ["goliath", tr(`⚓ Ancre-le (G) pour prendre le charbon, former des escouades et construire à ${GOLIATH.buildRing} cases. Lève l'ancre pour bouger.`, `⚓ Anchor it (G) to take coal, train squads and build within ${GOLIATH.buildRing} tiles. Weigh anchor to move.`)],
+  ["lift", tr("Deux Montgolfières vides soulèvent un Gargantua : touche ton Gargantua pour l'accrocher, puis appui long là où le poser.", "Two empty Montgolfier Balloons lift a Gargantua: tap your Gargantua to hook on, then long-press where to set it down.")]
 ];
 
 interface RoleEl {
@@ -157,7 +158,7 @@ export class CommandUi {
       if (!tab) continue;
       const notes = document.createElement("span");
       notes.className = "tnotes";
-      notes.innerHTML = `<span class="tidle" hidden>inactif</span><span class="tctr" hidden>⚔</span>`;
+      notes.innerHTML = `<span class="tidle" hidden>${tr("inactif", "idle")}</span><span class="tctr" hidden>⚔</span>`;
       tab.appendChild(notes);
       this.tabNotes.set(t, { idle: notes.firstElementChild as HTMLElement, ctr: notes.lastElementChild as HTMLElement });
     }
@@ -166,7 +167,7 @@ export class CommandUi {
   private makeSquad(i: number, parent: HTMLElement): SquadEl {
     const btn = document.createElement("button");
     btn.className = "sq empty";
-    btn.title = `Escouade ${i + 1} : maintiens pour enregistrer, touche pour sélectionner, double-touche pour y aller (touches ${i + 1} / Ctrl+${i + 1})`;
+    btn.title = tr(`Escouade ${i + 1} : maintiens pour enregistrer, touche pour sélectionner, double-touche pour y aller (touches ${i + 1} / Ctrl+${i + 1})`, `Squad ${i + 1}: hold to save, tap to select, double-tap to go there (keys ${i + 1} / Ctrl+${i + 1})`);
     btn.innerHTML = `<span class="sqn">${i + 1}</span><img class="sqi" alt="" draggable="false" hidden /><span class="sqc"></span><span class="sqhp"><i></i></span><span class="sqarm"></span>`;
     parent.appendChild(btn);
     let timer = 0;
@@ -224,7 +225,7 @@ export class CommandUi {
     const btn = document.createElement("button");
     btn.className = "rl";
     btn.dataset.role = r.id;
-    btn.title = `${r.label} : touche pour toute l'armée de ce type, double-touche pour y aller`;
+    btn.title = tr(`${r.label} : touche pour toute l'armée de ce type, double-touche pour y aller`, `${r.label}: tap for the whole army of this type, double-tap to go there`);
     btn.innerHTML = `<img class="rli" alt="" draggable="false" /><span class="rlc"></span><span class="rll">${r.label}</span>`;
     btn.hidden = true;
     btn.addEventListener("click", () => this.tapRole(r.id));
@@ -267,8 +268,8 @@ export class CommandUi {
       if (ctrl.squads.ids(i, this.h.world).length > 0) {
         ctrl.squads.clear(i);
         sfx.play("sell", 0.4);
-        this.h.tip(`Escouade ${i + 1} effacée`, 2200);
-      } else this.h.tip(`Sélectionne d'abord des unités, puis maintiens ${i + 1} pour en faire une escouade.`, 3500);
+        this.h.tip(tr(`Escouade ${i + 1} effacée`, `Squad ${i + 1} cleared`), 2200);
+      } else this.h.tip(tr(`Sélectionne d'abord des unités, puis maintiens ${i + 1} pour en faire une escouade.`, `Select units first, then hold ${i + 1} to make a squad of them.`), 3500);
       return;
     }
     const n = ctrl.assignSquad(i);
@@ -295,8 +296,8 @@ export class CommandUi {
       this.lastTap[i] = -Infinity;
       this.h.tip(
         ctrl.selectedUnits.size > 0
-          ? `Maintiens ${i + 1} pour enregistrer la sélection en escouade ${i + 1}.`
-          : `Escouade ${i + 1} vide : sélectionne des unités, puis maintiens ${i + 1}.`,
+          ? tr(`Maintiens ${i + 1} pour enregistrer la sélection en escouade ${i + 1}.`, `Hold ${i + 1} to save the selection as squad ${i + 1}.`)
+          : tr(`Escouade ${i + 1} vide : sélectionne des unités, puis maintiens ${i + 1}.`, `Squad ${i + 1} empty: select units, then hold ${i + 1}.`),
         3500
       );
       return;

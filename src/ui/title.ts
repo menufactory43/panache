@@ -20,18 +20,28 @@
  */
 import { sfx } from "../game/audio";
 import { leaderBeep, panacheCry, preloadPanacheCry, projectorStart, slamFanfare } from "../game/audio-title";
+import { tr } from "../lang";
 
 export const INTRO_SEEN_KEY = "panache.intro.seen";
 const ART = "assets/ui/title/";
 
 /** What the player reads on the title screen and in the intro film. */
-export const TITLE_TEXT = {
-  tap: "Touchez l'écran",
-  key: "Appuyez sur une touche",
-  skip: "Passer ›",
-  presents: "Le Cinématographe présente",
-  cards: ["Paris, 1900.", "L’Europe s’arme de vapeur, d’acier et de radium…", "Pour la gagner, il faudra du courage…", "…et beaucoup de"]
-} as const;
+export const TITLE_TEXT = tr(
+  {
+    tap: "Touchez l'écran",
+    key: "Appuyez sur une touche",
+    skip: "Passer ›",
+    presents: "Le Cinématographe présente",
+    cards: ["Paris, 1900.", "L’Europe s’arme de vapeur, d’acier et de radium…", "Pour la gagner, il faudra du courage…", "…et beaucoup de"]
+  },
+  {
+    tap: "Touch the screen",
+    key: "Press any key",
+    skip: "Skip ›",
+    presents: "The Cinématographe presents",
+    cards: ["Paris, 1900.", "Europe arms herself with steam, steel and radium…", "To win it, you'll need courage…", "…and a great deal of"]
+  }
+);
 
 /** A shot of the film: its picture and a Ken Burns move (view centre x, y in picture fractions, zoom ≥ 1 over "cover"). */
 interface Shot {

@@ -10,21 +10,22 @@ import { archives, encodeRecord, loadMatch, type ArchiveMeta } from "../game/arc
 import { fmtTime } from "../game/chronicle";
 import { recordName } from "../game/reel";
 import { isKnownMapId, mapById } from "../sim/maps";
+import { tr } from "../lang";
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
 
-const RESULT = { win: "Victoire", loss: "Défaite", draw: "Match nul" } as const;
-const KIND = { escarmouche: "Escarmouche", quotidienne: "Opération du jour", duel: "Duel" } as const;
+const RESULT = tr({ win: "Victoire", loss: "Défaite", draw: "Match nul" }, { win: "Victory", loss: "Defeat", draw: "Draw" });
+const KIND = tr({ escarmouche: "Escarmouche", quotidienne: "Opération du jour", duel: "Duel" }, { escarmouche: "Skirmish", quotidienne: "Daily Op", duel: "Duel" });
 
 /** One line of the list: « Victoire · Riverlands », « 22 oct. · 7:42 · contre IA Rush (Normal) ». */
 export function archiveLine(m: ArchiveMeta): { head: string; sub: string } {
   const map = isKnownMapId(m.map) ? mapById(m.map).name : m.map;
   const d = new Date(m.created);
-  const day = isNaN(d.getTime()) ? "" : d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const day = isNaN(d.getTime()) ? "" : d.toLocaleDateString(tr("fr-FR", "en-GB"), { day: "numeric", month: "short" });
   const p = m.played;
   return {
-    head: `${p ? RESULT[p.result] : "Partie"} · ${map}`,
-    sub: [day, fmtTime(m.secs), p ? `${KIND[p.kind]} contre ${p.against}` : ""].filter(Boolean).join(" · ")
+    head: `${p ? RESULT[p.result] : tr("Partie", "Match")} · ${map}`,
+    sub: [day, fmtTime(m.secs), p ? tr(`${KIND[p.kind]} contre ${p.against}`, `${KIND[p.kind]} vs ${p.against}`) : ""].filter(Boolean).join(" · ")
   };
 }
 
@@ -36,7 +37,7 @@ export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel:
     .list()
     .then((list) => {
       if (list.length === 0) {
-        host.innerHTML = `<p class="sh-note">Tes parties s'enregistreront ici : les 5 dernières escarmouches et duels, à revoir ou à partager.</p>`;
+        host.innerHTML = `<p class="sh-note">${tr("Tes parties s'enregistreront ici : les 5 dernières escarmouches et duels, à revoir ou à partager.", "Your matches will be saved here: the last 5 skirmishes and duels, to rewatch or share.")}</p>`;
         return;
       }
       host.innerHTML = list
@@ -45,9 +46,9 @@ export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel:
           return `<div class="arch-row" data-id="${esc(m.id)}">
             <div class="arch-t"><b>${esc(l.head)}</b><small>${esc(l.sub)}</small></div>
             <div class="arch-b">
-              <button class="cta" data-a="reel" type="button" title="Les temps forts, en film muet">▶ Temps forts</button>
-              <button class="cta alt" data-a="watch" type="button" title="Toute la partie">🎬 Revoir</button>
-              <button class="cta alt" data-a="file" type="button" title="Télécharger la partie (.json)" aria-label="Télécharger la partie">⬇</button>
+              <button class="cta" data-a="reel" type="button" title="${tr("Les temps forts, en film muet", "The highlights, as a silent film")}">${tr("▶ Temps forts", "▶ Highlights")}</button>
+              <button class="cta alt" data-a="watch" type="button" title="${tr("Toute la partie", "The whole match")}">${tr("🎬 Revoir", "🎬 Rewatch")}</button>
+              <button class="cta alt" data-a="file" type="button" title="${tr("Télécharger la partie (.json)", "Download the match (.json)")}" aria-label="${tr("Télécharger la partie", "Download the match")}">⬇</button>
             </div>
           </div>`;
         })
@@ -59,7 +60,7 @@ export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel:
           const r = await loadMatch(archives(), id);
           b.disabled = false;
           if (!r) {
-            b.closest(".arch-row")!.querySelector("small")!.textContent = "Cette partie est illisible : elle a été effacée ou abîmée.";
+            b.closest(".arch-row")!.querySelector("small")!.textContent = tr("Cette partie est illisible : elle a été effacée ou abîmée.", "This match is unreadable: it was erased or damaged.");
             return;
           }
           if (b.dataset.a === "file") return download(encodeRecord(r), recordName(r.map, r.created));
@@ -67,7 +68,7 @@ export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel:
         })
       );
     })
-    .catch(() => (host.innerHTML = `<p class="sh-note">Les archives sont inaccessibles dans ce navigateur.</p>`));
+    .catch(() => (host.innerHTML = `<p class="sh-note">${tr("Les archives sont inaccessibles dans ce navigateur.", "The archives are unavailable in this browser.")}</p>`));
 }
 
 function download(text: string, name: string): void {

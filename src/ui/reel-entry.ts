@@ -11,6 +11,7 @@ import type { BattleRecord } from "../arena/record";
 import { archives, decodeRecord, encodeRecord, loadMatch, type ArchiveMeta } from "../game/archive";
 import { clipsOf, reelMs } from "../game/reel";
 import type { ReportSection } from "./report";
+import { tr } from "../lang";
 
 /** sessionStorage: the reel the next boot plays, its record's JSON or "id:<archive id>". */
 export const REEL_KEY = "panache.reel";
@@ -23,7 +24,7 @@ export function reelSection(o: { record: BattleRecord; saved: Promise<ArchiveMet
     order: 22,
     col: "left",
     render: () =>
-      `<div class="aar-reel"><button class="cta" id="reel-go" type="button">▶ Revoir les temps forts</button><small>${secs} s de film muet, à revoir ou à partager · gardé dans les Archives</small></div>`,
+      `<div class="aar-reel"><button class="cta" id="reel-go" type="button">${tr("▶ Revoir les temps forts", "▶ Rewatch the highlights")}</button><small>${tr(`${secs} s de film muet, à revoir ou à partager · gardé dans les Archives`, `${secs} s of silent film, to rewatch or share · kept in the Archives`)}</small></div>`,
     mount: (el) => {
       const btn = el.querySelector<HTMLButtonElement>("#reel-go");
       btn?.addEventListener("click", async () => {
@@ -44,7 +45,7 @@ export function reelSection(o: { record: BattleRecord; saved: Promise<ArchiveMet
             }
         }
         if (!token) {
-          btn.textContent = "Impossible de garder la partie ici";
+          btn.textContent = tr("Impossible de garder la partie ici", "Can't keep the match here");
           return;
         }
         o.leave();

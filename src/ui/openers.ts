@@ -6,6 +6,7 @@ import { portraitKind } from "../game/three/belle/placeholders";
 import { sfx } from "../game/audio";
 import { PLAYER } from "../game/controller";
 import { fullscreen } from "./fullscreen";
+import { tr } from "../lang";
 
 /**
  * The pre-match opener choice: three big cards over the (frozen) battlefield.
@@ -49,7 +50,7 @@ export function nationText(text: string, id: OpenerId, words: Words = CLASSIC_WO
   // (the workers the line sends us after are the enemy's)
   const foe = words.enemyWorker;
   if (foe)
-    for (const lead of ["leurs ", "et "])
+    for (const lead of tr(["leurs ", "et "], ["their ", "and "]))
       out = out.split(lead + pluralName("harvester")).join(lead + pluralName(foe.kind, foe.nation));
   for (const k of kinds) {
     const mine = words.kindFor(k);
@@ -70,8 +71,8 @@ function pills(id: OpenerId, side: Faction, words: Words): string {
   for (const [k, n] of counts) items.push({ icon: portraitKind(k), label: `${n}× ${UNITS[k].name}` });
   const worker = words.kindFor("harvester");
   items.push({ icon: portraitKind(worker), label: `${o.harvesters}× ${UNITS[worker].name}` });
-  if (o.scrap > 0) items.push({ label: `+${o.scrap} charbon` });
-  if (o.scrap < 0) items.push({ label: `−${-o.scrap} charbon`, cls: "neg" });
+  if (o.scrap > 0) items.push({ label: tr(`+${o.scrap} charbon`, `+${o.scrap} coal`) });
+  if (o.scrap < 0) items.push({ label: tr(`−${-o.scrap} charbon`, `−${-o.scrap} coal`), cls: "neg" });
   return items
     .map(
       (it) =>
@@ -101,9 +102,9 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
   const el = document.createElement("div");
   el.className = "openers";
   el.innerHTML = `
-    <button class="op-back" title="Retour au menu">‹ Menu</button>
+    <button class="op-back" title="${tr("Retour au menu", "Back to the menu")}">${tr("‹ Menu", "‹ Menu")}</button>
     <div class="op-head">
-      <h2>Choisis ton ouverture</h2>
+      <h2>${tr("Choisis ton ouverture", "Choose your opening")}</h2>
       <p class="op-ctx"></p>
     </div>
     <div class="op-cards">
@@ -120,7 +121,7 @@ export function showOpenerPicker(opts: OpenerPickerOptions): { destroy(): void }
         </button>`
       ).join("")}
     </div>
-    <p class="op-foot">Le chrono démarre dès ton choix. L'ennemi choisit aussi.</p>`;
+    <p class="op-foot">${tr("Le chrono démarre dès ton choix. L'ennemi choisit aussi.", "The clock starts as soon as you choose. The enemy chooses too.")}</p>`;
   el.querySelector(".op-ctx")!.textContent = opts.context;
   // keep touches on the overlay away from the game canvas underneath
   el.addEventListener("pointerdown", (e) => e.stopPropagation());

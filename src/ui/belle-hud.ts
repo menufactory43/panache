@@ -30,6 +30,7 @@ import { crestImg, nationShort } from "./nations-ui";
 import type { NationOrClassic } from "../sim/types";
 import { sfx } from "../game/audio";
 import type { Controller } from "../game/controller";
+import { tr } from "../lang";
 
 // --------------------------------------------------------------- prefs ---
 
@@ -64,15 +65,15 @@ function setHudPref<K extends keyof HudPrefs>(k: K, v: HudPrefs[K]): void {
 }
 
 const SETTINGS: { k: keyof HudPrefs; icon: string; label: string; title: string }[] = [
-  { k: "zoom", icon: "🔍", label: "Boutons de zoom", title: "Affiche les boutons ＋ et − (le pincement zoome toujours)" },
-  { k: "lefty", icon: "✋", label: "Gaucher", title: "Construire et ⚡ à gauche, Armée à droite" }
+  { k: "zoom", icon: "🔍", label: tr("Boutons de zoom", "Zoom buttons"), title: tr("Affiche les boutons ＋ et − (le pincement zoome toujours)", "Shows the ＋ and − buttons (pinching always zooms)") },
+  { k: "lefty", icon: "✋", label: tr("Gaucher", "Lefty"), title: tr("Construire et ⚡ à gauche, Armée à droite", "Build and ⚡ on the left, Army on the right") }
 ];
 
 /** The pause menu's interface toggles (Boutons de zoom, Gaucher); returns a cleanup function. */
 export function mountHudSettings(host: HTMLElement): () => void {
   host.classList.add("sound-row", "hud-row");
   host.setAttribute("role", "group");
-  host.setAttribute("aria-label", "Interface");
+  host.setAttribute("aria-label", tr("Interface", "Interface"));
   host.innerHTML = SETTINGS.map(
     (s) => `<button class="snd" data-k="${s.k}" title="${s.title}" aria-pressed="false"><span class="si">${s.icon}</span><span class="sl">${s.label}</span></button>`
   ).join("");
@@ -154,7 +155,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   col.append(tl, topbar, banner, toasts);
 
   const pill = make("button", "bh-pill");
-  pill.title = "Charbon, revenu et horloge : touche pour les détails";
+  pill.title = tr("Charbon, revenu et horloge : touche pour les détails", "Coal, income and clock: tap for details");
   if (h.nation && h.nation !== "classique") {
     pill.insertAdjacentHTML("afterbegin", crestImg(h.nation, "bh-crest"));
     pill.classList.add(`nat-${h.nation}`);
@@ -170,9 +171,9 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   const drop = make(
     "div",
     "bh-drop",
-    `<div class="bh-row bh-r-obj" hidden><span class="bh-lb">Relais · ravitaillement</span></div>
-     <div class="bh-row bh-r-meter"><span class="bh-lb">Rapport de force</span><span class="bh-nometer">Aucun combat en vue</span></div>
-     <div class="bh-row bh-r-tempo"><span class="bh-lb">Vitesse</span><small class="bh-note">Maintiens l'heure pour 3×</small></div>
+    `<div class="bh-row bh-r-obj" hidden><span class="bh-lb">${tr("Relais · ravitaillement", "Relays · supply")}</span></div>
+     <div class="bh-row bh-r-meter"><span class="bh-lb">${tr("Rapport de force", "Balance of power")}</span><span class="bh-nometer">${tr("Aucun combat en vue", "No fight in sight")}</span></div>
+     <div class="bh-row bh-r-tempo"><span class="bh-lb">${tr("Vitesse", "Speed")}</span><small class="bh-note">${tr("Maintiens l'heure pour 3×", "Hold the clock for 3×")}</small></div>
      <div class="bh-row bh-r-btns"></div>`
   );
   drop.hidden = true;
@@ -184,7 +185,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   const mute = q("#btn-mute");
   if (mute) rowBtns.appendChild(mute);
   const dpause = make("button", "round bh-dpause", "❚❚");
-  dpause.title = "Pause et réglages";
+  dpause.title = tr("Pause et réglages", "Pause and settings");
   rowBtns.appendChild(dpause);
   dpause.addEventListener("click", () => {
     closeDrop();
@@ -216,12 +217,12 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   }
 
   // ------------------------------------------- the bottom-corner buttons ---
-  const army = make("button", "bh-fab bh-army", `<span class="bh-ic">⚔</span><span class="bh-cap">Armée</span><span class="bh-badge" hidden></span>`);
-  army.title = "Touche : toute l'armée · appui long : les inactifs · glisse vers le haut : escouades et rôles";
-  const build = make("button", "bh-fab bh-build", `<span class="bh-ic">🔨</span><span class="bh-cap">Construire</span><span class="bh-badge" hidden></span>`);
-  build.title = "Construire et produire";
+  const army = make("button", "bh-fab bh-army", tr(`<span class="bh-ic">⚔</span><span class="bh-cap">Armée</span><span class="bh-badge" hidden></span>`, `<span class="bh-ic">⚔</span><span class="bh-cap">Army</span><span class="bh-badge" hidden></span>`));
+  army.title = tr("Touche : toute l'armée · appui long : les inactifs · glisse vers le haut : escouades et rôles", "Tap: whole army · long-press: idle units · swipe up: squads and roles");
+  const build = make("button", "bh-fab bh-build", tr(`<span class="bh-ic">🔨</span><span class="bh-cap">Construire</span><span class="bh-badge" hidden></span>`, `<span class="bh-ic">🔨</span><span class="bh-cap">Build</span><span class="bh-badge" hidden></span>`));
+  build.title = tr("Construire et produire", "Build and produce");
   const pow = make("button", "bh-pow", `<span class="bh-ring"></span><span class="bh-face"><span class="bh-ic">⚡</span></span><span class="bh-n">0</span>`);
-  pow.title = "Pouvoirs du commandant";
+  pow.title = tr("Pouvoirs du commandant", "Commander powers");
   const squadsBox = make("div", "bh-squads");
   // (a dashed frame: the box it draws)
   const frame = make(
@@ -229,8 +230,8 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
     "bh-frame",
     `<svg class="bh-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2.6"/></svg>`
   );
-  frame.title = "Cadre : la prochaine glissade sur la carte encadre les unités à sélectionner";
-  frame.setAttribute("aria-label", "Sélection en cadre");
+  frame.title = tr("Cadre : la prochaine glissade sur la carte encadre les unités à sélectionner", "Frame: the next drag on the map frames the units to select");
+  frame.setAttribute("aria-label", tr("Sélection en cadre", "Frame selection"));
   const armyBadge = army.querySelector<HTMLElement>(".bh-badge")!;
   const buildBadge = build.querySelector<HTMLElement>(".bh-badge")!;
   const powN = pow.querySelector<HTMLElement>(".bh-n")!;
@@ -241,7 +242,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   if (!h.spectator) root.append(squadsBox, army, frame, pow, build);
 
   // ------------------------------------------------------------ drawer ---
-  const sheet = make("div", "bh-sheet", `<button class="bh-handle" aria-label="Fermer"><i></i></button>`);
+  const sheet = make("div", "bh-sheet", tr(`<button class="bh-handle" aria-label="Fermer"><i></i></button>`, `<button class="bh-handle" aria-label="Close"><i></i></button>`));
   sheet.dataset.edgeAvoid = "";
   shield(sheet);
   const bar = q(".buildbar");
@@ -350,7 +351,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
     army.addEventListener("contextmenu", (e) => e.preventDefault());
     army.addEventListener("click", () => {
       if (fired) return;
-      if (ctrl.armyIds().length === 0) return h.tip("Pas encore d'armée : produis des unités avec 🔨 Construire.");
+      if (ctrl.armyIds().length === 0) return h.tip(tr("Pas encore d'armée : produis des unités avec 🔨 Construire.", "No army yet: produce units with 🔨 Build."));
       sfx.play("click", 0.5);
       ctrl.selectArmy();
     });
@@ -359,11 +360,11 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   frame.addEventListener("click", () => {
     sfx.play("click", 0.4);
     ctrl.boxNext = !ctrl.boxNext;
-    if (ctrl.boxNext) h.tip("Glisse sur la carte pour encadrer les unités à sélectionner.");
+    if (ctrl.boxNext) h.tip(tr("Glisse sur la carte pour encadrer les unités à sélectionner.", "Drag across the map to frame the units to select."));
   });
   function selectIdle(): void {
     const idle = ctrl.idleArmy();
-    if (idle.length === 0) return h.tip("Aucune unité inactive.");
+    if (idle.length === 0) return h.tip(tr("Aucune unité inactive.", "No idle units."));
     sfx.play("click", 0.5);
     ctrl.selectUnits(idle);
   }

@@ -3,6 +3,7 @@ import type { MapDef } from "../sim/maps";
 import type { UplinkDef } from "../sim/objectives";
 import { Terrain, type Biome } from "../sim/types";
 import { paintMapPixels } from "../game/terrain-paint";
+import { tr } from "../lang";
 
 /**
  * The full-map preview (the menu's 🔍 View full map, Preview mode): a big,
@@ -15,7 +16,10 @@ import { paintMapPixels } from "../game/terrain-paint";
 const PREVIEW_PX = 11;
 
 const BIOME_ICON: Record<Biome, string> = { temperate: "🌳", desert: "🏜️", arctic: "❄️", volcanic: "🌋", tropical: "🌴" };
-const BIOME_FR: Record<Biome, string> = { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" };
+const BIOME_FR: Record<Biome, string> = tr(
+  { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" },
+  { temperate: "temperate", desert: "desert", arctic: "arctic", volcanic: "volcanic", tropical: "tropical" }
+);
 
 /**
  * How thick the Shallows rim along the water runs (tiles), per biome: arctic
@@ -150,7 +154,7 @@ function markersSvg(def: MapDef): string {
   const hq = (x: number, y: number, side: "b" | "r") =>
     `<g class="mk-hq ${side}"><rect x="${x - 0.9}" y="${y - 0.9}" width="${hs + 1.8}" height="${hs + 1.8}" rx="1.1" class="halo"/>` +
     `<rect x="${x}" y="${y}" width="${hs}" height="${hs}" rx="0.5"/>` +
-    `<text x="${x + hs / 2}" y="${y + hs / 2}">GQG</text></g>`;
+    `<text x="${x + hs / 2}" y="${y + hs / 2}">${tr("GQG", "GHQ")}</text></g>`;
   const pts: [number, number][] = [];
   const add = (x: number, y: number) => {
     if (!pts.some(([a, b]) => Math.hypot(a - x, b - y) < 0.01)) pts.push([x, y]);
@@ -179,12 +183,12 @@ function statChips(def: MapDef): string {
     `<span class="mp-chip${zero ? " zero" : ""}">${icon} <b>${v}</b> ${label}</span>`;
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   return [
-    chip("⛏", s.scrap, s.scrap === 1 ? "gisement de charbon" : "gisements de charbon"),
-    chip("💎", s.crystal, s.crystal === 1 ? "gisement de radium" : "gisements de radium"),
-    chip("🌉", s.bridges, s.bridges === 1 ? "pont" : "ponts"),
-    chip("〰️", s.fords, s.fords === 1 ? "gué" : "gués"),
-    chip(lava ? "🔥" : "💧", pct(s.water), lava ? "lave" : "eau", s.water < 0.005),
-    chip("🌲", pct(s.forest), "bois", s.forest < 0.005)
+    chip("⛏", s.scrap, tr(s.scrap === 1 ? "gisement de charbon" : "gisements de charbon", s.scrap === 1 ? "coal seam" : "coal seams")),
+    chip("💎", s.crystal, tr(s.crystal === 1 ? "gisement de radium" : "gisements de radium", s.crystal === 1 ? "radium seam" : "radium seams")),
+    chip("🌉", s.bridges, tr(s.bridges === 1 ? "pont" : "ponts", s.bridges === 1 ? "bridge" : "bridges")),
+    chip("〰️", s.fords, tr(s.fords === 1 ? "gué" : "gués", s.fords === 1 ? "ford" : "fords")),
+    chip(lava ? "🔥" : "💧", pct(s.water), lava ? tr("lave", "lava") : tr("eau", "water"), s.water < 0.005),
+    chip("🌲", pct(s.forest), tr("bois", "woods"), s.forest < 0.005)
   ].join("");
 }
 
@@ -214,30 +218,30 @@ export function openMapPreview(def: MapDef, hooks: MapPreviewHooks): () => void 
     <div class="mp-box">
       <div class="mp-head">
         <div class="mp-title"><h2 class="mp-name"></h2><p class="mp-meta"></p></div>
-        <button class="mp-x" data-a="close" title="Fermer (Échap)" aria-label="Fermer">✕</button>
+        <button class="mp-x" data-a="close" title="${tr("Fermer (Échap)", "Close (Esc)")}" aria-label="${tr("Fermer", "Close")}">✕</button>
       </div>
-      <div class="mp-view" title="Touche pour zoomer">
-        <div class="mp-stage"><div class="mp-wait"><i></i>Relevé en cours…</div></div>
-        <span class="mp-zoom">🔍 Touche pour zoomer</span>
+      <div class="mp-view" title="${tr("Touche pour zoomer", "Tap to zoom")}">
+        <div class="mp-stage"><div class="mp-wait"><i></i>${tr("Relevé en cours…", "Surveying…")}</div></div>
+        <span class="mp-zoom">${tr("🔍 Touche pour zoomer", "🔍 Tap to zoom")}</span>
       </div>
       <div class="mp-side">
         <p class="mp-blurb"></p>
         <div class="mp-stats"></div>
         <div class="mp-legend">
-          <span><i class="k-hq b"></i>Ton GQG</span>
-          <span><i class="k-hq r"></i>GQG ennemi</span>
-          <span><i class="k-up"></i>Relais TSF</span>
-          <span><i class="k-drop"></i>Ravitaillement</span>
+          <span><i class="k-hq b"></i>${tr("Ton GQG", "Your GHQ")}</span>
+          <span><i class="k-hq r"></i>${tr("GQG ennemi", "Enemy GHQ")}</span>
+          <span><i class="k-up"></i>${tr("Relais TSF", "Wireless Relay")}</span>
+          <span><i class="k-drop"></i>${tr("Ravitaillement", "Supply")}</span>
         </div>
         <div class="mp-actions">
-          <button class="cta alt" data-a="close">✕ Fermer</button>
-          <button class="cta alt" data-a="reroll">🎲 Relancer</button>
+          <button class="cta alt" data-a="close">${tr("✕ Fermer", "✕ Close")}</button>
+          <button class="cta alt" data-a="reroll">${tr("🎲 Relancer", "🎲 Reroll")}</button>
           <button class="cta" data-a="play"></button>
         </div>
       </div>
     </div>`;
   hooks.host.appendChild(wrap);
-  wrap.querySelector('[data-a="play"]')!.textContent = hooks.playLabel ?? "▶ Jouer cette carte";
+  wrap.querySelector('[data-a="play"]')!.textContent = hooks.playLabel ?? tr("▶ Jouer cette carte", "▶ Play this map");
   const view = wrap.querySelector<HTMLElement>(".mp-view")!;
   const stage = wrap.querySelector<HTMLElement>(".mp-stage")!;
   let token = 0;

@@ -1,3 +1,4 @@
+import { tr } from "../lang";
 /**
  * Sideways-scrolling card rows (the map picker, the Ops cards). The
  * scrollbar is hidden, so on a phone nothing says more cards wait off
@@ -25,8 +26,8 @@ export function scrollCue(row: HTMLElement): ScrollCue {
     wrap.appendChild(b);
     return b;
   };
-  btn("l", "Défiler à gauche");
-  btn("r", "Défiler à droite");
+  btn("l", tr("Défiler à gauche", "Scroll left"));
+  btn("r", tr("Défiler à droite", "Scroll right"));
 
   // (the wrapper hides with its row through CSS, in the same layout pass: see .hscroll:has)
   const update = () => {

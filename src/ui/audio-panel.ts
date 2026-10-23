@@ -9,24 +9,33 @@ import { sfx, type AudioChannel } from "../game/audio";
 import { radioCheck } from "../game/announcer";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { voices } from "../game/voices";
+import { tr } from "../lang";
 
 /** What the unit voices are called: robot "bips", or (Belle Époque) the machines' whistles and clockwork. */
 const CHIRPS = BELLE_EPOQUE
-  ? { label: "Machines", icon: "⚙️", title: "Sifflets et rouages des unités, et télégraphe, sans parole (touche pour couper)", both: "Annonceur, sifflets et rouages des unités (touche pour les machines seules)" }
-  : { label: "Bips", icon: "🤖", title: "Bips des unités et codes radio, sans parole (touche pour couper)", both: "Annonceur et bips des unités (touche pour les bips seuls)" };
+  ? {
+      label: tr("Machines", "Machines"), icon: "⚙️",
+      title: tr("Sifflets et rouages des unités, et télégraphe, sans parole (touche pour couper)", "Unit whistles and clockwork, and telegraph, no speech (tap to mute)"),
+      both: tr("Annonceur, sifflets et rouages des unités (touche pour les machines seules)", "Announcer, unit whistles and clockwork (tap for machines only)")
+    }
+  : {
+      label: tr("Bips", "Beeps"), icon: "🤖",
+      title: tr("Bips des unités et codes radio, sans parole (touche pour couper)", "Unit beeps and radio codes, no speech (tap to mute)"),
+      both: tr("Annonceur et bips des unités (touche pour les bips seuls)", "Announcer and unit beeps (tap for beeps only)")
+    };
 
 const TOGGLES: { id: "muted" | AudioChannel; icon: string; label: string }[] = [
-  { id: "muted", icon: "🔊", label: "Son" },
-  { id: "music", icon: "🎵", label: "Musique" },
-  { id: "sfx", icon: "💥", label: "Effets" },
-  { id: "voice", icon: "🗣", label: "Voix" }
+  { id: "muted", icon: "🔊", label: tr("Son", "Sound") },
+  { id: "music", icon: "🎵", label: tr("Musique", "Music") },
+  { id: "sfx", icon: "💥", label: tr("Effets", "Effects") },
+  { id: "voice", icon: "🗣", label: tr("Voix", "Voice") }
 ];
 
 /** Render the toggles into `host`; returns a cleanup function. */
 export function mountAudioToggles(host: HTMLElement): () => void {
   host.classList.add("sound-row");
   host.setAttribute("role", "group");
-  host.setAttribute("aria-label", "Réglages du son");
+  host.setAttribute("aria-label", tr("Réglages du son", "Sound settings"));
   host.innerHTML = TOGGLES.map(
     (t) =>
       `<button class="snd" data-k="${t.id}" aria-pressed="false"><span class="si">${t.icon}</span><span class="sl">${t.label}</span></button>`
@@ -43,9 +52,9 @@ export function mountAudioToggles(host: HTMLElement): () => void {
       if (k === "muted") b.querySelector(".si")!.textContent = on ? "🔊" : "🔇";
       if (k === "voice") {
         const chirps = on && !s.speech;
-        b.querySelector(".sl")!.textContent = chirps ? CHIRPS.label : "Voix";
+        b.querySelector(".sl")!.textContent = chirps ? CHIRPS.label : tr("Voix", "Voice");
         b.querySelector(".si")!.textContent = chirps ? CHIRPS.icon : "🗣";
-        b.title = chirps ? CHIRPS.title : on ? CHIRPS.both : "Voix coupée (touche pour activer)";
+        b.title = chirps ? CHIRPS.title : on ? CHIRPS.both : tr("Voix coupée (touche pour activer)", "Voice off (tap to turn on)");
       }
     });
   };

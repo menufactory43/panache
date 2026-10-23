@@ -3,6 +3,7 @@ import { isVisible } from "../sim/fog";
 import { dropLandTick } from "../sim/objectives";
 import type { Faction, World } from "../sim/types";
 import { buildingCenter, hqOf } from "../sim/world";
+import { tr } from "../lang";
 
 /**
  * The top-bar objectives pill, beside the clock: one pip per Uplink in its
@@ -27,7 +28,7 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
   if (!bar || (o.uplinks.length === 0 && o.dropSites.length === 0)) return null;
   const el = document.createElement("div");
   el.className = "objpill";
-  el.innerHTML = `<span class="ol" title="Relais TSF"><b>📡</b><span class="pips"></span></span><span class="lf" title="Une Montgolfière gratuite est en route" hidden></span><span class="od" title="Largages de ravitaillement"></span>`;
+  el.innerHTML = `<span class="ol" title="${tr("Relais TSF", "Wireless Relays")}"><b>📡</b><span class="pips"></span></span><span class="lf" title="${tr("Une Montgolfière gratuite est en route", "A free Montgolfier Balloon is on its way")}" hidden></span><span class="od" title="${tr("Largages de ravitaillement", "Supply drops")}"></span>`;
   bar.appendChild(el);
   const pipsEl = el.querySelector<HTMLElement>(".pips")!;
   const dropEl = el.querySelector<HTMLElement>(".od")!;
@@ -62,7 +63,10 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
         .join("");
       const held = o.uplinks.filter((l) => l.owner === player);
       const unmanned = held.filter(idle).length;
-      el.title = `Relais : tu en tiens ${held.length} sur ${o.uplinks.length}${unmanned ? ` (${unmanned} sans troupes : ne rapporte rien)` : ""}`;
+      el.title = tr(
+        `Relais : tu en tiens ${held.length} sur ${o.uplinks.length}${unmanned ? ` (${unmanned} sans troupes : ne rapporte rien)` : ""}`,
+        `Relays: you hold ${held.length} of ${o.uplinks.length}${unmanned ? ` (${unmanned} without troops: pays nothing)` : ""}`
+      );
     }
     // a free replacement Condor on its way (lifeline.ts)
     const due = spectator ? null : world.lifeline?.[player]?.due ?? null;

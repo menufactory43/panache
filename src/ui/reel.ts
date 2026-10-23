@@ -41,6 +41,7 @@ import { TICK_RATE } from "../sim/balance";
 import { mapById } from "../sim/maps";
 import type { Faction } from "../sim/types";
 import { fleuron, ornament } from "./title";
+import { tr } from "../lang";
 
 /** A seek may take this long per frame (ms) behind an intertitle. */
 const SEEK_BUDGET_MS = 22;
@@ -206,7 +207,7 @@ export class ReelPlayer {
     this.finaleOver = false;
     if (film) {
       this.film = Film.start(this.cv);
-      if (!this.film) this.note = "Ce navigateur ne sait pas filmer : le film est projeté sans être enregistré.";
+      if (!this.film) this.note = tr("Ce navigateur ne sait pas filmer : le film est projeté sans être enregistré.", "This browser can't record video: the film is shown without being saved.");
     }
     this.go(0);
     // (a second showing: the battle's music again, the finale had resolved it)
@@ -303,8 +304,8 @@ export class ReelPlayer {
       if (blob && blob.size > 0) {
         const name = filmName(this.record.map, this.record.created, film.type);
         this.made = new File([blob], name, { type: film.type.split(";")[0] });
-        this.note = `Film prêt : ${(blob.size / 1e6).toFixed(1).replace(".", ",")} Mo`;
-      } else this.note = "Le film n'a pas pu être enregistré.";
+        this.note = tr(`Film prêt : ${(blob.size / 1e6).toFixed(1).replace(".", ",")} Mo`, `Film ready: ${(blob.size / 1e6).toFixed(1)} MB`);
+      } else this.note = tr("Le film n'a pas pu être enregistré.", "The film couldn't be recorded.");
       this.size();
     }
     this.buttons("fin");
@@ -322,22 +323,22 @@ export class ReelPlayer {
 
   private buttons(state: "title" | "playing" | "fin"): void {
     const film = canFilm();
-    const why = film ? "" : "Ce navigateur ne sait pas filmer l'écran (MediaRecorder absent)";
+    const why = film ? "" : tr("Ce navigateur ne sait pas filmer l'écran (MediaRecorder absent)", "This browser can't record the screen (MediaRecorder missing)");
     if (state === "playing") {
       this.ui.className = "reel-ui playing";
-      this.ui.innerHTML = `${this.film ? `<span class="reel-rec">● Tournage</span>` : ""}<button class="reel-skip" data-a="skip" type="button">Passer ›</button>`;
+      this.ui.innerHTML = `${this.film ? `<span class="reel-rec">${tr("● Tournage", "● Filming")}</span>` : ""}<button class="reel-skip" data-a="skip" type="button">${tr("Passer ›", "Skip ›")}</button>`;
     } else {
       this.ui.className = `reel-ui ${state}`;
       const share = this.made
-        ? `<button class="cta" data-a="share" type="button">📤 Partager le film</button>`
-        : `<button class="cta${state === "title" ? " alt" : ""}" data-a="film" type="button"${film ? "" : ` disabled title="${why}"`}>🎞 Filmer pour partager</button>`;
+        ? `<button class="cta" data-a="share" type="button">${tr("📤 Partager le film", "📤 Share the film")}</button>`
+        : `<button class="cta${state === "title" ? " alt" : ""}" data-a="film" type="button"${film ? "" : ` disabled title="${why}"`}>${tr("🎞 Filmer pour partager", "🎞 Film to share")}</button>`;
       this.ui.innerHTML = `<div class="reel-acts">
-          ${state === "title" ? `<button class="cta big" data-a="play" type="button">▶ Projeter</button>` : `<button class="cta alt" data-a="play" type="button">↻ Revoir</button>`}
+          ${state === "title" ? `<button class="cta big" data-a="play" type="button">${tr("▶ Projeter", "▶ Screen it")}</button>` : `<button class="cta alt" data-a="play" type="button">${tr("↻ Revoir", "↻ Rewatch")}</button>`}
           ${share}
-          <button class="cta alt" data-a="json" type="button" title="La partie elle-même : elle se rejoue dans Panache (🎬 Voir une rediffusion)">⬇ Partie (.json)</button>
+          <button class="cta alt" data-a="json" type="button" title="${tr("La partie elle-même : elle se rejoue dans Panache (🎬 Voir une rediffusion)", "The match itself: it replays in Panache (🎬 Watch a replay)")}">${tr("⬇ Partie (.json)", "⬇ Match (.json)")}</button>
           <button class="cta alt" data-a="menu" type="button">Menu</button>
         </div>
-        <p class="reel-note">${esc(this.note || (film ? "" : "Ce navigateur ne sait pas filmer : garde plutôt la partie (.json), elle se rejoue dans Panache."))}</p>`;
+        <p class="reel-note">${esc(this.note || (film ? "" : tr("Ce navigateur ne sait pas filmer : garde plutôt la partie (.json), elle se rejoue dans Panache.", "This browser can't record video: keep the match (.json) instead, it replays in Panache.")))}</p>`;
     }
     this.ui.querySelectorAll<HTMLButtonElement>("[data-a]").forEach((b) =>
       b.addEventListener("click", () => {
@@ -360,7 +361,7 @@ export class ReelPlayer {
     const nav = navigator as Navigator & { canShare?(d: ShareData): boolean };
     if (typeof nav.share === "function" && nav.canShare?.({ files: [f] })) {
       try {
-        await nav.share({ files: [f], title: "Panache", text: `${mapById(this.record.map).name} : les temps forts` });
+        await nav.share({ files: [f], title: "Panache", text: tr(`${mapById(this.record.map).name} : les temps forts`, `${mapById(this.record.map).name}: the highlights`) });
         return;
       } catch (e) {
         if ((e as Error)?.name === "AbortError") return; // (the player closed the sheet)
@@ -381,7 +382,7 @@ export class ReelPlayer {
     const k = W / Math.max(1, innerWidth);
     if (!s || s.kind === "title") return this.card(this.titleCard(), now, k);
     if (s.kind === "card") return this.card({ text: s.clip.card }, now, k, now - this.stepAt);
-    if (s.kind === "fin") return this.card({ text: "Fin", sub: this.resultLine(), big: true }, now, k, now - this.stepAt);
+    if (s.kind === "fin") return this.card({ text: tr("Fin", "The End"), sub: this.resultLine(), big: true }, now, k, now - this.stepAt);
     ctx.drawImage(view, 0, 0, W, H);
     ctx.drawImage(overlay, 0, 0, W, H);
     this.filmLook(now, 0.42);
@@ -405,8 +406,8 @@ export class ReelPlayer {
 
   private titleCard(): CardText {
     const d = new Date(this.record.created);
-    const day = isNaN(d.getTime()) ? "" : d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-    return { kick: "Panache présente", text: "Les temps forts", sub: [mapById(this.record.map).name, day].filter(Boolean).join(" · ") };
+    const day = isNaN(d.getTime()) ? "" : d.toLocaleDateString(tr("fr-FR", "en-GB"), { day: "numeric", month: "long", year: "numeric" });
+    return { kick: tr("Panache présente", "Panache presents"), text: tr("Les temps forts", "The Highlights"), sub: [mapById(this.record.map).name, day].filter(Boolean).join(" · ") };
   }
 
   /** « Victoire en 7:42 contre IA Rush (Normal) ». */
@@ -414,9 +415,17 @@ export class ReelPlayer {
     const r = this.record;
     const secs = (r.end?.tick ?? r.tick) / TICK_RATE;
     const p = r.played;
-    if (!p) return r.end?.winner ? `Victoire ${r.end.winner === "blue" ? "bleue" : "rouge"} en ${fmtTime(secs)}` : `Match nul · ${fmtTime(secs)}`;
-    const head = p.result === "win" ? `Victoire en ${fmtTime(secs)}` : p.result === "loss" ? `Défaite en ${fmtTime(secs)}` : `Match nul · ${fmtTime(secs)}`;
-    return `${head} contre ${p.against}`;
+    if (!p)
+      return r.end?.winner
+        ? tr(`Victoire ${r.end.winner === "blue" ? "bleue" : "rouge"} en ${fmtTime(secs)}`, `${r.end.winner === "blue" ? "Blue" : "Red"} victory in ${fmtTime(secs)}`)
+        : tr(`Match nul · ${fmtTime(secs)}`, `Draw · ${fmtTime(secs)}`);
+    const head =
+      p.result === "win"
+        ? tr(`Victoire en ${fmtTime(secs)}`, `Victory in ${fmtTime(secs)}`)
+        : p.result === "loss"
+          ? tr(`Défaite en ${fmtTime(secs)}`, `Defeat in ${fmtTime(secs)}`)
+          : tr(`Match nul · ${fmtTime(secs)}`, `Draw · ${fmtTime(secs)}`);
+    return tr(`${head} contre ${p.against}`, `${head} vs ${p.against}`);
   }
 
   /** An intertitle: the black card in its gold frame, the fleurons, the line (fading in over `age` ms). */

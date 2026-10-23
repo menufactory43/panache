@@ -207,6 +207,12 @@ html.belle #hud.bh .bh-r-btns #btn-mute::after {
 html.belle #hud.bh .bh-r-btns .bh-dpause::after {
   content: "  Pause et réglages";
 }
+html[lang="en"].belle #hud.bh .bh-r-btns #btn-mute::after {
+  content: " Sound";
+}
+html[lang="en"].belle #hud.bh .bh-r-btns .bh-dpause::after {
+  content: "  Pause and settings";
+}
 html.belle #hud.bh .bh-drop {
   max-width: min(320px, calc(100vw - var(--bh-l) - var(--bh-r)));
 }

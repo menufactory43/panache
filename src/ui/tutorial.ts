@@ -10,6 +10,7 @@
  */
 import { TUT_STEPS } from "../game/tutorial";
 import { openSheet } from "./career";
+import { tr } from "../lang";
 
 /** A rectangle on screen (CSS px). */
 export interface Box {
@@ -60,9 +61,9 @@ export function mountTutorialOverlay(h: TutOverlayHooks): TutOverlay {
     <div class="tu-gest" hidden></div>
     <div class="tu-flag" hidden><svg viewBox="0 0 40 56" aria-hidden="true"><path d="M8 4v50" stroke="#3a2a12" stroke-width="3" stroke-linecap="round"/><circle cx="8" cy="4" r="3" fill="#f6dc92" stroke="#3a2a12" stroke-width="1.4"/><path d="M10 7c9-3 15 3 26 0v18c-11 3-17-3-26 0z" fill="#2c4f9e" stroke="#16264d" stroke-width="1.4"/><path d="M10 13c9-3 15 3 26 0" stroke="#f2e8d0" stroke-width="3" fill="none" opacity=".85"/><path d="M10 19c9-3 15 3 26 0" stroke="#c0392b" stroke-width="3" fill="none" opacity=".9"/></svg></div>
     <div class="tu-bubble" role="status" aria-live="polite">
-      <div class="tu-head"><span class="tu-tag">Instruction</span><span class="tu-pips"></span><button class="tu-skip" type="button">Passer</button></div>
+      <div class="tu-head"><span class="tu-tag">${tr("Instruction", "Training")}</span><span class="tu-pips"></span><button class="tu-skip" type="button">${tr("Passer", "Skip")}</button></div>
       <p class="tu-text"></p>
-      <div class="tu-confirm" hidden><span>Quitter l'instruction ?</span><button class="tu-yes" type="button">Oui</button><button class="tu-no" type="button">Non</button></div>
+      <div class="tu-confirm" hidden><span>${tr("Quitter l'instruction ?", "Quit the training?")}</span><button class="tu-yes" type="button">${tr("Oui", "Yes")}</button><button class="tu-no" type="button">${tr("Non", "No")}</button></div>
     </div>`;
   h.host.appendChild(root);
   const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
@@ -233,9 +234,9 @@ export function showTutorialPrompt(host: HTMLElement, yes: () => void, no: () =>
     host,
     "tutoprompt",
     `<div class="tp-crest" aria-hidden="true">🎓</div>
-     <h2>Première fois ?</h2>
-     <p class="sh-sub">Fais l'instruction : un geste à la fois, 3 minutes.</p>
-     <div class="sh-actions"><button class="cta alt" id="tp-no">Non, jouer</button><button class="cta" id="tp-yes">Oui, apprendre</button></div>`
+     <h2>${tr("Première fois ?", "First time?")}</h2>
+     <p class="sh-sub">${tr("Fais l'instruction : un geste à la fois, 3 minutes.", "Take the training: one gesture at a time, 3 minutes.")}</p>
+     <div class="sh-actions"><button class="cta alt" id="tp-no">${tr("Non, jouer", "No, play")}</button><button class="cta" id="tp-yes">${tr("Oui, apprendre", "Yes, teach me")}</button></div>`
   );
   let answered = false;
   const answer = (fn: () => void) => () => {
