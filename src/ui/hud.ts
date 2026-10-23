@@ -33,6 +33,7 @@ import { fullscreen } from "./fullscreen";
 import { mapById } from "../sim/maps";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { mountBelleHud, mountHudSettings, type BelleHud } from "./belle-hud";
+import { watchMatchFocus } from "./match-focus";
 
 export interface HudApi {
   world: World;
@@ -1029,6 +1030,11 @@ export function createHud(api: HudApi): Hud {
   /** The match is over: the end screen is up (or a duel ended with no result). Nothing pauses any more. */
   let over = false;
 
+  // the screen stays on; the app going to the background pauses the match (not a duel: the friend plays on)
+  const offFocus = watchMatchFocus(() => {
+    if (!api.duel && !api.ctrl.paused) togglePause();
+  });
+
   function togglePause(): void {
     if (over || !endEl.hidden || w.winner) return; // over (the finale is playing): nothing to pause
     api.ctrl.paused = !api.ctrl.paused;
@@ -1565,6 +1571,7 @@ export function createHud(api: HudApi): Hud {
     },
     togglePause,
     destroy() {
+      offFocus();
       offAnnounce();
       offMute();
       belle?.destroy();
