@@ -5,6 +5,7 @@
  * Player-visible text only: nothing here is compared, sent or saved.
  */
 import { BUILDINGS, NATION_BUILDINGS, UNITS } from "./balance";
+import { EN, tr } from "../lang";
 import type { BuildingKind, Nation, NationOrClassic, PowerKind, UnitKind } from "./types";
 
 export type NamedKind = UnitKind | BuildingKind | PowerKind;
@@ -31,7 +32,7 @@ export const PLURAL_NOUN: ReadonlySet<NamedKind> = new Set<NamedKind>(["fab-plan
  * Plurals. Makers' and aviators' names stay invariable, as French does with
  * brands ("deux Panhard", "trois Blériot"); common nouns take their -s.
  */
-export const PLURALS: Record<UnitKind | BuildingKind, string> = {
+const PLURALS_FR: Record<UnitKind | BuildingKind, string> = {
   harvester: "Fardiers",
   scout: "Patries",
   stinger: "Panhard",
@@ -78,6 +79,55 @@ export const PLURALS: Record<UnitKind | BuildingKind, string> = {
   arsonval: "Bobines d'Arsonval",
   "flak-battery": "Batteries de 47"
 };
+
+/** The English plurals (the makers' names take their -s in English: "two Panhards"). */
+const PLURALS_EN: Record<UnitKind | BuildingKind, string> = {
+  harvester: "Steam Wagons",
+  scout: "Patries",
+  stinger: "Panhards",
+  "flak-crawler": "Daddy-Longlegs",
+  mortar: "French 75s",
+  mastodon: "Creusots",
+  lancer: "Hydrogliders",
+  wasp: "Éoles",
+  raptor: "Blériots",
+  hornet: "Albatroses",
+  mender: "Pasteurs",
+  trooper: "Poilu Squads",
+  "rocket-squad": "Rocketeer Squads",
+  sniper: "Alpine Chasseur Sections",
+  condor: "Montgolfier Balloons",
+  goliath: "Gargantuas",
+  hq: "GHQs",
+  "fab-plant": "Forges",
+  airpad: "Chalais-Meudon Airparks",
+  "tech-lab": "Polytechniques",
+  depot: "Market Halls",
+  turret: "Hotchkisses",
+  "sam-site": "Ruggieri Batteries",
+  radar: "Wireless Towers",
+  "assembly-bay": "Manufactories",
+  gantry: "Galeries des Machines",
+  fourgon: "Jeantaud Vans",
+  "jamais-contente": "Jamais-Contentes",
+  "de-dion": "De Dion Autocannons",
+  branly: "Branly Guns",
+  sapeurs: "Electric Sapper Squads",
+  zenith: "Zéniths",
+  estafette: "Dispatch Riders",
+  "mortier-280": "280 mm Mortars",
+  gyroptere: "Gyropters",
+  epervier: "Sparrowhawks",
+  vulcain: "Vulcans",
+  atelier: "Rolling Workshops",
+  fusiliers: "Fusilier Squads",
+  carabiniers: "Carabinier Sections",
+  titan: "Titans",
+  arsonval: "d'Arsonval Coils",
+  "flak-battery": "47 mm Batteries"
+};
+
+export const PLURALS: Record<UnitKind | BuildingKind, string> = tr(PLURALS_FR, PLURALS_EN);
 
 /** Grammar of a name: its gender, whether it is already plural, and its plural. */
 export interface NameGrammar {
@@ -139,17 +189,20 @@ const gram = (k: NamedKind, nation?: NationOrClassic | null): { feminine: boolea
 export const isFeminine = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): boolean => !!k && gram(k, nation).feminine;
 export const isPluralNoun = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): boolean => !!k && gram(k, nation).pluralNoun;
 
-/** An adjective or past participle agreed with the kind: agree("turret", "détruit") = "détruite", agree("fab-plant", "détruit") = "détruites". */
+/**
+ * An adjective or past participle agreed with the kind: agree("turret", "détruit") = "détruite", agree("fab-plant", "détruit") = "détruites".
+ * French only: English text says its own word, `tr(agree(k, "détruit"), "destroyed")`.
+ */
 export const agree = (k: NamedKind | null | undefined, word: string, nation?: NationOrClassic | null): string =>
   `${word}${isFeminine(k, nation) ? "e" : ""}${isPluralNoun(k, nation) ? "s" : ""}`;
 
-/** Definite article with the noun: "le Panhard", "la Patrie", "l'Éole", "les Forges". */
+/** Definite article with the noun: "le Panhard", "la Patrie", "l'Éole", "les Forges" (English: "the Panhard"). */
 export const theName = (k: NamedKind, name: string, nation?: NationOrClassic | null): string =>
-  isPluralNoun(k, nation) ? `les ${name}` : elides(name) ? `l'${name}` : isFeminine(k, nation) ? `la ${name}` : `le ${name}`;
+  EN ? `the ${name}` : isPluralNoun(k, nation) ? `les ${name}` : elides(name) ? `l'${name}` : isFeminine(k, nation) ? `la ${name}` : `le ${name}`;
 
-/** Indefinite article with the noun: "un Panhard", "une Patrie", "des Forges". */
+/** Indefinite article with the noun: "un Panhard", "une Patrie", "des Forges" (English: "a Panhard", "an Éole", "Forges"). */
 export const aName = (k: NamedKind, name: string, nation?: NationOrClassic | null): string =>
-  isPluralNoun(k, nation) ? `des ${name}` : isFeminine(k, nation) ? `une ${name}` : `un ${name}`;
+  EN ? (isPluralNoun(k, nation) ? name : /^[aeioué]/i.test(name) ? `an ${name}` : `a ${name}`) : isPluralNoun(k, nation) ? `des ${name}` : isFeminine(k, nation) ? `une ${name}` : `un ${name}`;
 
 /** "est" / "sont" for the kind as subject. */
-export const isVerb = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): string => (isPluralNoun(k, nation) ? "sont" : "est");
+export const isVerb = (k: NamedKind | null | undefined, nation?: NationOrClassic | null): string => (isPluralNoun(k, nation) ? tr("sont", "are") : tr("est", "is"));

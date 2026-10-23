@@ -22,6 +22,7 @@
  * Lines the recordings can't say, or whose clips arrive too late, still go
  * to speechSynthesis.
  */
+import { tr } from "../lang";
 import type { Faction, FxEvent, World } from "../sim/types";
 import { onAnnounce, announce, type Announcement, type AnnounceTone } from "./announce";
 import { sfx } from "./audio";
@@ -86,16 +87,16 @@ class Speech {
       window.addEventListener(ev, prime, { capture: true, passive: true });
   }
 
-  /** Choose a voice: English, preferably on-device and male-sounding (a low commander). */
+  /** Choose a voice in the player's language, preferably on-device and male-sounding (a low commander). */
   private pick(): void {
     const all = this.synth?.getVoices() ?? [];
     if (all.length === 0) return;
-    const fr = all.filter((v) => /^fr([-_]|$)/i.test(v.lang));
-    const pool = fr.length ? fr : all;
+    const mine = all.filter((v) => tr(/^fr([-_]|$)/i, /^en([-_]|$)/i).test(v.lang));
+    const pool = mine.length ? mine : all;
     const score = (v: SpeechSynthesisVoice) =>
       (v.localService ? 2 : 0) +
-      (/male|thomas|nicolas|daniel|henri|paul|jacques|antoine|mathieu|guillaume|olivier|denis|claude/i.test(v.name) && !/female/i.test(v.name) ? 3 : 0) +
-      (/^fr[-_]fr/i.test(v.lang) ? 1 : 0) +
+      (/male|thomas|nicolas|daniel|henri|paul|jacques|antoine|mathieu|guillaume|olivier|denis|claude|arthur|oliver|george|fred/i.test(v.name) && !/female/i.test(v.name) ? 3 : 0) +
+      (tr(/^fr[-_]fr/i, /^en[-_]gb/i).test(v.lang) ? 1 : 0) +
       (v.default ? 0.5 : 0);
     this.voice = [...pool].sort((a, b) => score(b) - score(a))[0] ?? null;
     this.state = "ok";
@@ -117,7 +118,7 @@ class Speech {
     try {
       const u = new SpeechSynthesisUtterance(text);
       if (this.voice) u.voice = this.voice;
-      u.lang = this.voice?.lang ?? "fr-FR";
+      u.lang = this.voice?.lang ?? tr("fr-FR", "en-GB");
       // hype lines are a touch slower and lower, warnings a touch quicker
       u.rate = tone === "epic" ? SPEECH.rate * 0.94 : tone === "bad" ? SPEECH.rate * 1.04 : SPEECH.rate;
       u.pitch = tone === "epic" ? SPEECH.pitch * 0.9 : SPEECH.pitch;

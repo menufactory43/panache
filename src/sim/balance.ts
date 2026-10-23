@@ -1,3 +1,4 @@
+import { tr } from "../lang";
 import {
   Terrain,
   type ArmorClass,
@@ -119,7 +120,7 @@ export interface BuildingStats extends ArmedStats {
  */
 export const UNITS: Record<UnitKind, UnitStats> = {
   harvester: {
-    name: "Fardier", role: "Extrait charbon et radium. Protège-le.",
+    name: tr("Fardier", "Steam Wagon"), role: "Extrait charbon et radium. Protège-le.",
     cost: 150, hp: 250, speed: 1.6, sight: 4, domain: "ground", armor: "medium",
     targets: "none", dps: 0, range: 0,
     buildTime: 10, builtAt: "hq", radius: 0.45
@@ -137,13 +138,13 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 7, builtAt: "fab-plant", turret: true, radius: 0.38
   },
   "flak-crawler": {
-    name: "Faucheux", role: "Antiaérien. Déchiquette les aéronefs. Impuissant au sol.",
+    name: tr("Faucheux", "Daddy-Longlegs"), role: "Antiaérien. Déchiquette les aéronefs. Impuissant au sol.",
     cost: 190, hp: 285, speed: 1.9, sight: 6, domain: "ground", armor: "medium",
     targets: "air", dps: 31, range: 5, shotInterval: 0.3, dmgType: "flak", fx: "flak",
     buildTime: 8, builtAt: "fab-plant", turret: true, radius: 0.4
   },
   mortar: {
-    name: "Canon de 75", role: "Artillerie à zone longue portée. Rase les bases. Fragile de près.",
+    name: tr("Canon de 75", "French 75"), role: "Artillerie à zone longue portée. Rase les bases. Fragile de près.",
     cost: 275, hp: 195, speed: 1.5, sight: 6, domain: "ground", armor: "light",
     targets: "ground", dps: 18, range: 8, minRange: 2.5, shotInterval: 3,
     splash: 1.1, projectileSpeed: 5.5, dmgType: "explosive", fx: "shell",
@@ -156,7 +157,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 15, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.55
   },
   lancer: {
-    name: "Hydroglisseur", role: "Glisseur à arc électrique. Perce le blindage, touche l'air. Traverse l'eau.",
+    name: tr("Hydroglisseur", "Hydroglider"), role: "Glisseur à arc électrique. Perce le blindage, touche l'air. Traverse l'eau.",
     cost: 275, hp: 405, speed: 2.5, sight: 6, domain: "ground", armor: "medium",
     hover: true,
     targets: "both", dps: 28, range: 4.5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.65,
@@ -191,7 +192,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // (tuned down from the spec's 225 HP / 18 DPS: cost for cost those beat Stingers by
   // 0.48 in tools/balance.ts duels; Stingers are meant to handle infantry)
   trooper: {
-    name: "Escouade de pioupious", role: "Automates fusiliers bon marché. Tirent sol et air. À couvert dans les bois.",
+    name: tr("Escouade de pioupious", "Poilu Squad"), role: "Automates fusiliers bon marché. Tirent sol et air. À couvert dans les bois.",
     cost: 100, hp: 190, speed: 1.8, sight: 5, domain: "ground", armor: "infantry",
     targets: "both", dps: 15, range: 3, shotInterval: 0.4, dmgType: "kinetic", fx: "rifle", airMult: 0.5,
     buildTime: 6, builtAt: "assembly-bay", radius: 0.4, squad: 5
@@ -199,20 +200,20 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // (the spec's 180 HP and 0.8× vs air lost to Hornets by 0.59 cost for cost — their bombs
   // splash whole clumps of squads; 210 HP and 1.5× vs air kill them, as the role says)
   "rocket-squad": {
-    name: "Escouade d'artificiers", role: "Roquettes antichar. Tuent Creusot et Albatros. Faibles contre l'infanterie.",
+    name: tr("Escouade d'artificiers", "Rocketeer Squad"), role: "Roquettes antichar. Tuent Creusot et Albatros. Faibles contre l'infanterie.",
     cost: 175, hp: 210, speed: 1.6, sight: 6, domain: "ground", armor: "infantry",
     targets: "both", dps: 26, range: 4, shotInterval: 1.5, dmgType: "cannon", fx: "rockets", airMult: 1.5,
     buildTime: 9, builtAt: "assembly-bay", radius: 0.4, squad: 3
   },
   sniper: {
-    name: "Section de chasseurs alpins", role: "Tireurs d'élite longue portée. Effacent l'infanterie. Inutiles contre les véhicules.",
+    name: tr("Section de chasseurs alpins", "Alpine Chasseur Section"), role: "Tireurs d'élite longue portée. Effacent l'infanterie. Inutiles contre les véhicules.",
     cost: 200, hp: 120, speed: 1.7, sight: 8, domain: "ground", armor: "infantry",
     // 50 per shot; precision ×3 vs infantry = 150 (about three Trooper robots)
     targets: "ground", dps: 20, range: 7, shotInterval: 2.5, dmgType: "precision", fx: "snipe",
     buildTime: 10, builtAt: "assembly-bay", requires: "tech-lab", radius: 0.35, squad: 2
   },
   condor: {
-    name: "Montgolfière", role: "Transport. Emporte deux escouades par-dessus tout. Non armée.",
+    name: tr("Montgolfière", "Montgolfier Balloon"), role: "Transport. Emporte deux escouades par-dessus tout. Non armée.",
     cost: 200, hp: 400, speed: 3.6, sight: 6, domain: "air", armor: "medium",
     targets: "none", dps: 0, range: 0,
     buildTime: 9, builtAt: "airpad", radius: 0.5, capacity: 2
@@ -231,7 +232,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   // indices. Build times are before the nation's unitTime multiplier. ----
   // République
   fourgon: {
-    name: "Fourgon Jeantaud", role: "Fourgon électrique : extrait charbon et radium, vite et par petites charges.",
+    name: tr("Fourgon Jeantaud", "Jeantaud Van"), role: "Fourgon électrique : extrait charbon et radium, vite et par petites charges.",
     nation: "republique", base: "harvester", cargo: 80,
     cost: 125, hp: 200, speed: 2.1, sight: 4, domain: "ground", armor: "medium",
     targets: "none", dps: 0, range: 0,
@@ -245,7 +246,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 6, builtAt: "fab-plant", turret: true, radius: 0.36
   },
   "de-dion": {
-    name: "Autocanon De Dion", role: "Antiaérien rapide à tir de barrage. Impuissant au sol.",
+    name: tr("Autocanon De Dion", "De Dion Autocannon"), role: "Antiaérien rapide à tir de barrage. Impuissant au sol.",
     nation: "republique",
     // (230 HP lost to cost-equal Vulcains, −0.26 in tools/balance.ts duels --nations: anti-air beaten by the bomber it answers)
     cost: 175, hp: 260, speed: 2.4, sight: 7, domain: "ground", armor: "light",
@@ -253,7 +254,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 7, builtAt: "fab-plant", turret: true, radius: 0.38
   },
   branly: {
-    name: "Canon Branly", role: "Canon électromagnétique : obus rapides, longue portée. Fragile de près.",
+    name: tr("Canon Branly", "Branly Gun"), role: "Canon électromagnétique : obus rapides, longue portée. Fragile de près.",
     nation: "republique",
     // (170 HP: 0.44 units killed per value lost in AI-vs-AI panels, the République's worst gun)
     cost: 260, hp: 200, speed: 1.8, sight: 6, domain: "ground", armor: "light",
@@ -262,7 +263,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 9, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.4
   },
   sapeurs: {
-    name: "Escouade de sapeurs-électriciens", role: "Lances à arc antichar. Fondent Creusot et Gargantua. Ne tirent pas en l'air.",
+    name: tr("Escouade de sapeurs-électriciens", "Electric Sapper Squad"), role: "Lances à arc antichar. Fondent Creusot et Gargantua. Ne tirent pas en l'air.",
     nation: "republique",
     cost: 175, hp: 200, speed: 1.7, sight: 6, domain: "ground", armor: "infantry",
     targets: "ground", dps: 24, range: 3.5, shotInterval: 1.2, dmgType: "laser", fx: "laser",
@@ -278,14 +279,14 @@ export const UNITS: Record<UnitKind, UnitStats> = {
   },
   // Empire de Carbonie
   estafette: {
-    name: "Estafette", role: "Motocyclette à vapeur de reconnaissance. Rapide, non armée, reste au sol.",
+    name: tr("Estafette", "Dispatch Rider"), role: "Motocyclette à vapeur de reconnaissance. Rapide, non armée, reste au sol.",
     nation: "empire",
     cost: 60, hp: 90, speed: 4.2, sight: 8, domain: "ground", armor: "light",
     targets: "none", dps: 0, range: 0,
     buildTime: 4, builtAt: "fab-plant", radius: 0.3
   },
   "mortier-280": {
-    name: "Mortier de 280", role: "Pièce de siège. Surclasse toute défense en portée. Aveugle : il lui faut un guetteur.",
+    name: tr("Mortier de 280", "280 mm Mortar"), role: "Pièce de siège. Surclasse toute défense en portée. Aveugle : il lui faut un guetteur.",
     nation: "empire",
     cost: 425, hp: 280, speed: 0.9, sight: 6, domain: "ground", armor: "medium",
     targets: "ground", dps: 20, range: 11, minRange: 4, shotInterval: 6,
@@ -293,21 +294,21 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 14, builtAt: "fab-plant", requires: "tech-lab", turret: true, radius: 0.5
   },
   gyroptere: {
-    name: "Gyroptère", role: "Autogire à vapeur d'attaque. Canon antichar sur cibles au sol. Craint la DCA.",
+    name: tr("Gyroptère", "Gyropter"), role: "Autogire à vapeur d'attaque. Canon antichar sur cibles au sol. Craint la DCA.",
     nation: "empire",
     cost: 225, hp: 260, speed: 3.0, sight: 6, domain: "air", armor: "medium",
     targets: "ground", dps: 26, range: 3.2, shotInterval: 0.5, dmgType: "cannon", fx: "cannon",
     buildTime: 8, builtAt: "airpad", radius: 0.4
   },
   epervier: {
-    name: "Épervier", role: "Chasseur à vapeur. Ses canons percent les grands aéronefs. Ne tire pas au sol.",
+    name: tr("Épervier", "Sparrowhawk"), role: "Chasseur à vapeur. Ses canons percent les grands aéronefs. Ne tire pas au sol.",
     nation: "empire",
     cost: 225, hp: 240, speed: 3.8, sight: 7, domain: "air", armor: "medium",
     targets: "air", dps: 30, range: 3.5, shotInterval: 0.5, dmgType: "cannon", fx: "mg",
     buildTime: 7, builtAt: "airpad", radius: 0.38
   },
   vulcain: {
-    name: "Vulcain", role: "Bombardier blindé, lent. Écrase bases et colonnes. Escorte requise.",
+    name: tr("Vulcain", "Vulcan"), role: "Bombardier blindé, lent. Écrase bases et colonnes. Escorte requise.",
     nation: "empire",
     cost: 425, hp: 650, speed: 1.6, sight: 6, domain: "air", armor: "heavy",
     targets: "ground", dps: 40, range: 1.6, shotInterval: 2.5, splash: 1.3,
@@ -315,21 +316,21 @@ export const UNITS: Record<UnitKind, UnitStats> = {
     buildTime: 13, builtAt: "airpad", requires: "tech-lab", radius: 0.6
   },
   atelier: {
-    name: "Atelier roulant", role: "Locomobile de réparation. Répare véhicules, Gargantua et bâtiments. Pas les aéronefs.",
+    name: tr("Atelier roulant", "Rolling Workshop"), role: "Locomobile de réparation. Répare véhicules, Gargantua et bâtiments. Pas les aéronefs.",
     nation: "empire", base: "mender", healTargets: "ground",
     cost: 160, hp: 320, speed: 1.7, sight: 5, domain: "ground", armor: "medium",
     targets: "none", dps: 0, range: 2.5, heal: 12,
     buildTime: 7, builtAt: "fab-plant", radius: 0.45
   },
   fusiliers: {
-    name: "Escouade de fusiliers", role: "Automates fusiliers cuirassés. Tirent sol et air. Se retranchent.",
+    name: tr("Escouade de fusiliers", "Fusilier Squad"), role: "Automates fusiliers cuirassés. Tirent sol et air. Se retranchent.",
     nation: "empire", base: "trooper",
     cost: 125, hp: 260, speed: 1.5, sight: 5, domain: "ground", armor: "infantry",
     targets: "both", dps: 16, range: 3, shotInterval: 0.5, dmgType: "kinetic", fx: "rifle", airMult: 0.5,
     buildTime: 6, builtAt: "assembly-bay", radius: 0.4, squad: 5
   },
   carabiniers: {
-    name: "Section de carabiniers", role: "Tireurs d'élite blindés. Effacent l'infanterie. Portée plus courte que les chasseurs alpins.",
+    name: tr("Section de carabiniers", "Carabinier Section"), role: "Tireurs d'élite blindés. Effacent l'infanterie. Portée plus courte que les chasseurs alpins.",
     nation: "empire", base: "sniper",
     cost: 200, hp: 150, speed: 1.4, sight: 7, domain: "ground", armor: "infantry",
     targets: "ground", dps: 18, range: 6.5, shotInterval: 2.5, dmgType: "precision", fx: "snipe",
@@ -346,7 +347,7 @@ export const UNITS: Record<UnitKind, UnitStats> = {
 
 export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
   hq: {
-    name: "GQG", role: "Grand Quartier Général. Produit des Fardiers, reçoit le charbon. Perds-le avec tous tes Gargantuas, et c'est la défaite.",
+    name: tr("GQG", "GHQ"), role: "Grand Quartier Général. Produit des Fardiers, reçoit le charbon. Perds-le avec tous tes Gargantuas, et c'est la défaite.",
     cost: 0, hp: 3200, sight: 7, size: 3, buildTime: 0, dropOff: true,
     // point defence: swats early drone raids, leaves ground assaults to real defences
     targets: "air", dps: 9, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "mg"
@@ -357,7 +358,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     targets: "none", dps: 0, range: 0
   },
   airpad: {
-    name: "Parc de Chalais-Meudon", role: "Produit les aéronefs.",
+    name: tr("Parc de Chalais-Meudon", "Chalais-Meudon Airpark"), role: "Produit les aéronefs.",
     cost: 350, hp: 850, sight: 4, size: 2, buildTime: 12,
     targets: "none", dps: 0, range: 0
   },
@@ -367,7 +368,7 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     targets: "none", dps: 0, range: 0
   },
   depot: {
-    name: "Halles", role: "Point de dépôt avancé. À bâtir près des gisements éloignés.",
+    name: tr("Halles", "Market Halls"), role: "Point de dépôt avancé. À bâtir près des gisements éloignés.",
     cost: 250, hp: 800, sight: 4, size: 2, buildTime: 10, dropOff: true,
     targets: "none", dps: 0, range: 0
   },
@@ -377,17 +378,17 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
     targets: "both", dps: 26, range: 4.5, shotInterval: 0.5, dmgType: "kinetic", fx: "cannon"
   },
   "sam-site": {
-    name: "Batterie Ruggieri", role: "Fusées antiaériennes longue portée.",
+    name: tr("Batterie Ruggieri", "Ruggieri Battery"), role: "Fusées antiaériennes longue portée.",
     cost: 275, hp: 560, sight: 7, size: 1, buildTime: 9,
     targets: "air", dps: 32, range: 6.5, shotInterval: 1.2, dmgType: "missile", fx: "missile"
   },
   radar: {
-    name: "Tour TSF", role: "Révèle une vaste zone à travers le brouillard.",
+    name: tr("Tour TSF", "Wireless Tower"), role: "Révèle une vaste zone à travers le brouillard.",
     cost: 200, hp: 450, sight: 13, size: 1, buildTime: 8,
     targets: "none", dps: 0, range: 0
   },
   "assembly-bay": {
-    name: "Manufacture", role: "Produit l'infanterie automate.",
+    name: tr("Manufacture", "Manufactory"), role: "Produit l'infanterie automate.",
     cost: 250, hp: 700, sight: 4, size: 2, buildTime: 15,
     targets: "none", dps: 0, range: 0
   },
@@ -399,13 +400,13 @@ export const BUILDINGS: Record<BuildingKind, BuildingStats> = {
   },
   // ---- the two defences only one nation builds (§1.6) ----
   arsonval: {
-    name: "Bobine d'Arsonval", role: "Tour à arc électrique. Perce les blindés au sol. Doit être alimentée.",
+    name: tr("Bobine d'Arsonval", "d'Arsonval Coil"), role: "Tour à arc électrique. Perce les blindés au sol. Doit être alimentée.",
     nation: "republique", base: "turret",
     cost: 250, hp: 600, sight: 6, size: 1, buildTime: 8,
     targets: "ground", dps: 34, range: 4, shotInterval: 1, dmgType: "laser", fx: "laser"
   },
   "flak-battery": {
-    name: "Batterie de 47", role: "Canons antiaériens à vapeur. Longue portée contre les aéronefs.",
+    name: tr("Batterie de 47", "47 mm Battery"), role: "Canons antiaériens à vapeur. Longue portée contre les aéronefs.",
     nation: "empire", base: "sam-site",
     cost: 275, hp: 700, sight: 7, size: 1, buildTime: 9,
     targets: "air", dps: 30, range: 6, shotInterval: 0.6, dmgType: "flak", fx: "flak"
@@ -442,17 +443,17 @@ export interface TerrainInfo {
 }
 
 export const TERRAIN: Record<Terrain, TerrainInfo> = {
-  [Terrain.Ground]: { name: "Sol", ground: true, hover: true, speed: 1, hoverSpeed: 1, footSpeed: 1, buildable: true, cover: 1 },
-  [Terrain.Rock]: { name: "Rocher", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 },
-  [Terrain.Scrap]: { name: "Gisement de charbon", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
-  [Terrain.Water]: { name: "Eau", ground: false, hover: true, speed: 0, hoverSpeed: 1, footSpeed: 0, buildable: false, cover: 1 },
-  [Terrain.Road]: { name: "Route", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: true, cover: 1 },
-  [Terrain.Rough]: { name: "Terrain accidenté", ground: true, hover: true, speed: 0.6, hoverSpeed: 1, footSpeed: 1, buildable: false, cover: 1 },
-  [Terrain.Forest]: { name: "Bois", ground: true, hover: true, speed: 0.55, hoverSpeed: 0.6, footSpeed: 1, buildable: false, cover: 0.7 },
-  [Terrain.Crystal]: { name: "Gisement de radium", ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
-  [Terrain.Bridge]: { name: "Pont", ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: false, cover: 1 },
-  [Terrain.Shallows]: { name: "Hauts-fonds", ground: true, hover: true, speed: 0.5, hoverSpeed: 1, footSpeed: 0.8, buildable: false, cover: 1 },
-  [Terrain.Deep]: { name: "Haute mer", ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 }
+  [Terrain.Ground]: { name: tr("Sol", "Ground"), ground: true, hover: true, speed: 1, hoverSpeed: 1, footSpeed: 1, buildable: true, cover: 1 },
+  [Terrain.Rock]: { name: tr("Rocher", "Rock"), ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 },
+  [Terrain.Scrap]: { name: tr("Gisement de charbon", "Coal Seam"), ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
+  [Terrain.Water]: { name: tr("Eau", "Water"), ground: false, hover: true, speed: 0, hoverSpeed: 1, footSpeed: 0, buildable: false, cover: 1 },
+  [Terrain.Road]: { name: tr("Route", "Road"), ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: true, cover: 1 },
+  [Terrain.Rough]: { name: tr("Terrain accidenté", "Rough Ground"), ground: true, hover: true, speed: 0.6, hoverSpeed: 1, footSpeed: 1, buildable: false, cover: 1 },
+  [Terrain.Forest]: { name: tr("Bois", "Woods"), ground: true, hover: true, speed: 0.55, hoverSpeed: 0.6, footSpeed: 1, buildable: false, cover: 0.7 },
+  [Terrain.Crystal]: { name: tr("Gisement de radium", "Radium Seam"), ground: true, hover: true, speed: 0.85, hoverSpeed: 1, footSpeed: 0.85, buildable: false, cover: 1 },
+  [Terrain.Bridge]: { name: tr("Pont", "Bridge"), ground: true, hover: true, speed: 1.35, hoverSpeed: 1.15, footSpeed: 1.35, buildable: false, cover: 1 },
+  [Terrain.Shallows]: { name: tr("Hauts-fonds", "Shallows"), ground: true, hover: true, speed: 0.5, hoverSpeed: 1, footSpeed: 0.8, buildable: false, cover: 1 },
+  [Terrain.Deep]: { name: tr("Haute mer", "Open Sea"), ground: false, hover: false, speed: 0, hoverSpeed: 0, footSpeed: 0, buildable: false, cover: 1 }
 };
 
 /**
@@ -771,21 +772,21 @@ export const GOLIATH = {
     // only edged it, −0.14 in tools/balance.ts goliath duels; at 0.9, −0.39,
     // a real answer like Lancers, Wasps and Hornets, and it still beats Troopers.)
     mortars: {
-      name: "Mortiers", lostBelow: 0.75,
+      name: tr("Mortiers", "Mortars"), lostBelow: 0.75,
       targets: "ground", dps: 36, range: 8, minRange: 2.5, shotInterval: 1.5,
       splash: 0.9, projectileSpeed: 5.5, dmgType: "explosive", fx: "shell"
     },
     laser: {
-      name: "Arc électrique oculaire", lostBelow: 0.5,
+      name: tr("Arc électrique oculaire", "Eye Arc"), lostBelow: 0.5,
       targets: "both", dps: 28, range: 4.5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.65
     },
     // two arm cannons taking turns: a Mastodon's damage, half a shell at a time
     cannons: {
-      name: "Canons de bras", lostBelow: 0.25,
+      name: tr("Canons de bras", "Arm Guns"), lostBelow: 0.25,
       targets: "ground", dps: 46, range: 4, shotInterval: 0.6, dmgType: "cannon", fx: "heavy-cannon"
     },
     mg: {
-      name: "Mitrailleuses", lostBelow: 0,
+      name: tr("Mitrailleuses", "Machine Guns"), lostBelow: 0,
       targets: "both", dps: 15, range: 3, shotInterval: 0.4, dmgType: "kinetic", fx: "mg", airMult: 0.5
     }
   } as Record<"mortars" | "laser" | "cannons" | "mg", GoliathWeaponStats>,
@@ -852,7 +853,7 @@ export interface NationStats {
  */
 export const NATIONS: Record<Nation, NationStats> = {
   republique: {
-    name: "la République", short: "République",
+    name: tr("la République", "the Republic"), short: tr("République", "Republic"),
     // economy
     // Classique ECONOMY.crystalValue = 1.6 (×1.25; at ×1.5 = 2.4 the radium maps — Terres fluviales,
     // Engelure — went 70–80% to the République in tools/pacing.ts --nations panels, WP4)
@@ -868,7 +869,7 @@ export const NATIONS: Record<Nation, NationStats> = {
     towerCost: 150
   },
   empire: {
-    name: "l'Empire de Carbonie", short: "Empire",
+    name: tr("l'Empire de Carbonie", "the Empire of Carbonia"), short: tr("Empire", "Empire"),
     radiumValue: 1.6,
     coalRate: 1.15,
     buildingCost: 1.1, buildingTime: 1.15, buildingHp: 1.25,
@@ -909,19 +910,19 @@ export const ROSTERS: Record<Nation, { units: UnitKind[]; buildings: BuildingKin
 /** A shared building kind's name and role under a nation (§1.6); absent: the Classique one (BUILDINGS). */
 export const NATION_BUILDINGS: Record<Nation, Partial<Record<BuildingKind, { name: string; role: string }>>> = {
   republique: {
-    hq: { name: "GQG", role: "Grand Quartier Général. Produit des Fourgons, reçoit le charbon, alimente le réseau. Perds-le avec tous tes Zéniths, et c'est la défaite." },
-    "fab-plant": { name: "Garage électrique Jeantaud", role: "Produit les véhicules terrestres électriques." },
+    hq: { name: tr("GQG", "GHQ"), role: "Grand Quartier Général. Produit des Fourgons, reçoit le charbon, alimente le réseau. Perds-le avec tous tes Zéniths, et c'est la défaite." },
+    "fab-plant": { name: tr("Garage électrique Jeantaud", "Jeantaud Electric Garage"), role: "Produit les véhicules terrestres électriques." },
     "tech-lab": { name: "Polytechnique", role: "Débloque Canon Branly, Hydroglisseur, Albatros et Chasseurs alpins." },
-    depot: { name: "Station de charge", role: "Point de dépôt avancé. À bâtir près des gisements éloignés." },
-    radar: { name: "Tour TSF", role: "Pylône du réseau : alimente les bâtiments proches, accélère les unités, révèle une vaste zone." },
-    gantry: { name: "Hangar du Zénith", role: "Construit le Zénith. Un par camp, toujours visible par l'ennemi." }
+    depot: { name: tr("Station de charge", "Charging Station"), role: "Point de dépôt avancé. À bâtir près des gisements éloignés." },
+    radar: { name: tr("Tour TSF", "Wireless Tower"), role: "Pylône du réseau : alimente les bâtiments proches, accélère les unités, révèle une vaste zone." },
+    gantry: { name: tr("Hangar du Zénith", "Zénith Hangar"), role: "Construit le Zénith. Un par camp, toujours visible par l'ennemi." }
   },
   empire: {
-    hq: { name: "Citadelle", role: "Citadelle impériale. Produit des Fardiers, reçoit le charbon. Perds-la avec tous tes Gargantuas, et c'est la défaite." },
-    airpad: { name: "Aérodrome à vapeur", role: "Produit les aéronefs à vapeur." },
-    "tech-lab": { name: "Haut-fourneau", role: "Débloque Canon de 75, Mortier de 280, Creusot, Vulcain et Carabiniers." },
-    radar: { name: "Ballon captif", role: "Observatoire : révèle une vaste zone à travers le brouillard." },
-    "assembly-bay": { name: "Caserne-atelier", role: "Produit l'infanterie automate impériale." }
+    hq: { name: tr("Citadelle", "Citadel"), role: "Citadelle impériale. Produit des Fardiers, reçoit le charbon. Perds-la avec tous tes Gargantuas, et c'est la défaite." },
+    airpad: { name: tr("Aérodrome à vapeur", "Steam Aerodrome"), role: "Produit les aéronefs à vapeur." },
+    "tech-lab": { name: tr("Haut-fourneau", "Blast Furnace"), role: "Débloque Canon de 75, Mortier de 280, Creusot, Vulcain et Carabiniers." },
+    radar: { name: tr("Ballon captif", "Tethered Balloon"), role: "Observatoire : révèle une vaste zone à travers le brouillard." },
+    "assembly-bay": { name: tr("Caserne-atelier", "Workshop Barracks"), role: "Produit l'infanterie automate impériale." }
   }
 };
 
@@ -973,21 +974,21 @@ export const ZENITH = {
   repairedBy: ["mender"] as UnitKind[],
   weapons: {
     branly: {
-      name: "Canons Branly de nacelle", lostBelow: 0.75,
+      name: tr("Canons Branly de nacelle", "Gondola Branly Guns"), lostBelow: 0.75,
       targets: "ground", dps: 30, range: 7, minRange: 2.5, shotInterval: 2,
       splash: 0.8, projectileSpeed: 9, dmgType: "explosive", fx: "arc-shell"
     },
     arc: {
-      name: "Arc de proue", lostBelow: 0.5,
+      name: tr("Arc de proue", "Bow Arc"), lostBelow: 0.5,
       targets: "both", dps: 26, range: 5, shotInterval: 0.8, dmgType: "laser", fx: "laser", airMult: 0.8
     },
     bombs: {
-      name: "Soute à bombes", lostBelow: 0.25,
+      name: tr("Soute à bombes", "Bomb Bay"), lostBelow: 0.25,
       targets: "ground", dps: 34, range: 2, shotInterval: 2,
       splash: 1.2, projectileSpeed: 5, dmgType: "explosive", fx: "bomb"
     },
     mg: {
-      name: "Mitrailleuses de coursive", lostBelow: 0,
+      name: tr("Mitrailleuses de coursive", "Gangway Machine Guns"), lostBelow: 0,
       targets: "both", dps: 15, range: 3.5, shotInterval: 0.4, dmgType: "kinetic", fx: "mg", airMult: 0.7
     }
   } as Record<ZenithWeapon, GoliathWeaponStats>

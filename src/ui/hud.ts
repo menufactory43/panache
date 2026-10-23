@@ -34,6 +34,11 @@ import { mapById } from "../sim/maps";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { mountBelleHud, mountHudSettings, type BelleHud } from "./belle-hud";
 import { watchMatchFocus } from "./match-focus";
+import { tr } from "../lang";
+import { DIFFICULTY, type Difficulty } from "../sim/ai/commander";
+
+/** `?debug`: the pause menu's fog switch (not for players: it reveals the map). */
+const DEBUG = typeof location !== "undefined" && new URLSearchParams(location.search).has("debug");
 
 export interface HudApi {
   world: World;
@@ -1046,19 +1051,19 @@ export function createHud(api: HudApi): Hud {
     const duel = api.duel;
     const line = duel
       ? `vs ${duel.opponent} · ${duel.online ? "🌐" : "🔊"} ${duel.delayMs()} ms`
-      : ops ? ops.pauseLine() : surv ? surv.pauseLine() : api.strategies ? "IA contre IA" : `vs IA ${api.enemy.strategy} · ${api.enemy.difficulty}`;
+      : ops ? ops.pauseLine() : surv ? surv.pauseLine() : api.strategies ? tr("IA contre IA", "AI against AI") : `${tr("vs IA", "vs AI")} ${api.enemy.strategy} · ${DIFFICULTY[api.enemy.difficulty as Difficulty]?.label ?? api.enemy.difficulty}`;
     pauseEl.innerHTML = `
       <div class="panel">
-        <h1>PAUSE</h1>
+        <h1>${tr("PAUSE", "PAUSED")}</h1>
         <p class="time">${line}</p>
         ${ops ? ops.pauseHtml() : ""}
         ${pauseRulesHtml(w)}
-        <button class="cta" id="p-resume">▶ Reprendre</button>
+        <button class="cta" id="p-resume">▶ ${tr("Reprendre", "Resume")}</button>
         <div id="p-sound"></div>
         ${BELLE_EPOQUE ? `<div id="p-hud"></div>` : ""}
-        <button class="cta alt" id="p-help">Comment jouer</button>
-        ${uncharted || duel ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? "Révéler la carte (debug)" : "Rétablir le brouillard"}</button>`}
-        ${duel ? `<div id="p-duel" class="p-duel"></div>` : `<button class="cta alt" id="p-quit">Quitter vers le menu</button>`}
+        <button class="cta alt" id="p-help">${tr("Comment jouer", "How to play")}</button>
+        ${uncharted || duel || !DEBUG ? "" : `<button class="cta alt" id="p-fog">${api.ctrl.showFog ? "Révéler la carte (debug)" : "Rétablir le brouillard"}</button>`}
+        ${duel ? `<div id="p-duel" class="p-duel"></div>` : `<button class="cta alt" id="p-quit">${tr("Quitter vers le menu", "Quit to menu")}</button>`}
         <div id="p-helptext" class="help" hidden>${HELP_HTML}</div>
       </div>`;
     shield(pauseEl);

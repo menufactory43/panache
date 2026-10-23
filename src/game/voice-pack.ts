@@ -4,17 +4,18 @@
  * played through a field-telephone line onto the voice bus. announcer.ts
  * decides when; this module only finds, loads and plays the clips.
  *
- * Clips live in assets/voice/ (MP3, mono, 24 kb/s: Safari, Chrome and
+ * Clips live in assets/voice/ (English: assets/voice/en/; MP3, mono, 24 kb/s: Safari, Chrome and
  * Firefox all decode it). The common lines are fetched ahead at the start of
  * a match (prefetchCore), the rest on first use; the service worker keeps
  * them (vite.config.ts, runtime cache).
  */
 import { planVoice, voiceLines, type VoiceLine } from "./voice-lines";
+import { tr } from "../lang";
 
 /** Playback tuning. */
 export const VOICE = {
-  /** Clip folder (relative to the page, like the other assets). */
-  base: "assets/voice/",
+  /** Clip folder (relative to the page, like the other assets): the English recording in its own. */
+  base: tr("assets/voice/", "assets/voice/en/"),
   /** Gain into the telephone line (the clips are normalized to -16 LUFS). */
   gain: 0.7,
   /** Silence between two fragments of one line, s (the clips are trimmed tight). */

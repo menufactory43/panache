@@ -21,6 +21,7 @@ import type { NationOrClassic } from "../sim/types";
 import { insigniaSvg } from "./career";
 import { UNITS } from "../sim/balance";
 import { NATION_CARDS, crestImg, nationIcon } from "./nations-ui";
+import { tr } from "../lang";
 
 /** What the hub's big button launches. */
 export type HubPick = "skirmish" | "ops" | "survival" | "duel";
@@ -76,15 +77,15 @@ export interface Hub {
 
 const NATION_ORDER: NationOrClassic[] = ["republique", "empire", "classique"];
 const NATION_LINE: Record<NationOrClassic, { title: string; line: string }> = {
-  republique: { title: NATION_CARDS.republique.title, line: "rapide · aérienne · électrique" },
-  empire: { title: NATION_CARDS.empire.title, line: "lente · blindée · artillerie" },
-  classique: { title: "Classique", line: "les mêmes unités des deux côtés" }
+  republique: { title: NATION_CARDS.republique.title, line: tr("rapide · aérienne · électrique", "fast · airborne · electric") },
+  empire: { title: NATION_CARDS.empire.title, line: tr("lente · blindée · artillerie", "slow · armoured · artillery") },
+  classique: { title: tr("Classique", "Classic"), line: tr("les mêmes unités des deux côtés", "the same units on both sides") }
 };
 
 const PICKS: { p: HubPick; icon: string; label: string; tab: string }[] = [
-  { p: "ops", icon: "📜", label: "Campagne", tab: "Campagne" },
-  { p: "skirmish", icon: "⚔️", label: "Escarmouche", tab: "Bataille" },
-  { p: "survival", icon: "🛡️", label: "Survie", tab: "Survie" },
+  { p: "ops", icon: "📜", label: tr("Campagne", "Campaign"), tab: tr("Campagne", "Campaign") },
+  { p: "skirmish", icon: "⚔️", label: tr("Escarmouche", "Skirmish"), tab: tr("Bataille", "Battle") },
+  { p: "survival", icon: "🛡️", label: tr("Survie", "Last Stand"), tab: tr("Survie", "Last Stand") },
   { p: "duel", icon: "🌐", label: "Duel", tab: "Duel" }
 ];
 
@@ -99,11 +100,11 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     .join("");
   el.innerHTML = `
     <div class="qg-top">
-      <button class="qg-rank" id="qg-rank" title="Ta carrière"></button>
+      <button class="qg-rank" id="qg-rank" title="${tr("Ta carrière", "Your career")}"></button>
       <span class="qg-sp"></span>
-      <span class="qg-chip" id="qg-medals" title="Médailles"></span>
-      <span class="qg-chip" id="qg-streak" title="Série de victoires (Op du jour)"></span>
-      <button class="qg-ico" id="qg-set" title="Réglages" aria-label="Réglages">⚙</button>
+      <span class="qg-chip" id="qg-medals" title="${tr("Médailles", "Medals")}"></span>
+      <span class="qg-chip" id="qg-streak" title="${tr("Série de victoires (Op du jour)", "Winning streak (Daily Op)")}"></span>
+      <button class="qg-ico" id="qg-set" title="${tr("Réglages", "Settings")}" aria-label="${tr("Réglages", "Settings")}">⚙</button>
     </div>
     <h1 class="logo panache qg-logo">PANACHE</h1>
     <p class="qg-tag">Paris, 1900</p>
@@ -111,41 +112,41 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
       ${rail}
       <span class="qg-sep"></span>
       <a class="qg-ri sm" href="models.html" target="_blank" rel="noopener"><i>🔧</i><b>Arsenal</b></a>
-      <button class="qg-ri sm" data-a="archives"><i>🎬</i><b>Archives</b></button>
-      <button class="qg-ri sm" data-a="tuto"><i>🎓</i><b>Instruction</b></button>
+      <button class="qg-ri sm" data-a="archives"><i>🎬</i><b>${tr("Archives", "Archives")}</b></button>
+      <button class="qg-ri sm" data-a="tuto"><i>🎓</i><b>${tr("Instruction", "Training")}</b></button>
     </nav>
     <div class="qg-side">
-      <button class="qg-ev" data-a="daily"><i>📅</i><b>Op du jour</b><small id="qg-dl"></small><span class="qg-dot" hidden></span></button>
-      <button class="qg-ev" data-a="tuto"><i>🎓</i><b>Instruction</b><small id="qg-tuto"></small></button>
-      <button class="qg-ev" data-a="archives"><i>🎬</i><b>Archives</b><small>rediffusions</small></button>
-      <a class="qg-ev" href="models.html" target="_blank" rel="noopener"><i>🔧</i><b>Arsenal</b><small>unités</small></a>
+      <button class="qg-ev" data-a="daily"><i>📅</i><b>${tr("Op du jour", "Daily Op")}</b><small id="qg-dl"></small><span class="qg-dot" hidden></span></button>
+      <button class="qg-ev" data-a="tuto"><i>🎓</i><b>${tr("Instruction", "Training")}</b><small id="qg-tuto"></small></button>
+      <button class="qg-ev" data-a="archives"><i>🎬</i><b>Archives</b><small>${tr("rediffusions", "replays")}</small></button>
+      <a class="qg-ev" href="models.html" target="_blank" rel="noopener"><i>🔧</i><b>Arsenal</b><small>${tr("unités", "units")}</small></a>
     </div>
     <div class="qg-nat">
-      <button class="qg-arr" data-d="-1" aria-label="Nation précédente">‹</button>
+      <button class="qg-arr" data-d="-1" aria-label="${tr("Nation précédente", "Previous nation")}">‹</button>
       <span class="qg-crest"></span>
       <span class="qg-nt"><b></b><small></small></span>
-      <button class="qg-arr" data-d="1" aria-label="Nation suivante">›</button>
+      <button class="qg-arr" data-d="1" aria-label="${tr("Nation suivante", "Next nation")}">›</button>
     </div>
     <div class="qg-col">
       <div class="qg-daily">
-        <div class="qg-k"><span>Op du jour n°${op.number}</span><span id="qg-dlk"></span></div>
-        <div class="qg-row"><img src="" alt="" draggable="false" id="qg-dlimg" /><span class="qg-t"><b id="qg-dlmap"></b><small id="qg-dlvs"></small></span><button class="qg-btn" data-a="daily">Jouer</button></div>
+        <div class="qg-k"><span>${tr(`Op du jour n°${op.number}`, `Daily Op #${op.number}`)}</span><span id="qg-dlk"></span></div>
+        <div class="qg-row"><img src="" alt="" draggable="false" id="qg-dlimg" /><span class="qg-t"><b id="qg-dlmap"></b><small id="qg-dlvs"></small></span><button class="qg-btn" data-a="daily">${tr("Jouer", "Play")}</button></div>
       </div>
       <div class="qg-mode">
         <img src="" alt="" draggable="false" class="qg-th" />
         <span class="qg-t"><b></b><small></small></span>
-        <button class="qg-chg">Changer</button>
-        <span class="qg-duo"><button class="qg-btn alt" data-a="sound">🔊 Par le son</button><button class="qg-btn alt" data-a="online">🌐 En ligne</button></span>
+        <button class="qg-chg">${tr("Changer", "Change")}</button>
+        <span class="qg-duo"><button class="qg-btn alt" data-a="sound">🔊 ${tr("Par le son", "By sound")}</button><button class="qg-btn alt" data-a="online">🌐 ${tr("En ligne", "Online")}</button></span>
       </div>
       <div class="qg-plan"></div>
       <div class="qg-natcard"></div>
-      <button class="cta big qg-go" id="qg-go">En avant !</button>
+      <button class="cta big qg-go" id="qg-go">${tr("En avant !", "Forward!")}</button>
     </div>
     <nav class="qg-tabs">${tabs}</nav>`;
   menu.querySelector(".menu-inner")?.before(el);
   el.querySelector<HTMLImageElement>("#qg-dlimg")!.src = `${mapAssetBase(op.mapId)}/thumb.webp`;
   el.querySelector("#qg-dlmap")!.textContent = mapById(op.mapId).name;
-  el.querySelector("#qg-dlvs")!.textContent = `contre ${STRATEGIES[op.strategy].label} · ${DIFFICULTY[op.difficulty].label}`;
+  el.querySelector("#qg-dlvs")!.textContent = `${tr("contre", "vs")} ${STRATEGIES[op.strategy].label} · ${DIFFICULTY[op.difficulty].label}`;
 
   const $ = <T extends HTMLElement = HTMLElement>(s: string) => el.querySelector<T>(s)!;
   const click = (s: string, fn: (b: HTMLElement) => void) => el.querySelectorAll<HTMLElement>(s).forEach((b) => b.addEventListener("click", () => fn(b)));
@@ -164,17 +165,19 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     $("#qg-streak").innerHTML = `🔥 <em>${streak}</em>`;
     // the Daily Op
     const won = c.daily.lastWin === op.day;
-    $("#qg-dl").textContent = won ? "✓ gagnée" : op.label;
+    $("#qg-dl").textContent = won ? tr("✓ gagnée", "✓ won") : op.label;
     el.querySelector<HTMLElement>(".qg-dot")!.hidden = won;
-    $("#qg-dlk").textContent = won ? "✓ Gagnée" : op.label;
-    $("#qg-tuto").textContent = s.tutoDone ? "✓ suivie" : "3 minutes";
+    $("#qg-dlk").textContent = won ? tr("✓ Gagnée", "✓ Won") : op.label;
+    $("#qg-tuto").textContent = s.tutoDone ? tr("✓ suivie", "✓ done") : tr("3 minutes", "3 minutes");
     // the rail and the tabs
     el.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === s.pick));
     const sub: Record<HubPick, string> = {
-      ops: s.op.campaign ? `Mission ${s.op.n} sur ${s.op.total}` : `Épreuve ${s.op.n} sur ${s.op.total}`,
-      skirmish: "Toi contre l'IA",
-      survival: s.survivalBest ? `Record : ${s.survivalBest} vague${s.survivalBest > 1 ? "s" : ""}` : "Tenir face aux vagues",
-      duel: "Défier un ami"
+      ops: s.op.campaign ? tr(`Mission ${s.op.n} sur ${s.op.total}`, `Mission ${s.op.n} of ${s.op.total}`) : tr(`Épreuve ${s.op.n} sur ${s.op.total}`, `Trial ${s.op.n} of ${s.op.total}`),
+      skirmish: tr("Toi contre l'IA", "You against the AI"),
+      survival: s.survivalBest
+        ? tr(`Record : ${s.survivalBest} vague${s.survivalBest > 1 ? "s" : ""}`, `Best: ${s.survivalBest} wave${s.survivalBest > 1 ? "s" : ""}`)
+        : tr("Tenir face aux vagues", "Hold against the waves"),
+      duel: tr("Défier un ami", "Challenge a friend")
     };
     el.querySelectorAll<HTMLElement>(".qg-ri[data-p]").forEach((b) => (b.querySelector("small")!.textContent = sub[b.dataset.p as HubPick]));
     // the nation (the Campaign fixes its own: the selector rests)
@@ -188,22 +191,25 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     card.hidden = s.pick === "ops" || s.pick === "duel";
     if (s.nation !== shownNation) {
       shownNation = s.nation;
-      if (s.nation === "classique") card.innerHTML = `<p class="qg-k">Règles classiques</p><p class="qg-nl">Les deux camps ont les mêmes unités et les mêmes bâtiments : seule la tactique compte.</p>`;
+      if (s.nation === "classique") card.innerHTML = tr(
+          `<p class="qg-k">Règles classiques</p><p class="qg-nl">Les deux camps ont les mêmes unités et les mêmes bâtiments : seule la tactique compte.</p>`,
+          `<p class="qg-k">Classic rules</p><p class="qg-nl">Both sides have the same units and the same buildings: only tactics count.</p>`
+        );
       else {
         const c = NATION_CARDS[s.nation];
         card.innerHTML = `<p class="qg-k">${c.title}</p><p class="qg-nl">${c.line}</p>
           <ul>${c.mechanics.map((m) => `<li>${m}</li>`).join("")}</ul>
-          <div class="qg-units">${c.signature.map((k) => `<span><img src="${nationIcon(k, s.nation as "republique")}" alt="" draggable="false"/><small>${UNITS[k].name.replace(/^Escouade de |^Section de /, "")}</small></span>`).join("")}</div>`;
+          <div class="qg-units">${c.signature.map((k) => `<span><img src="${nationIcon(k, s.nation as "republique")}" alt="" draggable="false"/><small>${UNITS[k].name.replace(tr(/^Escouade de |^Section de /, / Squad$| Section$/), "")}</small></span>`).join("")}</div>`;
       }
     }
     // the mode card and the big button
     const mode = $(".qg-mode");
     mode.dataset.p = s.pick;
     const t: Record<HubPick, [string, string]> = {
-      skirmish: ["Escarmouche", `${s.map.name} · ${s.difficulty}`],
-      survival: ["Survie", `${s.map.name} · ${s.difficulty}`],
-      ops: [s.op.title, `${s.op.campaign ? "Campagne de 1900" : "Épreuves"} · ${s.op.done}/${s.op.total} ✓`],
-      duel: ["Défier un ami", "par le son, ou en ligne avec un lien"]
+      skirmish: [tr("Escarmouche", "Skirmish"), `${s.map.name} · ${s.difficulty}`],
+      survival: [tr("Survie", "Last Stand"), `${s.map.name} · ${s.difficulty}`],
+      ops: [s.op.title, `${s.op.campaign ? tr("Campagne de 1900", "The 1900 Campaign") : tr("Épreuves", "Trials")} · ${s.op.done}/${s.op.total} ✓`],
+      duel: [tr("Défier un ami", "Challenge a friend"), tr("par le son, ou en ligne avec un lien", "by sound, or online with a link")]
     };
     $(".qg-mode .qg-t b").textContent = t[s.pick][0];
     $(".qg-mode .qg-t small").textContent = t[s.pick][1];
@@ -212,7 +218,7 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     $<HTMLButtonElement>('[data-a="sound"]').hidden = !s.duel.sound;
     $<HTMLButtonElement>('[data-a="online"]').hidden = !s.duel.online;
     const go = $<HTMLButtonElement>("#qg-go");
-    go.textContent = s.pick === "duel" ? "Défier un ami" : s.pick === "ops" && s.op.locked ? "🔒 Verrouillée" : "En avant !";
+    go.textContent = s.pick === "duel" ? tr("Défier un ami", "Challenge a friend") : s.pick === "ops" && s.op.locked ? tr("🔒 Verrouillée", "🔒 Locked") : tr("En avant !", "Forward!");
     go.classList.toggle("locked", s.pick === "ops" && s.op.locked);
     go.hidden = s.pick === "duel" && !s.duel.online && !s.duel.sound;
     plan(s);
@@ -224,7 +230,7 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     `<div class="qg-seg" data-k="${k}">${title ? `<span>${title}</span>` : ""}${items.map((x) => `<button data-v="${x.id}" class="${x.on ? "on" : ""}">${x.label}</button>`).join("")}</div>`;
   const plan = (s: HubState) => {
     planEl.dataset.p = s.pick;
-    const head = `<div class="qg-k"><span>${s.pick === "ops" ? (s.op.campaign ? "Campagne de 1900" : "Épreuves") : "Ordre de bataille"}</span><button class="qg-more">Salon complet ›</button></div>`;
+    const head = `<div class="qg-k"><span>${s.pick === "ops" ? (s.op.campaign ? tr("Campagne de 1900", "The 1900 Campaign") : tr("Épreuves", "Trials")) : tr("Ordre de bataille", "Order of battle")}</span><button class="qg-more">${tr("Salon complet ›", "Full lobby ›")}</button></div>`;
     if (s.pick === "duel") planEl.innerHTML = "";
     else if (s.pick === "ops")
       planEl.innerHTML = `${head}
@@ -239,8 +245,8 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
           .map((m) => `<button class="qg-map${m.on ? " on" : ""}" data-id="${m.id}" title="${m.name}"><img src="${m.thumb}" alt="" draggable="false"/><small>${m.name}</small>${m.badge ? `<em>${m.badge}</em>` : ""}</button>`)
           .join("")}</div>
         ${seg("diff", s.diffs)}
-        ${s.rivals ? seg("rival", s.rivals, "Adversaire") : ""}
-        ${s.pick === "skirmish" ? `<button class="qg-mut">🧪 Mutateurs <b>${s.mutators || "Non"}</b></button>` : ""}`;
+        ${s.rivals ? seg("rival", s.rivals, tr("Adversaire", "Opponent")) : ""}
+        ${s.pick === "skirmish" ? `<button class="qg-mut">🧪 ${tr("Mutateurs", "Mutators")} <b>${s.mutators || tr("Non", "None")}</b></button>` : ""}`;
   };
   planEl.addEventListener("click", (e) => {
     const t = (e.target as HTMLElement).closest<HTMLElement>("button");

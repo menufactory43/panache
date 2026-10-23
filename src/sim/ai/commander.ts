@@ -1,4 +1,5 @@
 import { BUILDINGS, ECONOMY, GOLIATH, OBJECTIVES, UNITS } from "../balance";
+import { tr } from "../../lang";
 import { TICK_RATE } from "../balance";
 import { buildingBlocker, canPlaceBuilding, nearestReachableResource, nearestScrapTile, unitBlocker } from "../economy";
 import { knownBuildings } from "../fog";
@@ -138,7 +139,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
   /** Steady macro: factory, airpad, tech, then an Assembly Bay; standard timing, the odd Condor drop. */
   balanced: {
     name: "balanced",
-    label: "Équilibré",
+    label: tr("Équilibré", "Balanced"),
     buildOrder: ["fab-plant", "airpad", "turret", "tech-lab", "assembly-bay", "depot", "turret", "radar"],
     harvesters: 4,
     assaultValue: 1700,
@@ -165,7 +166,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
   /** Airpad first: relentless wasp raids, bombers later; Rocket Squads when Mastodons show up. */
   airswarm: {
     name: "airswarm",
-    label: "Essaim aérien",
+    label: tr("Essaim aérien", "Air Swarm"),
     buildOrder: ["airpad", "fab-plant", "turret", "tech-lab", "depot", "airpad"],
     harvesters: 4,
     assaultValue: 1700,
@@ -194,7 +195,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
    */
   skyforce: {
     name: "skyforce",
-    label: "Force aérienne",
+    label: tr("Force aérienne", "Air Force"),
     buildOrder: ["airpad", "turret", "tech-lab", "airpad", "fab-plant", "depot", "sam-site"],
     harvesters: 4,
     assaultValue: 2000,
@@ -210,7 +211,7 @@ export const STRATEGIES: Record<StrategyName, Strategy> = {
    */
   ironclad: {
     name: "ironclad",
-    label: "Cuirassé",
+    label: tr("Cuirassé", "Ironclad"),
     buildOrder: ["fab-plant", "turret", "tech-lab", "assembly-bay", "airpad", "depot", "fab-plant", "sam-site"],
     harvesters: 4,
     assaultValue: 1400,
@@ -233,7 +234,7 @@ export const NATION_STRATEGIES: Record<NationStrategyName, Strategy> = {
   siege: {
     name: "ironclad",
     id: "siege",
-    label: "Siège",
+    label: tr("Siège", "Siege"),
     buildOrder: ["fab-plant", "turret", "tech-lab", "assembly-bay", "radar", "airpad", "turret", "fab-plant"],
     harvesters: 4,
     assaultValue: 2200,
@@ -314,7 +315,7 @@ export const DIFFICULTY: Record<
   }
 > = {
   easy: {
-    label: "Facile", interval: 3.5, incomeMult: 0.75, extraHarvesters: -1, assaultMult: 1.35, harass: false,
+    label: tr("Facile", "Easy"), interval: 3.5, incomeMult: 0.75, extraHarvesters: -1, assaultMult: 1.35, harass: false,
     // no Skyforce: its all-air wave at ~3:00 beat a scripted first-week player
     // 11 games in 15 on Easy (tools/beginner.ts); the other three lost 6 in 45
     pool: ["balanced", "rush", "airswarm"]
@@ -324,7 +325,7 @@ export const DIFFICULTY: Record<
     pool: ["balanced", "rush", "airswarm", "boom", "skyforce", "ironclad"]
   },
   hard: {
-    label: "Difficile", interval: 1.2, incomeMult: 1.3, extraHarvesters: 1, assaultMult: 0.9, harass: true,
+    label: tr("Difficile", "Hard"), interval: 1.2, incomeMult: 1.3, extraHarvesters: 1, assaultMult: 0.9, harass: true,
     pool: ["balanced", "airswarm", "boom", "ironclad"]
   }
 };

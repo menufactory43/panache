@@ -34,6 +34,7 @@ import { countVisit, matchKind, track } from "./game/stats";
 import { mountSavedList } from "./ui/archives";
 import { reelWaiting, takeReel } from "./ui/reel-entry";
 import { SPOTLIGHT_KEY, setSpotlight, spotlightOn } from "./game/spotlight";
+import { switchLang, tr } from "./lang";
 import type { BattleRecord } from "./arena/record";
 // (types only: the sound duel's code is a lazily loaded chunk, reached through loadDuel() alone)
 import type * as DuelLobby from "./versus/lobby";
@@ -1056,16 +1057,23 @@ function showMenu(linkedMap?: string | null): void {
         const wrap = openSheet(
           menu,
           "reglages",
-          `<h2>⚙ Réglages</h2>
+          `<h2>⚙ ${tr("Réglages", "Settings")}</h2>
            <div id="qg-sound"></div>
            <div class="sh-actions sh-col">
-             <button class="cta alt" data-a="spot" aria-pressed="false" title="Ralenti, secousse et bandeau quand un Gargantua tombe, quand leur GQG est touché, quand une bataille est gagnée"></button>
-             ${intro ? `<button class="cta alt" data-a="intro">🎞 Revoir l'intro</button>` : ""}
-             <button class="cta alt" data-a="help">? Comment jouer</button>
-             <button class="cta alt sheet-close">Fermer</button>
+             <button class="cta alt" data-a="spot" aria-pressed="false" title="${tr(
+               "Ralenti, secousse et bandeau quand un Gargantua tombe, quand leur GQG est touché, quand une bataille est gagnée",
+               "Slow motion, shake and banner when a Gargantua falls, when their GHQ is hit, when a battle is won"
+             )}"></button>
+             <button class="cta alt" data-a="lang" lang="${tr("en", "fr")}">${tr("🌐 Play in English", "🌐 Jouer en français")}</button>
+             ${intro ? `<button class="cta alt" data-a="intro">🎞 ${tr("Revoir l'intro", "Watch the intro again")}</button>` : ""}
+             <button class="cta alt" data-a="help">? ${tr("Comment jouer", "How to play")}</button>
+             <button class="cta alt sheet-close">${tr("Fermer", "Close")}</button>
            </div>
            <div class="help" hidden>${HELP_HTML}</div>
-           <p class="credits">D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct</p>`
+           <p class="credits">${tr(
+             `D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct`,
+             `After <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> by Simon Willison · art by OpenAI gpt-image-2.5 · sound synthesized live`
+           )}</p>`
         );
         const offSound = mountAudioToggles(wrap.querySelector<HTMLElement>("#qg-sound")!);
         new MutationObserver((_, obs) => {
@@ -1084,7 +1092,7 @@ function showMenu(linkedMap?: string | null): void {
         })();
         const syncSpot = () => {
           const on = spotlightOn(store);
-          spot.textContent = `✨ Temps forts : ${on ? "activés" : "coupés"}`;
+          spot.textContent = tr(`✨ Temps forts : ${on ? "activés" : "coupés"}`, `✨ Highlights: ${on ? "on" : "off"}`);
           spot.setAttribute("aria-pressed", String(on));
           spot.dataset.key = SPOTLIGHT_KEY;
         };
@@ -1094,6 +1102,7 @@ function showMenu(linkedMap?: string | null): void {
           sfx.play("click", 0.5);
           syncSpot();
         });
+        wrap.querySelector('[data-a="lang"]')!.addEventListener("click", () => switchLang(tr("en", "fr")));
         wrap.querySelector('[data-a="help"]')!.addEventListener("click", () => {
           const h = wrap.querySelector<HTMLElement>(".help")!;
           h.hidden = !h.hidden;

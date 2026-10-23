@@ -1,4 +1,5 @@
 import { POD_CREWS, POWERS, POWER_SETS, TICK_RATE, UNITS } from "./balance";
+import { tr } from "../lang";
 import { hasGoliath, superKindOf } from "./goliath";
 import { areaBlast, strikeDamage } from "./combat";
 import { isExplored, isVisible } from "./fog";
@@ -26,16 +27,28 @@ import { atan2, cos, hypot, sin } from "./fmath";
 /** Classique's four powers (each nation's are POWER_SETS in balance.ts). */
 export const POWER_KINDS: PowerKind[] = ["barrage", "emp", "droppod", "hammer"];
 
-export const POWER_NAMES: Record<PowerKind, string> = {
-  barrage: "Feu roulant",
-  emp: "Fée Électricité",
-  droppod: "Obus-capsule",
-  hammer: "Obus Méliès",
-  sonde: "Ballon-sonde",
-  curie: "Rayon Curie",
-  gaz: "Gaz de houille",
-  pression: "Pression des chaudières"
-};
+export const POWER_NAMES: Record<PowerKind, string> = tr(
+  {
+    barrage: "Feu roulant",
+    emp: "Fée Électricité",
+    droppod: "Obus-capsule",
+    hammer: "Obus Méliès",
+    sonde: "Ballon-sonde",
+    curie: "Rayon Curie",
+    gaz: "Gaz de houille",
+    pression: "Pression des chaudières"
+  },
+  {
+    barrage: "Rolling Barrage",
+    emp: "Electricity Fairy",
+    droppod: "Capsule Shell",
+    hammer: "Méliès Shell",
+    sonde: "Sounding Balloon",
+    curie: "Curie Ray",
+    gaz: "Coal Gas",
+    pression: "Boiler Pressure"
+  }
+);
 
 const FACTIONS: Faction[] = ["blue", "red"];
 

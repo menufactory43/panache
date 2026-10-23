@@ -109,7 +109,7 @@ export default defineConfig({
             // fetched as lines are first said; kept, and refreshed behind the cache after a re-recording
             urlPattern: /\/assets\/voice\/.*\.mp3$/,
             handler: "StaleWhileRevalidate",
-            options: { cacheName: "panache-voice", expiration: { maxEntries: 600 } }
+            options: { cacheName: "panache-voice", expiration: { maxEntries: 1400 } } // (630 clips per language, French and English)
           }
         ]
       },
