@@ -23,7 +23,7 @@ describe("detectLang", () => {
 });
 
 /** Two AIs playing nations against each other for `minutes`, with every module loaded in `lang`: a hash every 500 ticks. */
-async function trail(lang: "fr" | "en", minutes: number): Promise<{ hashes: string[]; names: string }> {
+async function trail(lang: "fr" | "en", minutes: number, map = "riverlands"): Promise<{ hashes: string[]; names: string }> {
   vi.resetModules();
   process.env.PANACHE_LANG = lang;
   const { createMapWorld } = await import("../src/sim/maps");
@@ -31,7 +31,7 @@ async function trail(lang: "fr" | "en", minutes: number): Promise<{ hashes: stri
   const { step } = await import("../src/sim/sim");
   const { worldHash } = await import("../src/sim/checksum");
   const { UNITS } = await import("../src/sim/balance");
-  const w = createMapWorld("riverlands", { seed: 99, objectives: true, nations: { blue: "republique", red: "empire" } });
+  const w = createMapWorld(map, { seed: 99, objectives: true, nations: { blue: "republique", red: "empire" } });
   const sb = createAiState("balanced", "hard", 1);
   const sr = createAiState("ironclad", "hard", 2);
   const hashes = [worldHash(w)];
@@ -52,6 +52,13 @@ describe("the language is display only", () => {
     const fr = await trail("fr", 6);
     const en = await trail("en", 6);
     expect([fr.names, en.names]).toEqual(["Fardier", "Steam Wagon"]); // (the modules really were loaded in each language)
+    expect(en.hashes).toEqual(fr.hashes);
+  }, 300000);
+  it("so does a random map (its name drawn from word lists in each language)", async () => {
+    const { randomMapId } = await import("../src/sim/mapgen");
+    const map = randomMapId("arctic", 4242);
+    const fr = await trail("fr", 3, map);
+    const en = await trail("en", 3, map);
     expect(en.hashes).toEqual(fr.hashes);
   }, 300000);
 });
