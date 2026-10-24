@@ -100,3 +100,89 @@ export function drawQueuedRoute(g: GroundGfx, u: Unit, col: number, seen: Set<st
   g.lineStyle(1.2, r.loop ? COL.patrol : col, 0.4, 0).strokePoints(pts, false);
   for (const p of r.pts) g.fillStyle(r.loop ? COL.patrol : col, 0.7).fillCircle(p.x, p.y, 2 * g.px(p.x, p.y));
 }
+
+/**
+ * The front a finger is drawing for a march in order (sim/march.ts): a ring
+ * where the long press armed it, then the front line and, faint, each
+ * selected unit's place on it; once lifted, the same fading out over
+ * ROUTE_DRAW.lingerMs. `layout` gives the places for a front (GameScene:
+ * marchLayout over the selection).
+ */
+export class FrontSketch {
+  private armed: { p: Pt; at: number } | null = null;
+  private a: Pt | null = null;
+  private b: Pt | null = null;
+  private done: { a: Pt; b: Pt; slots: Pt[]; at: number; move: boolean } | null = null;
+
+  constructor(private readonly layout: (a: Pt, b: Pt) => Pt[]) {}
+
+  get active(): boolean {
+    return this.a !== null;
+  }
+
+  arm(p: Pt, now: number): void {
+    this.armed = { p, at: now };
+    this.done = null;
+  }
+
+  start(p: Pt): void {
+    this.armed = null;
+    this.a = p;
+    this.b = p;
+  }
+
+  move(p: Pt): void {
+    if (this.a) this.b = p;
+  }
+
+  /** The finger lifted at p (`released`), or the front was cut short: the front to send, or null. */
+  end(p: Pt | null, released: boolean, now: number, move: boolean): { a: Pt; b: Pt } | null {
+    this.armed = null;
+    const a = this.a;
+    this.a = null;
+    if (!a || !released) return null;
+    const b = p ?? this.b ?? a;
+    this.done = { a, b, slots: this.layout(a, b), at: now, move };
+    return { a, b };
+  }
+
+  clear(): void {
+    this.armed = null;
+    this.a = null;
+    this.done = null;
+  }
+
+  draw(g: GroundGfx, now: number, move: boolean): void {
+    const col = move ? COL.move : COL.attack;
+    if (this.armed) {
+      // the hold took: a ring that settles, "draw your front from here"
+      const { p, at } = this.armed;
+      const k = Math.min(1, (now - at) / 180);
+      const px = g.px(p.x, p.y);
+      g.lineStyle(2, col, 0.9).strokeCircle(p.x, p.y, (22 - 8 * k) * px);
+      g.lineStyle(1, col, 0.45 * k).strokeCircle(p.x, p.y, 22 * px);
+      return;
+    }
+    if (this.a && this.b) return this.front(g, this.a, this.b, this.layout(this.a, this.b), col, 1);
+    const d = this.done;
+    if (!d) return;
+    const k = 1 - (now - d.at) / ROUTE_DRAW.lingerMs;
+    if (k <= 0) {
+      this.done = null;
+      return;
+    }
+    this.front(g, d.a, d.b, d.slots, d.move ? COL.move : COL.attack, k);
+  }
+
+  private front(g: GroundGfx, a: Pt, b: Pt, slots: Pt[], col: number, k: number): void {
+    // the line first, then each place over it (the front rank stands right on it)
+    g.lineStyle(3, col, 0.75 * k).lineBetween(a.x, a.y, b.x, b.y);
+    g.fillStyle(col, 0.95 * k).fillCircle(a.x, a.y, 4 * g.px(a.x, a.y));
+    g.fillStyle(col, 0.95 * k).fillCircle(b.x, b.y, 4 * g.px(b.x, b.y));
+    for (const s of slots) {
+      const px = g.px(s.x, s.y);
+      g.fillStyle(0x10140c, 0.35 * k).fillCircle(s.x, s.y, 9 * px);
+      g.lineStyle(2, col, 0.9 * k).strokeCircle(s.x, s.y, 9 * px);
+    }
+  }
+}

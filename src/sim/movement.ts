@@ -2,6 +2,7 @@ import { BUILDINGS, TERRAIN, TICK_RATE, UNITS } from "./balance";
 import { canWalk, goliathReachAt, isLifted } from "./goliath";
 import { crushes, isInfantry, tickCrush } from "./infantry";
 import { speedMult } from "./nations";
+import { marchArrived, marchPace } from "./march";
 import { nextLeg, sweepsPast } from "./route";
 import { Terrain, type Faction, type Unit, type World } from "./types";
 import { domainOf, inBounds, moveClassOf, passable, regionAt, regionLabels, terrainMult, terrainSpeed, type LandClass, type MoveClass } from "./world";
@@ -271,12 +272,15 @@ export function unitStepSpeed(w: World, u: Unit): number {
  */
 export function moveUnitToward(w: World, u: Unit, x: number, y: number): boolean {
   const mc = moveClassOf(u.kind);
-  const speed = unitStepSpeed(w, u);
+  let speed = unitStepSpeed(w, u);
+  // marching in order to (x, y) itself (not chasing a target on the way): keep the group's pace (march.ts)
+  const pacing = !!u.march && (u.order.type === "move" || u.order.type === "attackMove") && u.order.x === x && u.order.y === y;
   if (mc === "air") {
     const d = hypot(x - u.x, y - u.y);
     if (d <= Math.max(arrivalRadius(w, u, x, y), speed)) {
       return true;
     }
+    if (pacing) speed = marchPace(w, u, speed, d);
     u.facing = atan2(x - u.x, -(y - u.y));
     u.x += ((x - u.x) / d) * speed;
     u.y += ((y - u.y) / d) * speed;
@@ -311,6 +315,11 @@ export function moveUnitToward(w: World, u: Unit, x: number, y: number): boolean
     return false;
   }
   const d = hypot(wp.x - u.x, wp.y - u.y);
+  if (pacing) {
+    let left = d;
+    for (let i = 1; i < u.path.length; i++) left += hypot(u.path[i]!.x - u.path[i - 1]!.x, u.path[i]!.y - u.path[i - 1]!.y);
+    speed = marchPace(w, u, speed, left);
+  }
   const step = Math.min(speed, d);
   u.facing = atan2(wp.x - u.x, -(wp.y - u.y));
   u.x += ((wp.x - u.x) / d) * step;
@@ -375,7 +384,10 @@ export function tickMovement(w: World, pausedIds: Set<number>, spots: Map<number
       if (moveUnitToward(w, u, g.x, g.y)) {
         // (no path there at all: its goal stays set; a route or patrol through it would search again every tick)
         if (u.path === null && u.pathGoal !== null && u.route) delete u.route;
-        if (!nextLeg(u)) u.order = { type: "idle" };
+        if (!nextLeg(u)) {
+          u.order = { type: "idle" };
+          marchArrived(u); // (in its place in a march: it faces the front)
+        }
       }
     } else if (o.type === "attack") {
       const p = approachPoint(w, u, o.targetId);

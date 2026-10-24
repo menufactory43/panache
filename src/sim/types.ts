@@ -273,6 +273,12 @@ export interface Unit {
    * route drawn on the map, or a patrol. Absent when there are none.
    */
   route?: UnitRoute;
+  /**
+   * On its way to its place in a march in order (march.ts): its group
+   * (World.marches), the tick it is due there, and the way it faces once
+   * there. Absent when it isn't marching.
+   */
+  march?: { g: number; due: number; face: number };
 }
 
 /** Legs still to go after the current move or attack-move (route.ts). */
@@ -857,6 +863,23 @@ export interface World {
   love?: { ids: [number, number]; x: number; y: number; tick: number } | null;
   /** The side that resigned, when a `resign` command decided the match. */
   resigned?: Faction | null;
+  /** Marches in order just given (march.ts), kept a moment so a later piece of the same order joins them; absent when none. */
+  marches?: MarchGroup[];
+}
+
+/** A march in order just given (World.marches, march.ts): kept MARCH.mergeTicks so a later piece of the same order joins it. */
+export interface MarchGroup {
+  id: number;
+  faction: Faction;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  attack: boolean;
+  /** The tick it was given. */
+  tick: number;
+  /** Its units, in id order. */
+  units: number[];
 }
 
 /** One side's free-Condor clock (lifeline.ts). */
@@ -915,4 +938,10 @@ export type Command =
    * attack-moving. A unit with no move under way patrols between where it
    * stands and (x, y) (route.ts).
    */
-  | { type: "patrol"; faction: Faction; unitIds: number[]; x: number; y: number };
+  | { type: "patrol"; faction: Faction; unitIds: number[]; x: number; y: number }
+  /**
+   * March in order to the front drawn from (x1, y1) to (x2, y2) (march.ts):
+   * each unit to its place by what it does, all arriving together; an
+   * attack-move (`attack`), else a plain move.
+   */
+  | { type: "march"; faction: Faction; unitIds: number[]; x1: number; y1: number; x2: number; y2: number; attack: boolean };

@@ -440,7 +440,7 @@ interface Sealed {
 const other = (f: Faction): Faction => (f === "blue" ? "red" : "blue");
 
 type CommandType = Command["type"];
-const MOVE_REPLACES: ReadonlySet<CommandType> = new Set(["move", "attackMove", "attack", "harvest", "stop", "waypoint", "patrol"]);
+const MOVE_REPLACES: ReadonlySet<CommandType> = new Set(["move", "attackMove", "attack", "harvest", "stop", "waypoint", "patrol", "march"]);
 /**
  * The queued orders a newer one of each type replaces outright, unit by unit
  * (sim.ts applyCommand). A move or attackMove resets everything those set:
@@ -454,6 +454,7 @@ const MOVE_REPLACES: ReadonlySet<CommandType> = new Set(["move", "attackMove", "
 const REPLACES: Partial<Record<CommandType, ReadonlySet<CommandType>>> = {
   move: MOVE_REPLACES,
   attackMove: MOVE_REPLACES,
+  march: MOVE_REPLACES,
   attack: new Set(["attack"]),
   stop: new Set(["stop"])
 };

@@ -387,3 +387,79 @@ describe("routes and the ▢ Cadre toggle", () => {
     expect(cb.onPan).not.toHaveBeenCalled();
   });
 });
+
+describe("a front (march in order)", () => {
+  let cb: ReturnType<typeof makeCallbacks> & {
+    frontFrom: ReturnType<typeof vi.fn>;
+    onFrontArm: ReturnType<typeof vi.fn>;
+    onFrontStart: ReturnType<typeof vi.fn>;
+    onFrontMove: ReturnType<typeof vi.fn>;
+    onFrontEnd: ReturnType<typeof vi.fn>;
+  };
+  let g: GestureRecognizer;
+  let selected = true;
+  beforeEach(() => {
+    selected = true;
+    cb = {
+      ...makeCallbacks(),
+      frontFrom: vi.fn(() => selected),
+      onFrontArm: vi.fn(),
+      onFrontStart: vi.fn(),
+      onFrontMove: vi.fn(),
+      onFrontEnd: vi.fn()
+    };
+    g = new GestureRecognizer(cb);
+  });
+
+  it("a long press with a selection arms it, and the drag draws it", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.tick(300);
+    expect(cb.onFrontArm).toHaveBeenCalledWith(100, 100);
+    expect(cb.onBoxStart).not.toHaveBeenCalled();
+    g.move(touch(1, 103, 102), 320); // (inside the slop: still just armed)
+    expect(cb.onFrontStart).not.toHaveBeenCalled();
+    g.move(touch(1, 160, 110), 360);
+    g.move(touch(1, 220, 120), 400);
+    g.up(touch(1, 230, 120), 450);
+    expect(cb.onFrontStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.onFrontMove.mock.calls).toEqual([[160, 110], [220, 120]]);
+    expect(cb.onFrontEnd).toHaveBeenCalledWith(230, 120, true);
+    expect(cb.onBoxStart).not.toHaveBeenCalled();
+  });
+
+  it("held and lifted in place, it is still the long press it was (a drop, an armed calldown)", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.tick(300);
+    g.up(touch(1, 101, 100), 500);
+    expect(cb.onFrontEnd).toHaveBeenCalledWith(101, 100, false);
+    expect(cb.onBoxStart).toHaveBeenCalledWith(100, 100);
+    expect(cb.onBoxEnd).toHaveBeenCalledWith(101, 100, true);
+    expect(isHoldRelease(100, 100, 101, 100)).toBe(true);
+  });
+
+  it("without a selection, the hold is the box it always was", () => {
+    selected = false;
+    g.down(touch(1, 100, 100), 0);
+    g.tick(300);
+    g.move(touch(1, 200, 200), 350);
+    g.up(touch(1, 200, 200), 400);
+    expect(cb.onFrontArm).not.toHaveBeenCalled();
+    expect(cb.onBoxEnd).toHaveBeenCalledWith(200, 200, true);
+  });
+
+  it("a second finger cuts it short: no order", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.tick(300);
+    g.move(touch(1, 180, 100), 350);
+    g.down(touch(2, 300, 300), 380);
+    expect(cb.onFrontEnd).toHaveBeenCalledWith(180, 100, false);
+    expect(cb.onFrontEnd).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), true);
+  });
+
+  it("a quick drag still pans (the hold is what arms it)", () => {
+    g.down(touch(1, 100, 100), 0);
+    g.move(touch(1, 160, 100), 60);
+    expect(cb.onPan).toHaveBeenCalled();
+    expect(cb.onFrontStart).not.toHaveBeenCalled();
+  });
+});

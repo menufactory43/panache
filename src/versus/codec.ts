@@ -31,6 +31,7 @@
  *     unload:                        units, hasPoint 1, [x, y]
  *     lift:                          units, id(goliathId)
  *     resign:                        –
+ *     march:                         units, attack 1, x1, y1, x2, y2
  *   units = sameAsPrevious 1 (1: the list of the previous command in this turn that had one), else
  *           UE(count − 1), UE(first), then UE(gap − 1) for each further id
  *   id    = UE
@@ -51,7 +52,7 @@
  */
 import type { BuildingKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
 
-export const CODEC_VERSION = 3;
+export const CODEC_VERSION = 4;
 
 /** A split piece is at most this many bits, so any command fits in an empty turn. */
 export const C_MAX = 96;
@@ -65,7 +66,9 @@ export const COMMAND_TYPES = [
   "move", "attackMove", "attack", "harvest", "stop", "produce", "cancelProduce", "startBuilding", "cancelBuilding",
   "placeBuilding", "sell", "rally", "callWave", "calldown", "board", "unload", "anchor", "packUp", "lift", "resign",
   // routes and patrols (sim/route.ts, CODEC_VERSION 3): after the rest, whose codes don't move
-  "waypoint", "patrol"
+  "waypoint", "patrol",
+  // marches in order (sim/march.ts, CODEC_VERSION 4)
+  "march"
 ] as const satisfies readonly Command["type"][];
 
 export const UNIT_KINDS = [
@@ -93,7 +96,7 @@ const POWER_BITS = 3;
  * its table: one added to the sim and not here fails tsc on this line (add it,
  * and bump CODEC_VERSION). The nations' kinds came with LOBBY_PROTO 2
  * (PANACHE-CONCEPTION.md §1.10, WP7), after Classique's: CODEC_VERSION 2, the
- * power field 3 bits. Routes' waypoint and patrol: CODEC_VERSION 3.
+ * power field 3 bits. Routes' waypoint and patrol: CODEC_VERSION 3. March: 4.
  */
 export const TABLES_COMPLETE: [
   | Exclude<Command["type"], (typeof COMMAND_TYPES)[number]>
@@ -325,13 +328,26 @@ function canonical(c: Command, ctx: CanonContext): Command | null {
       const goliathId = idOf(c.goliathId);
       return unitIds && goliathId !== null ? { type: c.type, faction, unitIds, goliathId } : null;
     }
+    case "march": {
+      const unitIds = unitList(c.unitIds);
+      const x1 = point(c.x1, W);
+      const y1 = point(c.y1, H);
+      const x2 = point(c.x2, W);
+      const y2 = point(c.y2, H);
+      return unitIds && x1 !== null && y1 !== null && x2 !== null && y2 !== null
+        ? { type: c.type, faction, unitIds, x1, y1, x2, y2, attack: c.attack === true }
+        : null;
+    }
     default:
       return null; // (a type that isn't in the table)
   }
 }
 
-/** Unit-list commands the sim applies unit by unit, so splitting one changes nothing. */
-const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload", "waypoint", "patrol"]);
+/**
+ * Unit-list commands the sim applies unit by unit, so splitting one changes
+ * nothing; and march, whose later pieces join the first (sim/march.ts).
+ */
+const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload", "waypoint", "patrol", "march"]);
 
 /**
  * Canonical commands for one issued command: none (dropped), one, or — for a
@@ -462,6 +478,12 @@ export function encodeCommand(wr: BitWriter, c: Command, map: MapSize, prev: rea
     case "lift":
       writeUnits(wr, c.unitIds, prev);
       writeId(wr, c.goliathId);
+      return c.unitIds;
+    case "march":
+      writeUnits(wr, c.unitIds, prev);
+      wr.bit(c.attack ? 1 : 0);
+      writePoint(wr, c.x1, c.y1, map);
+      writePoint(wr, c.x2, c.y2, map);
       return c.unitIds;
     default: {
       const never: never = c;
@@ -602,6 +624,14 @@ export function decodeCommand(
     case "lift": {
       const unitIds = readUnits(rd, prev);
       return { command: { type, faction, unitIds, goliathId: readId(rd) }, units: unitIds };
+    }
+    case "march": {
+      const unitIds = readUnits(rd, prev);
+      const attack = rd.bit() === 1;
+      const x1 = readCoord(rd, map.width);
+      const y1 = readCoord(rd, map.height);
+      const x2 = readCoord(rd, map.width);
+      return { command: { type, faction, unitIds, x1, y1, x2, y2: readCoord(rd, map.height), attack }, units: unitIds };
     }
   }
 }

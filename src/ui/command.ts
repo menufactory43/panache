@@ -73,6 +73,7 @@ const DEFENCES = (Object.keys(COUNTERS) as (UnitKind | BuildingKind)[]).filter((
 /** One-time tips offered when the selection calls for them (CommandUi.update). */
 const SELECTION_HINTS: [string, string][] = [
   ["route", tr("Route : pose le doigt sur tes unités sélectionnées et trace leur chemin sur la carte. Reviens à ton point de départ pour une patrouille.", "Route: put your finger on your selected units and trace their path across the map. Return to your starting point for a patrol.")],
+  ["front", tr("Marche en ordre : appui long sur la destination, puis glisse pour tracer le front. L'armée y arrive ensemble, blindés devant, artillerie derrière.", "March in order: long-press the destination, then drag to draw the front. The army arrives together, armour in front, artillery behind.")],
   ["roles", tr("Infanterie, Blindés, Aviation : touche pour prendre toute l'armée de ce type, double-touche pour y aller.", "Infantry, Armour, Air: tap to take the whole army of that type, double-tap to go there.")],
   ["squads", tr("Escouades : maintiens 1, 2 ou 3 pour enregistrer la sélection. Touche pour la sélectionner, double-touche pour y aller.", "Squads: hold 1, 2 or 3 to save the selection. Tap to select it, double-tap to go there.")],
   ["infantry", tr("L'infanterie traverse les bois à pleine vitesse et y subit moitié moins de dégâts. Tiens-la loin des Creusot : ils l'écrasent.", "Infantry cross woods at full speed and take half damage there. Keep them away from Creusots: they crush them.")],
@@ -382,6 +383,15 @@ export class CommandUi {
           if (k && !behaves(k, "harvester")) return true;
         }
         return false;
+      case "front": {
+        // an army worth putting in order (four or more, harvesters aside), not just a pair
+        let army = 0;
+        for (const uid of ctrl.selectedUnits) {
+          const k = w.units.get(uid)?.kind;
+          if (k && !behaves(k, "harvester")) army++;
+        }
+        return army >= 4;
+      }
       case "roles":
         return !!this.rolesEl && !this.rolesEl.hidden && this.rolesEl.isConnected && this.rolesEl.getClientRects().length > 0;
       case "squads": {

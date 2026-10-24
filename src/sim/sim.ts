@@ -18,6 +18,7 @@ import { tickOps } from "./ops";
 import { tickObjectives } from "./objectives";
 import { applyCalldown, chargePowers, tickPowers } from "./powers";
 import { tickSalvage } from "./salvage";
+import { applyMarchCommand, dropMarches } from "./march";
 import { applyRouteCommand, dropRoutes } from "./route";
 import { applyTransportCommand, tickTransport } from "./transport";
 import type { Command, World } from "./types";
@@ -61,6 +62,7 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
   // had that order named its Condors too; then this command applies as usual (lift.ts HeldLiftOrders)
   if (held) for (const [id, order] of held.freed.splice(0)) applyCommand(w, { ...order, unitIds: [id] });
   dropRoutes(w, c); // a new order replaces a route drawn or a patrol (route.ts)
+  dropMarches(w, c); // or a march in order (march.ts)
   switch (c.type) {
     case "move":
     case "attackMove":
@@ -123,6 +125,9 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
     case "waypoint":
     case "patrol":
       applyRouteCommand(w, c, lifting);
+      break;
+    case "march":
+      applyMarchCommand(w, c, lifting);
       break;
     case "callWave":
       callWaveEarly(w, c.faction);

@@ -64,7 +64,8 @@ import { Stage } from "./three/stage";
 import { Terrain3D, type TerrainArt } from "./three/terrain";
 import { Particles } from "./three/particles";
 import { GroundGfx } from "./three/ground-gfx";
-import { RouteSketch, drawQueuedRoute } from "./route-view";
+import { FrontSketch, RouteSketch, drawQueuedRoute } from "./route-view";
+import { marchLayout } from "../sim/march";
 import { Tweens } from "./three/tween";
 import { AIR_H, type P3, type View } from "./three/view";
 import { tr } from "../lang";
@@ -199,6 +200,11 @@ export class GameScene {
   private boxRect: { x0: number; y0: number; x1: number; y1: number } | null = null;
   /** A route being drawn from the selection with one finger, then its waypoints fading (route-view.ts). */
   private sketch = new RouteSketch();
+  /** A front being drawn for a march in order (route-view.ts FrontSketch): each selected unit's place on it. */
+  private frontSketch = new FrontSketch((a, b) => {
+    const units = [...this.ctrl.selectedUnits].map((id) => this.world.units.get(id)).filter((u): u is Unit => u?.faction === PLAYER);
+    return units.length ? [...marchLayout(units, a, b, this.world).slots.values()] : [];
+  });
   /** This frame's order waypoints (one per shared target), reused: no per-frame garbage. */
   private waypoints: { key: number; x: number; y: number; col: number }[] = [];
   /** This frame's rank chevrons (x, y, scale per chevron), reused. */
@@ -1552,6 +1558,7 @@ export class GameScene {
       if (u.route) drawQueuedRoute(g, u, col, routes);
     }
     this.sketch.draw(this.view.over, performance.now(), this.ctrl.forceMove);
+    this.frontSketch.draw(this.view.over, performance.now(), this.ctrl.forceMove);
     for (let i = 0; i < nMarks; i++) {
       const mk = marks[i]!;
       const px = g.px(mk.x, mk.y);
@@ -1782,6 +1789,14 @@ export class GameScene {
     return false;
   }
 
+  /** Does a long press arm a front: units of ours selected, nothing else claiming the hold? */
+  private frontArms(): boolean {
+    const ctrl = this.ctrl;
+    if (ctrl.placing || ctrl.spectator || ctrl.boxNext || this.powerUi?.targeting) return false;
+    for (const id of ctrl.selectedUnits) if (this.world.units.get(id)?.faction === PLAYER) return true;
+    return false;
+  }
+
   private setupInput(): void {
     const rig = this.stage.rig;
     /** Shift was held on the click that fires a tap: it adds or removes a unit. */
@@ -1884,6 +1899,15 @@ export class GameScene {
       onRouteEnd: (sx, sy, released) => {
         const plan = this.sketch.end(released ? this.worldAt(sx, sy) : null, released, performance.now(), this.ctrl.forceMove);
         if (plan && this.ctrl.routeSelected(plan.points, plan.loop)) this.command?.seen("route");
+      },
+      // a long press on the ground with a selection, then a drag: the front it marches to in order (sim/march.ts)
+      frontFrom: () => this.frontArms(),
+      onFrontArm: (sx, sy) => this.frontSketch.arm(this.worldAt(sx, sy), performance.now()),
+      onFrontStart: (sx, sy) => this.frontSketch.start(this.worldAt(sx, sy)),
+      onFrontMove: (sx, sy) => this.frontSketch.move(this.worldAt(sx, sy)),
+      onFrontEnd: (sx, sy, released) => {
+        const f = this.frontSketch.end(released ? this.worldAt(sx, sy) : null, released, performance.now(), this.ctrl.forceMove);
+        if (f && this.ctrl.marchSelected(f.a, f.b)) this.command?.seen("front");
       }
     });
 

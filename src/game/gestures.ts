@@ -47,6 +47,24 @@ export interface GestureCallbacks {
   onRouteMove?(x: number, y: number): void;
   /** The route ended at (x, y); `released` as for onBoxEnd (false: cut short, no order). */
   onRouteEnd?(x: number, y: number, released: boolean): void;
+  /**
+   * Does a long press at (x, y) arm a front (a selection to send there, say)?
+   * Asked for touch and pen only, once the hold is long enough. While it says
+   * yes, the hold never turns into a box: dragging on draws the front, and a
+   * release without dragging is still the degenerate box (isHoldRelease).
+   */
+  frontFrom?(x: number, y: number): boolean;
+  /** The hold armed a front at (x, y) (a ring to show it). */
+  onFrontArm?(x: number, y: number): void;
+  /** A front drawn from the armed point: it starts at the down point, then its other end follows the finger. */
+  onFrontStart?(x: number, y: number): void;
+  onFrontMove?(x: number, y: number): void;
+  /**
+   * The front ended at (x, y); `released` as for onBoxEnd. Also fires,
+   * unreleased, when an armed hold ends without one (lifted in place, or
+   * cut short): the ring goes.
+   */
+  onFrontEnd?(x: number, y: number, released: boolean): void;
 }
 
 export const TAP_SLOP_PX = 8;
@@ -102,7 +120,7 @@ export function isHoldRelease(x0: number, y0: number, x1: number, y1: number): b
   return Math.hypot(x1 - x0, y1 - y0) <= TAP_SLOP_PX;
 }
 
-type Mode = "idle" | "pending" | "pan" | "box" | "route" | "multi" | "mousepan";
+type Mode = "idle" | "pending" | "pan" | "box" | "route" | "hold" | "front" | "multi" | "mousepan";
 
 interface Tracked {
   id: number;
@@ -175,6 +193,11 @@ export class GestureRecognizer {
           this.mode = "route";
           this.cb.onRouteStart?.(this.downX, this.downY);
           this.cb.onRouteMove?.(p.x, p.y);
+        } else if (now - this.downTime >= HOLD_DELAY_MS && this.fronts()) {
+          // held long enough on the ground with a selection: the drag draws a front (tick() hadn't caught it yet)
+          this.mode = "front";
+          this.cb.onFrontStart?.(this.downX, this.downY);
+          this.cb.onFrontMove?.(p.x, p.y);
         } else if (now - this.downTime >= HOLD_DELAY_MS || this.downType === "mouse") {
           // mouse drags box-select immediately; touch only after the hold
           this.mode = "box";
@@ -201,6 +224,20 @@ export class GestureRecognizer {
         break;
       case "route":
         this.cb.onRouteMove?.(p.x, p.y);
+        this.lastX = p.x;
+        this.lastY = p.y;
+        break;
+      case "hold":
+        // an armed front: it starts drawing once the finger leaves the slop radius
+        if (Math.hypot(p.x - this.downX, p.y - this.downY) <= TAP_SLOP_PX) break;
+        this.mode = "front";
+        this.cb.onFrontStart?.(this.downX, this.downY);
+        this.cb.onFrontMove?.(p.x, p.y);
+        this.lastX = p.x;
+        this.lastY = p.y;
+        break;
+      case "front":
+        this.cb.onFrontMove?.(p.x, p.y);
         this.lastX = p.x;
         this.lastY = p.y;
         break;
@@ -258,6 +295,17 @@ export class GestureRecognizer {
         this.cb.onRouteEnd?.(p.x, p.y, true);
         this.mode = "idle";
         break;
+      case "hold":
+        // armed, never dragged: the ring goes, and it is the long press it always was (the degenerate box)
+        this.cb.onFrontEnd?.(p.x, p.y, false);
+        this.cb.onBoxStart(this.downX, this.downY);
+        this.cb.onBoxEnd(p.x, p.y, true);
+        this.mode = "idle";
+        break;
+      case "front":
+        this.cb.onFrontEnd?.(p.x, p.y, true);
+        this.mode = "idle";
+        break;
       case "pan":
       case "mousepan":
         this.cb.onPanEnd?.();
@@ -306,6 +354,7 @@ export class GestureRecognizer {
    */
   reset(): void {
     if (this.mode === "route") this.cb.onRouteEnd?.(this.lastX, this.lastY, false); // (the line goes; no order)
+    if (this.mode === "hold" || this.mode === "front") this.cb.onFrontEnd?.(this.lastX, this.lastY, false);
     this.pointers.clear();
     this.mode = "idle";
     this.pinchActive = false;
@@ -321,10 +370,21 @@ export class GestureRecognizer {
   tick(now: number): void {
     // (a finger resting on a selected unit is about to draw its route: no box under it)
     if (this.mode === "pending" && this.downType !== "mouse" && now - this.downTime >= HOLD_DELAY_MS && !this.routes()) {
-      this.mode = "box";
-      this.cb.onBoxStart(this.downX, this.downY);
-      if (navigator.vibrate) navigator.vibrate(10);
+      if (this.fronts()) {
+        // a selection to send: the hold arms a front instead of a box
+        this.mode = "hold";
+        this.cb.onFrontArm?.(this.downX, this.downY);
+      } else {
+        this.mode = "box";
+        this.cb.onBoxStart(this.downX, this.downY);
+      }
+      if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
     }
+  }
+
+  /** Does a long press at the down point arm a front? (touch and pen only, like routes) */
+  private fronts(): boolean {
+    return this.downType !== "mouse" && !!this.cb.frontFrom?.(this.downX, this.downY);
   }
 
   /** Does a drag from the down point draw a route? (touch and pen only: the mouse has its right button) */
@@ -336,6 +396,7 @@ export class GestureRecognizer {
   private cutShort(): void {
     if (this.mode === "box") this.cb.onBoxEnd(this.lastX, this.lastY, false);
     if (this.mode === "route") this.cb.onRouteEnd?.(this.lastX, this.lastY, false);
+    if (this.mode === "hold" || this.mode === "front") this.cb.onFrontEnd?.(this.lastX, this.lastY, false);
   }
 
   private enterMulti(): void {

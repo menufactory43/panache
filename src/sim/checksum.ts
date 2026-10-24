@@ -63,6 +63,7 @@ export function worldHash(w: World): string {
   h.str(w.winner ?? "-");
   if (w.nation) nationHash(h, w);
   routeHash(h, w);
+  marchHash(h, w);
   return h.hex();
 }
 
@@ -84,6 +85,26 @@ function routeHash(h: Fnv, w: World): void {
       h.num(p.x);
       h.num(p.y);
     }
+  }
+}
+
+/**
+ * Marches in order (march.ts), folded in only when there is one: records
+ * from before marches never have any, so their hashes stay what they were.
+ */
+function marchHash(h: Fnv, w: World): void {
+  for (const g of w.marches ?? []) {
+    h.num(g.id);
+    h.num(g.tick);
+    h.num(g.units.length);
+  }
+  for (const id of [...w.units.keys()].sort((a, b) => a - b)) {
+    const m = w.units.get(id)!.march;
+    if (!m) continue;
+    h.num(id);
+    h.num(m.g);
+    h.num(m.due);
+    h.num(m.face);
   }
 }
 

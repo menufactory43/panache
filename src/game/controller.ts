@@ -4,6 +4,7 @@ import { paidFor, producerCap, producersOf, type Producer } from "../sim/economy
 import { anchorBlocker, canWalk, goliathReachAt, unitCost } from "../sim/goliath";
 import { isInfantry, isTransport } from "../sim/infantry";
 import { LIFT_NEEDS_TWO, LIFT_PACK_FIRST, canCarry, liftBlocker, liftedBy } from "../sim/lift";
+import { marchLayout } from "../sim/march";
 import { placementBlocker, snapPlacement } from "../sim/placement";
 import { POWER_NAMES, powerBlocker, powerCost, powerStatus, type PowerStatus } from "../sim/powers";
 import { carrierOf, freeSeats, isLoaded } from "../sim/transport";
@@ -289,6 +290,18 @@ export function ordersAhead(w: World, orders: readonly Command[] | null): Orders
       case "attack":
         for (const u of named(c, lifting)) edit(u).order = { type: "attack", targetId: c.targetId };
         break;
+      case "march": {
+        // (march.ts: each to its place; pieces already sent join in the sim, here each piece is laid out alone)
+        const units = named(c, lifting);
+        const lay = marchLayout(units, { x: c.x1, y: c.y1 }, { x: c.x2, y: c.y2 }, w);
+        for (const u of units) {
+          const s = lay.slots.get(u.id)!;
+          const e = edit(u);
+          e.order = { type: c.attack && !behaves(u.kind, "harvester") ? "attackMove" : "move", x: s.x, y: s.y };
+          if (e.goliath && !e.goliath.lift && (e.goliath.mode === "anchored" || e.goliath.mode === "anchoring")) setMode(e, "packing", GOLIATH.packTime);
+        }
+        break;
+      }
       case "waypoint":
       case "patrol":
         // (route.ts: one on a move already under way queues behind it; one that isn't sets off now)
@@ -401,6 +414,10 @@ function sameOrder(a: Command, b: Command): boolean {
       return samePoint(a, b as typeof a);
     case "attack":
       return b.type === a.type && a.targetId === b.targetId;
+    case "march":
+      return (
+        b.type === a.type && a.attack === b.attack && samePoint({ x: a.x1, y: a.y1 }, { x: b.x1, y: b.y1 }) && samePoint({ x: a.x2, y: a.y2 }, { x: b.x2, y: b.y2 })
+      );
     case "board":
       return b.type === a.type && a.carrierId === b.carrierId;
     case "lift":
@@ -846,6 +863,29 @@ export class Controller {
     send(harvesters, "move", false); // (no guns: they never patrol)
     this.forceMove = false;
     this.lastFeedback = { kind: "move", x: end.x, y: end.y, route: loop ? "patrol" : "route" };
+    return true;
+  }
+
+  /**
+   * A front drawn on the map (GameScene's long press and drag): the
+   * selection marches there in order (sim/march.ts), attack-moving (plain
+   * moves with ⚑ Repli). A lift flies to the front's middle; anchored
+   * Goliaths stay dug in. False when nothing could go.
+   */
+  marchSelected(a: Pt, b: Pt): boolean {
+    const w = this.world;
+    if (this.spectator || this.placing || this.selectedUnits.size === 0) return false;
+    this.pendingDrop = null;
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const lifting = this.orderLifts(mid.x, mid.y, false);
+    const ids = [...this.selectedUnits].filter((id) => w.units.has(id) && !lifting.has(id) && !this.rooted(id));
+    if (ids.length === 0 && lifting.size === 0) {
+      this.rootTip(tr("Le Gargantua ancré reste en place : lève l'ancre d'abord (G)", "The anchored Gargantua stays put: weigh anchor first (G)"));
+      return false;
+    }
+    if (ids.length > 0) this.enqueue({ type: "march", faction: PLAYER, unitIds: ids, x1: a.x, y1: a.y, x2: b.x, y2: b.y, attack: !this.forceMove });
+    this.forceMove = false;
+    this.lastFeedback = { kind: "move", x: mid.x, y: mid.y, route: "route" };
     return true;
   }
 

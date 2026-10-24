@@ -101,6 +101,12 @@ export interface Strategy {
   harassGroup: number;
   /** Air force first: the Fab Plant only makes anti-air and a small home guard. */
   airOnly?: boolean;
+  /**
+   * Big waves march up in order (sim/march.ts) before they fight. Off unless
+   * a tweak turns it on: it is worth about a difficulty level (an easy
+   * commander marching holds a normal one), so no level has it by default.
+   */
+  march?: boolean;
   /** Lean on heavy tech ground units (mastodons, lancers, mortars). */
   heavy?: boolean;
   /** Early raids use stingers as well as wasps. */
@@ -1022,8 +1028,9 @@ function commandAi(w: World, faction: Faction, s: AiState, held: Set<number> | n
     }
   } else if (s.mode === "assault") {
     // staged waves: gather at a forward point, launch together
+    // (a wave marching off in order, sim/march.ts, leaves at its slowest unit's pace: it isn't waiting here any more)
     const staged = army.filter(
-      (u) => !used.has(u.id) && dist(u.x, u.y, staging.x, staging.y) <= STAGE_RADIUS
+      (u) => !used.has(u.id) && !u.march && dist(u.x, u.y, staging.x, staging.y) <= STAGE_RADIUS
     );
     // (a Goliath waiting there to walk with the wave counts for what it can fire, ai/goliath.ts, but
     // never for more than the army staged beside it: alone it would launch empty waves every pass,
@@ -1046,7 +1053,7 @@ function commandAi(w: World, faction: Faction, s: AiState, held: Set<number> | n
           dist(u.order.x, u.order.y, staging.x, staging.y) < 1 && dist(u.x, u.y, staging.x, staging.y) <= 2 * STAGE_RADIUS &&
           !staged.includes(u)
       );
-      launchWave(w, cmds, faction, [...staged, ...marching], target, used);
+      launchWave(w, cmds, faction, [...staged, ...marching], target, used, s.strategy.march);
       wave = staged;
       s.waves = (s.waves ?? 0) + 1;
       s.firstWaveTick ??= w.tick;
@@ -1168,15 +1175,48 @@ function pickPriorityTarget(w: World, faction: Faction, seen: Unit[], fallback: 
   return { x: fallback.x, y: fallback.y, domain: "ground", armor: "structure" };
 }
 
-/** Send a wave at a target: attackers attack it, the rest (and anything that can't hurt it, a Sniper Team at a building) escort. */
+/** A wave this big, this far (tiles) from its target, marches up to it in order (sim/march.ts) before it fights. */
+const WAVE_MARCH = { units: 5, far: 12, frontPer: 0.6, frontMin: 4, frontMax: 9 } as const;
+
+/**
+ * Send a wave at a target: attackers attack it, the rest (and anything that
+ * can't hurt it, a Sniper Team at a building) escort. A big wave still far
+ * off marches up in order first, attack-moving to a front across its way
+ * just short of the target (armour leading, artillery behind, all arriving
+ * together); once there, the next pass sends it in (the army idle deep in
+ * enemy ground, above).
+ */
 function launchWave(
   w: World,
   cmds: Command[],
   faction: Faction,
   units: Unit[],
   target: PriorityTarget,
-  used: Set<number>
+  used: Set<number>,
+  march = false
 ): void {
+  if (march && units.length >= WAVE_MARCH.units) {
+    let cx = 0;
+    let cy = 0;
+    for (const u of units) {
+      cx += u.x / units.length;
+      cy += u.y / units.length;
+    }
+    const d = dist(cx, cy, target.x, target.y);
+    if (d > WAVE_MARCH.far) {
+      const ux = (target.x - cx) / d;
+      const uy = (target.y - cy) / d;
+      const half = Math.min(WAVE_MARCH.frontMax, Math.max(WAVE_MARCH.frontMin, units.length * WAVE_MARCH.frontPer));
+      const mx = target.x - ux * 2;
+      const my = target.y - uy * 2;
+      for (const u of units) used.add(u.id);
+      cmds.push({
+        type: "march", faction, unitIds: units.map((u) => u.id),
+        x1: mx - uy * half, y1: my + ux * half, x2: mx + uy * half, y2: my - ux * half, attack: true
+      });
+      return;
+    }
+  }
   // a remembered building may have died out of sight: an attack on its id
   // idles the wave on the spot, so march on its last known position instead
   // (the same place either way; arriving re-sees the footprint, forgets the ghost)
