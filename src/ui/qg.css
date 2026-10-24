@@ -346,6 +346,7 @@ html.belle .qg .qg-logo::after {
   flex-direction: column;
   gap: 10px;
 }
+.qg-resume,
 .qg-daily,
 .qg-mode {
   background: var(--card);
@@ -1174,4 +1175,25 @@ html.belle .qg .qg-go {
     z-index: 5;
     box-shadow: 0 0 0 1px #6e4b1c, 0 -10px 30px rgba(14, 8, 3, 0.85), 0 6px 18px rgba(0, 0, 0, 0.5);
   }
+}
+
+/* an interrupted match (game/resume.ts): first in the column, in every layout */
+.qg-resume {
+  border-color: var(--gold);
+}
+.qg-resume[hidden] {
+  display: none;
+}
+.qg-resume .qg-t b {
+  display: block;
+}
+.qg-x {
+  background: none;
+  border: 0;
+  color: var(--gold);
+  font-size: 14px;
+  min-width: 44px;
+  min-height: 28px;
+  margin: -6px -8px -6px 0;
+  cursor: pointer;
 }

@@ -47,6 +47,8 @@ export interface HubState {
   missions: { id: string; n: number; title: string; stars: number; locked: boolean; on: boolean }[];
   opLine: string;
   opArt: string | null;
+  /** An interrupted match the app can pick up (game/resume.ts): its label and how far it had gone. */
+  resume: { label: string; secs: number } | null;
 }
 
 export interface HubHooks {
@@ -69,6 +71,9 @@ export interface HubHooks {
   mutators(): void;
   /** Pick a mission (the picked one again: its briefing). */
   op(id: string): void;
+  /** Pick the interrupted match up, or forget it. */
+  resume(): void;
+  dropResume(): void;
 }
 
 export interface Hub {
@@ -128,6 +133,10 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
       <button class="qg-arr" data-d="1" aria-label="${tr("Nation suivante", "Next nation")}">›</button>
     </div>
     <div class="qg-col">
+      <div class="qg-resume" hidden>
+        <div class="qg-k"><span>⏸ ${tr("Partie interrompue", "Match interrupted")}</span><button class="qg-x" data-a="drop" aria-label="${tr("Oublier cette partie", "Forget this match")}">✕</button></div>
+        <div class="qg-row"><span class="qg-t"><b id="qg-rsl"></b><small id="qg-rst"></small></span><button class="qg-btn" data-a="resume">▶ ${tr("Reprendre", "Resume")}</button></div>
+      </div>
       <div class="qg-daily">
         <div class="qg-k"><span>${tr(`Op du jour n°${op.number}`, `Daily Op #${op.number}`)}</span><span id="qg-dlk"></span></div>
         <div class="qg-row"><img src="" alt="" draggable="false" id="qg-dlimg" /><span class="qg-t"><b id="qg-dlmap"></b><small id="qg-dlvs"></small></span><button class="qg-btn" data-a="daily">${tr("Jouer", "Play")}</button></div>
@@ -168,6 +177,15 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     $("#qg-dl").textContent = won ? tr("✓ gagnée", "✓ won") : op.label;
     el.querySelector<HTMLElement>(".qg-dot")!.hidden = won;
     $("#qg-dlk").textContent = won ? tr("✓ Gagnée", "✓ Won") : op.label;
+    // an interrupted match, on top of everything
+    $(".qg-resume").hidden = !s.resume;
+    if (s.resume) {
+      // ("Escarmouche · Terres fluviales": the map as the title, the mode beside the time)
+      const [kind, ...where] = s.resume.label.split(" · ");
+      const at = `${Math.floor(s.resume.secs / 60)}:${String(Math.floor(s.resume.secs % 60)).padStart(2, "0")}`;
+      $("#qg-rsl").textContent = where.length ? where.join(" · ") : kind!;
+      $("#qg-rst").textContent = `${where.length ? `${kind} · ` : ""}${tr(`laissée à ${at}`, `left at ${at}`)}`;
+    }
     $("#qg-tuto").textContent = s.tutoDone ? tr("✓ suivie", "✓ done") : tr("3 minutes", "3 minutes");
     // the rail and the tabs
     el.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === s.pick));
@@ -301,6 +319,11 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
   click('[data-a="sound"]', () => hooks.duel(false));
   click('[data-a="online"]', () => hooks.duel(true));
   click('[data-a="daily"]', () => hooks.daily(op));
+  click('[data-a="resume"]', () => hooks.resume());
+  click('[data-a="drop"]', () => {
+    sfx.play("click", 0.5);
+    hooks.dropResume();
+  });
   click('[data-a="tuto"]', () => hooks.tuto());
   click('[data-a="archives"]', () => {
     sfx.play("click", 0.5);

@@ -10,7 +10,9 @@ import { loadTerrainArt, mapThumbUrl } from "./game/assets";
 import { GameScene, type MatchFeed } from "./game/GameScene";
 import { setLocalSide } from "./game/controller";
 import { activeMutators, duelSetup, gameMode, loadSettings, saveSettings, unchartedMatch, urlNations, type GameType, type RivalPick } from "./game/mode";
-import { NATION_IDS, UNITS } from "./sim/balance";
+import { NATION_IDS, TICK_RATE, UNITS } from "./sim/balance";
+import { clearResume, loadResume, setPendingResume, type ResumeJournal } from "./game/resume";
+import { BUILD_SIM_HASH } from "./game/match-record";
 import { NATION_CARDS, crestImg, nationIcon } from "./ui/nations-ui";
 import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
@@ -958,6 +960,8 @@ function showMenu(linkedMap?: string | null): void {
     menu.scrollTop = 0;
     sync();
   };
+  // an interrupted match this build can pick up (game/resume.ts): the hub's first card
+  let resumeJ = loadResume(BUILD_SIM_HASH);
   if (BELLE_EPOQUE) {
     hub = mountHub(menu, {
       state: () => {
@@ -1003,8 +1007,18 @@ function showMenu(linkedMap?: string | null): void {
             }));
           })(),
           opLine: op.tagline,
-          opArt: op.art ? `assets/ui/campaign/${op.art}.webp` : null
+          opArt: op.art ? `assets/ui/campaign/${op.art}.webp` : null,
+          resume: resumeJ ? { label: resumeJ.label, secs: resumeJ.tick / TICK_RATE } : null
         };
+      },
+      resume: () => {
+        const j = resumeJ;
+        if (j) void begin(false, () => resumeSetup(j));
+      },
+      dropResume: () => {
+        clearResume();
+        resumeJ = null;
+        sync();
       },
       pick: (p) => {
         hubPick = p;
@@ -1029,14 +1043,17 @@ function showMenu(linkedMap?: string | null): void {
         const wrap = openSheet(
           menu,
           "archives",
-          `<h2>🎬 Archives</h2>
-           <p class="sh-sub">Revoir tes dernières parties et leurs temps forts, une bataille enregistrée, ou deux IA s'affronter.</p>
-           <h3>Tes parties</h3>
+          `<h2>🎬 ${tr("Archives", "Archives")}</h2>
+           <p class="sh-sub">${tr(
+             "Revoir tes dernières parties et leurs temps forts, une bataille enregistrée, ou deux IA s'affronter.",
+             "Watch your last matches and their highlights, a recorded battle, or two AIs fight it out."
+           )}</p>
+           <h3>${tr("Tes parties", "Your matches")}</h3>
            <div id="arch-saved"></div>
            <div class="sh-actions sh-col">
-             <button class="cta alt" data-a="replay">🎬 Voir une rediffusion</button>
-             <button class="cta alt" data-a="spectate">🤖 IA contre IA</button>
-             <button class="cta alt sheet-close">Fermer</button>
+             <button class="cta alt" data-a="replay">🎬 ${tr("Voir une rediffusion", "Watch a replay")}</button>
+             <button class="cta alt" data-a="spectate">🤖 ${tr("IA contre IA", "AI against AI")}</button>
+             <button class="cta alt sheet-close">${tr("Fermer", "Close")}</button>
            </div>`
         );
         mountSavedList(wrap.querySelector<HTMLElement>("#arch-saved")!, (r, reel) => {
@@ -1216,6 +1233,17 @@ function startOp(op: OpDef): void {
   gameMode.op = op;
   gameMode.mapId = op.map;
   gameMode.difficulty = op.ai && op.ai !== "survival" ? op.ai.difficulty : op.survival?.difficulty ?? "normal";
+}
+
+/** Point the next match at an interrupted one (game/resume.ts): its settings and side, not saved; GameScene takes the journal. */
+function resumeSetup(j: ResumeJournal): void {
+  const m = j.mode;
+  Object.assign(gameMode, {
+    mapId: m.mapId, difficulty: m.difficulty, mode: m.mode, mutators: m.mutators.slice(), nation: m.nation, rival: m.rival,
+    uncharted: m.uncharted, daily: m.daily, op: m.opId ? opById(m.opId) ?? null : null, spectator: false
+  });
+  setLocalSide(j.side);
+  setPendingResume(j);
 }
 
 /** Point the next match at the Instruction (not saved: the menu's picks stay as they were). */

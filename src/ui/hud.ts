@@ -34,6 +34,7 @@ import { mapById } from "../sim/maps";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { mountBelleHud, mountHudSettings, type BelleHud } from "./belle-hud";
 import { watchMatchFocus } from "./match-focus";
+import { abandonMatch } from "../game/resume";
 import { tr } from "../lang";
 import { DIFFICULTY, type Difficulty } from "../sim/ai/commander";
 
@@ -1091,7 +1092,10 @@ export function createHud(api: HudApi): Hud {
       api.ctrl.showFog = !api.ctrl.showFog;
       togglePause();
     });
-    pauseEl.querySelector("#p-quit")?.addEventListener("click", () => fullscreen.reload());
+    pauseEl.querySelector("#p-quit")?.addEventListener("click", () => {
+      abandonMatch(); // (left on purpose: the menu won't offer to pick it up)
+      fullscreen.reload();
+    });
     if (duel) renderDuelExits(duel, null);
   }
 

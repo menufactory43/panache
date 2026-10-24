@@ -13,6 +13,9 @@ import { step } from "../sim/sim";
 import type { Building, Command, Faction, FxEvent, Unit, World } from "../sim/types";
 import type { BattleRecord, PlayedInfo } from "../arena/record";
 import { MatchRecorder, BUILD_SIM_HASH } from "./match-record";
+import { RESUME, ResumeWriter, commandsByTick, takePendingResume, type ResumeJournal } from "./resume";
+import { worldHash } from "../sim/checksum";
+import { opAiState } from "../sim/ops";
 import { reelMoments } from "./reel";
 import { archiveMatch, archives } from "./archive";
 import { addReportSection } from "../ui/report";
@@ -38,7 +41,7 @@ import { SPOTLIGHT, Spotlight, spotlightOn, type Spot } from "./spotlight";
 import { CINE_KEY, Director } from "./director";
 import { FINALE, Finale, LOVE_FINALE, finaleBanner, finaleOutcome, finaleZoom, freeAreaOffset, type FinaleCause } from "./finale";
 import { HeroPresenter } from "./hero-fx";
-import { aiSeed, aiStrategy, announceRules, opEnemyAi, settleCareer } from "./meta";
+import { aiSeed, aiStrategy, announceRules, settleCareer } from "./meta";
 import { OpsPresenter } from "./ops";
 import { TutorialView } from "./tutorial-view";
 import { fullscreen } from "../ui/fullscreen";
@@ -154,6 +157,10 @@ export class GameScene {
   private finale: Finale | null = null;
   /** Single player's record of the match for the Archives (match-record.ts): a skirmish or the Daily Op against the AI, else null. */
   private recorder: MatchRecorder | null = null;
+  /** Single player's journal for picking the match up after the app closes (resume.ts): null in a duel, a replay, AI vs AI, the Instruction. */
+  private journal: ResumeWriter | null = null;
+  /** Stepping an interrupted match back to where it was left (resumeTo): the clock and the player wait. */
+  private resuming = false;
   /** Single player's Temps forts (spotlight.ts): null in a duel, a replay, AI vs AI, the Instruction, or switched off. */
   private spot: Spotlight | null = null;
   /** Where the match was decided (the deciding HQ or last Goliath's death), sized for what died. */
@@ -225,7 +232,9 @@ export class GameScene {
 
   constructor(parent: HTMLElement, readonly dpr: number, art: TerrainArt | null, private feed: MatchFeed | null = null) {
     document.getElementById("loading")?.remove();
-    const opts = feed ? null : matchOptions();
+    // an interrupted match being picked up (resume.ts): what its setup rolled, not a fresh roll
+    const resume = feed ? null : takePendingResume();
+    const opts = feed ? null : resume?.opts ?? matchOptions();
     this.world = feed ? feed.world : createMapWorld(gameMode.mapId, opts!);
     this.ctrl = new Controller(this.world);
     const interactive = (this.interactive = feed?.local !== undefined);
@@ -263,7 +272,11 @@ export class GameScene {
     // spectating pits two Normal commanders against each other
     // mutators / the Daily Op decide which personalities can play (meta.ts)
     const aiDiff = gameMode.spectator ? "normal" : gameMode.difficulty;
-    this.ai = this.world.survival || feed ? null : opEnemyAi() ?? createAiState(aiStrategy(aiDiff), aiDiff, aiSeed(1));
+    const seed1 = resume?.ai?.seed ?? aiSeed(1);
+    this.ai =
+      this.world.survival || feed
+        ? null
+        : (gameMode.op ? opAiState(gameMode.op, seed1) : null) ?? createAiState(resume?.ai?.strategy ?? aiStrategy(aiDiff), resume?.ai?.difficulty ?? aiDiff, seed1);
     // the match kept for the Archives and its highlight reel: a skirmish or the Daily Op against the AI (Last Stand,
     // ops and the Instruction start from setups a battle record can't describe; a duel's feed keeps its own)
     if (opts?.objectives && !gameMode.spectator && this.ai && !this.world.survival && !this.world.ops) {
@@ -297,7 +310,39 @@ export class GameScene {
       if (openers.blue) applyOpener(this.world, "blue", openers.blue);
       if (openers.red) applyOpener(this.world, "red", openers.red);
     } else this.holdStart = OPENER_IDS.some((id) => !openerBlocked(this.world, PLAYER, id));
+    // the journal of this match, for picking it up after the app closes (resume.ts): the player's own matches only
+    if (opts && !gameMode.spectator && !gameMode.op?.tutorial) {
+      this.journal = new ResumeWriter({
+        sim: BUILD_SIM_HASH,
+        side: PLAYER,
+        mode: {
+          mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators.slice(),
+          nation: gameMode.nation, rival: gameMode.rival, uncharted: gameMode.uncharted, opId: gameMode.op?.id ?? null, daily: gameMode.daily
+        },
+        opts,
+        ai: this.ai ? { strategy: this.ai.strategy.name, difficulty: this.ai.difficulty, seed: seed1 } : null,
+        label: gameMode.op ? gameMode.op.title : `${this.world.survival ? tr("Survie", "Last Stand") : gameMode.daily ? tr("Op du jour", "Daily Op") : tr("Escarmouche", "Skirmish")} · ${unchartedMatch() ? tr("Inexplorée", "Uncharted") : mapById(gameMode.mapId).name}`,
+        ...(resume ? { cmds: resume.cmds, checks: resume.checks, tick: resume.tick, openers: resume.openers } : {})
+      });
+      const keep = () => {
+        if (document.visibilityState === "hidden") this.journal?.save(performance.now(), true);
+      };
+      const gone = () => this.journal?.save(performance.now(), true);
+      document.addEventListener("visibilitychange", keep);
+      window.addEventListener("pagehide", gone);
+      this.teardown.push(() => {
+        document.removeEventListener("visibilitychange", keep);
+        window.removeEventListener("pagehide", gone);
+      });
+    }
+    if (resume) this.resuming = true;
     tickFog(this.world); // the base shows through the opener cards
+    // (picked up: the opener the player took then, as the tap applied it, after this first fog; no cards)
+    if (resume?.openers && this.holdStart) {
+      applyOpenersCanonical(this.world, resume.openers);
+      this.recorder?.opened(resume.openers);
+      this.holdStart = false;
+    }
 
     rig.bounds = { x0: -EDGE_PAD, y0: -EDGE_PAD, x1: this.world.width + EDGE_PAD, y1: this.world.height + EDGE_PAD };
     const v = this.view;
@@ -593,6 +638,8 @@ export class GameScene {
         const p = this.entities.pos(id);
         return p ? rig.project(p.x, p.y, (p.h + p.top) / 2) : null;
       },
+      /** The world's hash (sim/checksum.ts), for tests and tools. */
+      hash: () => worldHash(this.world),
       canPlace: (tx: number, ty: number) =>
         canPlaceBuilding(this.world, PLAYER, this.ctrl.placing ?? "fab-plant", tx, ty)
     };
@@ -601,6 +648,60 @@ export class GameScene {
     this.stage.precompile();
     this.lastFrame = performance.now();
     this.raf = requestAnimationFrame(this.frame);
+    if (resume) void this.resumeTo(resume);
+  }
+
+  /**
+   * Pick an interrupted match up (resume.ts): step it from the start, the
+   * player's journaled commands against the AI thinking afresh, to the tick
+   * it was left at, a slice at a time under a progress bar; then hand it
+   * back paused. A world hash that differs from the journal's (another
+   * build, a bug) drops the match: better no match than a different one.
+   */
+  private async resumeTo(j: ResumeJournal): Promise<void> {
+    const w = this.world;
+    const veil = document.createElement("div");
+    veil.className = "screen";
+    veil.innerHTML = `<div class="loadbox"><p>${tr("Reprise de la partie…", "Picking the match up…")}</p><div class="loadtrack"><div id="loadbar"></div></div></div>`;
+    document.getElementById("hud")!.appendChild(veil);
+    const bar = veil.querySelector<HTMLElement>("#loadbar")!;
+    const byTick = commandsByTick(j);
+    const checks = new Map(j.checks);
+    try {
+      while (w.tick < j.tick) {
+        const end = Math.min(j.tick, w.tick + RESUME.slice);
+        while (w.tick < end) {
+          if (w.winner) throw new Error(`decided at tick ${w.tick}`);
+          const mine = byTick.get(w.tick) ?? [];
+          const theirs = this.ai ? tickAi(w, ENEMY, this.ai) : [];
+          this.recorder?.step(w.tick, PLAYER === "blue" ? mine : theirs, PLAYER === "blue" ? theirs : mine);
+          step(w, composeTick(PLAYER, mine, theirs));
+          this.recorder?.stepped(w);
+          this.chronicle.tick();
+          const want = checks.get(w.tick);
+          if (want !== undefined && want !== worldHash(w)) throw new Error(`diverged at tick ${w.tick}`);
+        }
+        bar.style.width = `${Math.round((w.tick / j.tick) * 100)}%`;
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    } catch (e) {
+      console.warn("resume:", e);
+      this.journal?.close();
+      veil.innerHTML = `<div class="panel"><p class="time">${tr(
+        "Impossible de reprendre cette partie : elle ne se rejoue pas à l'identique.",
+        "This match can't be picked up: it doesn't replay the same."
+      )}</p><button class="cta">${tr("Menu principal", "Main menu")}</button></div>`;
+      veil.querySelector("button")!.addEventListener("click", () => fullscreen.reload());
+      return;
+    }
+    this.simSeconds = w.tick / TICK_RATE;
+    this.ctrl.drainCommands(); // (the start's own orders, the starting harvesters', were in the journal)
+    this.snapshotPrev();
+    tickFog(w);
+    this.resuming = false;
+    veil.remove();
+    // back where it was left, paused: the player takes it up when ready
+    if (!this.ctrl.paused) this.hud.togglePause();
   }
 
   // ------------------------------------------------- fed matches (viewer) --
@@ -732,6 +833,7 @@ export class GameScene {
     if (theirs) picks[ENEMY] = theirs;
     const mine = applyOpenersCanonical(this.world, picks)[PLAYER]!;
     this.recorder?.opened(picks);
+    this.journal?.opened(picks);
     this.holdStart = false;
     // roll-out flourish on everything that just arrived
     const b = mine.buildingId !== null ? this.world.buildings.get(mine.buildingId) : null;
@@ -852,7 +954,7 @@ export class GameScene {
     this.updateCamera(delta);
 
     // (the Instruction's freeze-frames: the lesson waits on the player's tap)
-    if (!this.ctrl.paused && !this.ended && !this.holdStart && !this.tutorial?.hold) {
+    if (!this.ctrl.paused && !this.ended && !this.holdStart && !this.resuming && !this.tutorial?.hold) {
       // game speed (1–4×; a duel's slack trim; a highlight reel's pace), at most AWARE.maxTicksPerFrame ticks per frame,
       // slowed for a Temps fort (single player only: the sim takes ticks, not time, so it plays the same match slower)
       const speed = this.interactive ? this.feed?.speed?.() ?? 1 : this.feed?.speed ? this.feed.speed() : this.aware.value * (this.spot?.timeScale ?? 1);
@@ -872,8 +974,10 @@ export class GameScene {
         const mine = this.blueAi ? tickAi(this.world, "blue", this.blueAi) : this.interactive ? [] : this.ctrl.drainCommands();
         const theirs = this.ai ? tickAi(this.world, ENEMY, this.ai) : []; // (Last Stand: the waves have no commander)
         this.recorder?.step(this.world.tick, PLAYER === "blue" ? mine : theirs, PLAYER === "blue" ? theirs : mine);
+        this.journal?.step(this.world.tick, mine);
         step(this.world, fed ?? composeTick(PLAYER, mine, theirs));
         this.recorder?.stepped(this.world);
+        this.journal?.stepped(this.world.tick, () => worldHash(this.world));
         this.simSeconds += 1 / TICK_RATE;
         this.afterTick();
         this.feed?.afterTick(this.world, false);
@@ -934,8 +1038,10 @@ export class GameScene {
     this.powerUi?.update();
     this.objPill?.update();
 
+    this.journal?.save(performance.now());
     if (this.world.winner && !this.ended) {
       this.ended = true;
+      this.journal?.close(); // (decided: nothing to pick up)
       const won = this.world.winner === PLAYER;
       // Last Stand always ends in defeat; a new record still gets the fanfare
       const run = this.survival && !gameMode.spectator && !this.world.ops ? finishRun(this.world, this.world.mapId, this.survival.difficulty) : null;
