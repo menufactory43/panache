@@ -243,8 +243,11 @@ function randomFrame(r: () => number): LobbyFrame {
   // the nations' extension (proto 2): the sender's ask, and the config's two
   const ext = r() < 0.6;
   if (config && ext && r() < 0.6) config.nations = { host: r() < 0.5 ? "republique" : "empire", guest: r() < 0.5 ? "republique" : "empire" };
+  const proto = int(16);
+  // (12 mutator bits before proto 3: a mutator past them can't be written there)
+  if (config && proto < 3) config.mutators = config.mutators.filter((id) => MUTATOR_IDS.indexOf(id) < 12);
   return {
-    role, proto: int(16), build: int(65536), nonce: int(65536), heard: int(65536), rxq: int(8), ping: int(256), echo: int(256),
+    role, proto, build: int(65536), nonce: int(65536), heard: int(65536), rxq: int(8), ping: int(256), echo: int(256),
     hold: int(128), config, confHash: int(65536), pick: picked ? opener() : null, picked, go, theirs: go ? opener() : null,
     ...(ext ? { nation: (["classique", "republique", "empire"] as const)[int(3)]! } : {})
   };
@@ -261,7 +264,7 @@ function patch(f: { bits: Uint8Array; nbits: number }, at: number, width: number
 }
 
 describe("the lobby frame", () => {
-  it("round-trips every field, within 164 bits (157 without the nations' extension)", () => {
+  it("round-trips every field, within 168 bits (161 without the nations' extension)", () => {
     const r = rng(99);
     let longest = 0;
     let longest1 = 0;
@@ -279,7 +282,7 @@ describe("the lobby frame", () => {
       expect(readLobbyFrame(padded, 188)).toEqual(f);
     }
     expect(longest).toBe(LOBBY_FRAME_MAX); // (a random map, and GO)
-    expect(longest1).toBe(157); // (proto 1's frame is unchanged: proto 2 only trails it)
+    expect(longest1).toBe(161); // (proto 3's: proto 1's with 4 more mutator bits)
     // the longest frame fits the low plan's packet (186 bits) as it did
     expect(LOBBY_FRAME_MAX).toBeLessThanOrEqual(186);
   });
@@ -333,11 +336,11 @@ describe("the lobby frame", () => {
   });
 
   it("has room for every map and mutator, and its rules are the spec's", () => {
-    // (a ninth built-in map, a ninth biome or a thirteenth mutator needs a wider field, and a new LOBBY_PROTO)
+    // (a ninth built-in map, a ninth biome or a seventeenth mutator needs a wider field, and a new LOBBY_PROTO)
     expect(MAPS.length).toBeLessThanOrEqual(8);
     expect(BIOMES.length).toBeLessThanOrEqual(8);
-    expect(MUTATOR_IDS.length).toBeLessThanOrEqual(12);
-    for (const m of MAPS) expect(() => writeLobbyFrame({ ...randomFrame(rng(1)), role: "host", config: { mapId: m.id, mutators: [...MUTATOR_IDS], delay: 3, hostSide: "blue", fast: true } })).not.toThrow();
+    expect(MUTATOR_IDS.length).toBeLessThanOrEqual(16);
+    for (const m of MAPS) expect(() => writeLobbyFrame({ ...randomFrame(rng(1)), proto: 3, role: "host", config: { mapId: m.id, mutators: [...MUTATOR_IDS], delay: 3, hostSide: "blue", fast: true } })).not.toThrow();
     // D = clamp(ceil((rtt / 2 + P + 50 ms) / 100 ms), 3, 8), P the starting mode's packet period on the plan
     expect([packetMs("high", "fast"), packetMs("high", "robust"), packetMs("low", "fast"), packetMs("low", "robust")]).toEqual([100, 200, 200, 400]);
     expect([0, 300, 301, 500, 501, 1100, 1101, 9999].map((rtt) => delayFor(rtt, 100))).toEqual([3, 3, 4, 4, 5, 7, 8, 8]);
@@ -812,7 +815,7 @@ describe("nations in the lobby (LOBBY_PROTO 2)", () => {
       expect(h.setup.nations, JSON.stringify(c)).toEqual(c.want);
       expect(g.setup.nations).toEqual(c.want);
       for (const ph of [d.host, d.guest]) {
-        expect(lastSaid(ph).proto).toBe(1); // (proto 2's header: its frame is proto 1's, extended)
+        expect(lastSaid(ph).proto).toBe(3); // (proto 3's header: it widened the mutators, proto 2 said 1)
         expect(lastSaid(ph).nation).toBe(ph === d.host ? c.host : (c.guest ?? "classique"));
         expect(ph.pairing.state().peer?.proto).toBe(LOBBY_PROTO);
       }
@@ -1078,3 +1081,23 @@ describe("a pairing under way", () => {
   });
 });
 
+
+describe("Éclair in the lobby (LOBBY_PROTO 3)", () => {
+  it("carries a 13th mutator in proto 3's 16 bits, and an older frame can't", () => {
+    const f = { ...randomFrame(rng(5)), proto: 3, role: "host" as const, config: { mapId: "riverlands", mutators: ["glass", "eclair"] as MutatorId[], delay: 4, hostSide: "red" as const, fast: false } };
+    const w = writeLobbyFrame(f);
+    expect(readLobbyFrame(w.bits, w.nbits).config?.mutators).toEqual(["glass", "eclair"]);
+    expect(w.nbits).toBeLessThanOrEqual(LOBBY_FRAME_MAX);
+    expect(() => writeLobbyFrame({ ...f, proto: 1 })).toThrow(/past proto 1/);
+    expect(LOBBY_PROTO).toBe(3);
+  });
+
+  it("two phones agree on an Éclair match, and it plays as one", { timeout: 60_000 }, () => {
+    const d = duel({ offer: { map: "riverlands", mutators: ["eclair"] } });
+    const [h, g] = pairUp(d);
+    expect(h.setup.mutators).toEqual(["eclair"]);
+    expect(g.setup.mutators).toEqual(["eclair"]);
+    const w = setupWorld(g.setup);
+    expect(w.eclair?.phase).toBe("play");
+  });
+});

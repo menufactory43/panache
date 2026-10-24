@@ -1,7 +1,7 @@
 // first: the Belle Époque switch tags <html> before the menu draws (src/ui/belle.css)
 import { BELLE_EPOQUE } from "./game/three/theme";
 import { DIFFICULTY, type Difficulty } from "./sim/ai/commander";
-import { MAPS, isKnownMapId, mapById } from "./sim/maps";
+import { MAPS, isKnownMapId, mapBansMutator, mapById } from "./sim/maps";
 import { BIOMES, RANDOM_MAP_SIZE, RANDOM_PREFIX, isRandomMapId, parseRandomMapId, randomMapId, rollRandomMapId, seedCode, seedFromText } from "./sim/mapgen";
 import type { Biome, NationOrClassic } from "./sim/types";
 import { sfx } from "./game/audio";
@@ -22,7 +22,7 @@ import { TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "
 import { setTutorialState, tutorialState } from "./game/tutorial";
 import { showTutorialPrompt } from "./ui/tutorial";
 import { loadCareer, opsCompleted, starCount } from "./game/career";
-import { MUTATORS, type MutatorId } from "./sim/rules";
+import { MUTATORS, toggleMutator, type MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
 import { fullscreen } from "./ui/fullscreen";
 import { appUpdate, mountUpdatePill } from "./ui/update";
@@ -915,6 +915,8 @@ function showMenu(linkedMap?: string | null): void {
           op: { title: op.title, n: opIndex(op.id) + 1, total: book.length, done: opsCompleted(loadCareer(), book), campaign: isCampaignOp(op), locked: ops.locked(op) },
           survivalBest: loadBest(shownMap(), gameMode.difficulty)?.best ?? null,
           duel: onlineable,
+          // (Éclair: a skirmish's and a duel's, unless the map bans it)
+          eclair: pick === "skirmish" || pick === "duel" ? (mapBansMutator(mapById(shownMap()), "eclair") ? null : gameMode.mutators.includes("eclair")) : null,
           tutoDone: tutorialState() === "done",
           maps: [...MAPS.map((m) => m.id), randomId].filter(offered).map((mid) => {
             const rnd = isRandomMapId(mid);
@@ -958,10 +960,14 @@ function showMenu(linkedMap?: string | null): void {
       },
       pick: (p) => {
         hubPick = p;
-        if (p !== "duel") {
-          gameMode.mode = p;
-          saveSettings();
-        }
+        // (a duel is a skirmish: its mutators, Éclair among them, are the skirmish's)
+        gameMode.mode = p === "duel" ? "skirmish" : p;
+        saveSettings();
+        sync();
+      },
+      eclair: () => {
+        gameMode.mutators = toggleMutator(gameMode.mutators, "eclair");
+        saveSettings();
         sync();
       },
       go: () => menu.querySelector<HTMLElement>("#play")!.click(),

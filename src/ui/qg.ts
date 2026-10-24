@@ -36,6 +36,8 @@ export interface HubState {
   survivalBest: number | null;
   /** The online duel can run here (a WebSocket, or a practice link). */
   duel: boolean;
+  /** Éclair (sim/modes/eclair.ts) is on for the next skirmish or duel; null where it can't be (another mode, a map that bans it). */
+  eclair: boolean | null;
   tutoDone: boolean;
   // ---- the order of battle (large screens: set the match up without leaving the hub)
   maps: { id: string; name: string; thumb: string; on: boolean; badge: string }[];
@@ -61,6 +63,8 @@ export interface HubHooks {
   salon(): void;
   nation(n: NationOrClassic): void;
   duel(): void;
+  /** Éclair on or off. */
+  eclair(): void;
   daily(op: DailyOp): void;
   career(): void;
   tuto(): void;
@@ -146,6 +150,7 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
         <img src="" alt="" draggable="false" class="qg-th" />
         <span class="qg-t"><b></b><small></small></span>
         <button class="qg-chg">${tr("Changer", "Change")}</button>
+        <button class="qg-ecl" data-a="eclair" aria-pressed="false">⏱ <b>${tr("Éclair", "Lightning")}</b> <small>${tr("partie de 6 min aux points", "a 6-min match on points")}</small><span class="qg-sw"></span></button>
       </div>
       <div class="qg-plan"></div>
       <div class="qg-natcard"></div>
@@ -233,6 +238,10 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     $(".qg-mode .qg-t small").textContent = t[s.pick][1];
     $<HTMLImageElement>(".qg-th").src = s.map.thumb;
     $(".qg-chg").hidden = s.pick === "duel";
+    const ecl = $<HTMLButtonElement>(".qg-ecl");
+    ecl.hidden = s.eclair === null;
+    ecl.classList.toggle("on", !!s.eclair);
+    ecl.setAttribute("aria-pressed", String(!!s.eclair));
     const go = $<HTMLButtonElement>("#qg-go");
     go.textContent = s.pick === "duel" ? tr("Défier un ami", "Challenge a friend") : s.pick === "ops" && s.op.locked ? tr("🔒 Verrouillée", "🔒 Locked") : tr("En avant !", "Forward!");
     go.classList.toggle("locked", s.pick === "ops" && s.op.locked);
@@ -315,6 +324,10 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
     else hooks.go();
   });
   click('[data-a="daily"]', () => hooks.daily(op));
+  click('[data-a="eclair"]', () => {
+    sfx.play("click", 0.5);
+    hooks.eclair();
+  });
   click('[data-a="resume"]', () => hooks.resume());
   click('[data-a="drop"]', () => {
     sfx.play("click", 0.5);

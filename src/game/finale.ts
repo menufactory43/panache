@@ -178,8 +178,10 @@ export function finaleOutcome(o: { won: boolean; newRecord: boolean; spectator: 
   return o.won || o.newRecord || (o.spectator && !o.survival) ? "victory" : "defeat";
 }
 
-/** What decided the match, for the finale's banner: an HQ, a side's last Goliath, Robot Love (a draw), or a resign (a duel). */
-export type FinaleCause = "hq" | "goliath" | "love" | "resign";
+/** What decided the match, for the finale's banner: an HQ, a side's last Goliath, Robot Love (a draw), a resign (a duel), or Éclair's points. */
+export type FinaleCause = "hq" | "goliath" | "love" | "resign" | "eclair";
+
+const fmtPts = (n: number) => Math.round(n).toLocaleString(tr("fr-FR", "en-US"));
 
 /**
  * The finale's banner: who won and what decided it. The keys stay the
@@ -198,8 +200,24 @@ export function finaleBanner(o: {
   y: number;
   /** Each side's nation (the Empire's HQ is its Citadelle); absent: Classique. */
   nations?: Partial<Record<Faction, NationOrClassic>>;
+  /** Éclair (sim/modes/eclair.ts): the points, and how they decided it. */
+  eclair?: { points: Record<Faction, number>; how: "points" | "sudden" | "time" };
 }): Announcement {
   const { x, y } = o;
+  if (o.cause === "eclair" && o.eclair) {
+    const { points, how } = o.eclair;
+    const mine = o.spectator ? "blue" : o.player;
+    const theirs = mine === "blue" ? "red" : "blue";
+    const score = `${fmtPts(points[mine])} – ${fmtPts(points[theirs])}`;
+    if (o.winner === "draw") return { key: "draw", text: tr("Égalité aux points", "A tie on points"), sub: tr(`${score} · match nul`, `${score} · a draw`), tone: "info", priority: 0, x, y };
+    const byWhat = how === "sudden" ? tr("en mort subite", "in sudden death") : tr("aux points", "on points");
+    if (o.spectator) {
+      const won = o.winner === "blue" ? tr("Bleu", "Blue") : tr("Rouge", "Red");
+      return { key: "hq-destroyed", text: tr(`${won} l'emporte ${byWhat}`, `${won} wins ${byWhat}`), sub: score, tone: "epic", priority: 0, x, y };
+    }
+    if (o.winner === o.player) return { key: "victory", text: tr(`Victoire ${byWhat}`, `Victory ${byWhat}`), sub: score, tone: "epic", priority: 0, x, y };
+    return { key: "defeat", text: tr(`Défaite ${byWhat}`, `Defeat ${byWhat}`), sub: score, tone: "bad", priority: 0, x, y };
+  }
   if (o.cause === "resign") {
     if (o.winner === "draw") return { key: "draw", text: tr("Double abandon", "Double resignation"), sub: tr("Match nul", "A draw"), tone: "info", priority: 0, x, y };
     if (o.spectator) {

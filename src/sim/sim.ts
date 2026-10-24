@@ -12,6 +12,7 @@ import { applyGoliathCommand, orderedToMove, tickGoliaths, tickLove } from "./go
 import { applyLiftCommand, routeLiftCommand, tickLift, type HeldLiftOrders } from "./lift";
 import { tickLifeline } from "./lifeline";
 import { callWaveEarly, tickSurvival } from "./modes/survival";
+import { tickEclair } from "./modes/eclair";
 import { tickMovement, vehicleSpots } from "./movement";
 import { behaves, holdOf, tickNations } from "./nations";
 import { tickOps } from "./ops";
@@ -49,6 +50,7 @@ export function step(w: World, commands: Command[]): void {
   tickSalvage(w);
   tickObjectives(w); // Uplink capture bars and income, supply drops (objectives.ts)
   chargePowers(w); // Command meters fill from this tick's losses
+  if (w.eclair) tickEclair(w); // Éclair's points, its last minute and its end (modes/eclair.ts)
   if (w.survival) tickSurvival(w);
   if (w.ops) tickOps(w);
   if (w.tick % FOG.intervalTicks === 0) tickFog(w);

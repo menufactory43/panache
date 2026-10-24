@@ -2,6 +2,7 @@ import { BUILDINGS, COMBAT, ECONOMY, NATIONS, NATION_IDS, ROSTERS, UNITS } from 
 import type { Strategy } from "./ai/commander";
 import type { BuildingKind, Faction, Nation, NationOrClassic, PowerKind, Unit, UnitKind, World } from "./types";
 import { tr } from "../lang";
+import { ECLAIR } from "./modes/eclair";
 
 /**
  * Match rules and the mutators that change them. `World.rules` is absent
@@ -24,7 +25,8 @@ export type MutatorId =
   | "clearskies"
   | "nomads"
   | "robotlove"
-  | "armada";
+  | "armada"
+  | "eclair";
 
 export interface Rules {
   /** Scrap each side starts with. */
@@ -94,6 +96,8 @@ export interface Rules {
    * absent (Classique). Read through nationOf(w, f).
    */
   nations?: Record<Faction, Nation>;
+  /** Éclair (modes/eclair.ts): a six-minute match on victory points; maps.ts gives the world its EclairState. */
+  eclair?: boolean;
 }
 
 export const DEFAULT_RULES: Readonly<Rules> = Object.freeze({
@@ -163,6 +167,8 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
     name: "Blitz",
     icon: "⚡",
     desc: tr("Chaque camp démarre avec 3 000 de charbon", "Each side starts with 3,000 coal"),
+    // (Éclair starts so already)
+    conflicts: ["eclair"],
     apply: (r) => (r.startScrap = 3000)
   },
   goldrush: {
@@ -184,6 +190,8 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
     name: tr("Production éclair", "Lightning Production"),
     icon: "🔧",
     desc: tr("Unités et bâtiments construits deux fois plus vite", "Units and buildings built twice as fast"),
+    // (Éclair builds so already)
+    conflicts: ["eclair"],
     apply: (r) => (r.buildSpeed *= 2)
   },
   airwar: {
@@ -271,6 +279,22 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
     // (Air War and Infantry War ban the Goliath; Nomads and Airborne start a side some other way)
     conflicts: ["airwar", "infantrywar", "airborne", "nomads"],
     apply: (r) => (r.armada = true)
+  },
+  eclair: {
+    id: "eclair",
+    name: tr("Éclair", "Lightning Match"),
+    icon: "⏱",
+    desc: tr(
+      "Six minutes : 3 000 de charbon, production ×2, des points pour chaque destruction et chaque relais tenu, charbon ×2 la dernière minute, puis mort subite",
+      "Six minutes: 3,000 coal, production ×2, points for every kill and every relay held, coal ×2 in the last minute, then sudden death"
+    ),
+    // (Blitz and Lightning Production are in it already)
+    conflicts: ["blitz", "rapidfab"],
+    apply: (r) => {
+      r.startScrap = Math.max(r.startScrap, ECLAIR.startScrap);
+      r.buildSpeed *= ECLAIR.buildSpeed;
+      r.eclair = true;
+    }
   }
 };
 

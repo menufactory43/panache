@@ -6118,3 +6118,94 @@ html.belle .aar-natline { font-family: var(--serif); font-size: 15px; }
   .aar-crest.foe { width: 24px; height: 24px; }
   .aar-natline { font-size: 13px !important; }
 }
+
+/* --------------------------------------------------------------- Éclair --- */
+/* ui/eclair.ts: the time left, then both sides' victory points */
+.eclairpill .el {
+  grid-area: 1 / 1;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.eclairpill .et {
+  grid-area: 1 / 2;
+  justify-self: end;
+  color: var(--gold);
+}
+.eclairpill .es {
+  grid-area: 2 / 1 / 3 / 3;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #dfe6f2;
+}
+.eclairpill .ex {
+  opacity: 0.6;
+}
+.eclairpill .ed {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.eclairpill .ed.blue {
+  background: var(--blue);
+}
+.eclairpill .ed.red {
+  background: var(--red);
+}
+/* the last minute: the clock in red, beating */
+.eclairpill.rush {
+  border-color: rgba(255, 122, 106, 0.7);
+}
+.eclairpill.rush .et {
+  color: var(--red);
+  animation: eclairBeat 1s ease-in-out infinite;
+}
+.eclairpill.overtime {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px rgba(255, 214, 110, 0.45);
+}
+.eclairpill.overtime .et {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+@keyframes eclairBeat {
+  50% { opacity: 0.45; }
+}
+.eclair-rep {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.eclair-rep td {
+  padding: 3px 4px;
+}
+.eclair-rep td:nth-child(2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.eclair-rep td:nth-child(3) {
+  color: var(--dim);
+  font-size: 12px;
+}
+.eclair-rep .ed {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.eclair-rep .ed.blue {
+  background: var(--blue);
+}
+.eclair-rep .ed.red {
+  background: var(--red);
+}
+.eclair-how {
+  margin: 6px 0 0;
+  color: var(--dim);
+  font-size: 13px;
+}

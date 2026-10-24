@@ -39,12 +39,15 @@
  *   ping 8 (link clock at the start of the packet carrying it, 10 ms units, mod 256)
  *   echo 8 (the newest peer ping heard)  hold 7 (10 ms units from hearing it to this packet's start; 127: too old, or none)
  *   hasConfig 1 (host only), then: map 4 (0–5: MAPS index; 8–12: random map of BIOMES[map − 8], then seed 32)
- *     mutators 12 (MUTATOR_IDS order, first mutator first)  delay 3 (D − 3)  hostSide 1 (0: the host plays blue)  fast 1
+ *     mutators 12, 16 from proto 3 (MUTATOR_IDS order, first mutator first)  delay 3 (D − 3)  hostSide 1 (0: the host plays blue)  fast 1
  *   confHash 16 (0: none yet)  pick 2 (OPENER_IDS index; 3: none)  picked 1  go 1, then theirs 2 (the peer's pick as held here)
  *   [proto 2] nations 1 (1: the extension follows), nation 2 (the nation this phone asks for: 0 Classique / none,
  *     1 République, 2 Empire), then, with a config: hostNation 2  guestNation 2 (both 0: Classique; else both 1–2)
  *
- * The longest frame (a random map and GO) is 164 bits (157 without the extension); the low plan carries 186.
+ * The longest frame (a random map and GO) is 168 bits (161 without the extension); a packet carries 186.
+ *
+ * Proto 3 widens the mutator field to 16 bits (a 13th mutator, Éclair, sim/modes/eclair.ts): its header says 3,
+ * so a proto-1 or proto-2 phone stops at the version error, as for any other change.
  *
  * Nations (LOBBY_PROTO 2, PANACHE-CONCEPTION.md §1.10): proto 2 is proto 1's frame plus a trailing extension,
  * so its header still says 1 (WIRE_PROTO) and a proto-1 phone reads it as its own: the bits after `theirs` are
@@ -174,13 +177,17 @@ import { BitReader, BitWriter, CodecError } from "./codec";
 import { tr } from "../lang";
 
 /** The lobby protocol's version: bumped with any change to the frame or the rules, so the lobby can say which phone is older. */
-export const LOBBY_PROTO = 2;
-/** The longest lobby frame (a random map, GO and the nations' extension). */
-export const LOBBY_FRAME_MAX = 164;
+export const LOBBY_PROTO = 3;
+/** The longest lobby frame (a random map, GO and the nations' extension, with proto 3's 16 mutator bits). */
+export const LOBBY_FRAME_MAX = 168;
 /** The first protocol with the nations' extension (whose frames say proto 1: the extension trails proto 1's frame). */
 const PROTO_NATIONS = 2;
+/** The first protocol with 16 mutator bits (Éclair made a 13th mutator): its header says 3. */
+const PROTO_WIDE_MUTATORS = 3;
 /** The header a phone of this protocol writes: proto 2's frame is proto 1's, extended. */
 export const wireProto = (proto: number): number => (proto === PROTO_NATIONS ? 1 : proto);
+/** The mutator field's width in a frame whose header says `wire`: 12 bits up to proto 2, 16 from proto 3. */
+const mutatorBits = (wire: number): number => (wire >= PROTO_WIDE_MUTATORS ? 16 : 12);
 /** Round trips kept; D comes from their median. */
 export const RTT_KEPT = 5;
 /** Round trips the host waits for before it offers a config. */
@@ -246,7 +253,6 @@ const PERIOD_GUESS_MS = 200;
 const SLOTS_KEPT = 6;
 /** Map codes 8… are random maps, BIOMES order. */
 const MAP_RANDOM = 8;
-const MUTATOR_BITS = 12;
 /** type, role, proto and build: the part every protocol version shares. */
 const HEADER_BITS = 2 + 1 + 4 + 16;
 /**
@@ -388,9 +394,12 @@ export function writeLobbyFrame(f: LobbyFrame): { bits: Uint8Array; nbits: numbe
     wr.bits(m.code, 4);
     if (m.seed !== null) wr.bits(m.seed, 32);
     for (const id of c.mutators) if (!isMutatorId(id)) throw new RangeError(`no mutator ${id}`);
-    if (MUTATOR_IDS.length > MUTATOR_BITS) throw new RangeError("more mutators than the frame's field: widen it, and bump LOBBY_PROTO");
-    for (const id of MUTATOR_IDS) wr.bit(c.mutators.includes(id) ? 1 : 0);
-    for (let i = MUTATOR_IDS.length; i < MUTATOR_BITS; i++) wr.bit(0);
+    const width = mutatorBits(f.proto);
+    MUTATOR_IDS.forEach((id, i) => {
+      if (i >= width && c.mutators.includes(id)) throw new RangeError(`mutator ${id} past proto ${f.proto}'s field: bump LOBBY_PROTO`);
+    });
+    if (MUTATOR_IDS.length > mutatorBits(wireProto(LOBBY_PROTO))) throw new RangeError("more mutators than the frame's field: widen it, and bump LOBBY_PROTO");
+    for (let i = 0; i < width; i++) wr.bit(MUTATOR_IDS[i] && c.mutators.includes(MUTATOR_IDS[i]!) ? 1 : 0);
     if (!Number.isInteger(c.delay) || c.delay < DELAY_MIN || c.delay > DELAY_MAX) throw new RangeError(`input delay ${c.delay}`);
     wr.bits(c.delay - DELAY_MIN, 3);
     wr.bit(c.hostSide === "blue" ? 0 : 1);
@@ -443,7 +452,7 @@ export function readLobbyFrame(bits: Uint8Array, nbits: number): LobbyFrame {
     else if (code >= MAP_RANDOM && code < MAP_RANDOM + BIOMES.length) mapId = randomMapId(BIOMES[code - MAP_RANDOM]!, rd.bits(32));
     else throw new CodecError(`map code ${code}`);
     const mutators: MutatorId[] = [];
-    for (let i = 0; i < MUTATOR_BITS; i++) {
+    for (let i = 0, n = mutatorBits(head.proto); i < n; i++) {
       if (!rd.bit()) continue;
       const id = MUTATOR_IDS[i];
       if (!id) throw new CodecError(`mutator bit ${i}`);
@@ -892,7 +901,7 @@ export class Pairing {
       delete f.nation;
       if (f.config) delete f.config.nations;
     }
-    this.peerHead = { ...head, proto: f.nation !== undefined ? PROTO_NATIONS : head.proto };
+    this.peerHead = { ...head, proto: head.proto === 1 && f.nation !== undefined ? PROTO_NATIONS : head.proto };
     if (this.versionError || this.failed) {
       this.peerRxq = f.rxq;
       return;

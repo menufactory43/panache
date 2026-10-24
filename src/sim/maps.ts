@@ -1,3 +1,4 @@
+import { createEclair } from "./modes/eclair";
 import { BUILDINGS } from "./balance";
 import { setupObjectives, type UplinkDef } from "./objectives";
 import { applyOpener, spawnStartUnits, type OpenerId } from "./openers";
@@ -591,6 +592,7 @@ export function createMapWorld(id: string, opts: MatchOptions = {}): World {
       if (o && !armada) applyOpener(w, f, o);
     }
     if (opts.objectives) setupObjectives(w, def.uplinks, def.dropSites);
+    if (rulesOf(w).eclair) w.eclair = createEclair(); // (modes/eclair.ts)
   }
   if (opts.survival) setupSurvival(w, opts.survival);
   if (opts.op) setupOp(w, opts.op);

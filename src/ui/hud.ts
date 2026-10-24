@@ -1,3 +1,4 @@
+import { createEclairHud } from "./eclair";
 import { BUILDINGS, ECONOMY, GOLIATH, INFANTRY as INF, LIFELINE, OBJECTIVES, POWERS, TICK_RATE, UNITS } from "../sim/balance";
 import { nationMatchups } from "../unit-info";
 import { nationRuleNote } from "./nations-ui";
@@ -324,6 +325,7 @@ export function createHud(api: HudApi): Hud {
       <div id="versus" class="versus" hidden></div>
       <div class="wavepill" id="wavepill" hidden></div>
       <div class="opspill" id="opspill" hidden></div>
+      <div class="opspill eclairpill" id="eclairpill" hidden></div>
     </div>
     <div class="tl">
       <button id="btn-menu" class="round" title="Pause (P)">❚❚</button>
@@ -408,6 +410,16 @@ export function createHud(api: HudApi): Hud {
   // Ops: goal pill under the clock, objectives card, end-screen stars (ui/ops.ts)
   const ops = w.ops ? createOpsHud($("#opspill"), root, w, { rematch: relaunch }) : null;
   const tutorialMatch = !!(w.ops && opById(w.ops.id)?.tutorial);
+  // Éclair: the time left and both sides' points (ui/eclair.ts)
+  const eclair = w.eclair
+    ? createEclairHud($("#eclairpill"), w, {
+        side: api.ctrl.spectator ? "blue" : PLAYER,
+        names: api.ctrl.spectator
+          ? { blue: tr("Bleu", "Blue"), red: tr("Rouge", "Red") }
+          : ({ [PLAYER]: tr("Toi", "You"), [PLAYER === "blue" ? "red" : "blue"]: api.duel ? tr("Ami", "Friend") : tr("Ennemi", "Enemy") } as Record<Faction, string>),
+        toast: (m) => toast(m, undefined, "", 5000)
+      })
+    : null;
 
   // ---------------------------------------------------------- build bar ---
   let tab: Tab = "build";
@@ -1223,6 +1235,7 @@ export function createHud(api: HudApi): Hud {
     }
     surv?.update();
     ops?.update();
+    eclair?.update();
 
     const ctrl = api.ctrl;
     tutorial();
@@ -1641,6 +1654,7 @@ export const HELP_HTML = tr(
   <h3>Économie</h3><p>Les Fardiers extraient le charbon et le radium luisant (plus rentable) et les ramènent au GQG, aux Halles ou à un Gargantua ancré. Plus de Fardiers, plus de charbon. Les unités détruites laissent des <b>épaves</b> scintillantes valant 30 % de leur coût (5 % seulement pour une vague de Survie) pendant une minute : passe dessus avec une unité au sol pour les récupérer.</p>
   <h3>Construction</h3><p>Ouvre <b>Base</b> et touche un bâtiment pour le construire. Une fois prêt, touche-le encore : un fantôme apparaît sur un emplacement libre près de ta base. Touche la carte (ou fais glisser le fantôme) pour le déplacer, puis touche le fantôme ou <b>✓ Placer</b> pour bâtir. À la souris, clique simplement l'emplacement. Les boutons marqués ⚔ contrent des ennemis repérés ; un onglet marqué <b>inactif</b> a un atelier qui ne fait rien.</p>
   <h3>Armée</h3><p>Touche une unité pour la sélectionner, touche ▢ Cadre puis glisse (ou, sans sélection, maintiens et glisse) pour une sélection en cadre, touche deux fois pour prendre toutes celles du même type à l'écran. <b>Infanterie</b>, <b>Blindés</b> et <b>Aviation</b>, à côté des escouades, prennent toute l'armée de ce type. <b>Route</b> : pose le doigt sur tes unités sélectionnées et trace leur chemin ; reviens à ton point de départ pour qu'elles patrouillent (elles combattent ce qu'elles croisent, puis reprennent leur ronde). <b>Marche en ordre</b> : appui long sur la destination, puis glisse pour tracer le front ; l'armée y va ensemble, au pas du plus lent, blindés et escouades devant, antiaérien au milieu, artillerie et tireurs derrière. Un trait court, ou tracé dans le sens de la marche, donne une colonne (pour un pont ou un col). À la souris, Maj+clic ajoute ou retire une unité de la sélection. Touche le sol pour un déplacement offensif, un ennemi pour l'attaquer. <b>⚑ Repli</b> : touche-le puis le sol, et les unités s'y rendent sans s'arrêter pour combattre (pour battre en retraite ou forcer un passage). <b>💤 Inactifs</b> prend les unités sans ordres.</p>
+  <h3>Éclair</h3><p>Une partie de six minutes, à activer au QG (⏱ Éclair, en escarmouche comme en duel). Chaque camp démarre avec 3 000 de charbon et produit deux fois plus vite. Chaque ennemi détruit rapporte sa valeur en points, et chaque relais tenu des points chaque seconde. La dernière minute, le charbon rapporte double. À 6:00, le camp qui a le plus de points gagne ; si l'écart est serré, c'est la <b>mort subite</b> : le prochain ennemi détruit décide. Détruire le GQG adverse fait toujours gagner tout de suite.</p>
   <h3>Production en boucle</h3><p>Appui long sur une unité dans la barre de production, puis <b>↻ Produire en boucle</b> : chaque atelier libre qui la fabrique en relance une dès que le charbon le permet (deux unités en boucle dans le même atelier alternent). Ce que tu commandes à la main passe toujours avant. Le bouton porte un ↻ doré tant que la boucle tourne.</p>
   <h3>Groupes</h3><p>Maintiens un bouton de groupe (<b>1</b>, <b>2</b>, <b>3</b>) pour y enregistrer les unités sélectionnées. Touche-le pour les resélectionner, deux fois pour y envoyer la caméra. Il clignote en rouge quand un membre est touché. Touches : 1–3 sélectionne, Ctrl+1–3 (ou Maj+1–3) enregistre.</p>
   <h3>Infanterie</h3><p>Chaque bataille commence avec une <b>Escouade de pioupious</b> près de ton GQG. La <b>Manufacture</b> en forme d'autres : <b>Pioupious</b> (fusils bon marché qui touchent aussi l'air), <b>Artificiers</b> (tuent Creusot et Albatros) et, avec Polytechnique, <b>Chasseurs alpins</b> (éliminent l'infanterie, et restent cachées en forêt sauf si elles tirent ou si tu approches à ${INF.concealRadius} cases). Une escouade est une unité de plusieurs automates : ils tombent sous les dégâts, et elle tire moins fort à chaque perte. Les escouades traversent forêts et terrain accidenté à pleine vitesse, subissent moitié moins de dégâts en forêt et capturent les Relais deux fois plus vite, mais les Creusot les écrasent.</p>
@@ -1663,6 +1677,7 @@ export const HELP_HTML = tr(
   <h3>Economy</h3><p>Steam Wagons mine coal and glowing radium (more profitable) and bring them back to the GHQ, the Market Halls or an anchored Gargantua. No more Steam Wagons, no more coal. Destroyed units leave glittering <b>wrecks</b> worth 30% of their cost (just 5% for a Last Stand wave) for a minute: drive over them with a ground unit to salvage them.</p>
   <h3>Building</h3><p>Open <b>Base</b> and tap a building to build it. Once it's ready, tap it again: a ghost appears on a free spot near your base. Tap the map (or drag the ghost) to move it, then tap the ghost or <b>✓ Place</b> to build. With a mouse, just click the spot. Buttons marked ⚔ counter enemies you've spotted; a tab marked <b>idle</b> has a workshop doing nothing.</p>
   <h3>Army</h3><p>Tap a unit to select it, tap ▢ Frame then drag (or, with nothing selected, hold and drag) for a frame selection, tap twice to take every unit of the same type on screen. <b>Infantry</b>, <b>Armour</b> and <b>Air</b>, beside the squads, take the whole army of that type. <b>Route</b>: put your finger on your selected units and trace their path; return to your starting point to make them patrol (they fight whatever they meet, then resume their round). <b>March in order</b>: long-press the destination, then drag to draw the front; the army goes there together, at the pace of the slowest, armour and squads in front, anti-aircraft in the middle, artillery and marksmen behind. A short line, or one drawn along the way, makes a column (for a bridge or a pass). With a mouse, Shift+click adds or removes a unit from the selection. Tap the ground for an attack-move, an enemy to attack it. <b>⚑ Fall back</b>: tap it then the ground, and the units go there without stopping to fight (to retreat or force a passage). <b>💤 Idle</b> takes the units with no orders.</p>
+  <h3>Lightning Match</h3><p>A six-minute match, switched on at the HQ (⏱ Lightning, in skirmish as in a duel). Each side starts with 3,000 coal and builds twice as fast. Every enemy destroyed scores its value in points, and every relay held scores points every second. In the last minute, coal pays double. At 6:00 the side with the most points wins; if it's close, it's <b>sudden death</b>: the next enemy destroyed decides. Destroying the enemy GHQ still wins at once.</p>
   <h3>Looping production</h3><p>Long-press a unit in the production bar, then <b>↻ Produce in a loop</b>: each idle workshop that makes it starts another as soon as coal allows (two looped units at the same workshop alternate). What you order by hand always comes first. The button wears a gold ↻ while the loop runs.</p>
   <h3>Groups</h3><p>Hold a group button (<b>1</b>, <b>2</b>, <b>3</b>) to save the selected units to it. Tap it to reselect them, twice to send the camera there. It flashes red when a member is hit. Keys: 1–3 selects, Ctrl+1–3 (or Shift+1–3) saves.</p>
   <h3>Infantry</h3><p>Every battle begins with a <b>Poilu Squad</b> near your GHQ. The <b>Manufactory</b> trains more: <b>Poilus</b> (cheap rifles that also hit air), <b>Rocketeers</b> (kill Creusots and Albatros) and, with Polytechnique, <b>Alpine Chasseurs</b> (wipe out infantry, and stay hidden in woods unless they fire or you come within ${INF.concealRadius} tiles). A squad is one unit of several automata: they fall to damage, and it fires weaker with each loss. Squads cross woods and rough ground at full speed, take half damage in woods and capture Relays twice as fast, but Creusots crush them.</p>

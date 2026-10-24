@@ -1186,3 +1186,63 @@ html.belle .qg .qg-go {
   margin: -6px -8px -6px 0;
   cursor: pointer;
 }
+
+/* Éclair (sim/modes/eclair.ts): a switch under the mode, skirmish and duel */
+.qg-ecl {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text, #f3e6c8);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.qg-ecl[hidden] {
+  display: none;
+}
+.qg-ecl b {
+  color: var(--gold);
+  font-weight: 700;
+}
+.qg-ecl small {
+  flex: 1;
+  opacity: 0.75;
+  font-size: 12px;
+}
+/* the switch itself */
+.qg-sw {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex: none;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.2s;
+}
+.qg-sw::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e8dcc0;
+  transition: transform 0.2s;
+}
+.qg-ecl.on {
+  border-color: var(--gold);
+}
+.qg-ecl.on .qg-sw {
+  background: var(--gold);
+}
+.qg-ecl.on .qg-sw::after {
+  transform: translateX(16px);
+  background: #2a1d10;
+}

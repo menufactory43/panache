@@ -1,3 +1,4 @@
+import { eclairKill } from "./modes/eclair";
 import { BUILDINGS, COMBAT, DAMAGE_VS, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
 import { GOLIATH_WEAPONS, canRepair, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady, weaponStats } from "./goliath";
 import { dropLifts } from "./lift";
@@ -620,6 +621,7 @@ function rankFor(u: Unit): number {
  */
 function creditKill(w: World, victimFaction: Faction, killerId: number | null, victimCost: number, building: boolean): void {
   const enemy = victimFaction === "blue" ? "red" : "blue";
+  if (w.eclair) eclairKill(w, victimFaction, victimCost); // (Éclair's points: modes/eclair.ts)
   const stats = w.factions[enemy].stats;
   if (building) stats.buildingsKilled++;
   else stats.unitsKilled++;

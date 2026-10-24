@@ -1196,7 +1196,7 @@ export class GameScene {
       y: at.y,
       size: at.size,
       // (an op won on its goal, Robot Love or a resign: nothing blew up)
-      blasts: !opEnd?.byGoal && !love && at.cause !== "resign",
+      blasts: !opEnd?.byGoal && !love && at.cause !== "resign" && at.cause !== "eclair",
       love: !!love,
       screenX: rig.width / 2 + free.x,
       screenY: rig.height / 2 + free.y,
@@ -1207,7 +1207,10 @@ export class GameScene {
             ? this.ops.endAnnouncement()
             : this.survival && !love
             ? { key: "base-overrun", text: tr("Base submergée", "Base overrun"), sub: tr("Le GQG est tombé", "The GHQ has fallen"), tone: "bad", priority: 0, x: at.x, y: at.y }
-            : finaleBanner({ cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y, nations: { blue: nationOf(this.world, "blue"), red: nationOf(this.world, "red") } })
+            : finaleBanner({
+                cause: at.cause, winner, player: PLAYER, spectator: spec, x: at.x, y: at.y, nations: { blue: nationOf(this.world, "blue"), red: nationOf(this.world, "red") },
+                ...(this.world.eclair?.decided ? { eclair: { points: { ...this.world.eclair.points }, how: this.world.eclair.decided } } : {})
+              })
         );
       },
       onDone: () => {
@@ -1324,6 +1327,16 @@ export class GameScene {
     if (this.survival?.handleFx(ev)) return;
     const w = this.world;
     switch (ev.type) {
+      case "eclair": {
+        // Éclair decided it on points (sim/modes/eclair.ts): the finale looks at the loser's HQ, nothing blown up
+        if (ev.phase !== "end") break;
+        const e = w.eclair;
+        const loser: Faction = w.winner === "blue" ? "red" : w.winner === "red" ? "blue" : PLAYER;
+        const hq = hqOf(w, loser);
+        const c = hq ? buildingCenter(hq) : { x: w.width / 2, y: w.height / 2 };
+        if (e) this.finaleAt = { x: c.x, y: c.y, size: hq ? BUILDINGS.hq.size : 3, cause: "eclair" };
+        break;
+      }
       case "resign": {
         // (a duel) the finale looks at the side that gave up: its HQ, else the middle of its home box
         if (this.finaleAt?.cause === "resign") break; // (both at once: the first one's)

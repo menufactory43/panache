@@ -679,7 +679,9 @@ export type FxEvent =
       y: number;
     }
   /** `faction` resigned (a duel): the other side wins this tick. */
-  | { type: "resign"; faction: Faction };
+  | { type: "resign"; faction: Faction }
+  /** Éclair (modes/eclair.ts): the last minute began, sudden death began, or Éclair decided the match this tick. */
+  | { type: "eclair"; phase: "rush" | "overtime" | "end" };
 
 /**
  * A capturable Uplink relay (objectives.ts). Not a building: nothing
@@ -863,8 +865,24 @@ export interface World {
   love?: { ids: [number, number]; x: number; y: number; tick: number } | null;
   /** The side that resigned, when a `resign` command decided the match. */
   resigned?: Faction | null;
+  /** Éclair (modes/eclair.ts): the points and the clock's phase; absent unless the match plays the mutator. */
+  eclair?: EclairState;
   /** Marches in order just given (march.ts), kept a moment so a later piece of the same order joins them; absent when none. */
   marches?: MarchGroup[];
+}
+
+/** An Éclair match's state (World.eclair, modes/eclair.ts). */
+export interface EclairState {
+  /** Victory points: destructions (the cost of what the other side lost) and Uplinks held. */
+  points: Record<Faction, number>;
+  /** The share of `points` the Uplinks brought (the rest is destructions). */
+  relays: Record<Faction, number>;
+  /** "play" until the last minute, "rush" in it, "overtime" in sudden death, "over" once decided (by anything). */
+  phase: "play" | "rush" | "overtime" | "over";
+  /** How Éclair decided it (null: it didn't, or not yet): on points at the whistle, by sudden death, or on points when sudden death ran out. */
+  decided: "points" | "sudden" | "time" | null;
+  /** The points as sudden death began (null before it). */
+  at: Record<Faction, number> | null;
 }
 
 /** A march in order just given (World.marches, march.ts): kept MARCH.mergeTicks so a later piece of the same order joins it. */

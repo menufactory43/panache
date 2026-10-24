@@ -124,6 +124,8 @@ const LATENCY = opt("latency", 120);
 const JITTER = opt("jitter", 80);
 const OUTAGE = opt("outage", 2500);
 const shots = args.includes("--shots");
+/** The host's mutator (DUEL_MUTATOR, default Lightning Production), as the lobby names it. */
+const MUT_NAME = { rapidfab: "Lightning Production", eclair: "Lightning Match" }[process.env.DUEL_MUTATOR ?? "rapidfab"] ?? ".";
 const urlArg = args.find((a) => !a.startsWith("--"));
 /** Each page's animation frames come this far apart (ms): see 2. above. */
 const RAF_MS = 4000;
@@ -277,7 +279,7 @@ const browser = await chromium.launch({
 });
 /** Each phone's menu: the host offers its map and mutators; the guest's own picks must not matter. */
 const SETTINGS = {
-  host: { mapId: "riverlands", difficulty: "normal", mode: "skirmish", mutators: ["rapidfab"] },
+  host: { mapId: "riverlands", difficulty: "normal", mode: "skirmish", mutators: [process.env.DUEL_MUTATOR ?? "rapidfab"] },
   guest: { mapId: "frostbite", difficulty: "normal", mode: "skirmish", mutators: [] }
 };
 const air = new Air(SEED);
@@ -375,7 +377,7 @@ await phones.guest.page.locator(".duel-role[data-act=join]").tap();
   log(`paired: host "${h.line}", guest "${g.line}"`);
   check(/you play blue/i.test(h.line) && /you play red/i.test(g.line), `sides: host "${h.line}", guest "${g.line}"`);
   check(/River Lands/.test(h.map) && h.map === g.map, `the map: host "${h.map}", guest "${g.map}" (the host's River Lands)`);
-  check(/Lightning Production/.test(h.muts) && h.muts === g.muts, `the mutators: host "${h.muts}", guest "${g.muts}" (the host's Lightning Production)`);
+  check(new RegExp(MUT_NAME).test(h.muts) && h.muts === g.muts, `the mutators: host "${h.muts}", guest "${g.muts}" (the host's ${MUT_NAME})`);
   // (each card says what its opener gives, as the single-player picker does)
   const gives = await phones.host.page.locator(".duel-cards .op-card .op-gives").allInnerTexts();
   check(gives.length > 0 && gives.every((t) => / · \d+ Steam Wagons/.test(t)), `the cards don't say what each opener gives: ${JSON.stringify(gives)}`);
@@ -757,7 +759,7 @@ await phones.guest.page.locator("#duel-rematch").tap();
   const [h, g] = await both(paired);
   log(`rematch paired: host "${h.line}", guest "${g.line}"`);
   check(/you play red/i.test(h.line) && /you play blue/i.test(g.line), `the rematch didn't swap sides: host "${h.line}", guest "${g.line}"`);
-  check(/River Lands/.test(h.map) && h.map === g.map && /Lightning Production/.test(h.muts) && h.muts === g.muts, "the rematch isn't on the same map and mutators");
+  check(/River Lands/.test(h.map) && h.map === g.map && new RegExp(MUT_NAME).test(h.muts) && h.muts === g.muts, "the rematch isn't on the same map and mutators");
   await both((p) => shot(p, "5-rematch-paired"));
 }
 await both(cancel);

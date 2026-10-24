@@ -64,6 +64,12 @@ export function worldHash(w: World): string {
   if (w.nation) nationHash(h, w);
   routeHash(h, w);
   marchHash(h, w);
+  if (w.eclair) {
+    // (Éclair, modes/eclair.ts: only worlds that play it, so older records hash as before)
+    h.num(w.eclair.points.blue);
+    h.num(w.eclair.points.red);
+    h.str(w.eclair.phase);
+  }
   return h.hex();
 }
 
