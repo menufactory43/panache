@@ -7,6 +7,7 @@ import { settleMatch, type Settlement } from "./career";
 import { matchKind, track } from "./stats";
 import { activeMutators, gameMode } from "./mode";
 import { tr } from "../lang";
+import { scheduleSync } from "./account";
 
 /**
  * Glue between the match and the meta layer (mutators, Daily Op, career):
@@ -70,6 +71,7 @@ export function settleCareer(w: World, pov: Faction): Settlement | null {
     const issue = w.survival && !w.ops ? "" : w.winner === pov ? ":victoire" : w.winner === "draw" ? ":nul" : ":defaite";
     track(`fin:${matchKind()}${issue}`);
   }
+  scheduleSync(); // (the career is written just below; the Last Stand records alongside)
   return settleMatch(w, {
     pov,
     difficulty: w.survival?.difficulty ?? gameMode.difficulty,

@@ -43,8 +43,8 @@ import type { BandRole, LinkPacket, LinkStats, LinkTransport, ModemMode, OutFram
 import { RelayTransport, type RelayTimers, type RelayWindow } from "./relay-transport";
 import { tr } from "../lang";
 
-/** The relay the published game uses (relay/README.md). `?relais=` overrides it (a `wrangler dev` on localhost). */
-export const RELAY_URL = "wss://panache-relais.meffysto.workers.dev";
+// (the relay's address lives outside the duel's code: the cloud save, game/account.ts, uses it too)
+export { RELAY_URL, relayBase } from "../relay-url";
 
 /** Room codes: four of these (no I or O, misread as 1 and 0). The relay's ALPHABET. */
 export const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -87,12 +87,6 @@ export function drawKey(random: () => number): string {
   return s;
 }
 
-/** The relay to use: `?relais=` (ws:// or wss://, or http(s):// read as such), else RELAY_URL. */
-export function relayBase(search: string): string {
-  const r = new URLSearchParams(search).get("relais")?.trim();
-  if (r && /^(wss?|https?):\/\/[^\s]+$/i.test(r)) return r.replace(/^http/i, "ws").replace(/\/+$/, "");
-  return RELAY_URL;
-}
 
 /** The invite link: this page's address with `?salon=CODE` (and nothing else of its query but `relais` and `style`); in English, its /en/. */
 export function inviteUrl(href: string, code: string, lang: "fr" | "en" = "fr"): string {

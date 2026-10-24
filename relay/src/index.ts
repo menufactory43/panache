@@ -19,11 +19,16 @@ import {
   APP_IPHONE, FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
   type Etat, type Role
 } from "./salon";
+import { empreinte, enTetesCors, lireAuth, lireEnvoi, memeEmpreinte, nouveauJeton } from "./comptes";
 import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
 
 interface Env {
   SALON: DurableObjectNamespace<Salon>;
   STATS: DurableObjectNamespace<Stats>;
+  /** Les comptes et leurs sauvegardes (migrations/). */
+  DB: D1Database;
+  /** Au plus quelques comptes créés par minute et par adresse. */
+  CREATION: RateLimit;
 }
 
 /** Seules la page publiée et l’app iPhone comptent (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
@@ -42,6 +47,7 @@ export default {
       return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
     }
     if (url.pathname === "/stats" && req.method === "GET") return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
+    if (url.pathname === "/compte" || url.pathname.startsWith("/compte/")) return comptes(req, url, env);
     const code = codeDe(url.pathname);
     if (!code) return new Response("introuvable", { status: 404 });
     if (!origineAdmise(req.headers.get("Origin"))) return new Response("origine refusée", { status: 403 });
@@ -50,6 +56,64 @@ export default {
     return stub.fetch(req);
   }
 };
+
+/** Une réponse JSON du service des comptes. */
+function json(corps: unknown, statut: number, cors: Record<string, string>): Response {
+  return new Response(corps === null ? null : JSON.stringify(corps), {
+    status: statut,
+    headers: { ...cors, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+  });
+}
+
+/**
+ * Les comptes (comptes.ts) :
+ *   POST   /compte              un compte neuf : {"id","jeton"}
+ *   GET    /compte/sauvegarde   {"rev","donnees"} (rev 0 et donnees null : rien encore)
+ *   PUT    /compte/sauvegarde   {"rev": la révision fusionnée, "donnees"} → {"rev"} ; 409 {"rev","donnees"} si un autre
+ *                               appareil a envoyé entre-temps (le jeu fusionne et renvoie)
+ *   DELETE /compte              le compte et sa sauvegarde effacés, pour de bon
+ */
+async function comptes(req: Request, url: URL, env: Env): Promise<Response> {
+  const origine = req.headers.get("Origin");
+  if (origine !== null && !origineAdmise(origine)) return new Response("origine refusée", { status: 403 });
+  const cors = enTetesCors(origine);
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  const now = Date.now();
+  if (url.pathname === "/compte" && req.method === "POST") {
+    const ip = req.headers.get("CF-Connecting-IP") ?? "?";
+    if (!(await env.CREATION.limit({ key: ip })).success) return json({ erreur: "trop de comptes" }, 429, cors);
+    const id = crypto.randomUUID();
+    const jeton = nouveauJeton();
+    await env.DB.prepare("INSERT INTO comptes (id, empreinte, cree, vu) VALUES (?, ?, ?, ?)").bind(id, await empreinte(jeton), now, now).run();
+    return json({ id, jeton }, 201, cors);
+  }
+  const auth = lireAuth(req.headers.get("Authorization"));
+  const compte = auth ? await env.DB.prepare("SELECT empreinte, vu FROM comptes WHERE id = ?").bind(auth.id).first<{ empreinte: string; vu: number }>() : null;
+  if (!auth || !compte || !memeEmpreinte(compte.empreinte, await empreinte(auth.jeton))) return json({ erreur: "compte inconnu" }, 401, cors);
+  // (vu : une écriture par heure au plus)
+  if (now - compte.vu > 3_600_000) await env.DB.prepare("UPDATE comptes SET vu = ? WHERE id = ?").bind(now, auth.id).run();
+  if (url.pathname === "/compte" && req.method === "DELETE") {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM sauvegardes WHERE compte = ?").bind(auth.id),
+      env.DB.prepare("DELETE FROM comptes WHERE id = ?").bind(auth.id)
+    ]);
+    return json(null, 204, cors);
+  }
+  if (url.pathname !== "/compte/sauvegarde") return json({ erreur: "introuvable" }, 404, cors);
+  const actuelle = () => env.DB.prepare("SELECT rev, donnees FROM sauvegardes WHERE compte = ?").bind(auth.id).first<{ rev: number; donnees: string }>();
+  const telle = (s: { rev: number; donnees: string } | null) => ({ rev: s?.rev ?? 0, donnees: s ? JSON.parse(s.donnees) : null });
+  if (req.method === "GET") return json(telle(await actuelle()), 200, cors);
+  if (req.method !== "PUT") return json({ erreur: "méthode" }, 405, cors);
+  const envoi = lireEnvoi(await req.text());
+  if (!envoi.ok) return json({ erreur: envoi.raison }, envoi.statut, cors);
+  // la révision n'avance que depuis celle que le jeu a lue : sinon, un autre appareil est passé entre-temps
+  const r =
+    envoi.base === 0
+      ? await env.DB.prepare("INSERT INTO sauvegardes (compte, rev, donnees, maj) VALUES (?, 1, ?, ?) ON CONFLICT (compte) DO NOTHING").bind(auth.id, envoi.donnees, now).run()
+      : await env.DB.prepare("UPDATE sauvegardes SET rev = rev + 1, donnees = ?, maj = ? WHERE compte = ? AND rev = ?").bind(envoi.donnees, now, auth.id, envoi.base).run();
+  if (!r.meta.changes) return json(telle(await actuelle()), 409, cors);
+  return json({ rev: envoi.base + 1 }, 200, cors);
+}
 
 /** Un envoi ne doit jamais faire échouer celui qui l'appelle : l'autre peut partir à tout moment. */
 function envoyer(ws: WebSocket, msg: string): void {

@@ -774,6 +774,11 @@ html.belle .qg .qg-go {
   gap: 14px;
   margin-top: 6px;
 }
+.rg-col {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
 .rg-sec h3 {
   margin: 4px 0 8px;
   font-size: 12px;
@@ -874,6 +879,22 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
   min-height: 46px;
   padding: 8px 10px;
   font-size: 15px;
+}
+/* « Supprimer ton compte ? », under the cloud save's switch */
+.rg-ask {
+  margin: -2px 0 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 122, 100, 0.45);
+  background: rgba(90, 28, 20, 0.35);
+}
+.rg-ask p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.rg-ask .cta.alt {
+  min-height: 40px;
 }
 .reglages .credits {
   margin: 14px 0 0;

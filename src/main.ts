@@ -34,6 +34,7 @@ import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
 import { bootApp, shareBase } from "./native";
+import { accountStatus, deleteAccount, enableCloudSave, startAccount, watchAccount, type AccountStatus } from "./game/account";
 import { mountSavedList } from "./ui/archives";
 import { reelWaiting, takeReel } from "./ui/reel-entry";
 import { SPOTLIGHT_KEY, setSpotlight, spotlightOn } from "./game/spotlight";
@@ -228,6 +229,9 @@ function idFromSeedText(text: string, biome: Biome): string {
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
+
+/** Redraw the menu that is up (the cloud save brought progress: rank, medals, missions); null in a match. */
+let menuSync: (() => void) | null = null;
 
 function showMenu(linkedMap?: string | null): void {
   // the report's « ▶ Revoir les temps forts » reloaded into its reel (ui/reel-entry.ts): that plays instead
@@ -898,6 +902,9 @@ function showMenu(linkedMap?: string | null): void {
 
   // ------------------------------------------------------ Quartier général ---
   // The hub over the title scene picks and launches; the menu column under it is the salon (ui/qg.ts)
+  menuSync = () => {
+    if (menu.isConnected) sync();
+  };
   const view = (v: "qg" | "salon") => {
     menu.dataset.view = v;
     menu.scrollTop = 0;
@@ -1034,10 +1041,29 @@ function showMenu(linkedMap?: string | null): void {
              <button class="sheet-close x" aria-label="${tr("Fermer", "Close")}">✕</button>
            </header>
            <div class="rg-cols">
-             <section class="rg-sec">
-               <h3>${tr("Son", "Sound")}</h3>
-               <div id="qg-sound"></div>
-             </section>
+             <div class="rg-col">
+               <section class="rg-sec">
+                 <h3>${tr("Son", "Sound")}</h3>
+                 <div id="qg-sound"></div>
+               </section>
+               <section class="rg-sec">
+                 <h3>${tr("Compte", "Account")}</h3>
+                 <button class="rg-row" data-a="cloud" aria-pressed="false">
+                   <span class="rg-l">☁️ ${tr("Sauvegarde en ligne", "Cloud save")}<small class="rg-cloud"></small></span>
+                   <span class="rg-sw" aria-hidden="true"></span>
+                 </button>
+                 <div class="rg-ask" hidden>
+                   <p>${tr(
+                     "Supprimer ton compte et ta sauvegarde en ligne ? Ta progression reste sur cet appareil.",
+                     "Delete your account and your cloud save? Your progress stays on this device."
+                   )}</p>
+                   <div class="rg-links">
+                     <button class="cta alt" data-a="cloud-keep">${tr("Garder", "Keep")}</button>
+                     <button class="cta alt warn" data-a="cloud-del">${tr("Supprimer", "Delete")}</button>
+                   </div>
+                 </div>
+               </section>
+             </div>
              <section class="rg-sec">
                <h3>${tr("Partie", "Game")}</h3>
                <button class="rg-row" data-a="spot" aria-pressed="false">
@@ -1067,9 +1093,38 @@ function showMenu(linkedMap?: string | null): void {
            )}</p>`
         );
         const offSound = mountAudioToggles(wrap.querySelector<HTMLElement>("#qg-sound")!);
+        // the cloud save (game/account.ts): its state, and off = the account deleted (asked first)
+        const cloud = wrap.querySelector<HTMLButtonElement>('[data-a="cloud"]')!;
+        const ask = wrap.querySelector<HTMLElement>(".rg-ask")!;
+        const showCloud = (s: AccountStatus) => {
+          cloud.setAttribute("aria-pressed", String(s.state !== "off"));
+          const ago = s.at === null ? "" : Math.floor((Date.now() - s.at) / 60_000);
+          cloud.querySelector(".rg-cloud")!.textContent =
+            s.state === "off" ? tr("Coupée : la progression reste sur cet appareil", "Off: progress stays on this device")
+            : s.state === "ok" ? (ago === 0 ? tr("À jour", "Up to date") : tr(`À jour · il y a ${ago} min`, `Up to date · ${ago} min ago`))
+            : s.state === "offline" ? tr("Hors ligne : elle reprendra d'elle-même", "Offline: it will catch up on its own")
+            : tr("Synchronisation…", "Syncing…");
+        };
+        showCloud(accountStatus());
+        const offCloud = watchAccount(showCloud);
+        cloud.addEventListener("click", () => {
+          sfx.play("click", 0.5);
+          if (accountStatus().state === "off") return void enableCloudSave();
+          ask.hidden = !ask.hidden;
+        });
+        wrap.querySelector('[data-a="cloud-keep"]')!.addEventListener("click", () => (ask.hidden = true));
+        wrap.querySelector('[data-a="cloud-del"]')!.addEventListener("click", async (e) => {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.disabled = true;
+          const ok = await deleteAccount();
+          b.disabled = false;
+          if (ok) ask.hidden = true;
+          else ask.querySelector("p")!.textContent = tr("Impossible de joindre le serveur : réessaie une fois en ligne.", "Couldn't reach the server: try again once online.");
+        });
         new MutationObserver((_, obs) => {
           if (wrap.isConnected) return;
           offSound();
+          offCloud();
           obs.disconnect();
         }).observe(menu, { childList: true });
         // the Temps forts (game/spotlight.ts): on by default
@@ -1252,3 +1307,4 @@ else {
 }
 bootApp();
 countVisit();
+startAccount(() => menuSync?.());

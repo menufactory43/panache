@@ -21,3 +21,17 @@ new_sqlite_classes = ["Salon"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Stats"]
+
+# Les comptes et leurs sauvegardes (src/comptes.ts, README.md « Comptes ») ; le schéma est dans migrations/
+# (npx wrangler d1 migrations apply panache-comptes --remote).
+[[d1_databases]]
+binding = "DB"
+database_name = "panache-comptes"
+database_id = "dd4422d8-6794-4b74-b71c-e8cf70f246d0"
+migrations_dir = "migrations"
+
+# Au plus 5 comptes créés par minute et par adresse.
+[[ratelimits]]
+name = "CREATION"
+namespace_id = "4301"
+simple = { limit = 5, period = 60 }

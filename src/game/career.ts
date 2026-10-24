@@ -356,7 +356,8 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
 
 const KEY = "battledrones.career";
 
-function sanitize(raw: unknown): CareerData {
+/** A career read from anywhere (storage, the cloud save), every field checked. */
+export function sanitizeCareer(raw: unknown): CareerData {
   const c = emptyCareer();
   if (!raw || typeof raw !== "object") return c;
   const o = raw as Partial<CareerData>;
@@ -391,7 +392,7 @@ function sanitize(raw: unknown): CareerData {
 export function loadCareer(): CareerData {
   try {
     const raw = localStorage.getItem(KEY);
-    return sanitize(raw ? JSON.parse(raw) : null);
+    return sanitizeCareer(raw ? JSON.parse(raw) : null);
   } catch {
     return emptyCareer(); // storage blocked or corrupt: play on without a career
   }

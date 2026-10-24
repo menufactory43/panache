@@ -49,6 +49,28 @@ Le relais compte aussi les visites et ce qui se joue, jamais qui : des compteurs
   `curl -s https://panache-relais.meffysto.workers.dev/stats?jours=7`.
 - **Ménage** : 120 jours gardés. Coût : une requête et une ligne écrite par événement.
 
+## Comptes
+
+Le relais tient aussi les comptes des joueurs et leur sauvegarde en ligne (`src/comptes.ts`, la base D1
+`panache-comptes`, schéma dans `migrations/` ; côté jeu `src/game/account.ts` et `src/game/save.ts`).
+
+- **Création** : `POST /compte` → `{"id","jeton"}`, sans rien demander, au premier lancement du jeu. Le jeu garde les
+  deux (dans l'app iPhone, dans ses préférences, qui survivent au stockage de la page) ; la base ne garde que
+  l'empreinte SHA-256 du jeton. Au plus 5 créations par minute et par adresse (`CREATION`, sans rien stocker).
+- **Requêtes** : `Authorization: Bearer <id>.<jeton>` ; un compte inconnu reçoit 401 (le jeu en refait un).
+- **Sauvegarde** : `GET /compte/sauvegarde` → `{"rev","donnees"}` ; `PUT /compte/sauvegarde` `{"rev","donnees"}` où
+  `rev` est la révision lue : si un autre appareil a envoyé entre-temps, 409 avec l'actuelle, et le jeu fusionne
+  (`mergeSaves` : rien de gagné n'est perdu) puis renvoie. 64 Ko au plus.
+- **Suppression** : `DELETE /compte` efface le compte et sa sauvegarde pour de bon (Réglages → Sauvegarde en ligne,
+  coupée). Le jeu n'en refait pas tant que le joueur ne la rallume pas.
+- **Ce qui est gardé** : un identifiant tiré au hasard, l'empreinte du jeton, deux dates (création, dernière visite à
+  l'heure près) et la progression du jeu. Aucun nom, aucune adresse, aucun e-mail.
+- **Origines** : les mêmes que le duel, avec les en-têtes CORS pour elles seules. Le développement et les robots (smoke
+  test) n'appellent que le relais nommé par `?relais=` (un `wrangler dev`), jamais celui en ligne.
+
+Essai en local : `npx wrangler d1 migrations apply panache-comptes --local`, `npx wrangler dev --local --port 8788`,
+puis le jeu avec `?relais=http://localhost:8788`.
+
 ## Mettre en ligne
 
 Le jeton Cloudflare est celui de famcrawl (fnox) ; il ne va que dans l'environnement du processus :
@@ -56,6 +78,7 @@ Le jeton Cloudflare est celui de famcrawl (fnox) ; il ne va que dans l'environne
 ```sh
 cd relay
 export CLOUDFLARE_API_TOKEN=$(cd ~/famcrawl && fnox get CLOUDFLARE_API_TOKEN)
+npx wrangler@4 d1 migrations apply panache-comptes --remote   # (après un nouveau fichier de migrations/)
 npx wrangler@4 deploy
 ```
 
