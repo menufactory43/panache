@@ -621,6 +621,8 @@ export class GameScene {
     (window as unknown as Record<string, unknown>).__bd = {
       world: this.world,
       ctrl: this.ctrl,
+      /** Tools: the game's AI, to play this page's side through its orders (tools/duel-bot.mjs: a sparring partner for a duel). */
+      ai: { createAiState, tickAi },
       /** Tests and tools: put a unit on the field (outside the orders: a replay won't have it). */
       spawn: (kind: UnitKind, faction: Faction, x: number, y: number) => spawnUnit(this.world, kind, faction, x, y).id,
       /** The side this page commands (red under `?side=red`, or a duel's red phone). */
