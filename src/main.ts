@@ -1029,17 +1029,36 @@ function showMenu(linkedMap?: string | null): void {
         const wrap = openSheet(
           menu,
           "reglages",
-          `<h2>⚙ ${tr("Réglages", "Settings")}</h2>
-           <div id="qg-sound"></div>
-           <div class="sh-actions sh-col">
-             <button class="cta alt" data-a="spot" aria-pressed="false" title="${tr(
-               "Ralenti, secousse et bandeau quand un Gargantua tombe, quand leur GQG est touché, quand une bataille est gagnée",
-               "Slow motion, shake and banner when a Gargantua falls, when their GHQ is hit, when a battle is won"
-             )}"></button>
-             <button class="cta alt" data-a="lang" lang="${tr("en", "fr")}">${tr("🌐 Play in English", "🌐 Jouer en français")}</button>
-             ${intro ? `<button class="cta alt" data-a="intro">🎞 ${tr("Revoir l'intro", "Watch the intro again")}</button>` : ""}
-             <button class="cta alt" data-a="help">? ${tr("Comment jouer", "How to play")}</button>
-             <button class="cta alt sheet-close">${tr("Fermer", "Close")}</button>
+          `<header class="rg-head">
+             <h2>⚙ ${tr("Réglages", "Settings")}</h2>
+             <button class="sheet-close x" aria-label="${tr("Fermer", "Close")}">✕</button>
+           </header>
+           <div class="rg-cols">
+             <section class="rg-sec">
+               <h3>${tr("Son", "Sound")}</h3>
+               <div id="qg-sound"></div>
+             </section>
+             <section class="rg-sec">
+               <h3>${tr("Partie", "Game")}</h3>
+               <button class="rg-row" data-a="spot" aria-pressed="false">
+                 <span class="rg-l">✨ ${tr("Temps forts", "Highlights")}<small>${tr(
+                   "Ralenti, secousse et bandeau aux grands moments",
+                   "Slow motion, shake and banner at the big moments"
+                 )}</small></span>
+                 <span class="rg-sw" aria-hidden="true"></span>
+               </button>
+               <div class="rg-row rg-lang">
+                 <span class="rg-l">🌐 ${tr("Langue", "Language")}</span>
+                 <div class="seg" role="group" aria-label="${tr("Langue", "Language")}">
+                   <button data-lang="fr" lang="fr" class="${tr("on", "")}" aria-pressed="${tr("true", "false")}">Français</button>
+                   <button data-lang="en" lang="en" class="${tr("", "on")}" aria-pressed="${tr("false", "true")}">English</button>
+                 </div>
+               </div>
+               <div class="rg-links">
+                 ${intro ? `<button class="cta alt" data-a="intro">🎞 ${tr("Revoir l'intro", "Watch the intro")}</button>` : ""}
+                 <button class="cta alt" data-a="help" aria-expanded="false">? ${tr("Comment jouer", "How to play")}</button>
+               </div>
+             </section>
            </div>
            <div class="help" hidden>${HELP_HTML}</div>
            <p class="credits">${tr(
@@ -1064,7 +1083,6 @@ function showMenu(linkedMap?: string | null): void {
         })();
         const syncSpot = () => {
           const on = spotlightOn(store);
-          spot.textContent = tr(`✨ Temps forts : ${on ? "activés" : "coupés"}`, `✨ Highlights: ${on ? "on" : "off"}`);
           spot.setAttribute("aria-pressed", String(on));
           spot.dataset.key = SPOTLIGHT_KEY;
         };
@@ -1074,10 +1092,14 @@ function showMenu(linkedMap?: string | null): void {
           sfx.play("click", 0.5);
           syncSpot();
         });
-        wrap.querySelector('[data-a="lang"]')!.addEventListener("click", () => switchLang(tr("en", "fr")));
-        wrap.querySelector('[data-a="help"]')!.addEventListener("click", () => {
+        wrap.querySelectorAll<HTMLButtonElement>("[data-lang]").forEach((b) =>
+          b.addEventListener("click", () => switchLang(b.dataset.lang as "fr" | "en"))
+        );
+        wrap.querySelector('[data-a="help"]')!.addEventListener("click", (e) => {
           const h = wrap.querySelector<HTMLElement>(".help")!;
           h.hidden = !h.hidden;
+          (e.currentTarget as HTMLElement).setAttribute("aria-expanded", String(!h.hidden));
+          if (!h.hidden) h.scrollIntoView({ behavior: "smooth", block: "start" });
         });
         wrap.querySelector('[data-a="intro"]')?.addEventListener("click", () => {
           wrap.remove();
