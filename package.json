@@ -20,7 +20,8 @@
     "art:terrain": "python3 art/terrain.py",
     "art:textures": "python3 art/textures.py",
     "ios": "npm run build && cap sync ios && cap open ios",
-    "ios:sync": "npm run build && cap sync ios"
+    "ios:sync": "npm run build && cap sync ios",
+    "ios:testflight": "sh tools/ios-testflight.sh"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",

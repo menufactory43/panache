@@ -238,7 +238,8 @@ async function comptes(req: Request, url: URL, env: Env): Promise<Response> {
   // (vu : une écriture par heure au plus)
   if (now - compte.vu > 3_600_000) await env.DB.prepare("UPDATE comptes SET vu = ? WHERE id = ?").bind(now, auth.id).run();
   if (url.pathname === "/compte" && req.method === "DELETE") {
-    await env.DB.batch(effacer(env, auth.id));
+    // (tout : le compte, sa sauvegarde, ses jetons et ses parties classées)
+    await env.DB.batch([env.DB.prepare("DELETE FROM parties WHERE bleu = ? OR rouge = ?").bind(auth.id, auth.id), ...effacer(env, auth.id)]);
     return json(null, 204, cors);
   }
   if (url.pathname === "/compte/apple" && req.method === "POST") {

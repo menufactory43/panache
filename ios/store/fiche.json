@@ -1,0 +1,58 @@
+{
+  "_": "La fiche App Store de Panache (tools/ios-store.mjs l'envoie à App Store Connect). Limites d'Apple : nom et sous-titre 30 caractères, mots-clés 100, texte promotionnel 170, description 4000.",
+  "categorie": "GAMES",
+  "sousCategories": ["GAMES_STRATEGY", "GAMES_ACTION"],
+  "copyright": "2026 Panache",
+  "urls": {
+    "confidentialite": "https://menufactory43.github.io/panache/confidentialite.html",
+    "assistance": "https://github.com/menufactory43/panache/issues",
+    "marketing": "https://menufactory43.github.io/panache/"
+  },
+  "langues": {
+    "fr-FR": {
+      "nom": "Panache",
+      "sousTitre": "Stratégie Belle Époque",
+      "motsCles": "rts,stratégie,temps réel,guerre,1900,steampunk,tactique,duel,en ligne,campagne,armée,bataille",
+      "promo": "Paris, 1900. Vapeur, acier et radium : menez vos armées en temps réel, défiez un ami en ligne ou grimpez au classement. Gratuit, sans publicité.",
+      "description": "Paris, 1900. L’Europe s’arme de vapeur, d’acier et de radium… Pour la gagner, il faudra du courage, et beaucoup de panache.\n\nPanache est un jeu de stratégie en temps réel pensé pour le téléphone : on sélectionne d’un geste, on trace la route de ses troupes du doigt, et une bataille se joue en quelques minutes.\n\nLA CAMPAGNE DE 1900\nDouze missions en trois actes, racontées comme un film muet : intertitres, grain de la pellicule et fanfare de cuivres.\n\nDEUX NATIONS\nLa République, rapide, aérienne et électrique. L’Empire, tout en vapeur, en acier et en artillerie. Ou le mode Classique, où les deux camps jouent à armes égales.\n\nLE DUEL EN LIGNE\nDéfiez un ami avec un code de quatre lettres ou un lien, où qu’il soit. Ou lancez une partie classée : un adversaire de votre niveau, une carte tirée au sort et votre cote en jeu. Personne en ligne ? Le jeu vous le dit et vous propose l’IA, sans jamais la faire passer pour un joueur.\n\nET AUSSI\n• Escarmouche contre l’IA, en trois difficultés et plusieurs personnalités\n• Éclair : une partie de six minutes, aux points\n• Survie : tenez le plus longtemps possible face aux vagues\n• L’Op du jour, une nouvelle bataille chaque jour\n• Des mutateurs pour changer les règles, et des cartes générées à l’infini\n• Les Archives : revoyez vos batailles et leurs temps forts\n• Une progression sauvegardée dans le nuage, retrouvée sur tous vos appareils avec « Se connecter avec Apple »\n\nGratuit. Sans publicité. Sans achat intégré. Aucune donnée personnelle demandée.",
+      "notes": "Nouveautés : la partie classée et le classement, la sauvegarde dans le nuage, Se connecter avec Apple."
+    },
+    "en-US": {
+      "nom": "Panache",
+      "sousTitre": "Belle Époque strategy",
+      "motsCles": "rts,strategy,real time,war,1900,steampunk,tactics,duel,online,campaign,army,battle,ranked",
+      "promo": "Paris, 1900. Steam, steel and radium: lead your armies in real time, challenge a friend online or climb the ladder. Free, no ads.",
+      "description": "Paris, 1900. Europe arms herself with steam, steel and radium… To win it, you’ll need courage, and a great deal of panache.\n\nPanache is a real-time strategy game made for the phone: select with a gesture, draw your troops’ route with a finger, and fight a battle in a few minutes.\n\nTHE 1900 CAMPAIGN\nTwelve missions in three acts, told like a silent film: intertitles, film grain and a brass fanfare.\n\nTWO NATIONS\nThe Republic, fast, airborne and electric. The Empire, all steam, steel and artillery. Or Classic mode, where both sides fight on equal terms.\n\nONLINE DUELS\nChallenge a friend anywhere with a four-letter code or a link. Or play a ranked match: an opponent at your level, a random map and your rating at stake. Nobody online? The game tells you so and offers the AI, never passing it off as a player.\n\nAND ALSO\n• Skirmish against the AI, with three difficulties and several personalities\n• Éclair: a six-minute match, on points\n• Last Stand: hold out as long as you can against the waves\n• The Daily Op, a new battle every day\n• Mutators to change the rules, and endless generated maps\n• The Archives: watch your battles and their highlights again\n• Progress saved in the cloud, on all your devices with Sign in with Apple\n\nFree. No ads. No in-app purchases. No personal data asked for.",
+      "notes": "New: ranked matches and the ladder, cloud save, Sign in with Apple."
+    }
+  },
+  "ageRating": {
+    "_": "Classement par âge attendu : 9+ (violence de dessin animé ou fantastique, peu fréquente et légère).",
+    "violenceCartoonOrFantasy": "INFREQUENT_OR_MILD",
+    "violenceRealistic": "NONE",
+    "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+    "profanityOrCrudeHumor": "NONE",
+    "matureOrSuggestiveThemes": "NONE",
+    "horrorOrFearThemes": "NONE",
+    "medicalOrTreatmentInformation": "NONE",
+    "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+    "gamblingSimulated": "NONE",
+    "sexualContentOrNudity": "NONE",
+    "sexualContentGraphicAndNudity": "NONE",
+    "contests": "NONE",
+    "gambling": false,
+    "unrestrictedWebAccess": false,
+    "lootBox": false,
+    "messagingAndChat": false,
+    "userGeneratedContent": false,
+    "advertising": false,
+    "parentalControls": false,
+    "ageAssurance": false,
+    "healthOrWellnessTopics": false,
+    "gunsOrOtherWeapons": "NONE"
+  },
+  "revue": {
+    "_": "Pour l'équipe de revue d'Apple : aucun identifiant n'est nécessaire.",
+    "notes": "No login needed: an anonymous account is created on first launch. Online duels: Duel → Create a lobby on one device, join with the 4-letter code on another. Ranked match: Duel → Ranked match; if no opponent is found within 30 seconds, the game offers an (unranked, clearly announced) match against the AI. Account deletion: Settings (gear) → Account → turn Cloud save off → Delete."
+  }
+}

@@ -400,33 +400,24 @@
 }
 
 /* the short run (later visits): the film slips in the gate, flickering, then locks */
+/* the short run (a film already seen): the picture comes up from the dark with a light projector shimmer, no jolts */
 .menu.ttl-roll .ttl-par {
-  animation: ttl-slip 0.16s steps(1) infinite;
+  animation: ttl-up 0.6s ease-out both, ttl-slip 0.2s steps(1) infinite;
+}
+@keyframes ttl-up {
+  from { filter: brightness(0.15) sepia(0.6); }
+  to { filter: brightness(1) sepia(0); }
 }
 @keyframes ttl-slip {
-  0% { transform: translateY(-6%); }
-  33% { transform: translateY(4%); }
-  66% { transform: translateY(-1%); }
-}
-.menu.ttl-roll .ttl-old::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 9vh;
-  background: #0b0703;
-  animation: ttl-bar 0.38s linear infinite;
-}
-@keyframes ttl-bar {
-  from { transform: translateY(-10vh); }
-  to { transform: translateY(105vh); }
+  0% { translate: 0 -0.4%; }
+  50% { translate: 0 0.3%; }
 }
 .menu.ttl-roll .o-flick {
-  animation: ttl-flick-hard 0.12s steps(1) infinite;
+  animation: ttl-flick-soft 0.16s steps(1) infinite;
 }
-@keyframes ttl-flick-hard {
-  0% { opacity: 0.35; background: #fff1d0; }
-  50% { opacity: 0.45; background: #000; }
+@keyframes ttl-flick-soft {
+  0% { opacity: 0.1; background: #fff1d0; }
+  50% { opacity: 0.16; background: #000; }
 }
 
 /* ------------------------------------------------------------- the logo --- */

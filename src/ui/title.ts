@@ -10,7 +10,7 @@
  *  - the first time ever, the intro film: a leader counting down 3-2-1, then a
  *    silent film (intertitles, three shots with Ken Burns moves) whose last
  *    card, « …et beaucoup de », irises out onto the logo;
- *  - afterwards, a second of projector flicker.
+ *  - afterwards, half a second of the picture coming up under a soft flicker.
  * Then the logo slams in on a flash, the brass fanfare sounds, the menu music
  * starts on that beat, the logo glides to its place and the menu pops in.
  * « 🎞 Revoir l'intro » in the menu plays the film again.
@@ -72,7 +72,7 @@ const T = {
 } as const;
 const IRIS = 650; // an iris in or out
 /** The short projector run (later visits): tap to slam. */
-const ROLL_MS = 1150;
+const ROLL_MS = 600;
 
 export interface TitleHooks {
   /** The logo slammed: start the menu music, on this beat. */
@@ -247,12 +247,11 @@ export function mountTitle(menu: HTMLElement, hooks: TitleHooks, skip: boolean):
     at(T.slam, slam);
   };
 
-  /** The short run: a second of flicker and frame slips before the logo. */
+  /** The short run: the picture comes up under a soft flicker, then the logo. */
   const roll = () => {
     phase = "roll";
     state("ttl-roll");
-    stopProjector = projectorStart(0.4);
-    kick(over.querySelector(".ttl-leak")!, "go");
+    stopProjector = projectorStart(0.25);
     at(ROLL_MS, slam);
   };
 
