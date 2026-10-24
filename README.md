@@ -1,5 +1,7 @@
 # Panache
 
+*[English version](README.en.md)*
+
 **Panache** est un jeu de stratégie en temps réel pour mobile et navigateur, dans la France de la Belle Époque (vers 1900) : dirigeables, Fardiers à vapeur, Creusot cuirassés, automates en képi, Gargantua la forteresse marchante — et beaucoup de panache.
 
 **Jouer : <https://menufactory43.github.io/panache/>** (en anglais : <https://menufactory43.github.io/panache/en/>)
