@@ -2,11 +2,12 @@
  * Anonymous counters (relay/README.md « Statistiques »): how many visits and
  * what is played, never who. One beacon to the duel relay on a visit, when a
  * match starts and when one is banked: no id, no cookie. Only the published game
- * counts: the dev server, robots (the smoke test and the tools) and every
+ * counts (and the iPhone app, « app:ios » once a day): the dev server, robots (the smoke test and the tools) and every
  * other page send nothing, and the relay drops what doesn't come from the
  * published page.
  */
 import { isCampaignOp } from "../sim/ops";
+import { isApp } from "../native";
 import { gameMode, isDuelMatch } from "./mode";
 
 const STAT_URL = "https://panache-relais.meffysto.workers.dev/stat";
@@ -31,7 +32,7 @@ function screenKind(): string {
  * identifies it.
  */
 export function countVisit(): void {
-  if (silent() || location.hostname !== "menufactory43.github.io") return;
+  if (silent() || (location.hostname !== "menufactory43.github.io" && !isApp)) return;
   track("visite:page");
   try {
     const day = new Date().toISOString().slice(0, 10);
@@ -39,6 +40,7 @@ export function countVisit(): void {
       localStorage.setItem(DAY_KEY, day);
       track("visite:jour");
       track(`ecran:${screenKind()}`);
+      if (isApp) track("app:ios");
     }
     if (!localStorage.getItem(SEEN_KEY)) {
       localStorage.setItem(SEEN_KEY, "1");

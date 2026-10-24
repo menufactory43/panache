@@ -65,6 +65,7 @@ import { DUEL_KEY, parseRematch, type RematchPlan } from "./records";
 import { RelayTransport } from "./relay-transport";
 import { Session } from "./session";
 import { LANG, tr } from "../lang";
+import { shareBase } from "../native";
 
 
 declare const __DUEL_HASH__: string | undefined;
@@ -1082,7 +1083,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const invite = async (share: boolean) => {
     const code = net?.code;
     if (!code) return;
-    const url = inviteUrl(location.href, code, LANG);
+    const url = inviteUrl(shareBase(), code, LANG);
     const copied = body.querySelector<HTMLElement>(".duel-copied");
     if (share && typeof navigator.share === "function") {
       try {

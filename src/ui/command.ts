@@ -33,6 +33,7 @@ import { ADVISOR, COUNTERS, EnemyIntel, FACTORY_TAB, IdleWatch, adviceNote, coun
 import { HINTS, type HintOffer } from "../game/hints";
 import { portraitKind } from "../game/three/belle/placeholders";
 import { tr } from "../lang";
+import { buzz } from "../native";
 
 export interface CommandHooks {
   root: HTMLElement;
@@ -246,7 +247,7 @@ export class CommandUi {
     const n = ctrl.selectRole(role);
     if (n === 0) return;
     sfx.play("click", 0.5);
-    if (navigator.vibrate) navigator.vibrate(8);
+    buzz(8);
     this.seen("roles");
     const now = performance.now();
     if (now - (this.roleTap.get(role) ?? -Infinity) < SQUAD.doubleTapMs) {
@@ -278,7 +279,7 @@ export class CommandUi {
     const n = ctrl.assignSquad(i);
     if (n === 0) return;
     sfx.play("squad", 0.8);
-    if (navigator.vibrate) navigator.vibrate(12);
+    buzz(12);
     this.seen("squads");
     const el = this.chips[i]?.btn;
     if (el) {

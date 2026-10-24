@@ -33,6 +33,7 @@ import { mountTitle } from "./ui/title";
 import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
+import { bootApp, shareBase } from "./native";
 import { mountSavedList } from "./ui/archives";
 import { reelWaiting, takeReel } from "./ui/reel-entry";
 import { SPOTLIGHT_KEY, setSpotlight, spotlightOn } from "./game/spotlight";
@@ -204,7 +205,7 @@ function saveRandomPrefs(prefs: RandomPrefs): void {
 
 /** A shareable link to this game with a map preselected (?map=<id>, read on boot). */
 function mapLink(id: string): string {
-  const url = new URL(location.href);
+  const url = new URL(shareBase());
   url.search = "";
   url.hash = "";
   url.searchParams.set("map", id);
@@ -1227,4 +1228,5 @@ else {
   }
   showMenu(linkedMap);
 }
+bootApp();
 countVisit();

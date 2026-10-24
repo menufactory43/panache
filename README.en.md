@@ -30,6 +30,7 @@ npm run dev            # Vite dev server
 npx vitest run         # the tests
 npm run build          # typecheck + build into dist/
 npm run smoke          # the real touch flow, headless (against dist/)
+npm run ios            # the iPhone app: build, copy into ios/ (Capacitor) and open Xcode
 ```
 
 Before every push to `main`: `npx vitest run`, `npm run build` and `npm run smoke`. The push runs the **Publier Panache** workflow (GitHub Pages, about a minute). The duel relay deploys separately, from `relay/` (see `relay/README.md`).

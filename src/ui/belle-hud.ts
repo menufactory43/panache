@@ -31,6 +31,7 @@ import type { NationOrClassic } from "../sim/types";
 import { sfx } from "../game/audio";
 import type { Controller } from "../game/controller";
 import { tr } from "../lang";
+import { buzz } from "../native";
 
 // --------------------------------------------------------------- prefs ---
 
@@ -328,7 +329,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         fired = true;
-        if (navigator.vibrate) navigator.vibrate(8);
+        buzz(8);
         selectIdle();
       }, ARMY.holdMs);
     });

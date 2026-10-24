@@ -157,13 +157,16 @@ export class Seau {
   }
 }
 
+/** L’app iPhone : la page embarquée par Capacitor (capacitor.config.ts à la racine). */
+export const APP_IPHONE = "capacitor://localhost";
+
 /**
- * Les origines admises : la page publiée, et le développement (localhost, et une adresse du réseau local pour
+ * Les origines admises : la page publiée, l’app iPhone (Capacitor, `capacitor://localhost`), et le développement (localhost, et une adresse du réseau local pour
  * essayer sur un téléphone). Pas d'Origin du tout (un outil, un test sous Node) : admis, ce n'est pas un navigateur.
  */
 export function origineAdmise(origin: string | null): boolean {
   if (origin === null || origin === "") return true;
-  if (origin === "https://menufactory43.github.io") return true;
+  if (origin === "https://menufactory43.github.io" || origin === APP_IPHONE) return true;
   let u: URL;
   try {
     u = new URL(origin);

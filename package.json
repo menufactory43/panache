@@ -18,12 +18,22 @@
     "art:generate": "python3 art/generate.py",
     "art:process": "python3 art/process.py",
     "art:terrain": "python3 art/terrain.py",
-    "art:textures": "python3 art/textures.py"
+    "art:textures": "python3 art/textures.py",
+    "ios": "npm run build && cap sync ios && cap open ios",
+    "ios:sync": "npm run build && cap sync ios"
   },
   "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@types/three": "^0.185.4",
     "playwright-core": "^1.61.1",
     "typescript": "^5.6.0",

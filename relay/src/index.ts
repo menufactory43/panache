@@ -16,7 +16,7 @@
 
 import { DurableObject } from "cloudflare:workers";
 import {
-  FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
+  APP_IPHONE, FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
   type Etat, type Role
 } from "./salon";
 import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
@@ -26,7 +26,7 @@ interface Env {
   STATS: DurableObjectNamespace<Stats>;
 }
 
-/** Seule la page publiée compte (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
+/** Seules la page publiée et l’app iPhone comptent (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
 const PAGE_PUBLIEE = "https://menufactory43.github.io";
 
 const VIDE: Etat = { cree: null, hote: null, invite: null };
@@ -37,7 +37,8 @@ export default {
     if (url.pathname === "/") return new Response("Panache — relais du duel en ligne", { headers: { "content-type": "text/plain; charset=utf-8" } });
     if (url.pathname === "/stat" && req.method === "POST") {
       const e = url.searchParams.get("e");
-      if (req.headers.get("Origin") !== PAGE_PUBLIEE || !evenementAdmis(e)) return new Response(null, { status: 204 });
+      const origine = req.headers.get("Origin");
+      if ((origine !== PAGE_PUBLIEE && origine !== APP_IPHONE) || !evenementAdmis(e)) return new Response(null, { status: 204 });
       return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
     }
     if (url.pathname === "/stats" && req.method === "GET") return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);

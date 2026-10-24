@@ -9,6 +9,7 @@ import type { TargetPreview } from "../game/render/powers";
 import { HINTS, type HintOffer } from "../game/hints";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { tr } from "../lang";
+import { buzz } from "../native";
 
 /**
  * The commander's calldown buttons: a stack of four round buttons on the
@@ -157,7 +158,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         long = true;
-        if (navigator.vibrate) navigator.vibrate(8);
+        buzz(8);
         (api.info ?? api.notify)(about(p));
       }, 420);
       if (e.button === 2) {

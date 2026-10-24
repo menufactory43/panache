@@ -147,10 +147,10 @@ describe("the relay's rooms", () => {
     expect(CLE_MAX).toBeGreaterThanOrEqual(16);
   });
 
-  it("admits the published page and local development only", () => {
-    for (const o of [null, "", "https://menufactory43.github.io", "http://localhost:5302", "https://localhost", "http://127.0.0.1:4173", "https://192.168.1.20:5173", "http://10.0.0.5:5173"])
+  it("admits the published page, the iPhone app and local development only", () => {
+    for (const o of [null, "", "https://menufactory43.github.io", "http://localhost:5302", "https://localhost", "http://127.0.0.1:4173", "https://192.168.1.20:5173", "http://10.0.0.5:5173", "capacitor://localhost"])
       expect(origineAdmise(o), String(o)).toBe(true);
-    for (const o of ["https://evil.example", "https://menufactory43.github.io.evil.example", "http://menufactory43.github.io", "https://8.8.8.8", "null", "file://"])
+    for (const o of ["https://evil.example", "https://menufactory43.github.io.evil.example", "http://menufactory43.github.io", "https://8.8.8.8", "null", "file://", "capacitor://evil"])
       expect(origineAdmise(o), o).toBe(false);
     expect(codeDe("/salon/abcd")).toBe("ABCD");
     expect(codeDe("/salon/ABC")).toBeNull();

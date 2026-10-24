@@ -5,6 +5,8 @@
  * still. Coordinates are whatever space the caller uses (screen pixels).
  */
 
+import { buzz } from "../native";
+
 export interface GesturePointer {
   id: number;
   x: number;
@@ -378,7 +380,7 @@ export class GestureRecognizer {
         this.mode = "box";
         this.cb.onBoxStart(this.downX, this.downY);
       }
-      if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
+      buzz(10);
     }
   }
 

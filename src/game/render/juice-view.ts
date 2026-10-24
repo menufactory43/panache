@@ -21,6 +21,7 @@ import type { Label } from "../three/screen";
 import type { View } from "../three/view";
 import type { EntityRenderer } from "./entities";
 import { AIR_H } from "../three/view";
+import { buzz } from "../../native";
 
 /** Team colours for ground rings and death pulses. */
 const TEAM: Record<Faction, number> = { blue: 0x3d8bff, red: 0xff4a3a };
@@ -95,13 +96,7 @@ export class CombatJuice {
         sfx.play("lost", 0.4);
       }
     }
-    if (cue.vibrate) {
-      try {
-        if (typeof navigator.vibrate === "function") navigator.vibrate(20);
-      } catch {
-        /* haptics unavailable */
-      }
-    }
+    if (cue.vibrate) buzz(20);
     if (!visible) return; // never shake (or pulse) for fogged / off-screen deaths
     const s = shakeFor(ev);
     if (this.time >= this.shakeUntil || s.intensity > this.shakeLevel) {

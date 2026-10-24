@@ -25,6 +25,7 @@ import { radioCue } from "./announcer";
 import { PLAYER, type Controller } from "./controller";
 import type { GesturePointer } from "./gestures";
 import { tr } from "../lang";
+import { buzz } from "../native";
 
 type Pt = { x: number; y: number };
 
@@ -150,7 +151,7 @@ export class PlacementView {
   private refused(): void {
     this.shake = 0;
     sfx.play("deny", 0.7);
-    if (navigator.vibrate) navigator.vibrate([18, 40, 18]);
+    buzz([18, 40, 18]);
     radioCue("cant-build");
     const chip = document.querySelector<HTMLElement>('#chips .chip[data-id="place"]');
     if (chip) {

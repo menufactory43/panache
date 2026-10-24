@@ -385,6 +385,16 @@ describe("a battle record linked by URL (?replay=)", () => {
     expect(fetched).toEqual(["https://simonw.github.io/battledrones/battles/showcase/a.json", "https://example.com/b.json"]);
   });
 
+  it("in the iPhone app, the game's own files load, and other schemes still don't", async () => {
+    const { fetchLinkedRecord } = await import("../src/game/replay");
+    stub(() => respond("{}"));
+    const app = "capacitor://localhost/index.html?replay=x";
+    expect(await fetchLinkedRecord("battles/showcase/a.json", app)).toBe("{}");
+    expect(fetched).toEqual(["capacitor://localhost/battles/showcase/a.json"]);
+    await expect(fetchLinkedRecord("capacitor://elsewhere/a.json", app)).rejects.toThrow(/http/);
+    await expect(fetchLinkedRecord("file:///etc/a.json", base)).rejects.toThrow(/http/);
+  });
+
   it("a file's page on GitHub, or a Gist's, is read from its raw copy", async () => {
     const { fetchLinkedRecord } = await import("../src/game/replay");
     stub(() => respond("{}"));

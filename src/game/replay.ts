@@ -248,7 +248,10 @@ export async function fetchLinkedRecord(ref: string, base = location.href): Prom
   } catch {
     throw new Error(tr(`« ${ref} » n'est pas une URL`, `« ${ref} » isn't a URL`));
   }
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error(tr("Seuls les liens http et https peuvent être chargés", "Only http and https links can be loaded"));
+  // (or a file of the game itself: in the iPhone app the page is capacitor://localhost, whose URL has no origin)
+  const own = new URL(base);
+  const local = url.protocol === own.protocol && url.host === own.host;
+  if (url.protocol !== "https:" && url.protocol !== "http:" && !local) throw new Error(tr("Seuls les liens http et https peuvent être chargés", "Only http and https links can be loaded"));
   const page = (url.origin + url.pathname).replace(/\/$/, "");
   const gist = GIST.exec(page);
   if (gist) {

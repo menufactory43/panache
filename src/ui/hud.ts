@@ -39,6 +39,7 @@ import { watchMatchFocus } from "./match-focus";
 import { abandonMatch } from "../game/resume";
 import { tr } from "../lang";
 import { DIFFICULTY, type Difficulty } from "../sim/ai/commander";
+import { buzz } from "../native";
 
 /** `?debug`: the pause menu's fog switch (not for players: it reveals the map). */
 const DEBUG = typeof location !== "undefined" && new URLSearchParams(location.search).has("debug");
@@ -464,7 +465,7 @@ export function createHud(api: HudApi): Hud {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         longFired = true;
-        if (navigator.vibrate) navigator.vibrate(8);
+        buzz(8);
         onInfo();
       }, 420);
       if (e.button === 2) {

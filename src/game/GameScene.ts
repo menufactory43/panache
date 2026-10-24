@@ -69,6 +69,7 @@ import { marchLayout } from "../sim/march";
 import { Tweens } from "./three/tween";
 import { AIR_H, type P3, type View } from "./three/view";
 import { tr } from "../lang";
+import { buzz } from "../native";
 
 const TICK_MS = 1000 / TICK_RATE;
 /** Zoom range in CSS px per tile at the look-at point. */
@@ -1299,8 +1300,8 @@ export class GameScene {
         : 0x7ef29b;
       this.fx.marker(fb.x, fb.y, tint);
       sfx.play("click", 0.6);
-      // a short buzz under the thumb: the order went (a double one for a patrol; none on iOS Safari, which has no vibrate)
-      if (typeof navigator.vibrate === "function") navigator.vibrate(fb.route === "patrol" ? [12, 60, 12] : fb.route ? 18 : fb.kind === "attack" ? 14 : 8);
+      // a short buzz under the thumb: the order went (a double one for a patrol; the Taptic Engine in the iPhone app, none in iOS Safari)
+      buzz(fb.route === "patrol" ? [12, 60, 12] : fb.route ? 18 : fb.kind === "attack" ? 14 : 8);
       voices.order(fb.kind, this.ctrl.selectedUnits, this.world);
     }
   }

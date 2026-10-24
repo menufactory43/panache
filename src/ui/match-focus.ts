@@ -7,8 +7,11 @@
  * pause menu as the app leaves (a duel excepted: the friend plays on). The
  * screen wake lock is held for the whole match; the browser drops it when the
  * page is hidden, so it is asked for again on the way back.
+ * In the iPhone app the screen is kept on by the app itself (native.ts).
  * Engine-free; the browser surface is injectable for tests.
  */
+
+import { appWakeLock, isApp } from "../native";
 
 interface WakeSentinel {
   release(): Promise<void>;
@@ -33,6 +36,7 @@ function wakeLockIsDud(nav: { standalone?: unknown; maxTouchPoints?: number }): 
 
 function browserEnv(): FocusEnv {
   const nav = navigator as Navigator & { standalone?: boolean };
+  if (isApp) return { wakeLock: appWakeLock, doc: document };
   return { wakeLock: "wakeLock" in nav && !wakeLockIsDud(nav) ? nav.wakeLock : null, doc: document };
 }
 
