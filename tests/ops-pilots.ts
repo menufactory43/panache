@@ -7,7 +7,7 @@ import { isInfantry } from "../src/sim/infantry";
 import { createMapWorld } from "../src/sim/maps";
 import { survivalStatus } from "../src/sim/modes/survival";
 import { behaves, buildingCostFor, nationKind, parallelOf } from "../src/sim/nations";
-import { opAiState, opById, type OpResult } from "../src/sim/ops";
+import { opAiState, opById, type OpLevel, type OpResult } from "../src/sim/ops";
 import { nationOf } from "../src/sim/rules";
 import { step } from "../src/sim/sim";
 import type { BuildingKind, Command, Unit, UnitKind, World } from "../src/sim/types";
@@ -40,10 +40,10 @@ export interface OpRun {
 }
 
 /** Play an op to its end (or `maxSecs`) with a pilot on blue and the op's own enemy on red. */
-export function runOp(id: string, pilot: PilotFactory, seed = 1, maxSecs = 960): OpRun {
+export function runOp(id: string, pilot: PilotFactory, seed = 1, maxSecs = 960, level: OpLevel = "normal"): OpRun {
   const op = opById(id)!;
-  const w = createMapWorld(op.map, { op: id, seed });
-  const red = opAiState(op, seed * 7 + 3);
+  const w = createMapWorld(op.map, { op: id, seed, opLevel: level });
+  const red = opAiState(op, seed * 7 + 3, level);
   const blue = pilot(w, seed);
   for (let i = 0; i < maxSecs * TICK_RATE && !w.winner; i++)
     step(w, [...blue(w), ...(red ? tickAi(w, "red", red) : [])]);

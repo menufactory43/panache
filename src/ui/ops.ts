@@ -4,6 +4,11 @@ import { MAPS } from "../sim/maps";
 import {
   CAMPAIGN,
   CAMPAIGN_UNLOCKS,
+  OP_LEVELS,
+  OP_LEVEL_IDS,
+  opHasLevel,
+  shiftDifficulty,
+  type OpLevel,
   TRIALS,
   bookOf,
   fmtClock,
@@ -31,9 +36,9 @@ import type { World } from "../sim/types";
 import { sfx } from "../game/audio";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { mapAssetBase } from "../game/assets";
-import { campaignCompleted, loadCareer, opUnlocked, opsCompleted, settlementOf, starCount, type CareerData } from "../game/career";
+import { campaignCompleted, loadCareer, opCleared, opUnlocked, opsCompleted, settlementOf, starCount, type CareerData } from "../game/career";
 import { addReportSection, type ReportContext, type ReportOpts } from "./report";
-import { pickMode } from "../game/mode";
+import { gameMode, pickMode, pickOpLevel } from "../game/mode";
 import { fullscreen } from "./fullscreen";
 import { tr } from "../lang";
 
@@ -53,7 +58,9 @@ export function enemyLine(op: OpDef): string {
   if (!op.ai) return tr("une garnison statique", "a static garrison");
   const name = PERSONALITIES[op.ai.strategy].label;
   const who = op.nations ? `${NATIONS[op.nations.enemy].name} (${name})` : name;
-  return tr(`contre ${who} · ${DIFFICULTY[op.ai.difficulty].label}`, `vs ${who} · ${DIFFICULTY[op.ai.difficulty].label}`);
+  // (the campaign's level moves the commander a notch: the line says the difficulty it will play)
+  const d = DIFFICULTY[shiftDifficulty(op.ai.difficulty, opHasLevel(op) ? OP_LEVELS[gameMode.opLevel].notch : 0)].label;
+  return tr(`contre ${who} · ${d}`, `vs ${who} · ${d}`);
 }
 
 /** "★★☆" for a star mask. */
@@ -340,6 +347,23 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
   };
 }
 
+// ------------------------------------------------------------------ level ---
+
+/** What the level does, under its picker. */
+function levelNote(lv: OpLevel): string {
+  return lv === "recrue"
+    ? tr("Ennemi moins fort, plus de charbon. Pas d'étoiles.", "Weaker enemy, more coal. No stars.")
+    : lv === "veteran"
+      ? tr("Ennemi plus fort, moins de charbon. Pas d'étoiles.", "Stronger enemy, less coal. No stars.")
+      : tr("La mission telle qu'elle est réglée. Les étoiles comptent.", "The mission as tuned. Stars count.");
+}
+
+/** The briefing's level picker: Recrue · Normal · Vétéran (saved for every mission). */
+function levelPickHtml(): string {
+  const lv = gameMode.opLevel;
+  return `<div class="ob-level"><h3>${tr("Niveau", "Level")}</h3><div class="seg">${OP_LEVEL_IDS.map((id) => `<button data-lv="${id}" class="${id === lv ? "on" : ""}">${OP_LEVELS[id].label}</button>`).join("")}</div><small>${levelNote(lv)}</small></div>`;
+}
+
 // -------------------------------------------------------------- end screen ---
 
 function opSectionHtml(ctx: ReportContext): string | null {
@@ -349,7 +373,8 @@ function opSectionHtml(ctx: ReportContext): string | null {
   if (op.tutorial) return tutorialSectionHtml(st.result?.won ?? false);
   const r = st.result;
   const s = settlementOf(ctx.world);
-  const mask = r?.stars ?? 0;
+  // (Recrue and Vétéran earn no stars: the row stays empty and says why)
+  const mask = st.level ? 0 : (r?.stars ?? 0);
   const before = s?.op?.starsBefore ?? 0;
   const stars = [1, 2, 4]
     .map((b, i) => `<i class="${mask & b ? "on" : ""}${mask & b && !(before & b) ? " new" : ""}" style="--i:${i}">${mask & b ? "★" : "☆"}</i>`)
@@ -357,7 +382,7 @@ function opSectionHtml(ctx: ReportContext): string | null {
   const best = s?.op ? s.op.starsAfter : mask;
   const rec = loadCareer().ops[op.id];
   const bestLine =
-    rec && (rec.stars & 1)
+    rec && opCleared(rec)
       ? `<p class="op-best">Record ${starRow(best)}${rec.bestSecs !== null ? ` · ${fmtClock(rec.bestSecs)}` : ""} · ${rec.plays} tentative${rec.plays === 1 ? "" : "s"}</p>`
       : "";
   const unlocked = s?.op?.unlocked ? opById(s.op.unlocked) : null;
@@ -365,6 +390,7 @@ function opSectionHtml(ctx: ReportContext): string | null {
   return `<div class="op-res ${r?.won ? "won" : "lost"}">
     <div class="op-bigstars">${stars}</div>
     <p class="op-reason">${esc(r?.reason ?? "")}</p>
+    ${st.level ? `<p class="op-level">${tr(`Niveau ${OP_LEVELS[st.level].label} : pas d'étoiles, elles ne se gagnent qu'en Normal.`, `${OP_LEVELS[st.level].label} level: no stars, they are only earned on Normal.`)}${r?.won ? tr(" La mission suivante est ouverte.", " The next mission is open.") : ""}</p>` : ""}
     ${starListHtml(op, mask)}
     ${bestLine}
     ${unlocked ? `<p class="op-unlock">${tr(`🔓 ${isCampaignOp(unlocked) ? "Nouvelle mission" : "Nouvelle épreuve"} : <b>${unlocked.icon} ${esc(unlocked.title)}</b>`, `🔓 ${isCampaignOp(unlocked) ? "New mission" : "New trial"}: <b>${unlocked.icon} ${esc(unlocked.title)}</b>`)}</p>` : ""}
@@ -439,7 +465,7 @@ function chapterHtml(op: OpDef, c: CareerData): string {
   const locked = !opUnlocked(c, op.id);
   const mask = c.ops[op.id]?.stars ?? 0;
   const nat = op.nations?.player ?? "republique";
-  return `<button class="campch${locked ? " locked" : ""}${mask & 1 ? " done" : ""}" data-op="${op.id}">
+  return `<button class="campch${locked ? " locked" : ""}${opCleared(c.ops[op.id]) ? " done" : ""}" data-op="${op.id}">
       <span class="cn">${locked ? "🔒" : opIndex(op.id) + 1}</span>
       <span class="ct">${esc(op.title)}</span>
       <span class="cs"><i class="nat ${nat}">${nat === "empire" ? tr("Empire", "Empire") : tr("République", "Republic")}</i>${locked ? "" : `<span class="stars">${starRow(mask)}</span>`}</span>
@@ -450,7 +476,7 @@ function actsHtml(c: CareerData): string {
   return ([1, 2, 3] as const)
     .map((act) => {
       const ops = CAMPAIGN.filter((o) => o.act === act);
-      const done = ops.filter((o) => (c.ops[o.id]?.stars ?? 0) & 1).length;
+      const done = ops.filter((o) => opCleared(c.ops[o.id])).length;
       return `<div class="campact"><h4>${ACT_NAMES[act]}<small>${done}/${ops.length}</small></h4><div class="camprow">${ops.map((o) => chapterHtml(o, c)).join("")}</div></div>`;
     })
     .join("");
@@ -482,7 +508,7 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
   /** Default pick in a book: the first open op not yet completed. */
   const fallback = (book: Book) => {
     const ops = book === "campaign" ? CAMPAIGN : TRIALS;
-    return ops.find((o) => !locked(o) && !((career.ops[o.id]?.stars ?? 0) & 1)) ?? [...ops].reverse().find((o) => !locked(o)) ?? ops[0]!;
+    return ops.find((o) => !locked(o) && !opCleared(career.ops[o.id])) ?? [...ops].reverse().find((o) => !locked(o)) ?? ops[0]!;
   };
   const selected = () => opById(hooks.selectedId()) ?? fallback("campaign");
 
@@ -550,13 +576,14 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
     const camp = isCampaignOp(op);
     const fresh = camp ? CAMPAIGN_UNLOCKS.find((u) => u.op === op.id && op.id !== CAMPAIGN[0]!.id) : null;
     const total = bookOf(op).length;
+    const where = () => `${mapName(op.map)}${op.dressing === "paris" ? tr(" — Paris, le Champ-de-Mars", " — Paris, the Champ-de-Mars") : ""} · ${enemyLine(op)}`;
     const wrap = document.createElement("div");
     wrap.className = "sheet-wrap";
     wrap.innerHTML = `<div class="sheet opbrief" role="dialog">
       <div class="ob-head">
         <img src="${mapAssetBase(op.map)}/thumb.webp" alt="" draggable="false"/>
         <div><span class="ob-n">${camp ? tr(`${op.act ? ACT_NAMES[op.act] + " · " : ""}Mission ${opIndex(op.id) + 1} sur ${total}`, `${op.act ? ACT_NAMES[op.act] + " · " : ""}Mission ${opIndex(op.id) + 1} of ${total}`) : tr(`Épreuve ${opIndex(op.id) + 1} sur ${total}`, `Trial ${opIndex(op.id) + 1} of ${total}`)}</span><h2>${op.icon} ${esc(op.title)}</h2>
-          <p class="ob-where">${mapName(op.map)}${op.dressing === "paris" ? tr(" — Paris, le Champ-de-Mars", " — Paris, the Champ-de-Mars") : ""} · ${enemyLine(op)}</p></div>
+          <p class="ob-where">${where()}</p></div>
         <button class="sheet-close x" aria-label="${tr("Fermer", "Close")}">✕</button>
       </div>
       <div class="ob-cols">
@@ -573,6 +600,7 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
           <p class="ob-tip">💡 ${esc(op.tip)}</p>
         </div>
       </div>
+      ${opHasLevel(op) ? levelPickHtml() : ""}
       <div class="sh-actions"><button class="cta" id="ob-start">▶ ${camp ? tr("Lancer la mission", "Start the mission") : tr("Lancer l'épreuve", "Start the trial")}</button></div>
     </div>`;
     menu.appendChild(wrap);
@@ -581,6 +609,20 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
       if (e.target === wrap) close();
     });
     wrap.querySelector(".sheet-close")?.addEventListener("click", close);
+    wrap.querySelectorAll<HTMLElement>(".ob-level button").forEach((b) =>
+      b.addEventListener("click", () => {
+        const lv = b.dataset.lv as OpLevel;
+        if (lv === gameMode.opLevel) return;
+        sfx.play("click", 0.5);
+        pickOpLevel(lv);
+        wrap.querySelectorAll<HTMLElement>(".ob-level button").forEach((n) => n.classList.toggle("on", n.dataset.lv === lv));
+        const note = wrap.querySelector<HTMLElement>(".ob-level small");
+        if (note) note.textContent = levelNote(lv);
+        const at = wrap.querySelector<HTMLElement>(".ob-where");
+        if (at) at.innerHTML = where();
+        sync();
+      })
+    );
     wrap.querySelector("#ob-start")?.addEventListener("click", () => hooks.start(op));
   }
 

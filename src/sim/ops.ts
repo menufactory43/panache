@@ -160,6 +160,30 @@ export interface OpDef {
   aiHeld?: string[];
 }
 
+/** The campaign's level, picked on the briefing (saved with the menu's settings): Normal is the missions as tuned. */
+export type OpLevel = "recrue" | "normal" | "veteran";
+export const OP_LEVEL_IDS: readonly OpLevel[] = ["recrue", "normal", "veteran"];
+
+/**
+ * What a level changes, on top of the mission as tuned: the enemy
+ * commander's (or the waves') difficulty one notch down or up, the player's
+ * income, and the damage the enemy's weapons deal (the one lever that bites
+ * in a mission with a fixed army and no economy). Stars only count on Normal
+ * (career.ts); a win on any level opens the next mission.
+ */
+export const OP_LEVELS: Record<OpLevel, { label: string; notch: -1 | 0 | 1; playerIncome: number; enemyDmg: number }> = {
+  recrue: { label: tr("Recrue", "Recruit"), notch: -1, playerIncome: 1.25, enemyDmg: 0.75 },
+  normal: { label: "Normal", notch: 0, playerIncome: 1, enemyDmg: 1 },
+  veteran: { label: tr("Vétéran", "Veteran"), notch: 1, playerIncome: 0.9, enemyDmg: 1.2 }
+};
+
+const NOTCHES: Difficulty[] = ["easy", "normal", "hard"];
+/** A difficulty moved `notch` steps (Easy and Hard stay put at the ends). */
+export const shiftDifficulty = (d: Difficulty, notch: number): Difficulty => NOTCHES[Math.max(0, Math.min(2, NOTCHES.indexOf(d) + notch))]!;
+
+/** Does this op take a level? The campaign's missions (not the Trials, nor the Instruction). */
+export const opHasLevel = (op: OpDef): boolean => isCampaignOp(op) && !op.tutorial;
+
 export interface OpResult {
   won: boolean;
   /** "Held for 4:00", "Out of time", "Our HQ has fallen"… */
@@ -199,6 +223,8 @@ export interface OpsState {
   events: Record<string, number>;
   /** Enemy unit ids the commander never orders (OpDef.aiHeld): the script alone moves them. */
   held?: number[];
+  /** The campaign's level, when not Normal (absent: Normal, the missions as tuned). */
+  level?: OpLevel;
   result: OpResult | null;
 }
 
@@ -1179,10 +1205,11 @@ export function playerBansOf(op: OpDef): { units: UnitKind[]; buildings: Buildin
 // ----------------------------------------------------------------- setup ---
 
 /** The enemy commander for an op (null when nobody commands: waves or no enemy). */
-export function opAiState(op: OpDef, seed?: number): AiState | null {
+export function opAiState(op: OpDef, seed?: number, level: OpLevel = "normal"): AiState | null {
   if (!op.ai || op.ai === "survival") return null;
+  const notch = opHasLevel(op) ? OP_LEVELS[level].notch : 0;
   // (no unit skills: the missions were tuned without them, sim/skills.ts)
-  return createAiState(op.ai.strategy, op.ai.difficulty, seed, { skills: false, ...op.ai.tweak });
+  return createAiState(op.ai.strategy, shiftDifficulty(op.ai.difficulty, notch), seed, { skills: false, ...op.ai.tweak });
 }
 
 function spreadSpot(w: World, kind: UnitKind, x: number, y: number, i: number): { x: number; y: number } {
@@ -1264,9 +1291,10 @@ const scripts = new WeakMap<World, OpSetup>();
  * MatchOptions.op is set): rules (and the nations), the wave director or the
  * enemy base, the op's own setup, and the OpsState that tickOps() evaluates.
  */
-export function setupOp(w: World, id: string): void {
+export function setupOp(w: World, id: string, level: OpLevel = "normal"): void {
   const op = opById(id);
   if (!op) return;
+  const lv = OP_LEVELS[opHasLevel(op) ? level : "normal"];
   const player: Faction = "blue";
   const enemy: Faction = "red";
   const st: OpsState = {
@@ -1283,6 +1311,11 @@ export function setupOp(w: World, id: string): void {
     r.sideIncome = { [player]: op.rules.playerIncome ?? 1, [enemy]: op.rules.enemyIncome ?? 1 };
   r.banLabel = isCampaignOp(op) ? tr("Pas encore disponible dans la campagne", "Not yet available in the campaign") : tr("Désactivé dans cette op", "Disabled in this op");
   if (op.rules?.calldowns === false) r.noCalldowns = true;
+  if (lv.notch !== 0) {
+    st.level = opHasLevel(op) ? level : undefined;
+    r.sideIncome = { [player]: (r.sideIncome?.[player] ?? 1) * lv.playerIncome, [enemy]: r.sideIncome?.[enemy] ?? 1 };
+    r.sideDmg = { [enemy]: lv.enemyDmg };
+  }
   w.rules = r;
   for (const f of Object.values(w.factions)) f.scrap = r.startScrap;
   // the nations' starting forces (Fourgon and pioupious, Fardier and Fusiliers), their buildings' HP
@@ -1290,7 +1323,10 @@ export function setupOp(w: World, id: string): void {
     nationStart(w);
     islandStart(w); // (the Trials keep the classic op start, bit for bit)
   }
-  if (op.ai === "survival") setupSurvival(w, op.survival ?? {}, player);
+  if (op.ai === "survival") {
+    const sv = op.survival ?? {};
+    setupSurvival(w, lv.notch ? { ...sv, difficulty: shiftDifficulty(sv.difficulty ?? "normal", lv.notch) } : sv, player);
+  }
   w.factions[player].scrap = op.scrap ?? r.startScrap;
   const tag = (name: string | undefined, id: number) => {
     if (name) (st.tags[name] ??= []).push(id);

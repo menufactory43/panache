@@ -282,7 +282,7 @@ export class GameScene {
     this.ai =
       this.world.survival || feed
         ? null
-        : (gameMode.op ? opAiState(gameMode.op, seed1) : null) ?? createAiState(resume?.ai?.strategy ?? aiStrategy(aiDiff), resume?.ai?.difficulty ?? aiDiff, seed1);
+        : (gameMode.op ? opAiState(gameMode.op, seed1, this.world.ops?.level) : null) ?? createAiState(resume?.ai?.strategy ?? aiStrategy(aiDiff), resume?.ai?.difficulty ?? aiDiff, seed1);
     // the match kept for the Archives and its highlight reel: a skirmish or the Daily Op against the AI (Last Stand,
     // ops and the Instruction start from setups a battle record can't describe; a duel's feed keeps its own)
     if (opts?.objectives && !gameMode.spectator && this.ai && !this.world.survival && !this.world.ops) {

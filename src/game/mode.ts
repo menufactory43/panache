@@ -2,7 +2,7 @@ import type { Difficulty } from "../sim/ai/commander";
 import { isKnownMapId, mapBansMutator, mapById, type MatchOptions } from "../sim/maps";
 import { isRandomMapId } from "../sim/mapgen";
 import { isMutatorId, parseNations, type MutatorId } from "../sim/rules";
-import { opById, type OpDef } from "../sim/ops";
+import { OP_LEVEL_IDS, opById, opHasLevel, type OpDef, type OpLevel } from "../sim/ops";
 import type { Faction, Nation, NationOrClassic } from "../sim/types";
 import { PLAYER, setLocalSide } from "./controller";
 import type { DailyOp } from "./daily";
@@ -25,6 +25,8 @@ export const gameMode = {
   op: null as OpDef | null,
   /** The op card picked on the menu (saved). */
   opId: "",
+  /** The campaign's level, picked on a mission's briefing (saved): Recrue, Normal or Vétéran. */
+  opLevel: "normal" as OpLevel,
   /**
    * Uncharted (saved): a generated map is played blind — no thumbnail, name
    * or preview on the menu, and nothing of it shows in the match until it's
@@ -116,7 +118,12 @@ export const rematchToken = (): string =>
  * Skirmishes play with the map objectives (Uplinks, supply drops).
  */
 export function matchOptions(): MatchOptions {
-  if (gameMode.op) return { seed: (Math.random() * 0x7fffffff) | 0, op: gameMode.op.id };
+  if (gameMode.op)
+    return {
+      seed: (Math.random() * 0x7fffffff) | 0,
+      op: gameMode.op.id,
+      ...(opHasLevel(gameMode.op) && gameMode.opLevel !== "normal" ? { opLevel: gameMode.opLevel } : {})
+    };
   const mutators = activeMutators();
   const survival = gameMode.mode === "survival";
   // (once: a random rival is rolled here)
@@ -181,6 +188,7 @@ export function loadSettings(): void {
       gameMode.difficulty = s.difficulty;
     if (s.mode === "skirmish" || s.mode === "survival" || s.mode === "ops") gameMode.mode = s.mode;
     if (typeof s.opId === "string" && opById(s.opId)) gameMode.opId = s.opId;
+    if (OP_LEVEL_IDS.includes(s.opLevel as OpLevel)) gameMode.opLevel = s.opLevel!;
     if (Array.isArray(s.mutators)) gameMode.mutators = s.mutators.filter(isMutatorId);
     gameMode.uncharted = s.uncharted === true;
     if (s.nation === "classique" || s.nation === "republique" || s.nation === "empire") gameMode.nation = s.nation;
@@ -206,10 +214,22 @@ export function pickMode(mode: GameType, easyFirst = false): void {
   }
 }
 
+/** Save the campaign's level from the briefing sheet (an op is not running yet: keeps every other saved pick). */
+export function pickOpLevel(level: OpLevel): void {
+  gameMode.opLevel = level;
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, unknown>;
+    s.opLevel = level;
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveSettings(): void {
   if (gameMode.daily || gameMode.op) return; // the Daily Op's / an op's map and difficulty are not the player's picks
   try {
-    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, uncharted: gameMode.uncharted, nation: gameMode.nation, rival: gameMode.rival }));
+    localStorage.setItem(KEY, JSON.stringify({ mapId: gameMode.mapId, difficulty: gameMode.difficulty, mode: gameMode.mode, mutators: gameMode.mutators, opId: gameMode.opId, opLevel: gameMode.opLevel, uncharted: gameMode.uncharted, nation: gameMode.nation, rival: gameMode.rival }));
   } catch {
     /* ignore */
   }

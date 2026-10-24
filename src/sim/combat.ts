@@ -10,7 +10,7 @@ import { isStunned } from "./powers";
 import { leaveWreck, scatterGantry } from "./salvage";
 import { bailOut, canBailOut } from "./transport";
 import { Terrain, type ArmorClass, type Building, type Domain, type Faction, type TargetDomain, type Unit, type World } from "./types";
-import { nationOf, rulesOf } from "./rules";
+import { nationOf, rulesOf, sideDmg } from "./rules";
 import { buildingCenter, canGetWithin, distToBuilding, domainOf, hqOf, moveClassOf, removeBuilding, terrainAt } from "./world";
 import { atan2, hypot } from "./fmath";
 
@@ -282,7 +282,7 @@ function fire(w: World, attacker: Attacker, targetId: number, incidents: Inciden
   const rank = isUnit ? attacker.unit.rank : 0;
   // a squad hits as hard as the robots it still has standing (infantry.ts)
   const squad = isUnit ? squadFirepower(attacker.unit) : 1;
-  const damage = shotDamage(stats) * (1 + rank * COMBAT.rankDamage) * rulesOf(w).dmgMult * squad;
+  const damage = shotDamage(stats) * (1 + rank * COMBAT.rankDamage) * rulesOf(w).dmgMult * sideDmg(w, isUnit ? attacker.unit.faction : attacker.building.faction) * squad;
   const dmgType = stats.dmgType ?? "kinetic";
   const fromAir = isUnit && unitDomain(attacker.unit) === "air";
   const vsAir = t.domain === "air" ? stats.airMult ?? 1 : 1;

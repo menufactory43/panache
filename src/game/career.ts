@@ -2,7 +2,7 @@ import { TICK_RATE } from "../sim/balance";
 import { MEDAL_IDS, computeMedals, type MatchRecap, type MedalId } from "../sim/awards";
 import { wavesSurvived } from "../sim/modes/survival";
 import { isMutated, rulesOf, type MutatorId } from "../sim/rules";
-import { CAMPAIGN, OPS, TRIALS, bookOf, campaignUnlocked, isCampaignOp, opById, opsUnlocked, type OpDef } from "../sim/ops";
+import { CAMPAIGN, OPS, TRIALS, bookOf, campaignUnlocked, isCampaignOp, opById, opsUnlocked, type OpDef, type OpLevel } from "../sim/ops";
 import { mapById } from "../sim/maps";
 import { isRandomMapId } from "../sim/mapgen";
 import type { Faction, World } from "../sim/types";
@@ -118,8 +118,8 @@ export interface MatchResult {
   daily: number | null;
   /** Last Stand: waves survived. */
   waves?: number;
-  /** Ops: which op, and the star bitmask this attempt earned (0 when failed). */
-  op?: { id: string; stars: number };
+  /** Ops: which op, the star bitmask this attempt earned (0 when failed), and the campaign's level (absent: Normal). */
+  op?: { id: string; stars: number; level?: OpLevel };
 }
 
 export interface XpLine {
@@ -194,13 +194,17 @@ export interface CareerData {
 
 export interface OpRecord {
   stars: number;
+  /** Won on Recrue or Vétéran (no stars there): the next mission is open all the same. */
+  cleared?: boolean;
   bestSecs: number | null;
   plays: number;
   wins: number;
 }
 
 /** Ops completed (any stars): both books, or one of them. */
-export const opsCompleted = (c: CareerData, book: OpDef[] = OPS): number => book.filter((o) => (c.ops[o.id]?.stars ?? 0) & 1).length;
+/** Has this op been won, on any level? */
+export const opCleared = (rec: OpRecord | undefined): boolean => !!rec && (!!(rec.stars & 1) || !!rec.cleared);
+export const opsCompleted = (c: CareerData, book: OpDef[] = OPS): number => book.filter((o) => opCleared(c.ops[o.id])).length;
 /** Campaign missions won. */
 export const campaignCompleted = (c: CareerData): number => opsCompleted(c, CAMPAIGN);
 /** How many of an op's book are open: the campaign's first mission plus one per mission won; the Trials' first three plus one per Trial. */
@@ -281,17 +285,22 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
     const id = r.op.id;
     const rec: OpRecord = c.ops[id] ?? { stars: 0, bestSecs: null, plays: 0, wins: 0 };
     const before = rec.stars;
+    const clearedBefore = opCleared(rec);
     const opDef = opById(id);
     const book = opDef ? bookOf(opDef) : TRIALS;
     const openBefore = openIn(c, book);
+    // (stars and records only count on Normal: Recrue and Vétéran only open the way)
+    const normal = (r.op.level ?? "normal") === "normal";
     rec.plays++;
     if (r.won) {
       rec.wins++;
-      rec.stars |= r.op.stars | 1;
-      rec.bestSecs = rec.bestSecs === null ? r.secs : Math.min(rec.bestSecs, r.secs);
+      if (normal) {
+        rec.stars |= r.op.stars | 1;
+        rec.bestSecs = rec.bestSecs === null ? r.secs : Math.min(rec.bestSecs, r.secs);
+      } else rec.cleared = true;
     }
     c.ops[id] = rec;
-    const firstClear = r.won && !(before & 1);
+    const firstClear = r.won && !clearedBefore;
     if (firstClear) lines.push({ label: tr("Premier succès", "First clear"), xp: XP.opFirstClear });
     const newStars = starCount(rec.stars & ~before & 6);
     if (newStars > 0) lines.push({ label: tr(`${newStars} nouvelle${newStars === 1 ? "" : "s"} étoile${newStars === 1 ? "" : "s"}`, `${newStars} new star${newStars === 1 ? "" : "s"}`), xp: XP.opStar * newStars });
@@ -454,7 +463,7 @@ export function settleMatch(w: World, meta: MatchMeta): Settlement {
     mutators: isMutated(w) ? [...rulesOf(w).mutators] : [],
     daily: meta.daily ? meta.daily.day : null,
     ...(w.survival && !op ? { waves: recap.waves ?? 0 } : {}),
-    ...(op ? { op: { id: op.id, stars: op.result?.stars ?? 0 } } : {})
+    ...(op ? { op: { id: op.id, stars: op.result?.stars ?? 0, ...(op.level ? { level: op.level } : {}) } } : {})
   };
   const { career, s } = applyResult(loadCareer(), result, todayIndex(), meta.daily?.number ?? 0);
   saveCareer(career);

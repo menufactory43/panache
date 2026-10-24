@@ -1,5 +1,5 @@
 import { TICK_RATE } from "../sim/balance";
-import { goalText, isAchieveGoal, isCampaignOp, objectiveLine, opById, opIndex, opStatus, type OpDef } from "../sim/ops";
+import { OP_LEVELS, goalText, isAchieveGoal, isCampaignOp, objectiveLine, opById, opIndex, opStatus, type OpDef } from "../sim/ops";
 import type { World } from "../sim/types";
 import { buildingCenter, hqOf } from "../sim/world";
 import { playReel } from "../ui/cine";
@@ -113,7 +113,8 @@ export class OpsPresenter {
       const line = EVENT_LINES[k];
       if (line) announce({ key: "op-timer", text: line.text, sub: line.sub, tone: line.tone === "good" ? "info" : "bad", priority: 1 });
     }
-    // star conditions broken / achieved
+    // star conditions broken / achieved (only on Normal: stars don't count on the other levels)
+    if (st.level) this.starsLostSeen = this.starsMetSeen = 6;
     const lost = st.starsLost & ~this.starsLostSeen;
     this.starsLostSeen |= st.starsLost;
     this.op.stars.forEach((g, i) => {
@@ -167,9 +168,12 @@ export class OpsPresenter {
     const name = camp ? tr("Mission", "Mission") : tr("Op", "Op");
     if (!r) return { key: "op-failed", text: tr(`${name} échouée`, `${name} failed`), tone: "bad", priority: 0 };
     const stars = (r.stars & 1) + ((r.stars >> 1) & 1) + ((r.stars >> 2) & 1);
+    // (Recrue and Vétéran earn no stars: the banner names the level instead)
+    const level = this.w.ops?.level;
+    const tail = level ? OP_LEVELS[level].label : `${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
     if (r.won && this.op.tutorial) return { key: "op-complete", text: tr("Op réussie", "Op complete"), sub: tr("Instruction terminée · ★★★", "Training complete · ★★★"), tone: "epic", priority: 0, x: r.x, y: r.y };
     return r.won
-      ? { key: "op-complete", text: tr(`${name} réussie`, `${name} complete`), sub: `${r.reason} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}`, tone: "epic", priority: 0, x: r.x, y: r.y }
+      ? { key: "op-complete", text: tr(`${name} réussie`, `${name} complete`), sub: `${r.reason} · ${tail}`, tone: "epic", priority: 0, x: r.x, y: r.y }
       : { key: "op-failed", text: tr(`${name} échouée`, `${name} failed`), sub: r.reason, tone: "bad", priority: 0, x: r.x, y: r.y };
   }
 

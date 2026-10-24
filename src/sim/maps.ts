@@ -6,7 +6,7 @@ import { Terrain, type Biome, type Faction, type Nation, type UnitKind, type Wor
 import { createWorld, inBounds, setTerrain, spawnBuilding, spawnUnit, terrainAt } from "./world";
 import { setupSurvival, type SurvivalOptions } from "./modes/survival";
 import { applyMutators, applySpawnRank, bannedBy, makeRules, rulesOf, type MutatorId } from "./rules";
-import { setupOp } from "./ops";
+import { setupOp, type OpLevel } from "./ops";
 import { dropPoint, stowAboard } from "./transport";
 import { setupLifeline } from "./lifeline";
 import { nomadStart } from "./goliath";
@@ -512,6 +512,8 @@ export interface MatchOptions {
   mutators?: MutatorId[];
   /** Ops: play this scenario (ops.ts) — its own rules, enemy, setup and goals. */
   op?: string;
+  /** Ops: the campaign's level (ops.ts OP_LEVELS). Default: normal. */
+  opLevel?: OpLevel;
   /** Quick-start opener per side (see openers.ts). Default: the classic start. */
   openers?: Partial<Record<Faction, OpenerId>>;
   /** Uplink relays and supply drops (objectives.ts). Default: off (the classic skirmish). */
@@ -595,7 +597,7 @@ export function createMapWorld(id: string, opts: MatchOptions = {}): World {
     if (rulesOf(w).eclair) w.eclair = createEclair(); // (modes/eclair.ts)
   }
   if (opts.survival) setupSurvival(w, opts.survival);
-  if (opts.op) setupOp(w, opts.op);
+  if (opts.op) setupOp(w, opts.op, opts.opLevel);
   return w;
 }
 

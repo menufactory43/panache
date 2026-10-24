@@ -176,3 +176,36 @@
   font-size: 13px;
   margin: 4px 0 0;
 }
+
+/* the briefing's level picker (Recrue · Normal · Vétéran) */
+.ob-level {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+}
+.ob-level h3 {
+  margin: 0;
+}
+.ob-level .seg {
+  margin: 0;
+  flex: 1;
+  max-width: 340px;
+}
+.ob-level .seg button {
+  padding: 0 12px;
+}
+.ob-level small {
+  flex-basis: 100%;
+  color: var(--dim);
+  font-size: 12px;
+}
+/* the end screen: no stars on Recrue or Vétéran */
+.op-level {
+  margin: 2px auto 6px;
+  max-width: 340px;
+  font-size: 13px;
+  color: var(--dim);
+}

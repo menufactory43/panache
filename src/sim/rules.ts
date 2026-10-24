@@ -54,6 +54,8 @@ export interface Rules {
   sideBans?: Partial<Record<Faction, { units?: UnitKind[]; buildings?: BuildingKind[]; powers?: PowerKind[] }>>;
   /** Ops: per-side income multiplier on top of `incomeMult` (0 = a frozen economy). */
   sideIncome?: Partial<Record<Faction, number>>;
+  /** Ops: per-side multiplier on the damage that side's weapons deal, on top of `dmgMult` (the campaign's level). */
+  sideDmg?: Partial<Record<Faction, number>>;
   /** What a ban no mutator explains says ("Disabled in this op"); default "Disabled: match rules". */
   banLabel?: string;
   /**
@@ -414,6 +416,9 @@ export const goliathBase = (w: World): boolean => !!(rulesOf(w).nomads || rulesO
 
 /** True when any mutator is active (career: no map stars). */
 export const isMutated = (w: World): boolean => rulesOf(w).mutators.length > 0;
+
+/** Multiplier on the damage `f`'s weapons deal beyond `dmgMult` (an op's level; 1 elsewhere). */
+export const sideDmg = (w: World, f: Faction): number => rulesOf(w).sideDmg?.[f] ?? 1;
 
 /** Total income multiplier for a faction: AI handicap × mutators (× an op's per-side factor). */
 export const incomeOf = (w: World, f: Faction): number => {
