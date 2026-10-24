@@ -841,6 +841,13 @@ html.belle #hud.bh .bh-count {
     bottom: calc(var(--bh-dock-h, 80px) + 8px);
   }
 }
+/* landscape: the squads and role chips reach past ⚔ Armée over the bar, so they clear its top
+   (two rows of skills make it taller than Armée) */
+@media (orientation: landscape) {
+  html.belle #hud.bh[data-bh="busy"] .bh-squads {
+    bottom: max(calc(var(--bh-b) + var(--bh-army) + 10px), calc(var(--bh-dock-h, 0px) + 8px));
+  }
+}
 
 /* --------------------------------------------------------- the drawer --- */
 html.belle #hud.bh .bh-sheet {

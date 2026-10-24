@@ -3133,7 +3133,18 @@ html[lang="en"] .bb.ready::after {
   gap: 10px;
   margin-top: 4px;
   padding: 14px 0 max(14px, env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(13, 19, 30, 0), var(--panel-solid) 32%);
+  background: var(--panel-solid);
+}
+/* what scrolls under the bar fades out above it, rather than showing cut off behind the buttons */
+.aar-actions::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  background: linear-gradient(180deg, transparent, var(--panel-solid));
+  pointer-events: none;
 }
 .aar-actions .cta,
 .panel .aar-actions .cta.alt {
@@ -6353,6 +6364,7 @@ html.belle .aar-natline { font-family: var(--serif); font-size: 15px; }
 .skillrow[data-n="5"],
 .skillrow[data-n="6"] {
   flex-wrap: wrap;
+  justify-content: center;
 }
 .skillrow[data-n="5"] .skb,
 .skillrow[data-n="6"] .skb {
