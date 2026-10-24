@@ -39,6 +39,8 @@ export interface HubState {
   /** Éclair (sim/modes/eclair.ts) is on for the next skirmish or duel; null where it can't be (another mode, a map that bans it). */
   eclair: boolean | null;
   tutoDone: boolean;
+  /** « Deuxième jour » done too. */
+  tuto2Done: boolean;
   // ---- the order of battle (large screens: set the match up without leaving the hub)
   maps: { id: string; name: string; thumb: string; on: boolean; badge: string }[];
   diffs: { id: string; label: string; on: boolean }[];
@@ -191,7 +193,7 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
       $("#qg-rsl").textContent = where.length ? where.join(" · ") : kind!;
       $("#qg-rst").textContent = `${where.length ? `${kind} · ` : ""}${tr(`laissée à ${at}`, `left at ${at}`)}`;
     }
-    $("#qg-tuto").textContent = s.tutoDone ? tr("✓ suivie", "✓ done") : tr("3 minutes", "3 minutes");
+    $("#qg-tuto").textContent = !s.tutoDone ? tr("3 minutes", "3 minutes") : s.tuto2Done ? tr("✓ suivie", "✓ done") : tr("Deuxième jour", "Second Day");
     // the rail and the tabs
     el.querySelectorAll<HTMLElement>("[data-p]").forEach((b) => b.classList.toggle("on", b.dataset.p === s.pick));
     const sub: Record<HubPick, string> = {

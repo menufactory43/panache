@@ -479,7 +479,12 @@ export const TUTORIAL_SPOTS = {
   flag: { x: 16.5, y: 40.5 },
   /** The enemy outpost (a Hotchkiss and Halles), top-left tiles. */
   turret: { x: 27, y: 33 },
-  depot: { x: 29, y: 31 }
+  depot: { x: 29, y: 31 },
+  /** « Deuxième jour »: where ⚑ Repli sends the troop (by the GQG), and where the Panhard drive off to scout (out of the outpost's reach). */
+  home: { x: 8.5, y: 38.5 },
+  /** « Deuxième jour »: the ground the march's front is drawn on (clear of the troop and of the outpost's reach). */
+  front: { x: 18.5, y: 35.5 },
+  scout: { x: 19.5, y: 37.5 }
 } as const;
 
 /**
@@ -1097,7 +1102,31 @@ export const isCampaignOp = (op: OpDef): boolean => CAMPAIGN.includes(op);
 /** The book an op belongs to. */
 export const bookOf = (op: OpDef): OpDef[] => (isCampaignOp(op) ? CAMPAIGN : TRIALS);
 
-export const opById = (id: string): OpDef | null => (id === TUTORIAL_OP.id ? TUTORIAL_OP : OPS.find((o) => o.id === id) ?? null);
+export const opById = (id: string): OpDef | null =>
+  id === TUTORIAL_OP.id ? TUTORIAL_OP : id === TUTORIAL2_OP.id ? TUTORIAL2_OP : OPS.find((o) => o.id === id) ?? null;
+/**
+ * « Deuxième jour »: the second lesson, on the same ground — the orders past
+ * the basics (src/game/tutorial.ts TUT2_BEATS) with four Panhard and two
+ * squads of pioupious, and the same outpost to finish on.
+ */
+export const TUTORIAL2_OP: OpDef = {
+  ...TUTORIAL_OP,
+  id: "instruction-2",
+  title: tr("Deuxième jour", "Second Day"),
+  tagline: tr("Les ordres avancés : groupes, routes, marche, repli", "Advanced orders: groups, routes, marching, falling back"),
+  brief: tr("Ton deuxième jour : sélectionner vite, enregistrer un groupe, tracer une route, marcher en ordre, se replier.", "Your second day: quick selection, saving a group, drawing a route, marching in order, falling back."),
+  scrap: 0,
+  focus: { x: 12, y: 42 },
+  setup(w, o) {
+    o.removeUnits("blue", "trooper");
+    o.removeUnits("red", "trooper");
+    o.removeUnits("red", "harvester");
+    o.units("blue", "stinger", 4, 13, 41.5, "panhards");
+    o.units("blue", "trooper", 2, 10.5, 44, "troops");
+    w.factions.red.scrap = 0;
+  }
+};
+
 /** Position in its own book (campaign mission 1–12, or Trial 1–8), from 0. */
 export const opIndex = (id: string): number => {
   const op = opById(id);

@@ -15,7 +15,7 @@ import type { BattleRecord, PlayedInfo } from "../arena/record";
 import { MatchRecorder, BUILD_SIM_HASH } from "./match-record";
 import { RESUME, ResumeWriter, commandsByTick, takePendingResume, type ResumeJournal } from "./resume";
 import { worldHash } from "../sim/checksum";
-import { opAiState } from "../sim/ops";
+import { TUTORIAL2_OP, opAiState } from "../sim/ops";
 import { reelMoments } from "./reel";
 import { archiveMatch, archives } from "./archive";
 import { addReportSection } from "../ui/report";
@@ -568,6 +568,7 @@ export class GameScene {
       });
     if (this.world.ops && gameMode.op?.tutorial && !gameMode.spectator) {
       const tut = new TutorialView({
+        day: gameMode.op.id === TUTORIAL2_OP.id ? 2 : 1,
         world: this.world,
         ctrl: this.ctrl,
         rig,

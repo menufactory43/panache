@@ -8,7 +8,6 @@
  * Nothing here takes a touch except the bubble's own buttons: the hand, ring
  * and pennant let every tap through to the control or battlefield beneath.
  */
-import { TUT_STEPS } from "../game/tutorial";
 import { openSheet } from "./career";
 import { tr } from "../lang";
 
@@ -48,6 +47,8 @@ export interface TutOverlay {
 
 export interface TutOverlayHooks {
   host: HTMLElement;
+  /** The lesson's steps (the progress pips). */
+  steps: number;
   /** "Passer l'instruction", confirmed. */
   skip(): void;
 }
@@ -75,7 +76,7 @@ export function mountTutorialOverlay(h: TutOverlayHooks): TutOverlay {
   const textEl = $(".tu-text");
   const pips = $(".tu-pips");
   const confirm = $(".tu-confirm");
-  pips.innerHTML = Array.from({ length: TUT_STEPS }, () => "<i></i>").join("");
+  pips.innerHTML = Array.from({ length: h.steps }, () => "<i></i>").join("");
   // the bubble's own buttons are the only touchable parts
   bubble.addEventListener("pointerdown", (e) => e.stopPropagation());
   $(".tu-skip").addEventListener("click", () => {
@@ -248,4 +249,30 @@ export function showTutorialPrompt(host: HTMLElement, yes: () => void, no: () =>
   wrap.querySelector("#tp-yes")!.addEventListener("click", answer(yes));
   wrap.querySelector("#tp-no")!.addEventListener("click", answer(no));
   // (a tap outside just closes it: asked again on the next Jouer)
+}
+
+/**
+ * 🎓 Instruction on the menu: the two lessons, « Premier jour » (the basics)
+ * and « Deuxième jour » (the orders past them), each ticked once done.
+ */
+export function showTutorialPicker(host: HTMLElement, s: { day1Done: boolean; day2Done: boolean }, start: (day: 1 | 2) => void): void {
+  const card = (day: 1 | 2, title: string, sub: string, done: boolean) =>
+    `<button class="tp-day${done ? " done" : ""}" data-day="${day}"><b>${title}</b><small>${sub}</small><i>${done ? "✓" : "▶"}</i></button>`;
+  const wrap = openSheet(
+    host,
+    "tutoprompt tutopick",
+    `<div class="tp-crest" aria-hidden="true">🎓</div>
+     <h2>${tr("Instruction", "Training")}</h2>
+     <div class="tp-days">
+       ${card(1, tr("Premier jour", "First Day"), tr("Caméra, ordres, construction, pouvoirs · 3 min", "Camera, orders, building, powers · 3 min"), s.day1Done)}
+       ${card(2, tr("Deuxième jour", "Second Day"), tr("Sélection rapide, groupes, routes, marche en ordre, repli · 4 min", "Quick selection, groups, routes, marching in order, falling back · 4 min"), s.day2Done)}
+     </div>
+     <p class="sh-sub">${tr("Tout le reste est dans ? Comment jouer.", "Everything else is in ? How to play.")}</p>`
+  );
+  wrap.querySelectorAll<HTMLElement>(".tp-day").forEach((b) =>
+    b.addEventListener("click", () => {
+      wrap.remove();
+      start(Number(b.dataset.day) as 1 | 2);
+    })
+  );
 }

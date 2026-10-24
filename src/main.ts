@@ -18,9 +18,9 @@ import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
 import { dailyOp, today, type DailyOp } from "./game/daily";
-import { TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
-import { setTutorialState, tutorialState } from "./game/tutorial";
-import { showTutorialPrompt } from "./ui/tutorial";
+import { TUTORIAL2_OP, TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
+import { setTutorialState, tutorial2Done, tutorialState } from "./game/tutorial";
+import { showTutorialPicker, showTutorialPrompt } from "./ui/tutorial";
 import { loadCareer, opsCompleted, starCount } from "./game/career";
 import { MUTATORS, toggleMutator, type MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
@@ -762,6 +762,12 @@ function showMenu(linkedMap?: string | null): void {
   };
   // L'Instruction: offered on the first Jouer of a new player (never to a robot: the smoke test and tools play on)
   const startTuto = () => void begin(false, startTutorial);
+  // 🎓: once « Premier jour » is done, a choice of the two lessons
+  const pickTuto = () => {
+    if (tutorialState() !== "done") return startTuto();
+    sfx.play("click", 0.5);
+    showTutorialPicker(menu, { day1Done: true, day2Done: tutorial2Done() }, (day) => void begin(false, () => startTutorial(day)));
+  };
   menu.querySelector("#play")!.addEventListener("click", () => {
     if (tutorialState() === null && navigator.webdriver !== true && loadCareer().xp === 0) {
       sfx.play("click", 0.5);
@@ -774,7 +780,7 @@ function showMenu(linkedMap?: string | null): void {
   });
   const tutoBtn = menu.querySelector<HTMLElement>("#play-tuto")!;
   if (tutorialState() === "done") tutoBtn.textContent = tr("🎓 Instruction ✓", "🎓 Training ✓");
-  tutoBtn.addEventListener("click", startTuto);
+  tutoBtn.addEventListener("click", pickTuto);
   menu.querySelector("#play-spectate")!.addEventListener("click", () => begin(true));
   /** A match from the Archives (ui/archives.ts): its highlight reel (ui/reel.ts), or the whole of it in the viewer. */
   const watchSaved = async (record: BattleRecord, reel: boolean) => {
@@ -918,6 +924,7 @@ function showMenu(linkedMap?: string | null): void {
           // (Éclair: a skirmish's and a duel's, unless the map bans it)
           eclair: pick === "skirmish" || pick === "duel" ? (mapBansMutator(mapById(shownMap()), "eclair") ? null : gameMode.mutators.includes("eclair")) : null,
           tutoDone: tutorialState() === "done",
+          tuto2Done: tutorial2Done(),
           maps: [...MAPS.map((m) => m.id), randomId].filter(offered).map((mid) => {
             const rnd = isRandomMapId(mid);
             const hide = rnd && gameMode.uncharted;
@@ -980,7 +987,7 @@ function showMenu(linkedMap?: string | null): void {
       duel: () => onlineBtn.click(),
       daily: (op) => void begin(false, () => startDaily(op)),
       career: () => menu.querySelector<HTMLElement>("#rankbadge")!.click(),
-      tuto: startTuto,
+      tuto: pickTuto,
       replays: () => {
         const wrap = openSheet(
           menu,
@@ -1107,7 +1114,7 @@ function showMenu(linkedMap?: string | null): void {
     rematch = token === "1" || token === "spectate" || token === "daily" || !!op;
     if (token === "spectate") gameMode.spectator = true; // another AI-vs-AI match
     if (token === "daily") startDaily(dailyOp(today()));
-    if (op?.tutorial) startTutorial();
+    if (op?.tutorial) startTutorial(op.id === TUTORIAL2_OP.id ? 2 : 1);
     else if (op) startOp(op);
   } catch {
     /* ignore */
@@ -1188,9 +1195,10 @@ function resumeSetup(j: ResumeJournal): void {
   setPendingResume(j);
 }
 
-/** Point the next match at the Instruction (not saved: the menu's picks stay as they were). */
-function startTutorial(): void {
-  Object.assign(gameMode, { op: TUTORIAL_OP, mapId: TUTORIAL_OP.map, difficulty: "easy", daily: null, spectator: false });
+/** Point the next match at the Instruction, « Premier jour » or « Deuxième jour » (not saved: the menu's picks stay as they were). */
+function startTutorial(day: 1 | 2 = 1): void {
+  const op = day === 2 ? TUTORIAL2_OP : TUTORIAL_OP;
+  Object.assign(gameMode, { op, mapId: op.map, difficulty: "easy", daily: null, spectator: false });
 }
 
 /** Point the next match at the Daily Op (not saved: the player's own picks stay). */

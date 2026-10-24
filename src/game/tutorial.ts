@@ -16,20 +16,32 @@ import { tr } from "../lang";
  * The ten steps the player sees (`step`, for the progress pips):
  *  1 camera (drag, then pinch / wheel) · 2 select · 3 move to the flag ·
  *  4 attack the patrol · 5 build Forges (start, wait, place) · 6 produce a
- *  Panhard · 7 ⚔ Armée · 8 coal · 9 ⚡ Feu roulant · 10 the outpost.
+ *  Panhard (and long-press it for its card) · 7 ⚔ Armée · 8 coal ·
+ *  9 ⚡ Feu roulant · 10 the outpost.
+ *
+ * « Deuxième jour » (TUT2_BEATS, the same runner and overlay) teaches the
+ * orders past the basics, in eight steps: 1 double tap · 2 ▢ Cadre ·
+ * 3 group 1 (save, recall) · 4 a route · 5 march in order · 6 ⚑ Repli ·
+ * 7 💤 the idle ones (long-press ⚔) · 8 a skill, then the outpost. The two
+ * drawn gestures (route, march) are touch only: a mouse skips them.
  */
 
 /** What the pointer shows: a HUD control, a spot on the battlefield, or a gesture to mime. */
 export type TutTarget =
   | { kind: "dom"; el: TutControl }
   | { kind: "world"; what: TutSpot }
-  | { kind: "gesture"; g: "drag" | "pinch" | "wheel" | "keys" };
+  | { kind: "gesture"; g: TutGesture };
+
+/** Gestures the overlay mimes in the middle of the battlefield. */
+export type TutGesture = "drag" | "pinch" | "wheel" | "keys";
 
 /** HUD controls the lesson points at (the view maps them to elements, mirrored for Gaucher by the layout itself). */
-export type TutControl = "build" | "tab-build" | "tab-ground" | "tile-forges" | "tile-panhard" | "army" | "pill" | "power" | "power-barrage" | "place" | "deselect";
+export type TutControl =
+  | "build" | "tab-build" | "tab-ground" | "tile-forges" | "tile-panhard" | "army" | "pill" | "power" | "power-barrage" | "place" | "deselect"
+  | "frame" | "squad1" | "skill-throttle" | "retreat";
 
 /** Battlefield spots the lesson points at. */
-export type TutSpot = "starters" | "flag" | "patrol" | "ghost" | "harvester" | "coal" | "convoy" | "outpost" | "forges";
+export type TutSpot = "starters" | "flag" | "patrol" | "ghost" | "harvester" | "coal" | "convoy" | "outpost" | "forges" | "panhard" | "troop" | "home" | "front";
 
 /** One instruction: short French text, where to point, and whether the gloved hand taps there (false: a ring only). */
 export interface TutGuide {
@@ -94,12 +106,35 @@ export interface TutObs {
   outpostOrdered: boolean;
   /** Every combat unit stands idle (no order, nothing in its sights). */
   armyIdle: boolean;
+  /** A production button's info card is up (its long-press). */
+  cardOpen: boolean;
+  // ---- « Deuxième jour »
+  /** Panhard and infantry squads in the selection. */
+  panhardsSelected: number;
+  troopsSelected: number;
+  /** ▢ Cadre armed: the next drag draws a box. */
+  frameArmed: boolean;
+  /** Units saved in group 1; the selection is exactly group 1. */
+  squad1: number;
+  squad1Selected: boolean;
+  /** Orders seen since the lesson began: routes drawn (waypoint or patrol), marches, skills, plain moves (⚑ Repli). */
+  routed: number;
+  marched: number;
+  skilled: number;
+  retreated: number;
+  /** ⚑ Repli armed: the next ground tap is a plain move. */
+  retreatArmed: boolean;
+  /** The infantry squads stand idle; the selection is exactly the idle units (some of the army busy). */
+  troopsIdle: boolean;
+  idlePicked: boolean;
   /** Seconds since the beat began. */
   t: number;
 }
 
 /** Side effects a beat asks of the scene when it begins. */
-export type TutEffect = "deselect" | "glide-starters" | "spawn-patrol" | "close-drawer" | "fund-forges" | "fund-panhard" | "glide-harvester" | "spawn-convoy" | "fill-meter" | "spawn-outpost";
+export type TutEffect =
+  | "deselect" | "glide-starters" | "spawn-patrol" | "close-drawer" | "fund-forges" | "fund-panhard" | "glide-harvester" | "spawn-convoy" | "fill-meter" | "spawn-outpost"
+  | "glide-troop" | "panhards-out";
 
 export interface TutBeat {
   id: string;
@@ -114,6 +149,8 @@ export interface TutBeat {
   voice?: string;
   /** It measures from its own start (the camera beats): never judged on the frame it begins. */
   fresh?: boolean;
+  /** A drawn gesture a mouse can't make (a route, a front): skipped on a desktop. */
+  touchOnly?: boolean;
 }
 
 export const TUT_STEPS = 10;
@@ -229,6 +266,18 @@ export const TUT_BEATS: TutBeat[] = [
     praise: tr("En production !", "In production!")
   },
   {
+    id: "info",
+    step: 6,
+    guide: (o) =>
+      inDrawer(
+        o,
+        "ground",
+        tap(o.touch ? tr("Maintiens ton doigt sur Panhard : sa fiche", "Hold your finger on Panhard: its card") : tr("Clic droit sur Panhard : sa fiche", "Right-click Panhard: its card"), dom("tile-panhard"))
+      ),
+    done: (o) => o.cardOpen,
+    praise: tr("Ce qu'il bat, et ce qui le bat !", "What it beats, and what beats it!")
+  },
+  {
     id: "produce-wait",
     step: 6,
     guide: () => look(tr("Ton Panhard sort des Forges…", "Your Panhard rolls out of the Forges…"), spot("forges")),
@@ -295,6 +344,117 @@ export const TUT_BEATS: TutBeat[] = [
     },
     done: (o) => o.outpostSpawned && o.outpostAlive === 0,
     praise: tr("Tu es prêt, mon commandant !", "You're ready, commander!")
+  }
+];
+
+export const TUT2_STEPS = 8;
+
+/** Group 1 in hand first (it's what the drawn orders move), else `then`. */
+function withGroup(o: TutObs, then: TutGuide): TutGuide {
+  if (o.selected === 0) return tap(o.squad1 > 0 ? tr("Touche 1 : ton groupe", "Tap 1: your group") : tr("Touche ⚔ Armée d'abord", "Tap ⚔ Army first"), dom(o.squad1 > 0 ? "squad1" : "army"));
+  return then;
+}
+
+/** « Deuxième jour »: the orders past the basics (see the header). */
+export const TUT2_BEATS: TutBeat[] = [
+  {
+    id: "double",
+    step: 1,
+    enter: ["deselect", "glide-troop"],
+    guide: (o) => tap(o.touch ? tr("Touche deux fois un Panhard", "Double-tap a Panhard") : tr("Double-clique sur un Panhard", "Double-click a Panhard"), spot("panhard")),
+    done: (o) => o.panhardsSelected >= 3,
+    praise: tr("Tous les Panhard à l'écran !", "Every Panhard on screen!"),
+    voice: tr("Essai radio", "Radio check")
+  },
+  {
+    id: "frame",
+    step: 2,
+    enter: ["deselect"],
+    guide: (o) => {
+      if (!o.touch) return look(tr("Glisse la souris autour de toute ta troupe", "Drag the mouse round your whole troop"), spot("troop"));
+      if (o.belle && !o.frameArmed) return tap(tr("Touche ▢ Cadre", "Tap ▢ Frame"), dom("frame"));
+      return look(o.belle ? tr("Glisse autour de toute ta troupe", "Drag round your whole troop") : tr("Maintiens, puis glisse autour de ta troupe", "Hold, then drag round your troop"), spot("troop"));
+    },
+    done: (o) => o.panhardsSelected >= 3 && o.troopsSelected >= 2,
+    praise: tr("Toute la troupe d'un geste !", "The whole troop in one sweep!")
+  },
+  {
+    id: "save",
+    step: 3,
+    guide: (o) => withGroup(o, tap(tr("Maintiens le bouton 1 pour enregistrer", "Hold button 1 to save them"), dom("squad1"))),
+    done: (o) => o.squad1 > 0,
+    praise: tr("Groupe 1 enregistré !", "Group 1 saved!")
+  },
+  {
+    id: "recall",
+    step: 3,
+    enter: ["deselect"],
+    // (judged once the selection is cleared: on entry it is still group 1)
+    fresh: true,
+    guide: () => tap(tr("Touche 1 pour retrouver ton groupe", "Tap 1 to get your group back"), dom("squad1")),
+    done: (o) => o.squad1Selected,
+    praise: tr("Le groupe répond présent !", "The group reports for duty!")
+  },
+  {
+    id: "route",
+    step: 4,
+    touchOnly: true,
+    guide: (o) => withGroup(o, look(tr("Doigt sur tes unités, puis trace leur chemin", "Finger on your units, then trace their path"), spot("troop"))),
+    done: (o) => o.routed > 0,
+    praise: tr("Route tracée ! Bouclée, c'est une patrouille.", "Route drawn! Close the loop to patrol.")
+  },
+  {
+    id: "march",
+    step: 5,
+    touchOnly: true,
+    guide: (o) => withGroup(o, look(tr("Appui long au sol, puis glisse : le front", "Long-press the ground, then drag: the front"), spot("front"))),
+    done: (o) => o.marched > 0,
+    praise: tr("En ordre de marche !", "Marching in order!")
+  },
+  {
+    id: "retreat",
+    step: 6,
+    guide: (o) => {
+      if (o.selected === 0) return withGroup(o, look("", null));
+      if (!o.retreatArmed) return tap(tr("Touche ⚑ Repli", "Tap ⚑ Fall back"), dom("retreat"));
+      return tap(tr("Puis le sol près de ta base", "Then the ground near your base"), spot("home"));
+    },
+    done: (o) => o.retreated > 0,
+    praise: tr("Repli sans s'arrêter pour combattre !", "Falling back without stopping to fight!")
+  },
+  {
+    id: "idle",
+    step: 7,
+    enter: ["deselect", "panhards-out"],
+    guide: (o) => {
+      if (!o.troopsIdle) return look(tr("Tes Panhard partent en reconnaissance…", "Your Panhards head out to scout…"), spot("panhard"));
+      if (o.busy) return tap(tr("Touche ✕ pour fermer la sélection", "Tap ✕ to close the selection"), dom("deselect"));
+      return tap(o.belle ? tr("Maintiens ⚔ Armée : les unités inactives", "Hold ⚔ Army: the idle units") : tr("Touche 💤 Inactifs", "Tap 💤 Idle"), dom("army"));
+    },
+    done: (o) => o.idlePicked,
+    praise: tr("Les inactifs, et rien qu'eux !", "The idle ones, and only them!")
+  },
+  {
+    id: "skill",
+    step: 8,
+    enter: ["deselect", "spawn-outpost"],
+    guide: (o) => {
+      if (o.panhardsSelected === 0) return tap(o.touch ? tr("Touche deux fois un Panhard", "Double-tap a Panhard") : tr("Double-clique sur un Panhard", "Double-click a Panhard"), spot("panhard"));
+      return tap(tr("Touche Plein gaz : ils foncent", "Tap Full Throttle: they charge"), dom("skill-throttle"));
+    },
+    done: (o) => o.skilled > 0,
+    praise: tr("Plein gaz !", "Full throttle!"),
+    voice: tr("Blindés ennemis en approche", "Enemy armour inbound")
+  },
+  {
+    id: "assault",
+    step: 8,
+    guide: (o) => {
+      if (o.outpostOrdered) return look(tr("À l'assaut de l'avant-poste !", "Storm the outpost!"), spot("outpost"));
+      return withArmy(o, tap(tr("Touche l'avant-poste ennemi", "Tap the enemy outpost"), spot("outpost")));
+    },
+    done: (o) => o.outpostSpawned && o.outpostAlive === 0,
+    praise: tr("Deuxième jour réussi, mon commandant !", "Second day done, commander!")
   }
 ];
 
@@ -366,7 +526,8 @@ export class TutorialRunner {
         // a fresh beat's measures start now: the caller resets them once it sees the new index)
         fresh = !!this.beat.fresh;
         const spawns = (this.beat.enter ?? []).some((e) => e.startsWith("spawn"));
-        if (!spawns && !fresh && this.beat.done({ ...o, t: 0 })) {
+        // (a drawn gesture a mouse can't make goes by unasked)
+        if ((this.beat.touchOnly && !o.touch) || (!spawns && !fresh && this.beat.done({ ...o, t: 0 }))) {
           this.log.push(`${this.beat.id}:skip`);
           this.next();
           if (this.over) return { beat: this.beat, index: this.index, phase: "end", guide: null, praise: null, effects, voice };
@@ -401,6 +562,25 @@ export class TutorialRunner {
 // ------------------------------------------------------------- storage ---
 
 const KEY = "battledrones.instruction";
+/** « Deuxième jour »: done or not (never offered unasked). */
+const KEY2 = "battledrones.instruction2";
+
+/** Is « Deuxième jour » done? */
+export function tutorial2Done(): boolean {
+  try {
+    return localStorage.getItem(KEY2) === "done";
+  } catch {
+    return false;
+  }
+}
+
+export function setTutorial2Done(): void {
+  try {
+    localStorage.setItem(KEY2, "done");
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Has the player done the Instruction ("done"), turned it down or left it ("no"), or never been asked (null)? */
 export function tutorialState(): "done" | "no" | null {

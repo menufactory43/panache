@@ -4,6 +4,7 @@ import { MAPS } from "../sim/maps";
 import {
   CAMPAIGN,
   CAMPAIGN_UNLOCKS,
+  TUTORIAL2_OP,
   OP_LEVELS,
   OP_LEVEL_IDS,
   opHasLevel,
@@ -309,6 +310,7 @@ export function createOpsHud(pill: HTMLElement, root: HTMLElement, w: World, opt
 
 /** The Instruction's slice of the ops HUD: no pill, its own pause line and end-screen buttons. */
 function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }): OpsHud {
+  const day2 = op.id === TUTORIAL2_OP.id;
   return {
     update() {},
     pauseLine: () => `${op.icon} ${tr("Instruction", "Training")} · ${op.title}`,
@@ -319,12 +321,17 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
         head: {
           title: won ? tr("INSTRUCTION RÉUSSIE", "TRAINING COMPLETE") : tr("INSTRUCTION", "TRAINING"),
           cls: won ? "win" : "lose",
-          sub: won ? tr("Tu es prêt, mon commandant !", "You're ready, commander!") : op.title
+          sub: won ? (day2 ? tr("Deuxième jour réussi, mon commandant !", "Second day done, commander!") : tr("Tu es prêt, mon commandant !", "You're ready, commander!")) : op.title
         },
         actions: [
+          // (after « Premier jour »: the second lesson first)
+          ...(day2
+            ? []
+            : [{ id: "tuto-day2", label: tr("🎓 Deuxième jour", "🎓 Second Day"), on: () => opts.rematch(`op:${TUTORIAL2_OP.id}`) }]),
           {
             id: "tuto-skirmish",
             label: tr("⚔ Escarmouche", "⚔ Skirmish"),
+            ...(day2 ? {} : { cls: "alt" }),
             on: () => {
               // (a first skirmish: the Easy commander, unless one was picked before)
               pickMode("skirmish", true);
@@ -370,7 +377,7 @@ function opSectionHtml(ctx: ReportContext): string | null {
   const st = ctx.world.ops;
   const op = st ? opById(st.id) : null;
   if (!st || !op || ctx.spectator) return null;
-  if (op.tutorial) return tutorialSectionHtml(st.result?.won ?? false);
+  if (op.tutorial) return tutorialSectionHtml(st.result?.won ?? false, op.id === TUTORIAL2_OP.id);
   const r = st.result;
   const s = settlementOf(ctx.world);
   // (Recrue and Vétéran earn no stars: the row stays empty and says why)
@@ -400,14 +407,21 @@ function opSectionHtml(ctx: ReportContext): string | null {
 }
 
 /** The Instruction's end: three stars, the send-off, and what to play next. */
-function tutorialSectionHtml(won: boolean): string | null {
+function tutorialSectionHtml(won: boolean, day2: boolean): string | null {
   if (!won) return null;
   const stars = [0, 1, 2].map((i) => `<i class="on new" style="--i:${i}">★</i>`).join("");
+  if (day2)
+    return `<div class="op-res won tuto-res">
+    <div class="op-bigstars">${stars}</div>
+    <p class="op-reason">${tr("Deuxième jour terminé", "Second day complete")}</p>
+    <ul class="op-starlist"><li class="got"><b>★</b><span>${tr("Double toucher, cadre et groupes", "Double tap, frame and groups")}</span></li><li class="got"><b>★★</b><span>${tr("Route, marche en ordre et repli", "Route, march in order and fall back")}</span></li><li class="got"><b>★★★</b><span>${tr("Inactifs et compétences", "Idle units and skills")}</span></li></ul>
+    <p class="op-tip"><b>${tr("Et maintenant ?", "What now?")}</b><span>${tr("Une Escarmouche contre l'IA, ou la campagne. Le reste (relais, caisses, Montgolfière, Gargantua) est dans ? Comment jouer.", "A Skirmish against the AI, or the campaign. The rest (relays, crates, balloons, Gargantua) is in ? How to play.")}</span></p>
+  </div>`;
   return `<div class="op-res won tuto-res">
     <div class="op-bigstars">${stars}</div>
     <p class="op-reason">${tr("Instruction terminée", "Training complete")}</p>
     <ul class="op-starlist"><li class="got"><b>★</b><span>${tr("Caméra, ordres et combat", "Camera, orders and combat")}</span></li><li class="got"><b>★★</b><span>${tr("Forges et production", "Forges and production")}</span></li><li class="got"><b>★★★</b><span>${tr("Armée, charbon et Feu roulant", "Army, coal and Rolling Barrage")}</span></li></ul>
-    <p class="op-tip"><b>${tr("Et maintenant ?", "What now?")}</b><span>${tr("Une Escarmouche contre l'IA, ou la campagne des Opérations.", "A Skirmish against the AI, or the Operations campaign.")}</span></p>
+    <p class="op-tip"><b>${tr("Et maintenant ?", "What now?")}</b><span>${tr("Le Deuxième jour : groupes, routes, marche en ordre et repli. Ou une Escarmouche contre l'IA.", "The Second Day: groups, routes, marching in order and falling back. Or a Skirmish against the AI.")}</span></p>
   </div>`;
 }
 

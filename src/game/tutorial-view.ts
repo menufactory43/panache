@@ -19,12 +19,14 @@ import type { Command, Faction, PowerKind, Unit, UnitKind, World } from "../sim/
 import { hqOf, inBounds, moveClassOf, passable, spawnBuilding, spawnUnit } from "../sim/world";
 import { sfx } from "./audio";
 import { PLAYER, type Controller } from "./controller";
-import { TutorialRunner, setTutorialState, type TutControl, type TutEffect, type TutObs, type TutSpot, type TutTarget } from "./tutorial";
+import { TUT2_BEATS, TUT2_STEPS, TUT_BEATS, TUT_STEPS, TutorialRunner, setTutorial2Done, setTutorialState, type TutControl, type TutEffect, type TutObs, type TutSpot, type TutTarget } from "./tutorial";
 import type { GroundGfx } from "./three/ground-gfx";
 import { mountTutorialOverlay, type Box, type TutOverlay } from "../ui/tutorial";
 import { tr } from "../lang";
 
 export interface TutorialViewHooks {
+  /** Which lesson: « Premier jour » (1) or « Deuxième jour » (2). */
+  day: 1 | 2;
   world: World;
   ctrl: Controller;
   rig: {
@@ -67,7 +69,12 @@ const CONTROLS: Record<TutControl, [string, string]> = {
   power: [".bh-pow", ".powers .pw-meter"],
   "power-barrage": ['.powers .pw[data-p="barrage"]', '.powers .pw[data-p="barrage"]'],
   place: ['.chip[data-id="place"]', '.chip[data-id="place"]'],
-  deselect: ['.chip[data-id="clear"]', '.chip[data-id="clear"]']
+  deselect: ['.chip[data-id="clear"]', '.chip[data-id="clear"]'],
+  // « Deuxième jour » (the original bar has no ▢ Cadre: the lesson asks for a hold there)
+  frame: [".bh-frame", ".bh-frame"],
+  squad1: [".sq", ".sq"],
+  "skill-throttle": ['.skb[data-skill="throttle"]', '.skb[data-skill="throttle"]'],
+  retreat: ['.chip[data-id="move"]', '.chip[data-id="move"]']
 };
 
 /** Who the lesson brings in. */
@@ -82,7 +89,7 @@ const DEPOT_HP = 420;
 export class TutorialView {
   /** The lesson waits on the player: the scene stops stepping the sim. */
   hold = false;
-  private run = new TutorialRunner();
+  private run: TutorialRunner;
   private ui: TutOverlay;
   private touch: boolean;
   private patrol: number[] = [];
@@ -102,13 +109,19 @@ export class TutorialView {
   private ended = false;
   private hideAt = 0;
   private reinforced = 0;
+  /** Orders seen (« Deuxième jour »): routes, marches, skills, plain moves. */
+  private seen = { routed: 0, marched: 0, skilled: 0, retreated: 0 };
   private restoreEnqueue: () => void;
+  /** The controller's own enqueue: the lesson's orders, unseen by saw(). */
+  private send: (c: Command) => void;
 
   constructor(private h: TutorialViewHooks) {
     this.touch = navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches;
     h.hudRoot.classList.add("tuto-on");
+    this.run = new TutorialRunner(h.day === 2 ? TUT2_BEATS : TUT_BEATS);
     this.ui = mountTutorialOverlay({
       host: h.hudRoot,
+      steps: h.day === 2 ? TUT2_STEPS : TUT_STEPS,
       skip: () => {
         setTutorialState("no");
         h.leave();
@@ -121,7 +134,18 @@ export class TutorialView {
       this.saw(c);
       orig.call(ctrl, c);
     };
-    this.restoreEnqueue = () => (ctrl.enqueue = orig);
+    // a route drawn, however short or straight (one leg is a plain attack-move, no waypoint)
+    const origRoute = ctrl.routeSelected;
+    ctrl.routeSelected = (points, loop) => {
+      const ok = origRoute.call(ctrl, points, loop);
+      if (ok) this.seen.routed++;
+      return ok;
+    };
+    this.restoreEnqueue = () => {
+      ctrl.enqueue = orig;
+      ctrl.routeSelected = origRoute;
+    };
+    this.send = (c) => orig.call(ctrl, c);
     this.base = { i: 0, x: h.rig.x, y: h.rig.y, zoom: h.rig.zoom };
   }
 
@@ -150,6 +174,9 @@ export class TutorialView {
       if (near(this.patrol, c.x, c.y, 3.5)) this.patrolAttacked = true;
       if (near(this.outpost, c.x, c.y, 5)) this.outpostOrdered = true;
     } else if (c.type === "calldown" && c.power === "barrage") this.firedOrders++;
+    if (c.type === "march") this.seen.marched++;
+    else if (c.type === "skill") this.seen.skilled++;
+    else if (c.type === "move" && c.unitIds.some((id) => w.units.get(id)?.kind !== "harvester")) this.seen.retreated++;
   }
 
   // ------------------------------------------------------------ observe ---
@@ -176,6 +203,14 @@ export class TutorialView {
     for (const b of w.buildings.values()) if (b.faction === PLAYER) queued += b.queue.filter((q) => q.kind === "stinger").length;
     const army = ctrl.armyIds();
     const pending = ctrl.view().pending;
+    const sel = [...ctrl.selectedUnits].map((id) => w.units.get(id)).filter((u): u is Unit => !!u);
+    const isIdle = (u: Unit) => u.order.type === "idle" && u.autoTargetId === null;
+    const troops = this.troops();
+    const idle = army.filter((id) => {
+      const u = w.units.get(id);
+      return !!u && isIdle(u);
+    });
+    const group = ctrl.squads.ids(0, w);
     const outpostAlive = this.outpost.filter((id) => w.buildings.has(id)).length;
     // (under fire, or one of the two already down: the assault is on — and stays on)
     if (!this.outpostOrdered && this.outpost.length > 0)
@@ -224,8 +259,28 @@ export class TutorialView {
         const u = w.units.get(id);
         return !u || (u.order.type === "idle" && u.autoTargetId === null);
       }),
+      cardOpen: !!hudRoot.querySelector<HTMLElement>("#card:not([hidden])"),
+      panhardsSelected: sel.filter((u) => u.kind === "stinger").length,
+      troopsSelected: sel.filter((u) => u.kind === "trooper").length,
+      frameArmed: ctrl.boxNext,
+      squad1: group.length,
+      squad1Selected: group.length > 0 && group.length === ctrl.selectedUnits.size && group.every((id) => ctrl.selectedUnits.has(id)),
+      ...this.seen,
+      retreatArmed: ctrl.forceMove,
+      troopsIdle: troops.length > 0 && troops.every(isIdle),
+      idlePicked: idle.length > 0 && idle.length === ctrl.selectedUnits.size && idle.every((id) => ctrl.selectedUnits.has(id)),
       t: 0
     };
+  }
+
+  /** « Deuxième jour »'s infantry squads. */
+  private troops(): Unit[] {
+    return this.alive(this.h.world.ops?.tags.troops ?? []);
+  }
+
+  /** « Deuxième jour »'s Panhard. */
+  private panhards(): Unit[] {
+    return this.alive(this.h.world.ops?.tags.panhards ?? []);
   }
 
   // ------------------------------------------------------------- frame ---
@@ -265,8 +320,9 @@ export class TutorialView {
       this.ended = true;
       this.h.hudRoot.classList.remove("tuto-on");
       this.hold = false;
-      setTutorialState("done");
-      this.ui.say(f.praise ?? tr("Tu es prêt, mon commandant !", "You're ready, commander!"), { step: 10, tone: "end" });
+      if (this.h.day === 2) setTutorial2Done();
+      else setTutorialState("done");
+      this.ui.say(f.praise ?? tr("Tu es prêt, mon commandant !", "You're ready, commander!"), { step: this.h.day === 2 ? TUT2_STEPS : TUT_STEPS, tone: "end" });
       this.ui.point(null, false);
       this.ui.gesture(null);
       this.ui.flag(null);
@@ -389,7 +445,33 @@ export class TutorialView {
         const b = this.outpost.map((id) => w.buildings.get(id)).find((v) => !!v);
         return b ? { x: b.tx + BUILDINGS[b.kind].size / 2, y: b.ty + BUILDINGS[b.kind].size / 2, id: b.id, r: 26 } : null;
       }
+      case "panhard": {
+        // the one nearest the middle of the screen
+        const c = this.h.playCentre();
+        let best: Unit | null = null;
+        let bd = Infinity;
+        for (const u of this.panhards()) {
+          const s = this.h.screenOf(u.id);
+          const d = s ? Math.hypot(s.x - c.x, s.y - c.y) : Infinity;
+          if (d < bd || !best) {
+            bd = d;
+            best = u;
+          }
+        }
+        return best ? { x: best.x, y: best.y, id: best.id } : null;
+      }
+      case "troop": {
+        // the middle of the Panhard and squads, ringed wide
+        const us = [...this.panhards(), ...this.troops()];
+        if (us.length === 0) return null;
+        return { x: us.reduce((a, u) => a + u.x, 0) / us.length, y: us.reduce((a, u) => a + u.y, 0) / us.length, r: 44 };
+      }
+      case "home":
+        return { x: TUTORIAL_SPOTS.home.x, y: TUTORIAL_SPOTS.home.y, r: 22 };
+      case "front":
+        return { x: TUTORIAL_SPOTS.front.x, y: TUTORIAL_SPOTS.front.y, r: 30 };
     }
+    return null;
   }
 
   // ----------------------------------------------------------- effects ---
@@ -436,6 +518,19 @@ export class TutorialView {
       case "spawn-outpost":
         this.spawnOutpost();
         break;
+      case "glide-troop": {
+        const us = [...this.panhards(), ...this.troops()];
+        if (us.length) this.h.glideTo(us.reduce((a, u) => a + u.x, 0) / us.length, us.reduce((a, u) => a + u.y, 0) / us.length);
+        this.h.zoomTo(36);
+        break;
+      }
+      case "panhards-out": {
+        // the Panhard drive off to scout (busy), the squads stay: the idle ones to pick
+        const to = TUTORIAL_SPOTS.scout;
+        const ids = this.panhards().map((u) => u.id);
+        if (ids.length) this.send({ type: "move", faction: PLAYER, unitIds: ids, x: to.x, y: to.y });
+        break;
+      }
     }
   }
 
@@ -497,7 +592,7 @@ export class TutorialView {
 
   /** No army left mid-lesson (it happens): two fresh Panhard at the GQG. */
   private reinforce(beat: string): void {
-    if (!["army", "power", "power-wait", "outpost"].includes(beat) || this.reinforced >= 3) return;
+    if (!["army", "power", "power-wait", "outpost", "skill", "assault"].includes(beat) || this.reinforced >= 3) return;
     const w = this.h.world;
     if (this.h.ctrl.armyIds().length > 0) return;
     const hq = hqOf(w, PLAYER);
@@ -553,12 +648,12 @@ export class TutorialView {
   drawWorld(g: GroundGfx): void {
     const beat = this.run.beat.id;
     const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 260);
-    if (!this.ended && (beat === "select" || beat === "move")) {
-      const f = TUTORIAL_SPOTS.flag;
+    if (!this.ended && (beat === "select" || beat === "move" || beat === "march")) {
+      const f = beat === "march" ? TUTORIAL_SPOTS.front : TUTORIAL_SPOTS.flag;
       g.lineStyle(2.5, 0xf6dc92, 0.6 + 0.4 * pulse).strokeCircle(f.x, f.y, 1.1 + 0.25 * pulse);
       g.fillStyle(0xf6dc92, 0.12).fillCircle(f.x, f.y, 1.1);
     }
-    if (!this.ended && beat === "outpost") {
+    if (!this.ended && (beat === "outpost" || beat === "assault")) {
       const b = this.outpost.map((id) => this.h.world.buildings.get(id)).find((v) => !!v);
       if (b) g.lineStyle(2.5, 0xff6a4a, 0.5 + 0.4 * pulse).strokeCircle(b.tx + 1, b.ty + 0.5, 3.2 + 0.3 * pulse);
     }

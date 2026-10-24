@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PRAISE_S, TUT_BEATS, TUT_STEPS, TutorialRunner, type TutObs } from "../src/game/tutorial";
-import { TUTORIAL_OP, TUTORIAL_SPOTS, OPS, opById, setupOp, tickOps } from "../src/sim/ops";
+import { PRAISE_S, TUT2_BEATS, TUT2_STEPS, TUT_BEATS, TUT_STEPS, TutorialRunner, type TutObs } from "../src/game/tutorial";
+import { TUTORIAL2_OP, TUTORIAL_OP, TUTORIAL_SPOTS, OPS, opById, setupOp, tickOps } from "../src/sim/ops";
 import { createMapWorld } from "../src/sim/maps";
 import { step } from "../src/sim/sim";
 import { passable } from "../src/sim/world";
@@ -15,7 +15,9 @@ function obs(over: Partial<TutObs> = {}): TutObs {
     panhards: 2, panhardsQueued: 0, army: 2, armySelected: false, harvested: 0,
     barrageReady: false, fanOpen: false, armed: null, barrageFired: 0,
     convoySpawned: false, convoySeen: false, convoyAlive: 0,
-    outpostSpawned: false, outpostAlive: 0, outpostOrdered: false, armyIdle: true,
+    outpostSpawned: false, outpostAlive: 0, outpostOrdered: false, armyIdle: true, cardOpen: false,
+    panhardsSelected: 0, troopsSelected: 0, frameArmed: false, squad1: 0, squad1Selected: false,
+    routed: 0, marched: 0, skilled: 0, retreated: 0, retreatArmed: false, troopsIdle: false, idlePicked: false,
     t: 0,
     ...over
   };
@@ -194,7 +196,9 @@ describe("l'Instruction: the lesson", () => {
     say({ pending: { kind: "fab-plant", ready: true } }, 0.5);
     say({ pending: null, forges: 1 }, 2);
     say({ tab: "ground", panhardsQueued: 1 }, 2);
-    say({ panhardsQueued: 0, panhards: 3, army: 3 }, 2);
+    expect(r.beat.id).toBe("info");
+    say({ cardOpen: true }, 2);
+    say({ cardOpen: false, panhardsQueued: 0, panhards: 3, army: 3 }, 2);
     say({ drawerOpen: false, selected: 3, armySelected: true }, 2);
     say({}, 12); // the coal beats run on their own clock
     expect(r.beat.id).toBe("power");
@@ -246,5 +250,93 @@ describe("l'Instruction: the op", () => {
     const w = createMapWorld(TUTORIAL_OP.map, { seed: 7 });
     setupOp(w, "nope");
     expect(w.ops).toBeUndefined();
+  });
+});
+
+describe("« Deuxième jour »: the lesson", () => {
+  it("covers its eight steps in order, at most ~10 words per instruction", () => {
+    const steps = TUT2_BEATS.map((b) => b.step);
+    expect(steps[0]).toBe(1);
+    expect(steps.at(-1)).toBe(TUT2_STEPS);
+    for (let i = 1; i < steps.length; i++) expect(steps[i]! - steps[i - 1]!).toBeGreaterThanOrEqual(0);
+    expect(new Set(steps).size).toBe(TUT2_STEPS);
+    const states = [obs(), obs({ touch: false }), obs({ belle: false }), obs({ selected: 4, panhardsSelected: 4 }), obs({ frameArmed: true }), obs({ squad1: 6 }),
+      obs({ selected: 6, retreatArmed: true }), obs({ troopsIdle: true }), obs({ troopsIdle: true, busy: true }), obs({ outpostOrdered: true })];
+    for (const b of TUT2_BEATS)
+      for (const st of states) {
+        const g = b.guide(st);
+        expect(g.text.split(/\s+/).length, `${b.id}: ${g.text}`).toBeLessThanOrEqual(10);
+      }
+  });
+
+  it("points at ▢ Cadre first, then the troop", () => {
+    const r = new TutorialRunner(TUT2_BEATS);
+    r.index = TUT2_BEATS.findIndex((b) => b.id === "frame");
+    expect(hold(r, obs()).guide?.target).toEqual({ kind: "dom", el: "frame" });
+    expect(hold(r, obs({ frameArmed: true })).guide?.target).toEqual({ kind: "world", what: "troop" });
+    // the original bar has no ▢ Cadre: hold and drag
+    expect(hold(r, obs({ belle: false })).guide?.text).toMatch(/Maintiens/);
+  });
+
+  it("skips the drawn gestures with a mouse", () => {
+    const r = new TutorialRunner(TUT2_BEATS);
+    r.index = TUT2_BEATS.findIndex((b) => b.id === "route");
+    const f = hold(r, obs({ touch: false, selected: 6 }));
+    expect(f.beat.id).toBe("retreat");
+    expect(r.log).toEqual(["route:skip", "march:skip"]);
+  });
+
+  it("plays the whole lesson through to the end", () => {
+    const r = new TutorialRunner(TUT2_BEATS);
+    const o = obs();
+    const say = (patch: Partial<TutObs>, secs = 0.3) => {
+      Object.assign(o, patch);
+      return hold(r, o, secs);
+    };
+    expect(say({}, 1).effects).toEqual([]);
+    say({ selected: 4, panhardsSelected: 4 }, 2);
+    expect(r.beat.id).toBe("frame");
+    say({ selected: 0, panhardsSelected: 0 }, 0.3);
+    say({ selected: 6, panhardsSelected: 4, troopsSelected: 2 }, 2);
+    say({ squad1: 6 }, 2);
+    expect(r.beat.id).toBe("recall");
+    say({ squad1Selected: true }, 2);
+    say({ routed: 2 }, 2);
+    say({ marched: 1 }, 2);
+    expect(r.beat.id).toBe("retreat");
+    say({ retreatArmed: true }, 0.3);
+    say({ retreatArmed: false, retreated: 1 }, 2);
+    expect(r.beat.id).toBe("idle");
+    say({ selected: 0, troopsIdle: true, panhardsSelected: 0, troopsSelected: 0 }, 0.3);
+    say({ selected: 2, troopsSelected: 2, idlePicked: true }, 2);
+    expect(r.beat.id).toBe("skill");
+    say({ selected: 4, panhardsSelected: 4, troopsSelected: 0, outpostSpawned: true, outpostAlive: 2 }, 0.3);
+    say({ skilled: 1 }, 2);
+    say({ outpostOrdered: true }, 1);
+    const end = say({ outpostAlive: 0 }, 0.1);
+    expect(end.phase).toBe("end");
+    expect(end.praise).toMatch(/Deuxième jour/);
+    expect(r.log.filter((id) => !id.endsWith(":skip"))).toEqual(TUT2_BEATS.map((b) => b.id));
+  });
+});
+
+describe("« Deuxième jour »: the op", () => {
+  it("is found by id, outside the books, on the same ground", () => {
+    expect(opById("instruction-2")).toBe(TUTORIAL2_OP);
+    expect(OPS.includes(TUTORIAL2_OP)).toBe(false);
+    expect(TUTORIAL2_OP.tutorial).toBe(true);
+    expect(TUTORIAL2_OP.map).toBe(TUTORIAL_OP.map);
+  });
+
+  it("opens with four Panhard and two squads, nobody on the enemy side", () => {
+    const w = createMapWorld(TUTORIAL2_OP.map, { seed: 7, op: TUTORIAL2_OP.id });
+    const mine = [...w.units.values()].filter((u) => u.faction === "blue").map((u) => u.kind).sort();
+    expect(mine).toEqual(["harvester", "stinger", "stinger", "stinger", "stinger", "trooper", "trooper"]);
+    expect([...w.units.values()].filter((u) => u.faction === "red")).toEqual([]);
+    expect(w.ops?.tags.panhards?.length).toBe(4);
+    expect(w.ops?.tags.troops?.length).toBe(2);
+    for (const p of [TUTORIAL_SPOTS.home, TUTORIAL_SPOTS.scout]) expect(passable(w, Math.floor(p.x), Math.floor(p.y), "ground")).toBe(true);
+    for (let i = 0; i < 600; i++) step(w, []);
+    expect(w.winner).toBeNull();
   });
 });

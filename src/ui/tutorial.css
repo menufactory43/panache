@@ -387,3 +387,42 @@
   font-family: var(--serif, Georgia, serif);
   font-style: italic;
 }
+
+/* ---------------------------------------------- 🎓 the two lessons --- */
+.tp-days {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 6px;
+  text-align: left;
+}
+.tp-day {
+  display: grid;
+  text-align: left;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-hi, rgba(233, 187, 94, 0.45));
+  background: rgba(30, 21, 12, 0.88);
+  color: var(--text);
+}
+.tp-day b {
+  font-family: var(--serif, Georgia, serif);
+  font-size: 18px;
+}
+.tp-day small {
+  grid-column: 1;
+  color: var(--dim);
+  font-size: 13px;
+}
+.tp-day i {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-style: normal;
+  font-size: 20px;
+  color: #f0c25a;
+}
+.tp-day.done i {
+  color: #8fd18a;
+}
