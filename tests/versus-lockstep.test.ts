@@ -1408,7 +1408,7 @@ function recordOf(r: Run, p: Phone): BattleRecord {
   return {
     v: 1, commit: null, sim: null, created: "2026-10-19T00:00:00.000Z",
     map: r.setup.map, mutators: r.setup.mutators, seed: r.setup.seed, round: 1, maxTicks: w.tick, openers: r.setup.openers,
-    seats: { blue: { player: "sound-duel:host" }, red: { player: "sound-duel:guest" } },
+    seats: { blue: { player: "online-duel:host" }, red: { player: "online-duel:guest" } },
     frames: "own", turns: p.ls.turns(), radio: [], hashes: p.hashes, log: [], tick: w.tick,
     end: w.winner ? endOf(w.tick, w.winner, w.resigned) : null, usage: {}
   };

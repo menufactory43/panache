@@ -1,5 +1,5 @@
-// Duel smoke (SOUND-DUEL.md "Dev and test modes"): two pages of the built app,
-// one browser context each, play a sound duel through the relay
+// Duel smoke (DUEL.md "Dev and test modes"): two pages of the built app,
+// one browser context each, play a duel through the relay
 // (?duel=relay, src/versus/relay-transport.ts) instead of the air. Node is
 // the air between them: each page's window.__duelOut hands its packets here,
 // and they reach the other page's window.__duelIn after a seeded delay
@@ -22,7 +22,7 @@
 //      MATCH_TICKS, the guest resigns from the pause menu.
 //      Both must decide on the same tick with the same world hash and hash
 //      trail (compared at every tick of the match), show the report
-//      (VICTORY / DEFEAT, "In sync ✓", "Practice link (no sound)") and save
+//      (VICTORY / DEFEAT, "Sync OK ✓", "Practice link") and save
 //      the same battle (Save battle: turns and the hash every 100 ticks).
 //      No win/loss record is written on a practice link.
 //   3. Rematch: the host taps Rematch and reconnects from the reloaded page;
@@ -270,7 +270,7 @@ class Air {
 
 // ---------------------------------------------------------- the pages ---
 
-const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find((p) => existsSync(p));
+const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].find((p) => existsSync(p));
 const browser = await chromium.launch({
   executablePath: exe,
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--autoplay-policy=no-user-gesture-required"]
@@ -283,7 +283,7 @@ const SETTINGS = {
 const air = new Air(SEED);
 const phones = {};
 for (const name of ["host", "guest"]) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, acceptDownloads: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, acceptDownloads: true, locale: "en-US" });
   // (the page's own frames, slowed: the smoke steps the game itself)
   await context.addInitScript((ms) => {
     window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), ms);
@@ -343,8 +343,8 @@ const text = (p, sel) => p.page.evaluate((q) => document.querySelector(q)?.inner
 
 /** The Duel button on the menu, once its chunk is in (Skirmish tab). */
 async function tapDuel(p) {
-  await p.page.waitForSelector("#play-duel:not([disabled])", { timeout: 30000 });
-  await p.page.locator("#play-duel").tap();
+  await p.page.waitForSelector("#play-online:not([disabled])", { timeout: 30000 });
+  await p.page.locator("#play-online").tap();
   await p.page.waitForSelector(".duelsheet", { timeout: 10000 });
 }
 
@@ -358,7 +358,7 @@ async function paired(p) {
 async function cancel(p) {
   await p.page.locator(".duelsheet [data-act=cancel]").tap();
   await p.page.waitForSelector(".duel-wrap", { state: "detached", timeout: 10000 });
-  await p.page.waitForSelector("#play-duel:not([disabled])", { timeout: 10000 });
+  await p.page.waitForSelector("#play-online:not([disabled])", { timeout: 10000 });
 }
 
 // --------------------------------------------------- 1. the lobby by hand ---
@@ -374,11 +374,11 @@ await phones.guest.page.locator(".duel-role[data-act=join]").tap();
   const [h, g] = await both(paired);
   log(`paired: host "${h.line}", guest "${g.line}"`);
   check(/you play blue/i.test(h.line) && /you play red/i.test(g.line), `sides: host "${h.line}", guest "${g.line}"`);
-  check(/Riverlands/.test(h.map) && h.map === g.map, `the map: host "${h.map}", guest "${g.map}" (the host's Riverlands)`);
-  check(/Rapid Fab/.test(h.muts) && h.muts === g.muts, `the mutators: host "${h.muts}", guest "${g.muts}" (the host's Rapid Fab)`);
+  check(/River Lands/.test(h.map) && h.map === g.map, `the map: host "${h.map}", guest "${g.map}" (the host's River Lands)`);
+  check(/Lightning Production/.test(h.muts) && h.muts === g.muts, `the mutators: host "${h.muts}", guest "${g.muts}" (the host's Lightning Production)`);
   // (each card says what its opener gives, as the single-player picker does)
   const gives = await phones.host.page.locator(".duel-cards .op-card .op-gives").allInnerTexts();
-  check(gives.length > 0 && gives.every((t) => / · \d+ Harvesters/.test(t)), `the cards don't say what each opener gives: ${JSON.stringify(gives)}`);
+  check(gives.length > 0 && gives.every((t) => / · \d+ Steam Wagons/.test(t)), `the cards don't say what each opener gives: ${JSON.stringify(gives)}`);
   await both((p) => shot(p, "1-paired"));
 }
 await both(cancel);
@@ -582,7 +582,7 @@ const orders = (p) =>
     .catch((e) => String(e));
 const fabsBefore = await fabs(phones.host);
 for (const p of [phones.host, phones.guest]) {
-  await btn(p, "Fab").dispatchEvent("click");
+  await btn(p, "Forges").dispatchEvent("click");
   // (on its way: in the Controller's queue until the next step drains it, then in flight, or already the build slot's)
   const o = await orders(p);
   check(o.queue?.includes("startBuilding") || o.inFlight?.includes("startBuilding") || o.pending === "fab-plant", `the ${p.name}'s Fab tap made no order: ${JSON.stringify(o)}`);
@@ -631,7 +631,7 @@ const hostAt = await tick(phones.host);
 // (the friend steps on through the turns it holds, up to D past the pause, and says so once its stall is 0.5 s
 // old: how long that takes follows the link, as the progress checks do)
 const pausedT = Date.now();
-const friendPaused = await run(STUCK_MS + (D + 1) * tickMs(D), async () => /Friend paused/.test(await text(phones.guest, ".duel-stall:not([hidden])")));
+const friendPaused = await run(STUCK_MS + (D + 1) * tickMs(D), async () => /friend paused/i.test(await text(phones.guest, ".duel-stall:not([hidden])")));
 const pausedAfter = (Date.now() - pausedT) / 1000;
 const [hostHeld, guestHeld] = await ticks();
 await run(1000);
@@ -668,8 +668,8 @@ check(decided, "the resign didn't decide both matches");
 // the finale, then the report: step on until both show it
 const reported = await run(60000, async () => (await both((p) => p.page.locator("#again").isVisible())).every(Boolean));
 check(reported, "the report didn't show on both phones");
-// the end check: "In sync ✓" on both
-const synced = await run(15000, async () => (await both((p) => text(p, ".duel-sync"))).every((t) => /In sync/.test(t)));
+// the end check: "Sync OK ✓" on both
+const synced = await run(15000, async () => (await both((p) => text(p, ".duel-sync"))).every((t) => /Sync OK/.test(t)));
 {
   const res = await both((p) => p.page.evaluate(() => window.__duel.result));
   const end = await both((p) => p.page.evaluate(() => ({ tick: window.__duel.tick, trail: window.__duel.trail(), hash: window.__duel.hash() })));
@@ -700,15 +700,15 @@ const synced = await run(15000, async () => (await both((p) => text(p, ".duel-sy
   const heads = await both((p) => text(p, ".aar-head"));
   log(`heads: ${JSON.stringify(heads)}`);
   check(/VICTORY/.test(heads[0]) && /DEFEAT/.test(heads[1]), "the report's headline isn't VICTORY / DEFEAT");
-  for (const h of heads) check(/vs your friend · Riverlands · .* · practice link \(no sound\)/.test(h), `the report's line: "${h}"`);
+  for (const h of heads) check(/vs your friend · River Lands · .* · practice link/.test(h), `the report's line: "${h}"`);
   for (const p of [phones.host, phones.guest]) {
     // (the order delay as felt: from the tap's drain to the step, mean and worst)
     const link = await text(p, ".duel-link");
     log(`${p.name}'s link: ${JSON.stringify(link)}`);
-    check(/Order delay\s+[\d.]+ m?s average\nSlowest order\s+[\d.]+ m?s/.test(link), `the ${p.name}'s report has no order delay: ${JSON.stringify(link)}`);
-    check(/Practice link \(no sound\)/.test(await text(p, ".duel-rec")), "the report doesn't say practice link");
+    check(/Order delay\s+[\d.]+ m?s on average\nSlowest order\s+[\d.]+ m?s/.test(link), `the ${p.name}'s report has no order delay: ${JSON.stringify(link)}`);
+    check(/Practice link/.test(await text(p, ".duel-rec")), "the report doesn't say practice link");
     check((await p.page.locator("#duel-save").count()) === 1 && (await p.page.locator("#menu").count()) === 1, "Save battle or Main menu missing");
-    check((await p.page.evaluate(() => localStorage.getItem("battledrones.soundduel"))) === null, "a practice link wrote the win/loss record");
+    check((await p.page.evaluate(() => localStorage.getItem("panache.duelenligne"))) === null, "a practice link wrote the win/loss record");
     // (the duel played the host's map and mutators, and saved neither over this phone's menu picks)
     const kept = await p.page.evaluate(() => JSON.parse(localStorage.getItem("battledrones.settings") ?? "null"));
     check(kept?.mapId === SETTINGS[p.name].mapId && JSON.stringify(kept?.mutators) === JSON.stringify(SETTINGS[p.name].mutators), `the duel saved over the ${p.name}'s settings: ${JSON.stringify(kept)}`);
@@ -727,7 +727,7 @@ const synced = await run(15000, async () => (await both((p) => text(p, ".duel-sy
   check(recs[0].v === 1 && recs[0].frames === "own", `the saved battle: v ${recs[0].v}, frames ${recs[0].frames}`);
   // (a match cut short by a failed progress check has fewer: that failure is the one to read)
   if (!cutShort) check(recs[0].hashes?.length >= 3 && recs[0].turns?.length >= 4, "the saved battle is thin");
-  check(recs[0].seats?.blue?.player === "sound-duel:host" && recs[0].seats?.red?.player === "sound-duel:guest", `the seats: ${JSON.stringify(recs[0].seats)}`);
+  check(recs[0].seats?.blue?.player === "practice-duel:host" && recs[0].seats?.red?.player === "practice-duel:guest", `the seats: ${JSON.stringify(recs[0].seats)}`);
   // both sides' orders as stepped: the Fab taps, and the moves with the units they named
   const cmds = recs[0].turns.flatMap(([, , list]) => list);
   for (const f of ["blue", "red"]) {
@@ -757,7 +757,7 @@ await phones.guest.page.locator("#duel-rematch").tap();
   const [h, g] = await both(paired);
   log(`rematch paired: host "${h.line}", guest "${g.line}"`);
   check(/you play red/i.test(h.line) && /you play blue/i.test(g.line), `the rematch didn't swap sides: host "${h.line}", guest "${g.line}"`);
-  check(/Riverlands/.test(h.map) && h.map === g.map && /Rapid Fab/.test(h.muts) && h.muts === g.muts, "the rematch isn't on the same map and mutators");
+  check(/River Lands/.test(h.map) && h.map === g.map && /Lightning Production/.test(h.muts) && h.muts === g.muts, "the rematch isn't on the same map and mutators");
   await both((p) => shot(p, "5-rematch-paired"));
 }
 await both(cancel);

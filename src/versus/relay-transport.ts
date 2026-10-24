@@ -1,5 +1,5 @@
 /**
- * RelayTransport (SOUND-DUEL.md "Dev and test modes", `?duel=relay`): a
+ * RelayTransport (DUEL.md "Dev and test modes", `?duel=relay`): a
  * LinkTransport through two page functions instead of the air, so a test
  * harness (tools/duel-smoke.mjs) can wire two pages together through Node,
  * with whatever delay and loss it likes, and play a whole duel without a
@@ -15,7 +15,7 @@
  *
  * The session CRC (transport.ts setSessionKey) is emulated with a real one:
  * the base64 holds the frame's ceil(nbits / 8) bytes (MSB-first), then the
- * CRC-16 the modem would send (src/link/modem/crc.ts: 0xFFFF for lobby
+ * CRC-16 the modem would send (src/link/crc.ts: 0xFFFF for lobby
  * frames, the sender's session key for game frames once keyed), then one
  * byte naming the sender's mode (0 robust, 1 fast). The receiver checks it as
  * the modem does, by the frame's type: a game frame must pass the session
@@ -42,7 +42,7 @@
  *  - close() stops the timer and takes __duelIn off the page, if it is still
  *    this transport's.
  */
-import { CRC_INIT, crc16, crcKey } from "../link/modem/crc";
+import { CRC_INIT, crc16, crcKey } from "../link/crc";
 import { nextFrameIndex, type BandRole, type LinkPacket, type LinkStats, type LinkTransport, type ModemMode, type OutFrame } from "../link/transport";
 
 /** The page functions the relay goes through. */

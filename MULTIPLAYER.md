@@ -2,9 +2,9 @@
 
 ## Status
 
-**Built, in a simpler form (October 2026):** "🌐 Défier un ami (en ligne)"
-runs the sound duel's own stack (pairing, lockstep, session, feed:
-SOUND-DUEL.md) over a WebSocket to a tiny relay, `relay/` (one Durable
+**Built, in a simpler form (October 2026):** "🌐 Défier un ami" runs the
+duel's stack (pairing, lockstep, session, feed: DUEL.md, first written for
+the sound duel, since removed) over a WebSocket to a tiny relay, `relay/` (one Durable
 Object per 4-letter room, packets forwarded as they are, a minute to
 reconnect). The client is `src/versus/online.ts`; the relay's rules are in
 `relay/README.md`. What follows is the original, fuller proposal, kept for

@@ -36,8 +36,8 @@ export const BUILD_TAG: string | null = typeof __VERSION_TAG__ === "undefined" ?
 
 /** A keyframe every 30 s of game time. */
 const KEYFRAME_TICKS = 30 * TICK_RATE;
-/** A saved duel's seat (src/versus/records.ts, which the viewer may not import): which phone played it, over sound or online. */
-const SOUND_DUEL_SEAT = /^(?:sound|online)-duel:(host|guest)$/;
+/** A saved duel's seat (src/versus/records.ts, which the viewer may not import): which page played it (older records: over sound). */
+const DUEL_SEAT = /^(?:sound|online|practice)-duel:(host|guest)$/;
 /** The nations as the viewer names them (absent: Classique). */
 export const NATION_NAMES: Record<Nation, string> = tr({ republique: "République", empire: "Empire" }, { republique: "Republic", empire: "Empire" });
 
@@ -85,10 +85,10 @@ export class ReplayFeed implements MatchFeed {
     const player = this.record.seats[side].player;
     // (the viewer's own seats are saved as "Toi" / "IA")
     const shown = player === "Toi" ? tr("Toi", "You") : player === "IA" ? tr("IA", "AI") : player;
-    // a saved sound duel (src/versus/records.ts names its seats "sound-duel:host" and "sound-duel:guest"): the phone
-    // and the opener as the game names them, "Host phone · Air Wing"; the record itself stays as it is
-    const phone = SOUND_DUEL_SEAT.exec(player)?.[1];
-    if (phone) return `${tr(`Téléphone ${phone === "host" ? "hôte" : "invité"}`, `${phone === "host" ? "Host" : "Guest"} phone`)}${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
+    // a saved duel (src/versus/records.ts names its seats "online-duel:host" and "online-duel:guest"): the role
+    // and the opener as the game names them, "Host · Air Wing"; the record itself stays as it is
+    const phone = DUEL_SEAT.exec(player)?.[1];
+    if (phone) return `${tr(phone === "host" ? "Hôte" : "Invité", phone === "host" ? "Host" : "Guest")}${opener ? ` · ${isOpenerId(opener) ? OPENERS[opener].name : opener}` : ""}`;
     return `${shown.replace(/^(openai|anthropic|llm):/, "")}${opener ? ` · ${opener}` : ""}`;
   }
 

@@ -6,7 +6,7 @@ import { step } from "../src/sim/sim";
 import type { Command, Unit, World } from "../src/sim/types";
 import { createWorld, spawnBuilding, spawnUnit } from "../src/sim/world";
 
-// The Controller's reads with orders on their way (Controller.ahead(), a sound duel's interactive feed): the world is
+// The Controller's reads with orders on their way (Controller.ahead(), a duel's interactive feed): the world is
 // left as it is (not stepped) after each drain, as a duel's world is for D ticks after the tap. tests/versus-feed.test.ts
 // plays the main taps over a real link; these are the smaller reads around them, and the in-flight bookkeeping.
 
@@ -18,7 +18,7 @@ function field(): World {
   return w;
 }
 
-/** A Controller as a sound duel's scene has it: its orders, once drained, stay on their way. */
+/** A Controller as a duel's scene has it: its orders, once drained, stay on their way. */
 function duel(w: World): Controller {
   const c = new Controller(w);
   c.trackInFlight();

@@ -52,7 +52,7 @@ export default defineConfig({
     __TERRAIN_REVS__: JSON.stringify(terrainRevisions()),
     // the sim this build plays: the battle viewer checks a record played by other code before it vouches for it
     __SIM_HASH__: JSON.stringify(simHash(fileURLToPath(new URL(".", import.meta.url)))),
-    // a sound duel pairs only two phones running the same sim and duel code (SOUND-DUEL.md)
+    // a duel pairs only two pages running the same sim and duel code (DUEL.md "Build check")
     __DUEL_HASH__: JSON.stringify(duelHash(fileURLToPath(new URL(".", import.meta.url)))),
     // the version tag this build is (v11), from tools/build-pages.mjs; null for main and local builds.
     // A record pinned to it (BattleRecord.version) is known to replay exactly, with nothing to check
@@ -64,13 +64,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 1600,
     // the engine in its own chunk: game updates don't re-download three.js
     rollupOptions: {
-      // the game, plus the standalone vehicles reference page, 3D models page, battle record viewer and radio probe
+      // the game, plus the standalone vehicles reference page, 3D models page and battle record viewer
       input: {
         main: "index.html",
         vehicles: "vehicles.html",
         models: "models.html",
-        records: "record-viewer.html",
-        probe: "radio-probe.html"
+        records: "record-viewer.html"
       },
       output: { manualChunks: { three: ["three"] } }
     }

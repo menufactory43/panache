@@ -176,7 +176,7 @@ const isLiftOrder = (c: Command): c is LiftOrder => c.type === "move" || c.type 
  *
  * A Goliath whose lift is still hooking on ignores an order unless its
  * Condors are named in the same command (that calls the lift off). Sound
- * duels split a long unit list into several commands (SOUND-DUEL.md
+ * duels split a long unit list into several commands (DUEL.md
  * "Canonicalize and split"), so a select-all can name the Goliath in an
  * earlier piece than its Condors. The Goliath remembers the order for the
  * rest of the tick and takes it when a later command calls its lift off, so

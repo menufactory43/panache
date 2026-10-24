@@ -1,5 +1,5 @@
 /**
- * The sound link's seam (SOUND-DUEL.md "Link layer"): what the lockstep and
+ * The sound link's seam (DUEL.md "Link layer"): what the lockstep and
  * the pairing see of a link, whatever carries it — the acoustic modem in an
  * AudioWorklet (WorkletTransport), two modems in a simulated room (RoomLink),
  * a frame-level simulation (PacketAir) or a test relay. Types, and the
@@ -18,7 +18,7 @@ export const PAYLOAD_BITS: Record<BandPlan, number> = { high: 188, low: 186 };
 
 /**
  * One frame for the air. A transport holds a list of them and sends one per
- * packet, in key rotation (SOUND-DUEL.md "Segments and rotation"): after a
+ * packet, in key rotation (DUEL.md "Segments and rotation"): after a
  * packet carrying key k, the next carries the first frame whose key is greater
  * than k, wrapping to the first. A list of one repeats in every packet.
  */
@@ -88,7 +88,7 @@ export interface LinkTransport {
   /** The transmit mode from the next superframe on. */
   setMode(mode: ModemMode): void;
   /**
-   * Turn on the session CRC for game frames (SOUND-DUEL.md "Replay
+   * Turn on the session CRC for game frames (DUEL.md "Replay
    * protection"). The session drops every game frame whose `session` is
    * false, whatever the transport, so a game frame of another pairing (or of
    * none) can't get into a match. The modem enforces it with the CRC itself.

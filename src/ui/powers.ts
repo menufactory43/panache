@@ -197,7 +197,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
     const pod = btns.get("droppod")!.b;
     const podOff = podCrew(w, PLAYER).length === 0;
     if (pod.hidden !== podOff) pod.hidden = podOff;
-    // (a sound duel: the calldowns on their way count as fired, Controller.powerStatus)
+    // (a duel: the calldowns on their way count as fired, Controller.powerStatus)
     const m = Math.floor(api.ctrl.powerMeter());
     if (meterEl.textContent !== String(m)) meterEl.textContent = String(m);
     for (const [p, v] of btns) {

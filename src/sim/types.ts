@@ -678,7 +678,7 @@ export type FxEvent =
       x: number;
       y: number;
     }
-  /** `faction` resigned (a sound duel): the other side wins this tick. */
+  /** `faction` resigned (a duel): the other side wins this tick. */
   | { type: "resign"; faction: Faction };
 
 /**
@@ -925,7 +925,7 @@ export type Command =
    * if given) and `stop` hovers it.
    */
   | { type: "lift"; faction: Faction; unitIds: number[]; goliathId: number }
-  /** `faction` gives up: the other side wins on this tick (a sound duel's Resign, SOUND-DUEL.md). */
+  /** `faction` gives up: the other side wins on this tick (a duel's Resign, DUEL.md). */
   | { type: "resign"; faction: Faction }
   /**
    * Queue (x, y) behind each unit's move or attack-move, of the same kind; a

@@ -8,52 +8,8 @@
  * (sfx, music, voice) feed one master gain and the glue compressor. The
  * adaptive score (music.ts) and the announcer play into their own buses,
  * each with its own on/off setting, persisted with the master mute.
- *
- * During a sound duel the mix also wears the link guard (SOUND-DUEL.md
- * "Game audio guard", setLinkGuard): the game must not play into the bands
- * the phones' modems use, nor play so loud that the speaker's distortion and
- * a crowded microphone smear the phone's own transmission into the band it
- * listens to. While it is on, the chain is
- *
- *   master → high-pass 300 Hz → guard gain → limiter → { dry | FIR } → destination
- *
- * where the limiter is the glue compressor re-set (GUARD_LIMITER) and the
- * FIR the plan's guard low-pass (guard-fir.ts) in a ConvolverNode. Off, the
- * chain is master → glue compressor → destination again, node for node.
- *
- * Where the spec is silent:
- *  - the guard gain also takes back the limiter's makeup gain. Web Audio
- *    gives every DynamicsCompressorNode an automatic makeup of
- *    (1 / curve(1))^0.6, about +17 dB at GUARD_LIMITER's −30 dB threshold, so
- *    a plain −10 dB cut in front of it would leave sounds under the limiter
- *    7 dB louder than without the guard. With it taken back, the cut is the
- *    net change for everything the limiter leaves alone (a cut of 0 really
- *    is unchanged), and the limiter's ceiling (steady sound
- *    held near −13 dBFS whatever the cut; transients overshoot it by a few
- *    dB) bounds the rest;
- *  - turning the guard on sets linkMode and turning it off clears it (the
- *    rematch boot sets linkMode on its own, before any context exists);
- *  - setLinkGuard before unlock() is remembered and applied when the
- *    context is made. The guard is built before anything is rewired, so a
- *    browser that can't build it keeps the original chain; setLinkGuard
- *    then throws, unlock() logs it and starts audio anyway (the music and
- *    the announcer still attach);
- *  - when the guard comes on, the cut applies at once and the limiter takes
- *    over GUARD_SWITCH later. The compressor delays its input 6 ms (its
- *    look-ahead): switched together, the sound already in that delay, still
- *    uncut, would come out with the limiter's +17 dB makeup, a burst 16 dB
- *    louder than what was playing. In between, the glue compressor plays the
- *    cut sound (16–26 dB down for 60 ms; the Duel tap has just stopped the
- *    music). The dry and FIR paths, a plan change and a new cut move over
- *    50 ms; off, the FIR fades to dry over 50 ms and the original chain is
- *    put back 60 ms later (the reverse switch plays the delay's cut sound at
- *    the glue's makeup: a 6 ms dip, never a burst);
- *  - a context too slow to play into the plan's stopband (16 kHz, a
- *    Bluetooth headset's call route, for the high plan) gets the identity
- *    for its FIR (guard-fir.ts): its own Nyquist is the guard.
  */
 import { BELLE_RECIPES } from "./audio-belle";
-import { guardFir, type GuardPlan } from "./guard-fir";
 import { BELLE_EPOQUE } from "./three/theme";
 
 export type SfxName =
@@ -116,76 +72,6 @@ export interface CompressorSettings {
 /** The glue compressor: gentle compression that glues overlapping battle sounds together (knee, attack and release at Web Audio's defaults). */
 export const GLUE: Readonly<CompressorSettings> = { threshold: -18, knee: 30, ratio: 4, attack: 0.003, release: 0.25 };
 
-export type { GuardPlan } from "./guard-fir";
-
-/**
- * The link guard's level cut (dB) for everything the limiter leaves alone
- * (SOUND-DUEL.md "Game audio guard" > Cut): the same on every phone and in
- * both microphone modes. An iPhone plays a play-and-record session's sound
- * from the loudspeaker beside its microphone, not the earpiece: WebKit sets
- * DefaultToSpeaker on every such session (AudioSessionIOS.mm, Safari 17 on;
- * later versions leave it off only for a page that picked the receiver
- * through setSinkId, which this one never does), and echo cancellation off
- * only swaps the voice-processing unit for a plain one.
- */
-export const GUARD_CUT_DB = 10;
-
-/**
- * The glue compressor's settings while the guard is on: a limiter (hard knee,
- * the largest ratio Web Audio allows). A loud battle 20 dB louder still,
- * with no cut, comes out of the FIR at −21 dBFS RMS and −8 dBFS peaks, where
- * the room model still delivers every packet with the own path at +40 dB
- * (tests/link-guard.test.ts, which has the other settings measured; game
- * audio around −17 dBFS RMS after the guard is where fast packets start to
- * go). The loud battle itself, with the 10 dB cut, plays at −38 dBFS RMS.
- */
-export const GUARD_LIMITER: Readonly<CompressorSettings> = { threshold: -30, knee: 0, ratio: 20, attack: 0.002, release: 0.15 };
-
-/** The guard's high-pass corner (Hz): the bass a phone speaker can't play only drives its distortion and the limiter. */
-export const GUARD_HIGHPASS_HZ = 300;
-
-/** The dry/FIR crossfade (s). */
-const GUARD_FADE = 0.05;
-
-/**
- * When the guard comes on, the limiter takes over this long after the cut
- * (s): the compressor's 6 ms look-ahead must have flushed the uncut sound
- * first, with room for the slack between the currentTime the page reads and
- * the audio thread's own (an audio callback or two; Firefox's main thread
- * reads a clock tens of milliseconds behind), since the cut lands whenever
- * the audio thread next looks while the switch is scheduled on the clock.
- * Modelled (tests/link-guard.test.ts), the switch stays clean while the cut
- * lands up to GUARD_SWITCH − 6 ms late.
- */
-const GUARD_SWITCH = 0.06;
-
-/**
- * The automatic makeup gain (dB) Web Audio applies in a hard-knee
- * DynamicsCompressorNode: (1 / curve(1))^0.6, where curve(1) for a signal at
- * full scale is threshold · (1 − 1/ratio) dB. (A soft knee's curve is the
- * implementation's own; the guard only uses a hard one.)
- */
-export function compressorMakeupDb(c: Pick<CompressorSettings, "threshold" | "ratio">): number {
-  return 0.6 * Math.max(0, -c.threshold) * (1 - 1 / c.ratio);
-}
-
-/** Options for setLinkGuard. */
-export interface LinkGuardOptions {
-  /** The cut (dB, default GUARD_CUT_DB, which the duel uses everywhere; others are for measurements). */
-  cutDb?: number;
-}
-
-/** The guard's own nodes, between the master and the destination. */
-interface GuardNodes {
-  hp: BiquadFilterNode;
-  cut: GainNode;
-  dry: GainNode;
-  /** One FIR per plan, made on first use, each behind its fade gain. */
-  fir: Partial<Record<GuardPlan, { conv: ConvolverNode; gain: GainNode }>>;
-  /** The restore after the fade-out, while one is pending. */
-  restore: ReturnType<typeof setTimeout> | null;
-}
-
 /** What the music and voice layers need from the engine once audio is unlocked. */
 export interface AudioEngine {
   ctx: AudioContext;
@@ -212,12 +98,8 @@ export class Sfx {
   private readyFns = new Set<(e: AudioEngine) => void>();
   private changeFns = new Set<(s: AudioSettings) => void>();
   private wantUnlock = false;
-  /** The glue compressor (the limiter while the guard is on). */
+  /** The glue compressor. */
   private comp: DynamicsCompressorNode | null = null;
-  private guard: GuardNodes | null = null;
-  /** What setLinkGuard asked for (applied at unlock when there was no context yet). */
-  private guardWant: { plan: GuardPlan; cutDb: number } | null = null;
-  private link = false;
   readonly settings: AudioSettings;
 
   constructor() {
@@ -292,7 +174,7 @@ export class Sfx {
       try {
         comp.disconnect(dest);
       } catch {
-        /* already rewired (the link guard) */
+        /* already disconnected */
       }
       track?.stop();
     };
@@ -342,142 +224,8 @@ export class Sfx {
     this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    try {
-      // a guard asked for before audio started (the rematch boot)
-      if (this.guardWant) this.applyGuard();
-    } catch (err) {
-      // the chain stays as it was; audio, the music and the announcer still start
-      console.warn("link guard failed:", err);
-    }
     const e = this.engine!;
     for (const fn of this.readyFns) fn(e);
-  }
-
-  /**
-   * Link mode (a sound duel, from the Duel tap or the rematch boot until the
-   * player leaves): no spoken lines (the announcer, radioCheck and the speech
-   * priming skip speech; entering it cancels any line mid-word) and the
-   * music skips its reverb. Transient: never saved. Changing it notifies
-   * onChange subscribers.
-   */
-  get linkMode(): boolean {
-    return this.link;
-  }
-
-  set linkMode(on: boolean) {
-    if (on === this.link) return;
-    this.link = on;
-    if (on && typeof window !== "undefined") {
-      try {
-        window.speechSynthesis?.cancel();
-      } catch {
-        /* ignore */
-      }
-    }
-    for (const fn of this.changeFns) fn(this.settings);
-  }
-
-  /**
-   * The sound link's band guard (SOUND-DUEL.md "Game audio guard"): on with
-   * the link's band plan, off with null. On, it also turns linkMode on; off
-   * turns it off. Safe to call before unlock() (applied when audio starts),
-   * and again with another plan or cut while on (both move over 50 ms).
-   */
-  setLinkGuard(plan: GuardPlan | null, opts: LinkGuardOptions = {}): void {
-    this.guardWant = plan ? { plan, cutDb: Math.max(0, opts.cutDb ?? GUARD_CUT_DB) } : null;
-    this.linkMode = plan !== null;
-    this.applyGuard();
-  }
-
-  /** The guard's current state: its plan, or null when off (or fading out). */
-  get linkGuard(): GuardPlan | null {
-    return this.guardWant?.plan ?? null;
-  }
-
-  private applyGuard(): void {
-    const ctx = this.ctx;
-    const master = this.master;
-    const comp = this.comp;
-    if (!ctx || !master || !comp) return;
-    const want = this.guardWant;
-    const now = ctx.currentTime;
-    const fade = (p: AudioParam, to: number) => {
-      p.cancelScheduledValues(now);
-      p.setValueAtTime(p.value, now);
-      p.linearRampToValueAtTime(to, now + GUARD_FADE);
-    };
-    let g = this.guard;
-    if (!want) {
-      if (!g || g.restore !== null) return;
-      // fade to dry, then put the original chain back
-      fade(g.dry.gain, 1);
-      for (const f of Object.values(g.fir)) fade(f.gain.gain, 0);
-      const nodes = g;
-      g.restore = setTimeout(() => {
-        if (this.guard !== nodes) return;
-        this.guard = null;
-        master.disconnect();
-        nodes.hp.disconnect();
-        nodes.cut.disconnect();
-        comp.disconnect();
-        nodes.dry.disconnect();
-        for (const f of Object.values(nodes.fir)) {
-          f.conv.disconnect();
-          f.gain.disconnect();
-        }
-        setCompressor(comp, GLUE);
-        master.connect(comp).connect(ctx.destination);
-      }, (GUARD_FADE + 0.01) * 1000);
-      return;
-    }
-    const cutLevel = Math.pow(10, -(want.cutDb + compressorMakeupDb(GUARD_LIMITER)) / 20);
-    // the plan's FIR (once per plan) before anything is rewired: if it fails, the chain stays as it was
-    let made: { conv: ConvolverNode; gain: GainNode } | null = null;
-    if (!g?.fir[want.plan]) {
-      const taps = guardFir(ctx.sampleRate, want.plan);
-      const conv = ctx.createConvolver();
-      // before the buffer: a buffer set while normalize is on is rescaled for good
-      conv.normalize = false;
-      const buf = ctx.createBuffer(1, taps.length, ctx.sampleRate);
-      buf.copyToChannel(taps, 0);
-      conv.buffer = buf;
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
-      conv.connect(gain).connect(ctx.destination);
-      made = { conv, gain };
-    }
-    if (!g) {
-      // master → high-pass → cut → limiter → dry (fading to the FIR below) → destination
-      const hp = ctx.createBiquadFilter();
-      hp.type = "highpass";
-      hp.frequency.value = GUARD_HIGHPASS_HZ;
-      // Butterworth: a lowpass/highpass Q is in dB in Web Audio (−3.01 dB is 1/√2)
-      hp.Q.value = -3.0103;
-      const cut = ctx.createGain();
-      cut.gain.value = cutLevel;
-      const dry = ctx.createGain();
-      dry.gain.value = 1;
-      master.disconnect();
-      comp.disconnect();
-      master.connect(hp).connect(cut).connect(comp);
-      comp.connect(dry).connect(ctx.destination);
-      // the cut is in now; the limiter (and its makeup) once the look-ahead holds only cut sound
-      setCompressor(comp, GUARD_LIMITER, now + GUARD_SWITCH);
-      g = { hp, cut, dry, fir: {}, restore: null };
-      this.guard = g;
-    } else {
-      if (g.restore !== null) {
-        clearTimeout(g.restore);
-        g.restore = null;
-      }
-      fade(g.cut.gain, cutLevel);
-    }
-    if (made) {
-      comp.connect(made.conv);
-      g.fir[want.plan] = made;
-    }
-    fade(g.dry.gain, 0);
-    for (const [plan, f] of Object.entries(g.fir)) fade(f.gain.gain, plan === want.plan ? 1 : 0);
   }
 
   /** Run `fn` with the engine as soon as audio is unlocked (now, if it already is). */

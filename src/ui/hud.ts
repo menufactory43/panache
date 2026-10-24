@@ -69,12 +69,12 @@ export interface HudApi {
    * shows only what's been scouted, the pause menu has no map reveal, and the end screen reveals it.
    */
   uncharted?: boolean;
-  /** A sound duel (an interactive feed): its pause menu and report buttons. Absent in single player and replays. */
+  /** A duel (an interactive feed): its pause menu and report buttons. Absent in single player and replays. */
   duel?: DuelHud;
 }
 
 /**
- * A sound duel's parts of the HUD (SOUND-DUEL.md "MatchFeed and GameScene"),
+ * A duel's parts of the HUD (DUEL.md "MatchFeed and GameScene"),
  * from its feed (src/versus/feed.ts): the pause menu's line and its ways out
  * in place of "Quit to menu", and the report's buttons.
  */
@@ -96,7 +96,7 @@ export interface DuelHud {
   menu(): void;
   /** The report's buttons between Rematch and the menu (Save battle). */
   actions(): { id: string; label: string; cls?: string; on(): void }[];
-  /** A practice link (no sound): no record kept, and the report says so. */
+  /** A practice link (?duel=loop|relay): no record kept, and the report says so. */
   practice: boolean;
   /** An online duel (over the internet, not sound): the pause line and the report say so. */
   online?: boolean;
@@ -250,7 +250,7 @@ const MINIMAP_PX = 256;
 const MINIMAP_SHROUD = "rgb(5,7,12)";
 /**
  * Minimap marks in side colours, not friend and foe: blue is blue on both
- * phones of a sound duel. Unit blips come in two tints of each side's colour,
+ * phones of a duel. Unit blips come in two tints of each side's colour,
  * the brighter one for our own army so it still stands out. Blue's own tint
  * and red's foe tint are the two the minimap always used, so blue's player
  * sees it exactly as before; a red player sees red lifted a step and blue
@@ -479,7 +479,7 @@ export function createHud(api: HudApi): Hud {
 
   for (const kind of BUILDABLE)
     makeButton(`b:${kind}`, kind, BUILDINGS[kind].cost, label(kind), () => {
-      // (a sound duel: orders still on their way count as applied, controller.ts BuildView)
+      // (a duel: orders still on their way count as applied, controller.ts BuildView)
       const view = api.ctrl.view();
       const p = view.pending;
       if (p?.kind === kind && p.ready) {
@@ -1199,7 +1199,7 @@ export function createHud(api: HudApi): Hud {
     // (a duel's pause menu: Leave appears once the link is lost, "Resign and leave" while packets arrive)
     if (api.duel && api.ctrl.paused && duelShown && !duelShown.ask && duelShown.key !== exitsKey(api.duel)) renderDuelExits(api.duel, null);
     const fs = f();
-    // (a sound duel: orders still on their way count as applied, controller.ts BuildView)
+    // (a duel: orders still on their way count as applied, controller.ts BuildView)
     const view = api.ctrl.view();
     const scrap = Math.floor(view.scrap);
     if (scrap !== lastScrap) {
@@ -1257,7 +1257,7 @@ export function createHud(api: HudApi): Hud {
       if (anchor) chips.push(anchor);
       // (unarmed Condors, lifts and anchored Goliaths have no fights to skip: Move only would
       // change nothing; on a phone the Unload or anchor chip takes its place in a mixed
-      // selection, so the row stays one row. A sound duel: as the orders on their way leave them)
+      // selection, so the row stays one row. A duel: as the orders on their way leave them)
       const lifting = ctrl.liftMembers();
       const ahead = ctrl.ahead();
       const marchers = [...ctrl.selectedUnits].some((id) => {
@@ -1312,7 +1312,7 @@ export function createHud(api: HudApi): Hud {
       // (the Instruction's bubble says it already: one instruction at a time)
       if (!tutorialMatch)
         toast(tr(`${displayName(p.kind, nation)} ${agree(p.kind, "prêt", nation)} : touche ici pour placer`, `${displayName(p.kind, nation)} ready: tap here to place`), () => {
-          // (not once it has been placed: in a sound duel the placement may still be on its way)
+          // (not once it has been placed: in a duel the placement may still be on its way)
           if (ctrl.view().pending?.ready) ctrl.placing = p.kind;
         }, "good");
       if (tab !== "build") {
@@ -1553,11 +1553,11 @@ export function createHud(api: HudApi): Hud {
         onRematch: rematch,
         onMenu: () => fullscreen.reload(),
         ...(ops?.reportOpts() ?? {}),
-        // a sound duel: You and Friend, its own buttons (each leaves the duel before it reloads)
+        // a duel: You and Friend, its own buttons (each leaves the duel before it reloads)
         ...(duel
           ? {
               opponent: duel.opponent,
-              via: duel.practice ? tr("lien d'entraînement (sans son)", "practice link (no sound)") : duel.online ? tr("en ligne", "online") : tr("par le son", "by sound"),
+              via: duel.practice ? tr("lien d'entraînement", "practice link") : tr("en ligne", "online"),
               onRematch: () => duel.rematch(),
               onMenu: () => duel.menu(),
               after: [...duel.actions(), ...(opts?.actions ?? [])]

@@ -1,5 +1,5 @@
 /**
- * A frame-level simulated sound link (SOUND-DUEL.md "Link layer"): two
+ * A frame-level simulated sound link (DUEL.md "Link layer"): two
  * connected LinkTransport ends, `a` and `b`, on one injected clock —
  * advance(ms) in tests, a real timer in ?duel=loop. It models what the upper
  * layers can see of the modem and nothing below it:

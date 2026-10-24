@@ -1,5 +1,5 @@
 /**
- * Pairing for sound duels (SOUND-DUEL.md "Pairing"): the lobby protocol that
+ * Pairing for duels (DUEL.md "Pairing"): the lobby protocol that
  * turns two phones hearing each other into one agreed match. Each phone
  * repeats one lobby frame describing its whole state, rebuilt for every
  * packet; there are no requests and no replies, so a lost, repeated or late
@@ -162,7 +162,6 @@
  * 410–800 ms with 400 ms packets, where none of 80 did.) Seven bits hold
  * 1,260 ms.
  */
-import { PACKET_SYMBOLS, TS } from "../link/modem/params";
 import type { BandPlan, BandRole, LinkPacket, ModemMode } from "../link/transport";
 import { BIOMES, parseRandomMapId, randomMapId } from "../sim/mapgen";
 import { MAPS, mapBansMutator } from "../sim/maps";
@@ -483,8 +482,13 @@ export function readLobbyFrame(bits: Uint8Array, nbits: number): LobbyFrame {
 
 // ------------------------------------------------------------ the rules ---
 
-/** A packet's period in a mode on a plan (ms): its symbols back to back (100 and 200 ms; 200 and 400 on the low plan). */
-export const packetMs = (plan: BandPlan, mode: ModemMode): number => Math.round(PACKET_SYMBOLS[plan][mode] * TS * 1000);
+/**
+ * A packet's period in a mode on a plan (ms): 100 and 200 ms (the relay's
+ * packet clock, relay-transport.ts RELAY_PERIOD_MS); 200 and 400 on the low
+ * plan, a leftover of the sound link's that no link uses any more.
+ */
+const PACKET_MS: Record<BandPlan, Record<ModemMode, number>> = { high: { fast: 100, robust: 200 }, low: { fast: 200, robust: 400 } };
+export const packetMs = (plan: BandPlan, mode: ModemMode): number => PACKET_MS[plan][mode];
 
 /**
  * D = clamp(ceil((rtt / 2 + P + M) / 100 ms), 3, 8): rtt the round trip's

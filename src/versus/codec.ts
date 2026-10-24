@@ -1,5 +1,5 @@
 /**
- * The sound duel's command codec (SOUND-DUEL.md "Command codec"): orders as
+ * The duel's command codec (DUEL.md "Command codec"): orders as
  * few bits as a 188-bit packet allows, lossless for canonical commands and
  * stateless across turns, so a lost or repeated frame can never corrupt a
  * later one.

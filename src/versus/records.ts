@@ -1,9 +1,9 @@
 /**
- * What a sound duel leaves behind (SOUND-DUEL.md "Records", "Rematch"): the
+ * What a duel leaves behind (DUEL.md "Records", "Rematch"): the
  * phone's own win/loss record, the saved battle (a BattleRecord, downloaded
  * as .json), and what a Rematch tap stores for the page it reloads into.
  *
- * Win/loss. localStorage `battledrones.soundduel` holds { w, l, d,
+ * Win/loss. localStorage `panache.duelenligne` holds { w, l, d,
  * abandoned, noContest }. The feed adds one outcome per match as soon as it
  * is known (the match decided, or aborted; a page that goes hidden mid-match
  * counts it as abandoned until then), and moves it over: from that stand-in
@@ -39,14 +39,14 @@
  *    ends where the match did. Both sides resigning on one tick ends it as a
  *    draw by "resign", not "love" (the arena's endOf says the same, so a
  *    record re-simulated by tools/arena.ts upgrade keeps it);
- *  - the seats name the bands: "sound-duel:host" and "sound-duel:guest"
- *    (the battle viewer labels them "Host phone" and "Guest phone" with the
- *    opener's name: src/game/replay.ts, which may not import this);
+ *  - the seats name the roles: "online-duel:host" and "online-duel:guest"
+ *    ("practice-duel:" on a practice link; older records "sound-duel:"),
+ *    which the battle viewer labels "Host" and "Guest" with the opener's
+ *    name (src/game/replay.ts, which may not import this);
  *  - the file is named battledrones-duel-<map>-<date>.json.
  */
 import type { BattleEnd, BattleRecord } from "../arena/record";
-import type { MicMode } from "../link/rig";
-import type { BandPlan, BandRole } from "../link/transport";
+import type { BandRole } from "../link/transport";
 import { isKnownMapId } from "../sim/maps";
 import { isMutatorId, type MutatorId } from "../sim/rules";
 import type { MatchSetup } from "../sim/setup";
@@ -55,14 +55,12 @@ import { EN, tr } from "../lang";
 
 /** A world hash goes into the saved record every this many ticks (the arena's rate: the viewer checks them). */
 export const HASH_EVERY = 100;
-/** localStorage: the sound-duel record. */
-export const RECORD_KEY = "battledrones.soundduel";
-/** localStorage: the online duel's record (its own: a match over the internet isn't one over sound). */
+/** localStorage: the duel's win/loss record. */
 export const ONLINE_RECORD_KEY = "panache.duelenligne";
 /**
  * sessionStorage: what the reloaded page starts with (the single-player end
  * screen's Rematch writes its own tokens under the same key: "1", "spectate",
- * "daily", "op:<id>"), the sound duel's token, and the duel it rematches.
+ * "daily", "op:<id>"), the duel's token, and the duel it rematches.
  */
 export const REMATCH_KEY = "battledrones.rematch";
 export const REMATCH_DUEL = "duel";
@@ -89,7 +87,7 @@ const FIELD: Record<DuelOutcome, keyof DuelTally> = { win: "w", loss: "l", draw:
 const count = (v: unknown): number => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : 0);
 
 /** The record so far (zero where there is none, it can't be read, or storage is blocked). */
-export function readTally(store: Pick<Storage, "getItem"> | null, key = RECORD_KEY): DuelTally {
+export function readTally(store: Pick<Storage, "getItem"> | null, key = ONLINE_RECORD_KEY): DuelTally {
   let o: Partial<Record<keyof DuelTally, unknown>> | null = null;
   try {
     const raw = store?.getItem(key);
@@ -105,7 +103,7 @@ export function readTally(store: Pick<Storage, "getItem"> | null, key = RECORD_K
 export const withOutcome = (t: DuelTally, o: DuelOutcome): DuelTally => ({ ...t, [FIELD[o]]: t[FIELD[o]] + 1 });
 
 /** Count one match: returns the record as stored (as it would be, where storage is blocked). */
-export function addOutcome(o: DuelOutcome, store: Store | null, key = RECORD_KEY): DuelTally {
+export function addOutcome(o: DuelOutcome, store: Store | null, key = ONLINE_RECORD_KEY): DuelTally {
   const t = withOutcome(readTally(store, key), o);
   try {
     store?.setItem(key, JSON.stringify(t));
@@ -120,7 +118,7 @@ export function addOutcome(o: DuelOutcome, store: Store | null, key = RECORD_KEY
  * turned out to be no contest, or the stand-in abandoned a hidden page
  * counted, once the match ends): returns the record as stored.
  */
-export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | null, key = RECORD_KEY): DuelTally {
+export function moveOutcome(from: DuelOutcome, to: DuelOutcome, store: Store | null, key = ONLINE_RECORD_KEY): DuelTally {
   const t = readTally(store, key);
   const f = FIELD[from];
   const back = withOutcome({ ...t, [f]: Math.max(0, t[f] - 1) }, to);
@@ -158,10 +156,10 @@ export function duelEnd(tick: number, winner: Faction | "draw" | null, resigned?
 
 export interface DuelRecordInput {
   setup: MatchSetup;
-  /** Which band each side's phone played (the host plays hostSide). */
+  /** Which role each side's page played (the host plays hostSide). */
   seats: Record<Faction, BandRole>;
-  /** The seats' prefix: "sound-duel" (the default) or "online-duel". */
-  via?: "sound-duel" | "online-duel";
+  /** The seats' prefix: "online-duel" (the default), or "practice-duel" on a practice link. */
+  via?: "online-duel" | "practice-duel";
   /** Non-empty turns as stepped: [tick, side, commands], blue's before red's on a tick. */
   turns: [number, Faction, Command[]][];
   /** [tick, worldHash] every HASH_EVERY ticks. */
@@ -191,7 +189,7 @@ export function battleRecord(o: DuelRecordInput): BattleRecord {
     ...(s.income ? { income: { ...s.income } } : {}),
     // (the nations the pairing agreed: the viewer and the arena replay them, setupWorld(record))
     ...(s.nations ? { nations: { ...s.nations } } : {}),
-    seats: { blue: { player: `${o.via ?? "sound-duel"}:${o.seats.blue}` }, red: { player: `${o.via ?? "sound-duel"}:${o.seats.red}` } },
+    seats: { blue: { player: `${o.via ?? "online-duel"}:${o.seats.blue}` }, red: { player: `${o.via ?? "online-duel"}:${o.seats.red}` } },
     frames: "own",
     turns: o.turns.map(([t, f, cmds]) => [t, f, cmds]),
     radio: [],
@@ -225,11 +223,9 @@ export function downloadRecord(r: BattleRecord, doc: Document = document): void 
 
 // ------------------------------------------------------------- rematch ---
 
-/** What a Rematch tap hands the reloaded page: the same roles and bands, the sides swapped. */
+/** What a Rematch tap hands the reloaded page: the same roles, the sides swapped. */
 export interface RematchPlan {
   role: BandRole;
-  plan: BandPlan;
-  micMode: MicMode;
   /** The side the host plays in the rematch (flipped from this match's). */
   hostSide: Faction;
   mapId: string;
@@ -254,8 +250,8 @@ export function writeRematch(p: RematchPlan, store: Pick<Storage, "setItem"> | n
 
 /**
  * A stored rematch (DUEL_KEY's JSON), checked field by field; null when there
- * is none or it can't be used. A microphone mode it can't read is the default
- * one ("raw"), and unknown mutators drop out: the rest still makes the
+ * is none or it can't be used. Unknown mutators drop out (and the sound
+ * link's old band and microphone fields are ignored): the rest still makes the
  * rematch. The lobby reads with this alone: by then main.ts has taken the
  * token.
  */
@@ -264,13 +260,12 @@ export function parseRematch(raw: string | null): RematchPlan | null {
   try {
     const o = JSON.parse(raw) as Partial<Record<keyof RematchPlan, unknown>> | null;
     if (!o || typeof o !== "object") return null;
-    const { role, plan, micMode, hostSide, mapId, mutators, online, nation } = o;
+    const { role, hostSide, mapId, mutators, online, nation } = o;
     if (role !== "host" && role !== "guest") return null;
-    if (plan !== "high" && plan !== "low") return null;
     if (hostSide !== "blue" && hostSide !== "red") return null;
     if (typeof mapId !== "string" || !isKnownMapId(mapId)) return null;
     const muts = Array.isArray(mutators) ? mutators.filter((m): m is MutatorId => typeof m === "string" && isMutatorId(m)) : [];
-    const r: RematchPlan = { role, plan, micMode: micMode === "ec" ? "ec" : "raw", hostSide, mapId, mutators: muts };
+    const r: RematchPlan = { role, hostSide, mapId, mutators: muts };
     if (nation === "republique" || nation === "empire") r.nation = nation;
     const on = online as { code?: unknown; key?: unknown } | null | undefined;
     if (on && typeof on === "object" && typeof on.code === "string" && /^[A-Z]{4}$/.test(on.code) && typeof on.key === "string" && /^[0-9a-f]{1,64}$/.test(on.key))

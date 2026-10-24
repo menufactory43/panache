@@ -6,7 +6,7 @@
 // The Belle Époque HUD (src/ui/belle-hud.ts, the default) keeps the build bar in a
 // drawer behind 🔨 Construire: the flow opens it first; ?style=original drives the
 // classic bar (the style is read from the page).
-// --side=red plays the same flow as red against a blue AI (/?side=red, SOUND-DUEL.md
+// --side=red plays the same flow as red against a blue AI (/?side=red, DUEL.md
 // "Playing red"); every check asks the page which side it plays (window.__bd.player).
 // Usage: node tools/smoke.mjs [width] [height] [--shots] [url] [--side=red]
 import { chromium } from "playwright-core";

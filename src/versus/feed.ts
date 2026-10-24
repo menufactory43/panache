@@ -1,16 +1,15 @@
 /**
- * The feed of a sound duel (SOUND-DUEL.md "MatchFeed and GameScene"): the
+ * The feed of a duel (DUEL.md "MatchFeed and GameScene"): the
  * MatchFeed GameScene plays a duel through. It builds the world both phones
  * agreed on, begins the session's lockstep, and from then on is the scene's
  * only way to the sim: each tick it seals this phone's orders (drained from
  * the scene's Controller) and hands back both sides' turn, or null to stall;
  * after each step it folds the world hash into the trail and keeps the turn
  * log and hashes for Save battle. Around that it runs the duel's in-match
- * life: the pause and background bits, the stall overlays, the reconnect
- * cover, resign and leave, the end (aborts, the win/loss record) and the way
+ * life: the pause and background bits, the stall overlays, resign and leave, the end (aborts, the win/loss record) and the way
  * out (Menu and Rematch wait for the end to go out, then reload).
  *
- *   const feed = new VersusFeed({ session, rig, practice, onExit })   (phase "starting": beginMatch now)
+ *   const feed = new VersusFeed({ session, practice, online, onExit })   (phase "starting": beginMatch now)
  *   main.ts:  begin(false, () => duelSetup(feed.config), feed)        (GameScene calls attach, commands, afterTick, frame)
  *
  * It pumps the session from construction on, every animation frame and from
@@ -68,17 +67,6 @@
  *  - Menu and Rematch wait for the session to be closable or 2.5 s, showing
  *    "Leaving…", then close the session, call onExit and reload; a page
  *    unload does the record and onExit only;
- *  - a reconnect cover that succeeds stays up ("Listening…") until the rig
- *    has had CAPTURE_OK_MS of gap-free capture, as the spec's overlay does.
- *    It covers the match only: once the match is over (decided or aborted)
- *    the end screen stays free, and the report's Sound duel block offers the
- *    same tap as a button (the link still brings the end check and the
- *    friend's rematch), except after this phone left. After a failed tap
- *    both say why when the rig knows (its lastError: the microphone refused
- *    or missing, a rate the link can't use, a worklet that won't load), with
- *    the lobby's advice for that reason (RIG_ADVICE); a modem that stopped
- *    mid-match is a loss like the others (onLost "modem"), and the tap
- *    rebuilds it;
  *  - "Your friend is back in the lobby: tap Rematch" shows on the report
  *    once a lobby frame follows the friend's game frames (its page reloaded:
  *    the lockstep's peerInLobby), on any end screen, since all offer Rematch;
@@ -103,8 +91,6 @@
 import type { BattleRecord } from "../arena/record";
 import type { Controller } from "../game/controller";
 import type { AbortReason, MatchFeed } from "../game/GameScene";
-import { CAPTURE_OK_MS, LEAVE_AFTER_FAILURES, type Rig } from "../link/rig";
-import { rigAdvice, rigMessage } from "./rig-text";
 import { worldHash } from "../sim/checksum";
 import type { MutatorId } from "../sim/rules";
 import { setupWorld } from "../sim/setup";
@@ -116,7 +102,7 @@ import { duelReportSection, mountDuelOverlay, type DuelOverlay, type DuelReportV
 import type { PairingResult } from "./pairing";
 import type { OnlineInfo } from "./online";
 import {
-  HASH_EVERY, ONLINE_RECORD_KEY, RECORD_KEY, addOutcome, battleRecord, downloadRecord, duelEnd, moveOutcome, readTally, tallyLine, withOutcome, writeRematch,
+  HASH_EVERY, ONLINE_RECORD_KEY, addOutcome, battleRecord, downloadRecord, duelEnd, moveOutcome, readTally, tallyLine, withOutcome, writeRematch,
   type DuelOutcome, type DuelTally
 } from "./records";
 import { PEER_HEARD_MS, type Session } from "./session";
@@ -126,7 +112,7 @@ declare const __SIM_HASH__: string | undefined;
 /** The sim this build plays (vite.config.ts), or null outside a Vite build (tests). */
 const BUILD_SIM: string | null = typeof __SIM_HASH__ === "undefined" ? null : __SIM_HASH__;
 
-/** A stall shows after this long with no new turn from the friend (SOUND-DUEL.md "Stall overlays"). */
+/** A stall shows after this long with no new turn from the friend (DUEL.md "Stall overlays"). */
 export const WAIT_SHOW_MS = 500;
 /** … "Signal lost: bring the phones closer" after this long … */
 export const SIGNAL_LOST_MS = 5000;
@@ -210,9 +196,6 @@ function browserEnv(): FeedEnv {
   };
 }
 
-/** What the feed reads of the audio rig (src/link/rig.ts Rig; tests pass a stand-in). */
-export type DuelRig = Pick<Rig, "state" | "failures" | "lastError" | "micMode" | "onLost" | "reconnect" | "captureOkMs">;
-
 /** A `lift` this phone sent that hasn't been stepped yet: the Goliath, and the Condors it named. */
 export interface LiftInFlight {
   goliathId: number;
@@ -222,18 +205,16 @@ export interface LiftInFlight {
 export interface VersusFeedOptions {
   /** Phase "starting": result() is set. The feed calls beginMatch in its constructor. */
   session: Session;
-  /** The audio rig (null on a practice link, ?duel=loop or relay: no reconnect cover). */
-  rig: DuelRig | null;
-  /** A practice link (no sound): no win/loss record, and the report says so. */
+  /** A practice link (?duel=loop or relay): no win/loss record, and the report says so. */
   practice: boolean;
   /**
    * An online duel (src/versus/online.ts): its room's state for the stall pill (this phone's connection down, the
-   * friend's gone from the room), its own win/loss record, and the room the Rematch takes back. Null: over sound.
+   * friend's gone from the room), its win/loss record, and the room the Rematch takes back. Null: a practice link.
    */
   online?: { info(): OnlineInfo; code: string; key: string } | null;
   /** The other side's label (default "your friend"). */
   opponent?: string;
-  /** Once, when the duel is over for this page (the session closable, or the page going): the lobby closes the rig and turns the guard off. */
+  /** Once, when the duel is over for this page (the session closable, or the page going): the lobby lets its link go. */
   onExit: () => void;
   /** Every frame (a practice peer steps along). */
   onFrame?: (deltaMs: number) => void;
@@ -306,7 +287,6 @@ export class VersusFeed implements MatchFeed {
   readonly duel: DuelHud;
 
   private readonly env: FeedEnv;
-  private readonly rig: DuelRig | null;
   private readonly onExit: () => void;
   private readonly onFrame: ((deltaMs: number) => void) | null;
   private readonly created: string;
@@ -348,8 +328,6 @@ export class VersusFeed implements MatchFeed {
   private tally: DuelTally | null = null;
   /** The latest stall shown, kept while paused (the pause menu's Leave), cleared once the match moves. */
   private lastStall: { kind: StallKind; ms: number } | null = null;
-  /** The reconnect cover's state ("ok": none). */
-  private linkPhase: "ok" | "lost" | "trying" | "failed" | "settling" = "ok";
   /** Menu or Rematch: leaving since (link clock). */
   private exiting: { to: "menu" | "rematch"; at: number } | null = null;
 
@@ -358,7 +336,6 @@ export class VersusFeed implements MatchFeed {
     if (!r) throw new Error("no duel agreed yet: the session has no result");
     this.session = o.session;
     this.result = r;
-    this.rig = o.rig;
     this.practice = o.practice;
     this.online = o.online ?? null;
     this.trailLog = o.practice || this.online ? [] : null;
@@ -406,12 +383,6 @@ export class VersusFeed implements MatchFeed {
       win.addEventListener("pagehide", gone);
       this.teardown.push(() => win.removeEventListener("pagehide", gone));
     }
-    if (this.rig) {
-      const off = this.rig.onLost(() => {
-        if (this.linkPhase === "ok" || this.linkPhase === "settling") this.linkPhase = "lost";
-      });
-      this.teardown.push(off);
-    }
     this.timer = env.setInterval(() => this.pump(), PUMP_MS);
     const raf = env.requestAnimationFrame;
     if (raf) {
@@ -432,8 +403,8 @@ export class VersusFeed implements MatchFeed {
     const doc = this.env.document;
     const root = doc?.getElementById("hud");
     if (root) {
-      this.ui = mountDuelOverlay(root, { reconnect: () => this.reconnect(), leave: () => this.leave() }, this.online !== null);
-      this.teardown.push(addReportSection(duelReportSection(() => this.reportView(), { reconnect: () => this.reconnect() }, this.online !== null)));
+      this.ui = mountDuelOverlay(root, { leave: () => this.leave() });
+      this.teardown.push(addReportSection(duelReportSection(() => this.reportView())));
     }
     this.pump();
   }
@@ -533,12 +504,6 @@ export class VersusFeed implements MatchFeed {
     else if (!st.decided && st.peerEnd === "left") this.abort("left");
     else if (st.decided) this.settle(outcomeOf(st.decided.winner, this.local));
     if (this.resignLeave && this.world.winner && !this.aborted) scene.skipFinale();
-    // the reconnect cover
-    const rig = this.rig;
-    if (rig) {
-      if (this.linkPhase === "ok" && rig.state === "lost") this.linkPhase = "lost";
-      if (this.linkPhase === "settling" && rig.captureOkMs() >= CAPTURE_OK_MS) this.linkPhase = "ok";
-    }
   }
 
   /** The pause menu (ctrl.paused): the frames say paused and nothing new is sealed (the game loop stops calling commands too). */
@@ -572,11 +537,6 @@ export class VersusFeed implements MatchFeed {
       stall,
       queued: !over && !!ls && ls.queuedTicks > QUEUED_TICKS,
       resigning: this.resignAt !== null && !over,
-      // (over, the end screen is up: the report offers the reconnect instead, under its own buttons)
-      reconnect:
-        this.linkPhase === "ok" || this.exiting || over
-          ? null
-          : { phase: this.linkPhase, leave: (this.rig?.failures ?? 0) >= LEAVE_AFTER_FAILURES, why: this.failedWhy() },
       leaving: this.exiting !== null
     };
   }
@@ -611,31 +571,6 @@ export class VersusFeed implements MatchFeed {
       resignAndLeave: link.sinceRx <= PEER_HEARD_MS,
       leave: (s !== null && (s.kind === "lost" || s.kind === "offline" || s.kind === "gone" || s.ms >= LEAVE_ANY_MS)) || link.sinceRx > SIGNAL_LOST_MS
     };
-  }
-
-  /** The reconnect cover's tap, or the report's: inside the gesture (rig.reconnect() resumes the audio). */
-  reconnect(): void {
-    const rig = this.rig;
-    if (!rig || this.linkPhase === "ok" || this.linkPhase === "trying" || this.linkPhase === "settling") return;
-    this.linkPhase = "trying";
-    void rig.reconnect().then((ok) => {
-      if (this.closed || this.linkPhase !== "trying") return;
-      this.linkPhase = ok ? "settling" : "failed";
-      this.pump();
-    });
-  }
-
-  /**
-   * After a failed tap, why, when the rig knows (lastError), with the
-   * lobby's advice for that reason; null otherwise, and for a context that
-   * didn't start (the rig has no reason then: the cover's own words).
-   */
-  private failedWhy(): string | null {
-    const e = this.linkPhase === "failed" ? this.rig?.lastError : null;
-    if (!e) return null;
-    const advice = rigAdvice(e.reason);
-    const message = rigMessage(e.reason, e.message);
-    return advice ? `${message}. ${advice}` : `${message}.`;
   }
 
   /** Save battle: the record as a .json download. */
@@ -681,9 +616,9 @@ export class VersusFeed implements MatchFeed {
     this.settled = o;
   }
 
-  /** Where the win/loss record lives: the sound duel's, or the online duel's own. */
+  /** Where the win/loss record lives. */
   private get recordKey(): string {
-    return this.online ? ONLINE_RECORD_KEY : RECORD_KEY;
+    return ONLINE_RECORD_KEY;
   }
 
   /** The outcome as the lockstep has it: out of sync, else decided; null while neither. */
@@ -712,7 +647,7 @@ export class VersusFeed implements MatchFeed {
       const r = this.result;
       writeRematch(
         {
-          role: r.role, plan: r.plan, micMode: this.rig?.micMode ?? "raw", hostSide: OTHER[r.config.hostSide], mapId: r.mapId, mutators: r.config.mutators.slice(),
+          role: r.role, hostSide: OTHER[r.config.hostSide], mapId: r.mapId, mutators: r.config.mutators.slice(),
           // (the nations follow the phones, as the roles do: the sides swap)
           ...(r.setup.nations?.[r.local] ? { nation: r.setup.nations[r.local]! } : {}),
           ...(this.online ? { online: { code: this.online.code, key: this.online.key } } : {})
@@ -739,7 +674,7 @@ export class VersusFeed implements MatchFeed {
     this.standIn = now === null;
   }
 
-  /** The page is going (a reload or navigation that isn't ours): count the match and let the lobby close the rig. */
+  /** The page is going (a reload or navigation that isn't ours): count the match and let the lobby let its link go. */
   private pageGone(): void {
     if (this.exited) return;
     this.settle(this.pendingOutcome());
@@ -798,7 +733,7 @@ export class VersusFeed implements MatchFeed {
     const seats = { [r.local]: r.role, [OTHER[r.local]]: other } as Record<Faction, "host" | "guest">;
     // (the world's own resigned: null when both sides resigned, unset otherwise)
     const end = duelEnd(w.tick, w.winner ?? null, w.resigned);
-    return battleRecord({ setup: r.setup, seats, via: this.online ? "online-duel" : "sound-duel", turns: this.turns, hashes: this.hashes, tick: w.tick, end, sim: BUILD_SIM, created: this.created });
+    return battleRecord({ setup: r.setup, seats, via: this.practice ? "practice-duel" : "online-duel", turns: this.turns, hashes: this.hashes, tick: w.tick, end, sim: BUILD_SIM, created: this.created });
   }
 
   /** Kept in the Archives once decided (GameScene keepMatch): the record Save battle downloads; none for a match with no result. */
@@ -826,7 +761,7 @@ export class VersusFeed implements MatchFeed {
     });
   }
 
-  /** The report's Sound duel block (read while the report is up; public for tests). */
+  /** The report's Duel block (read while the report is up; public for tests). */
   reportView(): DuelReportView {
     const st = this.session.status();
     const ls = st.lockstep;
@@ -840,7 +775,6 @@ export class VersusFeed implements MatchFeed {
       record: this.practice ? null : tallyLine(tally),
       sync,
       // (the link still brings the end check and the friend's rematch; not once this phone has left)
-      relink: this.linkPhase === "ok" || this.exiting || this.aborted === "lost" ? null : { phase: this.linkPhase, why: this.failedWhy() },
       // (a lobby frame after the friend's game frames: its page reloaded into the lobby)
       friendInLobby: !!ls && ls.peerInLobby && ls.framesIn > 0 && !this.exiting,
       link: { good: st.link.rxOk, bad: st.link.rxBad, stallMs: ls?.stallMs ?? 0, orders: ls?.orderWait ?? null }

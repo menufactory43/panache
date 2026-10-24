@@ -7,10 +7,6 @@
  * button reload the page, so a reload made while full screen leaves a note
  * (sessionStorage) and the next page asks again on the first tap or key.
  * Engine-free; the browser surface is injectable for tests.
- *
- * Every reload also puts iOS's audio session back to "auto"
- * (resetAudioSession): a sound duel's page sets it to play-and-record, and
- * Safari carries that over to the next page in the tab.
  */
 
 const KEY = "battledrones.fullscreen";
@@ -23,40 +19,7 @@ export interface FullscreenEnv {
   win: Pick<Window, "addEventListener" | "removeEventListener">;
   /** sessionStorage, or null where storage is blocked. */
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null;
-  /** navigator.audioSession (Safari 16.4 on), or null where there is none. */
-  audioSession?: AudioSessionLike | null;
   reload(): void;
-}
-
-/** iOS's audio session, as navigator.audioSession has it. */
-export interface AudioSessionLike {
-  type: string;
-}
-
-function browserAudioSession(): AudioSessionLike | null {
-  try {
-    return (navigator as Navigator & { audioSession?: AudioSessionLike }).audioSession ?? null;
-  } catch {
-    return null; // (no navigator)
-  }
-}
-
-/**
- * Put iOS's audio session back to "auto", on every way out of a page and at
- * every boot (main.ts). Safari keeps the type a page set across a reload or a
- * navigation in the same tab: WebKit holds it as an override of the whole web
- * process's audio category, and a new document resets only the type it reads
- * back. So after a sound duel's page left play-and-record (src/link/rig.ts),
- * the next page reads "auto" while its audio still runs as a call, and its
- * contexts may take the low rate rig.ts "The rate" describes; only a write
- * clears it. Writing "auto" where nothing else was set changes nothing.
- */
-export function resetAudioSession(session: AudioSessionLike | null = browserAudioSession()): void {
-  try {
-    if (session) session.type = "auto";
-  } catch {
-    /* ignore */
-  }
 }
 
 function browserEnv(): FullscreenEnv {
@@ -73,10 +36,10 @@ function browserEnv(): FullscreenEnv {
       return null;
     }
   };
-  return { doc: document, win: window, storage, audioSession: browserAudioSession(), reload: () => reloadWithoutLink(window.location, rematch()) };
+  return { doc: document, win: window, storage, reload: () => reloadWithoutLink(window.location, rematch()) };
 }
 
-/** What a replay's link (main.ts watchLinked) and a practice duel's (?duel=loop|relay, SOUND-DUEL.md "Dev and test modes") put in the URL. */
+/** What a replay's link (main.ts watchLinked) and a practice duel's (?duel=loop|relay, DUEL.md "Dev and test modes") put in the URL. */
 const LINK_PARAMS = ["replay", "follow", "duel", "seat", "delay", "loss", "latency", "side"];
 
 /**
@@ -127,8 +90,6 @@ export class Fullscreen {
     } catch {
       /* ignore */
     }
-    // (a duel's lobby may still hold the rig here, as at its Reload after a version error; its pagehide closes the rig too)
-    resetAudioSession(env.audioSession ?? null);
     env.reload();
   }
 
@@ -145,12 +106,7 @@ export class Fullscreen {
     if (wanted) this.enterOnGesture();
   }
 
-  /**
-   * Ask for full screen on the next tap or key, not this one. The Duel tap
-   * waits so: on iPadOS a full-screen page hides the microphone prompt, so
-   * it arms this once the rig has the microphone (main.ts duelTap). Returns
-   * a disarm, a no-op once the gesture came.
-   */
+  /** Ask for full screen on the next tap or key, not this one. Returns a disarm, a no-op once the gesture came. */
   enterOnGesture(): () => void {
     const env = this.env();
     if (!env.doc.documentElement.requestFullscreen) return () => undefined;

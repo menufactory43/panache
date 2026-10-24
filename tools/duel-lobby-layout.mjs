@@ -1,4 +1,4 @@
-// Duel lobby layout check (SOUND-DUEL.md "The lobby"): the built app at
+// Duel lobby layout check (DUEL.md "The lobby"): the built app at
 // ?duel=loop (a practice link: no sound, no microphone) on phone sizes in
 // both orientations, a tablet and a desktop window. At each size it taps
 // Duel, looks at the first step (Host, Join, Advanced, Cancel), taps Host,
@@ -219,8 +219,8 @@ for (const [w, h] of SIZES) {
     for (const p of await page.evaluate(inspect)) problems.push(`${at} ${step}: ${p}`);
   };
   await page.goto(url, { waitUntil: "networkidle" });
-  await page.waitForSelector("#play-duel:not([disabled])", { timeout: 30000 });
-  await page.locator("#play-duel").tap();
+  await page.waitForSelector("#play-online:not([disabled])", { timeout: 30000 });
+  await page.locator("#play-online").tap();
   await page.waitForSelector(".duel-role[data-act=host]", { timeout: 10000 });
   await check("roles");
   await page.locator(".duel-role[data-act=host]").tap();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CRC_INIT, crcKey } from "../src/link/modem/crc";
+import { CRC_INIT, crcKey } from "../src/link/crc";
 import type { BandRole } from "../src/link/transport";
 import { RelayTransport, encodeRelayPacket, type RelayWindow } from "../src/versus/relay-transport";
 

@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { PacketAir, type PacketAirOptions } from "../src/link/packet-air";
-import { RoomLink } from "../src/link/room-transport";
-import type { RoomSide } from "../src/link/sim/room";
 import type { BandPlan, BandRole, LinkPacket, LinkTransport } from "../src/link/transport";
 import { worldHash } from "../src/sim/checksum";
 import { BIOMES, randomMapId } from "../src/sim/mapgen";
@@ -1080,46 +1078,3 @@ describe("a pairing under way", () => {
   });
 });
 
-describe("two phones pairing over the modem", () => {
-  it("pair over RoomLink (the real modem in a simulated room), and meet a reset at GO", { timeout: 180_000 }, () => {
-    const offer: HostOffer = { map: "riverlands", mutators: [] };
-    // (the last two at the modem's clock tolerance, ±300 ppm a phone: each receiver's first packets after lock read
-    // 6–14 dB, and before ROBUST_WAIT_FRAMES the host offered robust off them, at D = 6)
-    const cases: [number, RoomSide, RoomSide, boolean][] = [[5, {}, { sampleRate: 44100, ppm: 100 }, false], [6, {}, {}, false], [7, {}, {}, true],
-      [8, { ppm: 300 }, { ppm: -300 }, false], [7, { ppm: -300 }, { ppm: 300 }, false]];
-    for (const [seed, a, b, resetAtGo] of cases) {
-      const link = new RoomLink({ seed, distanceCm: 20, a, b });
-      const host = phone(link.a, { role: "host", host: offer, seed: 11, pickAfterMs: resetAtGo ? 2000 : 300 });
-      const guest = phone(link.b, { role: "guest", seed: 12 });
-      const d: Pair = {
-        host, guest,
-        run(until, limitMs) {
-          for (let t = 0; !until() && t < limitMs; t += STEP) {
-            link.advance(STEP);
-            drive(d.host);
-            drive(d.guest);
-          }
-        }
-      };
-      if (resetAtGo) {
-        // the guest picked first; the host sets GO as it picks, and the guest resets with that GO in flight
-        d.run(() => host.pairing.state().go, 30_000);
-        d.run(() => false, 100);
-        expect(guest.pairing.state()).toMatchObject({ phase: "waiting", peerGo: false });
-        retry(guest);
-      }
-      const [h, g] = pairUp(d, 30_000);
-      expectAgreed(d, h, g, offer);
-      // the room's round trip, packet start to fully received both ways: two speaker-to-microphone paths (75 ms each)
-      // and two of the lobby's robust packets (200 ms each), about 550 ms; so D = 5 for a fast start (4 at 500 ms or
-      // less, 6 for a robust one)
-      const rtt = host.pairing.state().rtt;
-      expect(rtt.samples.length).toBe(5);
-      expect(rtt.median!).toBeGreaterThan(520);
-      expect(rtt.median!).toBeLessThan(600);
-      expect([h.fast, h.delay], `room ${seed}, ${a.ppm ?? 0}/${b.ppm ?? 0} ppm`).toEqual([true, 5]);
-      expect(h.delay).toBe(delayFor(rtt.median!, packetMs("high", "fast")));
-      expect(host.pairing.state().restarts).toBe(resetAtGo ? 1 : 0);
-    }
-  });
-});

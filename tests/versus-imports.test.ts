@@ -1,19 +1,15 @@
 /**
- * The sound duel's import rules (SOUND-DUEL.md "Modules", "Worklet", "Rig"):
+ * The duel's import rules (DUEL.md "Modules"):
  *
  *  - nothing outside src/versus and src/link imports them, except types:
  *    main.ts reaches them through exactly one `import("./versus/lobby")`, so
  *    the duel is a lazily loaded chunk (and main.ts keeps its two
  *    `import("./game/replay")`: Save battle doesn't load the viewer);
  *  - src/game imports neither, except types;
- *  - src/versus and src/link use only `import type` from src/arena;
- *  - the rig never imports game code;
- *  - the worklet's import graph uses only the AudioWorklet's globals, with
- *    their declarations module-local in worklet.ts.
+ *  - src/versus and src/link use only `import type` from src/arena.
  *
  * The sources are read with the TypeScript parser, so comments and strings
- * never count and `import { type A }` is told from `import { A }`. (The same
- * worklet rule is also in tests/link-worklet.test.ts, by regular expression.)
+ * never count and `import { type A }` is told from `import { A }`.
  *
  * Where the spec is silent:
  *  - type-only is `import type …`, `export type … from`, or a list whose
@@ -21,9 +17,7 @@
  *    verbatimModuleSyntax). A bare `import "…"` and a stylesheet count as
  *    value imports;
  *  - "outside" is everything under src/ but src/versus and src/link, and a
- *    computed `import(x)` there fails (it can't be checked);
- *  - the worklet's globals are checked as references: `a.window` or
- *    `{ fetch: … }` name a property, not the global.
+ *    computed `import(x)` there fails (it can't be checked).
  */
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -102,9 +96,9 @@ const all = Object.keys(sources).sort();
 const inDuel = (p: string) => p.startsWith("../src/versus/") || p.startsWith("../src/link/");
 const where = (from: string, r: Ref) => `${from.slice(3)}:${r.line} ${r.kind === "dynamic" ? `import("${r.spec}")` : `imports "${r.spec}"`}`;
 
-describe("the sound duel's import rules", () => {
+describe("the duel's import rules", () => {
   it("finds the modules it checks", () => {
-    for (const p of ["../src/main.ts", "../src/versus/lobby.ts", "../src/versus/feed.ts", "../src/link/worklet.ts", "../src/link/rig.ts", "../src/game/GameScene.ts", "../src/arena/record.ts"])
+    for (const p of ["../src/main.ts", "../src/versus/lobby.ts", "../src/versus/feed.ts", "../src/game/GameScene.ts", "../src/arena/record.ts"])
       expect(all, p).toContain(p);
     // (the parser sees through comments: the lobby's header names the import it is reached by)
     expect(refsOf("../src/versus/lobby.ts").some((r) => r.spec === "./versus/lobby")).toBe(false);
@@ -148,101 +142,5 @@ describe("the sound duel's import rules", () => {
     for (const from of all.filter(inDuel))
       for (const r of refsOf(from)) if (r.path?.startsWith("../src/arena/") && !r.typeOnly) bad.push(where(from, r));
     expect(bad).toEqual([]);
-  });
-
-  it("the rig never imports game code: its value imports stay in src/link and src/sim", () => {
-    const graph = valueGraph("../src/link/rig.ts");
-    expect(graph.problems).toEqual([]);
-    expect([...graph.files].filter((f) => !/^\.\.\/src\/(link|sim)\//.test(f))).toEqual([]);
-  });
-});
-
-/** The files a module's value imports reach (type imports are erased), and the imports that aren't source files. */
-function valueGraph(entry: string): { files: Set<string>; problems: string[] } {
-  const files = new Set<string>();
-  const problems: string[] = [];
-  const todo = [entry];
-  while (todo.length) {
-    const file = todo.pop()!;
-    if (files.has(file)) continue;
-    files.add(file);
-    for (const r of refsOf(file)) {
-      if (r.typeOnly) continue;
-      if (r.kind === "dynamic") problems.push(`${where(file, r)}: a dynamic import`);
-      else if (!r.path || !(r.path in sources)) problems.push(`${where(file, r)}: not a source file`);
-      else todo.push(r.path);
-    }
-  }
-  return { files, problems };
-}
-
-/** Names the AudioWorklet's global scope doesn't have (or that a modem must not use). */
-const BANNED = new Set([
-  "performance", "setTimeout", "setInterval", "setImmediate", "queueMicrotask", "requestAnimationFrame", "self", "window", "document", "location",
-  "navigator", "TextEncoder", "TextDecoder", "crypto", "fetch", "XMLHttpRequest", "localStorage", "indexedDB"
-]);
-
-/** A name as a property of something (`a.window`, `{ self: 1 }`, `class { fetch() {} }`), not a reference to a global. */
-function isMemberName(id: ts.Identifier): boolean {
-  const p = id.parent;
-  return (
-    (ts.isPropertyAccessExpression(p) && p.name === id) ||
-    (ts.isPropertyAssignment(p) && p.name === id) ||
-    (ts.isPropertyDeclaration(p) && p.name === id) ||
-    (ts.isPropertySignature(p) && p.name === id) ||
-    (ts.isMethodDeclaration(p) && p.name === id) ||
-    (ts.isMethodSignature(p) && p.name === id) ||
-    (ts.isGetAccessor(p) && p.name === id) ||
-    (ts.isSetAccessor(p) && p.name === id) ||
-    (ts.isEnumMember(p) && p.name === id) ||
-    (ts.isBindingElement(p) && p.propertyName === id) ||
-    ts.isQualifiedName(p)
-  );
-}
-
-/** What a worklet module uses that the AudioWorklet's scope doesn't allow. */
-function workletProblems(path: string): string[] {
-  const sf = parse(path);
-  const out: string[] = [];
-  const at = (n: ts.Node, what: string) => out.push(`${path.slice(3)}:${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1} ${what}`);
-  const visit = (node: ts.Node): void => {
-    if (ts.isIdentifier(node) && BANNED.has(node.text) && !isMemberName(node)) at(node, node.text);
-    else if (ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword) at(node, "import.meta");
-    else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) at(node, "import()");
-    else if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Math" && node.name.text === "random") at(node, "Math.random");
-    else if (ts.isModuleDeclaration(node) && (node.flags & ts.NodeFlags.GlobalAugmentation) !== 0) at(node, "declare global");
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
-  return out;
-}
-
-describe("the worklet's import graph", () => {
-  const graph = valueGraph("../src/link/worklet.ts");
-  const files = [...graph.files].sort();
-
-  it("stays in src/link and src/sim, without the main thread's transport", () => {
-    expect(graph.problems).toEqual([]);
-    expect(files).toContain("../src/link/modem/core.ts");
-    expect(files).toContain("../src/link/worklet-protocol.ts");
-    expect(files.filter((f) => !/^\.\.\/src\/(link|sim)\//.test(f))).toEqual([]);
-    expect(files).not.toContain("../src/link/worklet-transport.ts");
-    expect(files).not.toContain("../src/link/rig.ts");
-  });
-
-  it("uses only the AudioWorklet's globals, declared module-local in worklet.ts", () => {
-    expect(files.flatMap(workletProblems)).toEqual([]);
-    // the scope's own names: `declare const` / `declare function` at the top of worklet.ts, never `declare global`
-    const sf = parse("../src/link/worklet.ts");
-    const declared = new Set<string>();
-    for (const s of sf.statements) {
-      const ambient = ts.canHaveModifiers(s) && ts.getModifiers(s)?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword);
-      if (!ambient) continue;
-      if (ts.isVariableStatement(s)) for (const d of s.declarationList.declarations) if (ts.isIdentifier(d.name)) declared.add(d.name.text);
-      if (ts.isFunctionDeclaration(s) && s.name) declared.add(s.name.text);
-    }
-    for (const name of ["sampleRate", "currentFrame", "AudioWorkletProcessor", "registerProcessor"]) expect([...declared], name).toContain(name);
-    // (and no other file of the graph declares them: they belong to the worklet alone)
-    for (const f of files.filter((f) => f !== "../src/link/worklet.ts")) expect(sources[f], f).not.toMatch(/^declare (const|function) (sampleRate|currentFrame|AudioWorkletProcessor|registerProcessor)\b/m);
   });
 });

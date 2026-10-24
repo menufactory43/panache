@@ -1,6 +1,6 @@
 /**
- * The in-page friend for `?duel=loop` (SOUND-DUEL.md "Dev and test modes"):
- * a sound duel with no sound. The page's session and a second one, the
+ * The in-page friend for `?duel=loop` (DUEL.md "Dev and test modes"):
+ * a duel with no sound. The page's session and a second one, the
  * friend's, sit on the two ends of a PacketAir, and the friend plays its own
  * setupWorld copy of the match with a normal-difficulty AI (incomeMult 1, the
  * same as an untouched side, so the two worlds stay identical). Everything

@@ -214,11 +214,10 @@ every order, note and radio line, in the [battle record viewer](https://simonw.g
 ```bash
 npm install
 npm run dev            # Vite dev server
-npx vite --config tools/vite-https.config.ts   # the same over HTTPS, for a sound duel on phones (SOUND-DUEL.md)
 npm test               # Vitest suite for the simulation layer
 npm run build          # typecheck + production build into dist/
 npm run smoke          # headless Playwright test of the real touch flow (against dist/)
-npm run smoke -- --side=red   # the same flow playing red against a blue AI (SOUND-DUEL.md)
+npm run smoke -- --side=red   # the same flow playing red against a blue AI (DUEL.md)
 npm run build:pages    # build current game + all version tags into _site/
 npm run balance duels  # cost-equal unit duel matrix
 npm run balance matches [map]   # AI-vs-AI round robin (openers + objectives; --classic / --no-objectives),
@@ -246,8 +245,6 @@ node tools/model-portraits.mjs --all  # reshoot every HUD portrait from the 3D m
                        #   and zoom, beside its card, with its animations to play
                        # battle record viewer: /record-viewer.html[?replay=<record>] (built into dist/ too,
                        #   with battles/showcase/; the game takes ?replay=<record> as well)
-                       # radio probe: /radio-probe.html (built into dist/ too) measures a phone-to-phone
-                       #   sound link, for multiplayer over audio (reports/Audio modem for lockstep multiplayer.md)
 node tools/shots.mjs   # screenshot tour against the dev server (SPECTATE=1, MAP=...)
 node tools/showcase.mjs  # staged close-up skirmish for checking weapon effects
 ```

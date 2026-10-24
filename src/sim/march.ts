@@ -26,7 +26,7 @@ import type { Command, MarchGroup, Unit, UnitKind, World } from "./types";
  * face the front. A unit held up past that tick (a fight on the way, a
  * detour) goes on at its own speed.
  *
- * A long unit list reaches the sim as several commands (the sound duel's
+ * A long unit list reaches the sim as several commands (the duel's
  * codec splits it, versus/codec.ts), possibly over a few turns: a march to
  * the same front within MARCH.mergeTicks of one under way joins it, and the
  * whole group is laid out again, so the pieces deploy as one.

@@ -4,7 +4,7 @@
  *
  * - a speed chip beside the clock (1× → 1.5× → 2×, spectators 4×), and the
  *   clock itself as a press-and-hold fast-forward (3×); neither at a fixed
- *   speed (a sound duel);
+ *   speed (a duel);
  * - a slim tug-of-war battle meter under the clock with a "Turning point!"
  *   flash;
  * - up to three pulsing, tappable edge arrows pointing at off-screen
@@ -40,7 +40,7 @@ export interface AwarenessLayout {
 
 export interface AwarenessUiHooks {
   spectator: boolean;
-  /** The game runs at 1× and can't be changed (a sound duel): no speed chip, and the clock isn't held to fast-forward. */
+  /** The game runs at 1× and can't be changed (a duel): no speed chip, and the clock isn't held to fast-forward. */
   fixedSpeed?: boolean;
   onCycleSpeed(): void;
   onHold(held: boolean): void;

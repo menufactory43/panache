@@ -1,5 +1,5 @@
 /**
- * Lockstep for sound duels (SOUND-DUEL.md "Lockstep"): both phones run the
+ * Lockstep for duels (DUEL.md "Lockstep"): both phones run the
  * whole sim, and only the players' orders cross the air. A turn is one tick;
  * before stepping tick t a phone seals its own turn t + D, and it steps t only
  * once it holds the peer's turn t. The phone that is ahead stalls, so the two
@@ -21,7 +21,7 @@
  * world, checked every 50 ticks and at the end, catches two phones drifting
  * apart.
  *
- * Segments (SOUND-DUEL.md "Segments and rotation"): a newly sealed turn joins
+ * Segments (DUEL.md "Segments and rotation"): a newly sealed turn joins
  * the newest segment while that segment's frame still fits with its header at
  * its bounds (tickLag in [−D−1, D], ack in [−2D−1, 3D+1], span up to 2D + 1)
  * and the 21-bit checkpoint reserve; otherwise it starts a new segment. An ack
@@ -81,7 +81,7 @@
  * longer than a rotation and a round trip should take, that frame goes alone in
  * every packet until the peer holds it (starving()).
  *
- * The speed trim (SOUND-DUEL.md "Pacing") compares like with like: this
+ * The speed trim (DUEL.md "Pacing") compares like with like: this
  * phone's slack as its newest packet said it (slot(): the frames last handed
  * out before that packet started), not as it is now, with the peer's as its
  * newest frame said it. Each is the other phone's view of it, a copy delayed
@@ -155,7 +155,7 @@
  *    after a garbage frame stretched the window can an empty turn start a
  *    segment past K: a turn can't be refused;
  *  - the receiver takes turns from a frame whose `from` is at most 128 turns
- *    past its ackThrough (SOUND-DUEL.md "Receiving out of order"), each turn
+ *    past its ackThrough (DUEL.md "Receiving out of order"), each turn
  *    once: whatever it holds, below ackThrough or past it, it never replaces.
  *    lastNewTurnAt moves when ackThrough does (what a stall waits for), not
  *    when a turn arrives that can't be stepped yet;
@@ -232,7 +232,7 @@ const END_REPORT_BITS = 16 + 16;
 
 /**
  * The header fields a segment's frame is cut for at input delay D, at their
- * bounds (SOUND-DUEL.md "Bounds"): tickLag in [−D−1, D], ack in [−2D−1,
+ * bounds (DUEL.md "Bounds"): tickLag in [−D−1, D], ack in [−2D−1,
  * 3D+1], and the span, which reaches 2D + 1 with an honest peer (the frame
  * that brought ackThrough to A was sent at the peer's tick A − D or later, and
  * said it held this phone's turns through A − D − 1 at least; and
@@ -259,7 +259,7 @@ export const minCapacity = (delay: number): number => {
 };
 
 /**
- * Segments of unacknowledged turns at most (SOUND-DUEL.md "K"): rotation adds
+ * Segments of unacknowledged turns at most (DUEL.md "K"): rotation adds
  * up to K − 1 packets to the time the newest turn waits for the air. This is
  * the cap; the slack gate (see the header) decides how many it can afford.
  */
@@ -478,7 +478,7 @@ export class Lockstep {
   readonly segmentsMax: number;
   private readonly map: MapSize;
   private readonly now: () => number;
-  /** tickLag's and ack's bounds (SOUND-DUEL.md "Bounds"): frames write them clamped, and the window rule counts their widest codes. */
+  /** tickLag's and ack's bounds (DUEL.md "Bounds"): frames write them clamped, and the window rule counts their widest codes. */
   private readonly lag: { min: number; max: number; bits: number };
   private readonly ackBound: { min: number; max: number; bits: number };
   /** The widest span a segment's frame reaches with an honest peer: 2D + 1 (headerBounds). */

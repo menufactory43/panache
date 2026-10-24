@@ -1,4 +1,4 @@
-// A game started while a cancelled duel lobby still says the end (SOUND-DUEL.md
+// A game started while a cancelled duel lobby still says the end (DUEL.md
 // "The lobby": Cancel after GO keeps the link on for 2 s, until the session
 // may close, then lets the audio go and gives the menu back its music). The
 // sheet goes at once and the menu's Play works meanwhile, so a game can start
@@ -58,8 +58,8 @@ for (const latency of [600, 1500]) {
   page.on("pageerror", (e) => errors.push(String(e)));
   const at = `latency ${latency} ms`;
   await page.goto(new URL(`?duel=loop&latency=${latency}`, base).href, { waitUntil: "networkidle" });
-  await page.waitForSelector("#play-duel:not([disabled])", { timeout: 30000 });
-  await page.locator("#play-duel").tap();
+  await page.waitForSelector("#play-online:not([disabled])", { timeout: 30000 });
+  await page.locator("#play-online").tap();
   await page.locator(".duel-role[data-act=host]").tap();
   await page.waitForSelector(".duel-cards .op-card", { timeout: 45000 });
   await page.locator(".duel-cards .op-card").first().tap();

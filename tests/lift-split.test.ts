@@ -5,7 +5,7 @@ import type { Command, Faction, Unit, World } from "../src/sim/types";
 import { createWorld, spawnUnit } from "../src/sim/world";
 import { canonicalize } from "../src/versus/codec";
 
-// A sound duel splits a long unit list into several commands of one tick (SOUND-DUEL.md "Canonicalize and
+// A duel splits a long unit list into several commands of one tick (DUEL.md "Canonicalize and
 // split"). A Goliath whose lift is still hooking on obeys an order only when its Condors are named in the same
 // command, so it remembers an order it ignored for the rest of the tick and takes it if a later command calls
 // its lift off (lift.ts HeldLiftOrders): the pieces do exactly what the one command would.

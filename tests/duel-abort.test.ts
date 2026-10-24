@@ -4,7 +4,7 @@ import { GameScene, type AbortReason } from "../src/game/GameScene";
 import { music } from "../src/game/music";
 import type { EndOpts } from "../src/ui/hud";
 
-// GameScene.abort (SOUND-DUEL.md "Hash trail and the end of the match", "Leaving"): a duel that ends with no result
+// GameScene.abort (DUEL.md "Hash trail and the end of the match", "Leaving"): a duel that ends with no result
 // gets no finale, so nothing else resolves the battle score. The scene is the real class with only what abort reads
 // (no renderer: three.js and the HUD stay out), and the music engine is the game's own, watched.
 

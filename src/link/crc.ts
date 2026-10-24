@@ -1,12 +1,12 @@
 /**
- * The packet CRC (SOUND-DUEL.md "The modem" > Transmitter): CRC-16/CCITT,
+ * The packet CRC (DUEL.md "The modem" > Transmitter): CRC-16/CCITT,
  * polynomial 0x1021, MSB-first over the payload bits, no final XOR. Lobby
  * frames start the register at 0xFFFF. Game frames start it at the session
  * key, which only the two phones of this pairing derive, so a recording of
  * another match (or a second pair of phones in the room) fails its CRC.
  */
-import { hash32 } from "../../sim/rand";
-import type { BandRole } from "../transport";
+import { hash32 } from "../sim/rand";
+import type { BandRole } from "./transport";
 
 /** The register's start for frames outside a session. */
 export const CRC_INIT = 0xffff;

@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { planTicks } from "../src/game/awareness";
 import { PacketAir, type PacketAirOptions } from "../src/link/packet-air";
-import { RoomLink } from "../src/link/room-transport";
 import type { LinkTransport } from "../src/link/transport";
 import { hash32 } from "../src/sim/rand";
 import { Session } from "../src/versus/session";
 
 /**
- * The speed trim over minutes (SOUND-DUEL.md "Pacing"): two Sessions paired
+ * The speed trim over minutes (DUEL.md "Pacing"): two Sessions paired
  * over a link, driven as GameScene and VersusFeed drive them (the feed's pump
  * at the top of each animation frame and every 50 ms, the speed read, the
  * ticks the frame allows, the feed's pump after them), with stand-in world
@@ -110,12 +109,4 @@ describe("the speed trim", () => {
       for (const ms of r.stallMs) expect(ms).toBeLessThanOrEqual(150);
     });
 
-  it("runs at 1× over the modem: RoomLink, the high plan's fast start, a tick of D to spare", { timeout: 180_000 }, () => {
-    // (fast at D = 5 where 4 would do: the round trip pairing measured is of the lobby's robust packets. The guest's
-    // clock runs 100 ppm fast, so its ticks a second, on its own clock, read the air's a hair slow)
-    const r = pace(new RoomLink({ seed: 5, distanceCm: 20, b: { sampleRate: 44100, ppm: 100 } }), 100, { stepMs: 4 });
-    expect(r.delay).toBe(5);
-    for (const tps of r.tps) expect(Math.abs(tps - 10), `${tps} ticks a second`).toBeLessThan(0.01);
-    for (const ms of r.stallMs) expect(ms).toBeLessThanOrEqual(150);
-  });
 });

@@ -34,7 +34,8 @@ export interface HubState {
   nation: NationOrClassic;
   op: { title: string; n: number; total: number; done: number; campaign: boolean; locked: boolean };
   survivalBest: number | null;
-  duel: { sound: boolean; online: boolean };
+  /** The online duel can run here (a WebSocket, or a practice link). */
+  duel: boolean;
   tutoDone: boolean;
   // ---- the order of battle (large screens: set the match up without leaving the hub)
   maps: { id: string; name: string; thumb: string; on: boolean; badge: string }[];
@@ -59,7 +60,7 @@ export interface HubHooks {
   /** Open the salon on the current pick. */
   salon(): void;
   nation(n: NationOrClassic): void;
-  duel(online: boolean): void;
+  duel(): void;
   daily(op: DailyOp): void;
   career(): void;
   tuto(): void;
@@ -145,7 +146,6 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
         <img src="" alt="" draggable="false" class="qg-th" />
         <span class="qg-t"><b></b><small></small></span>
         <button class="qg-chg">${tr("Changer", "Change")}</button>
-        <span class="qg-duo"><button class="qg-btn alt" data-a="sound">🔊 ${tr("Par le son", "By sound")}</button><button class="qg-btn alt" data-a="online">🌐 ${tr("En ligne", "Online")}</button></span>
       </div>
       <div class="qg-plan"></div>
       <div class="qg-natcard"></div>
@@ -227,18 +227,16 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
       skirmish: [tr("Escarmouche", "Skirmish"), `${s.map.name} · ${s.difficulty}`],
       survival: [tr("Survie", "Last Stand"), `${s.map.name} · ${s.difficulty}`],
       ops: [s.op.title, `${s.op.campaign ? tr("Campagne de 1900", "The 1900 Campaign") : tr("Épreuves", "Trials")} · ${s.op.done}/${s.op.total} ✓`],
-      duel: [tr("Défier un ami", "Challenge a friend"), tr("par le son, ou en ligne avec un lien", "by sound, or online with a link")]
+      duel: [tr("Défier un ami", "Challenge a friend"), tr("en ligne, avec un code ou un lien", "online, with a code or a link")]
     };
     $(".qg-mode .qg-t b").textContent = t[s.pick][0];
     $(".qg-mode .qg-t small").textContent = t[s.pick][1];
     $<HTMLImageElement>(".qg-th").src = s.map.thumb;
     $(".qg-chg").hidden = s.pick === "duel";
-    $<HTMLButtonElement>('[data-a="sound"]').hidden = !s.duel.sound;
-    $<HTMLButtonElement>('[data-a="online"]').hidden = !s.duel.online;
     const go = $<HTMLButtonElement>("#qg-go");
     go.textContent = s.pick === "duel" ? tr("Défier un ami", "Challenge a friend") : s.pick === "ops" && s.op.locked ? tr("🔒 Verrouillée", "🔒 Locked") : tr("En avant !", "Forward!");
     go.classList.toggle("locked", s.pick === "ops" && s.op.locked);
-    go.hidden = s.pick === "duel" && !s.duel.online && !s.duel.sound;
+    go.hidden = s.pick === "duel" && !s.duel;
     plan(s);
   };
 
@@ -313,11 +311,9 @@ export function mountHub(menu: HTMLElement, hooks: HubHooks): Hub {
   });
   click("#qg-go", () => {
     const s = hooks.state();
-    if (s.pick === "duel") hooks.duel(s.duel.online);
+    if (s.pick === "duel") hooks.duel();
     else hooks.go();
   });
-  click('[data-a="sound"]', () => hooks.duel(false));
-  click('[data-a="online"]', () => hooks.duel(true));
   click('[data-a="daily"]', () => hooks.daily(op));
   click('[data-a="resume"]', () => hooks.resume());
   click('[data-a="drop"]', () => {

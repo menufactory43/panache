@@ -11,7 +11,7 @@ import type { MutatorId } from "../sim/rules";
 import { step } from "../sim/sim";
 import type { Command, Faction, Nation, World } from "../sim/types";
 
-// setup and hashing live in the sim, shared with sound duels (SOUND-DUEL.md)
+// setup and hashing live in the sim, shared with duels (DUEL.md)
 export { setupWorld } from "../sim/setup";
 export { worldHash } from "../sim/checksum";
 import { setupWorld } from "../sim/setup";
@@ -54,7 +54,7 @@ export interface BattleEnd {
   winner: Faction | null;
   /**
    * "hq": a side was beaten (its HQ and every Goliath gone); "love": a Robot Love draw (no winner);
-   * "resign": a side gave up (a sound duel, SOUND-DUEL.md).
+   * "resign": a side gave up (a duel, DUEL.md).
    */
   reason: "hq" | "time" | "aborted" | "love" | "resign";
 }
@@ -63,7 +63,7 @@ export interface BattleEnd {
  * How a decided world ends a record: a side won, or nobody did. `resigned`
  * is the world's own: the side that gave up, null when both did on one tick
  * (a draw by "resign", not Robot Love's), unset otherwise (an HQ, or Robot
- * Love). The sound duel's duelEnd (src/versus/records.ts, which may not
+ * Love). The duel's duelEnd (src/versus/records.ts, which may not
  * import this) says the same; tests/resign.test.ts holds them together.
  */
 export function endOf(tick: number, winner: Faction | "draw", resigned?: Faction | null): BattleEnd {

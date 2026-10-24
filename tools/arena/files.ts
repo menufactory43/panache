@@ -36,7 +36,7 @@ export function simHash(root = ROOT): string {
   return treeHash(root, ["src/sim"]);
 }
 
-/** The sim plus the sound-duel code (SOUND-DUEL.md): two phones pair only when this matches. */
+/** The sim plus the sound-duel code (DUEL.md): two phones pair only when this matches. */
 export function duelHash(root = ROOT): string {
   return treeHash(root, ["src/sim", "src/versus", "src/link", "src/game/local-side.ts"]);
 }

@@ -4,7 +4,6 @@ import { planTicks } from "../src/game/awareness";
 import { Controller, buildView } from "../src/game/controller";
 import { ReplayFeed, parseRecord } from "../src/game/replay";
 import { PacketAir } from "../src/link/packet-air";
-import { RigError, type LostReason, type MicMode, type RigState } from "../src/link/rig";
 import type { BandRole } from "../src/link/transport";
 import { createAiState, tickAi, type AiState } from "../src/sim/ai/commander";
 import { BUILDINGS, POWERS, UNITS } from "../src/sim/balance";
@@ -17,13 +16,12 @@ import type { Command, Faction, Unit, UnitKind, World } from "../src/sim/types";
 import { hqOf, passable, regionAt, spawnUnit } from "../src/sim/world";
 import { setupWorld } from "../src/sim/setup";
 import type { AbortReason } from "../src/game/GameScene";
-import { VersusFeed, liftGroupsFirst, type DuelRig, type FeedEnv } from "../src/versus/feed";
-import type { ReportContext } from "../src/ui/report";
-import { duelReportSection, orderRows } from "../src/versus/hud";
-import { RECORD_KEY, REMATCH_KEY, readRematch, readTally } from "../src/versus/records";
+import { VersusFeed, liftGroupsFirst, type FeedEnv } from "../src/versus/feed";
+import { orderRows } from "../src/versus/hud";
+import { ONLINE_RECORD_KEY as RECORD_KEY, REMATCH_KEY, readRematch, readTally } from "../src/versus/records";
 import { Session } from "../src/versus/session";
 
-// VersusFeed (SOUND-DUEL.md "MatchFeed and GameScene") driven as GameScene drives it: a real Controller, the
+// VersusFeed (DUEL.md "MatchFeed and GameScene") driven as GameScene drives it: a real Controller, the
 // game loop's planTicks, a null from commands() holding the pose, two Sessions paired over PacketAir on a fake
 // clock. No DOM: the feed's browser pieces are stand-ins (no timers, memory storage, a counted reload, and where a
 // test asks, a page whose visibility and pagehide it drives).
@@ -119,8 +117,6 @@ interface Opts {
   ai?: boolean;
   /** The lockstep gets the Controller's commands as drained, not through the feed's lift grouping (a control run). */
   raw?: boolean;
-  /** A phone's audio rig (default none, as on a practice link). */
-  rigs?: Partial<Record<BandRole, DuelRig>>;
   /** The host's map (default riverlands). */
   map?: string;
   /** A phone's page (default none: no document or window). */
@@ -221,7 +217,7 @@ function start(p: Phone, r: Run): void {
     local: p.local, session: p.session, reload: () => p.reloads++
   };
   p.hold = r.opts.held === p.role;
-  const feed = new VersusFeed({ session: p.s, rig: r.opts.rigs?.[p.role] ?? null, practice: !!r.opts.practice, onExit: () => p.exits++, env });
+  const feed = new VersusFeed({ session: p.s, practice: !!r.opts.practice, onExit: () => p.exits++, env });
   r.opts.prepare?.(feed.world);
   const ctrl = new Controller(feed.world);
   ctrl.trackInFlight();
@@ -482,7 +478,7 @@ describe("VersusFeed as GameScene drives it", () => {
     for (const p of [r.host, r.guest]) {
       const rec = p.feed!.record();
       const hostBlue = (p.feed!.local === "blue") === (p.role === "host");
-      expect(rec.seats).toEqual({ blue: { player: `sound-duel:${hostBlue ? "host" : "guest"}` }, red: { player: `sound-duel:${hostBlue ? "guest" : "host"}` } });
+      expect(rec.seats).toEqual({ blue: { player: `online-duel:${hostBlue ? "host" : "guest"}` }, red: { player: `online-duel:${hostBlue ? "guest" : "host"}` } });
       expect(rec.hashes.length).toBe(Math.floor(tickOf(p) / 100));
       expect(rec.turns.length).toBeGreaterThan(50);
       expect(rec.turns).toEqual(p.s.lockstep!.turns());
@@ -835,8 +831,8 @@ describe("the duel's record", () => {
     const viewer = new ReplayFeed(parseRecord(JSON.stringify(rec)), null, false);
     const hostSide: Faction = red.role === "host" ? "red" : "blue";
     const guestSide: Faction = hostSide === "red" ? "blue" : "red";
-    expect(rec.seats[hostSide].player).toBe("sound-duel:host");
-    expect(viewer.labels).toEqual({ [hostSide]: `Téléphone hôte · ${OPENERS[rec.openers[hostSide]!].name}`, [guestSide]: `Téléphone invité · ${OPENERS[rec.openers[guestSide]!].name}` });
+    expect(rec.seats[hostSide].player).toBe("online-duel:host");
+    expect(viewer.labels).toEqual({ [hostSide]: `Hôte · ${OPENERS[rec.openers[hostSide]!].name}`, [guestSide]: `Invité · ${OPENERS[rec.openers[guestSide]!].name}` });
     // Menu on blue, Rematch on red: the end goes out, then the page reloads (once), the record untouched
     blue.feed!.duel.menu();
     red.feed!.duel.rematch();
@@ -850,7 +846,7 @@ describe("the duel's record", () => {
     // the rematch: same roles and band, the sides swapped
     expect(red.session.getItem(REMATCH_KEY)).toBe("duel");
     const res = red.s.result()!;
-    expect(readRematch(red.session)).toEqual({ role: res.role, plan: res.plan, micMode: "raw", hostSide: res.config.hostSide === "blue" ? "red" : "blue", mapId: "riverlands", mutators: [] });
+    expect(readRematch(red.session)).toEqual({ role: res.role, hostSide: res.config.hostSide === "blue" ? "red" : "blue", mapId: "riverlands", mutators: [] });
     expect(blue.session.getItem(REMATCH_KEY)).toBeNull();
     expect(blue.aborts).toEqual([]);
   });
@@ -1154,159 +1150,6 @@ describe("the duel's record when the worlds drift apart", () => {
     expect(readTally(red.local)).toEqual({ w: 0, l: 0, d: 0, abandoned: 0, noContest: 1 });
     expect(red.local.writes(RECORD_KEY)).toBe(2);
     expect(red.feed!.reportView()).toMatchObject({ sync: "desync", record: "0 victoire · 0 défaite · 0 nul · 1 sans résultat" });
-  });
-});
-
-/** The rig as the feed reads it: lost on demand, its reconnects working or failing as told. */
-class FakeRig implements DuelRig {
-  state: RigState = "running";
-  failures = 0;
-  lastError: RigError | null = null;
-  micMode: MicMode = "raw";
-  /** What the next reconnect resolves, and the reason it fails with (null: a context that didn't start, where the rig has none). */
-  works = false;
-  error: RigError | null = null;
-  capture = 2000;
-  private readonly lost = new Set<(reason: LostReason) => void>();
-  onLost(fn: (reason: LostReason) => void): () => void {
-    this.lost.add(fn);
-    return () => this.lost.delete(fn);
-  }
-  lose(reason: LostReason = "context"): void {
-    this.state = "lost";
-    this.capture = 0;
-    for (const f of this.lost) f(reason);
-  }
-  reconnect(): Promise<boolean> {
-    if (this.works) {
-      this.state = "running";
-      this.failures = 0;
-      this.lastError = null;
-    } else {
-      this.failures++;
-      this.lastError = this.error;
-    }
-    return Promise.resolve(this.works);
-  }
-  captureOkMs(): number {
-    return this.capture;
-  }
-}
-
-const settled = () => new Promise((r) => setTimeout(r, 0));
-
-describe("the reconnect cover", () => {
-  it("covers the match until the tap works, offers Leave after 2 failures, and never covers the end screen", { timeout: 60_000 }, async () => {
-    const rig = new FakeRig();
-    const r = pair({ seed: 37, rigs: { host: rig } });
-    runUntil(r, () => tickOf(r.host) >= 20 && tickOf(r.guest) >= 20, 30_000);
-    const f = r.host.feed!;
-    expect(f.overlay().reconnect).toBeNull();
-    rig.lose();
-    expect(f.overlay().reconnect).toEqual({ phase: "lost", leave: false, why: null });
-    f.reconnect();
-    expect(f.overlay().reconnect).toEqual({ phase: "trying", leave: false, why: null });
-    await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: false, why: null });
-    // it works: "Listening…" until capture has run gap-free for 1.5 s
-    rig.works = true;
-    f.reconnect();
-    await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "settling", leave: false, why: null });
-    rig.capture = 1600;
-    f.pump();
-    expect(f.overlay().reconnect).toBeNull();
-    // lost again, and two taps fail: Leave
-    rig.works = false;
-    rig.lose();
-    for (let i = 0; i < 2; i++) {
-      f.reconnect();
-      await settled();
-    }
-    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: true, why: null });
-    // the cover's Leave: no result, and the end screen isn't covered (its Main menu is the way out)
-    f.duel.leave();
-    expect(r.host.aborts.map((a) => a.reason)).toEqual(["lost"]);
-    expect(f.overlay().reconnect).toBeNull();
-    expect(f.reportView().relink).toBeNull();
-  });
-
-  it("leaves a decided match's report uncovered: the report offers the reconnect instead", { timeout: 60_000 }, async () => {
-    const rig = new FakeRig();
-    const r = pair({ seed: 17, rigs: { host: rig } });
-    runUntil(r, () => tickOf(r.host) >= 30 && tickOf(r.guest) >= 30, 30_000);
-    r.guest.feed!.duel.resign(false);
-    runUntil(r, () => [r.host, r.guest].every((p) => ls(p).endCheck === "ok"), 20_000);
-    const f = r.host.feed!;
-    expect(f.reportView().relink).toBeNull();
-    rig.lose();
-    f.pump();
-    expect(f.overlay().reconnect).toBeNull();
-    expect(f.reportView().relink).toEqual({ phase: "lost", why: null });
-    for (let i = 0; i < 3; i++) {
-      f.reconnect();
-      await settled();
-    }
-    expect(f.overlay().reconnect).toBeNull();
-    expect(f.reportView().relink).toEqual({ phase: "failed", why: null });
-    // the report's button says why as the cover does
-    rig.error = new RigError("mic-refused");
-    f.reconnect();
-    await settled();
-    const why = "Micro refusé. Autorise le micro pour ce site dans les réglages du navigateur, puis réessaie.";
-    expect(f.reportView().relink).toEqual({ phase: "failed", why });
-    expect(duelReportSection(() => f.reportView(), { reconnect: () => undefined }).render({} as ReportContext)).toContain(`<small>${why}</small>`);
-    rig.works = true;
-    f.reconnect();
-    await settled();
-    expect(f.reportView().relink).toEqual({ phase: "settling", why: null });
-    rig.capture = 1600;
-    f.pump();
-    expect(f.reportView().relink).toBeNull();
-  });
-
-  it("says why a tap failed when the rig knows, with the lobby's advice for it; Leave still after 2 failures", { timeout: 60_000 }, async () => {
-    const rig = new FakeRig();
-    const r = pair({ seed: 37, rigs: { host: rig } });
-    runUntil(r, () => tickOf(r.host) >= 20 && tickOf(r.guest) >= 20, 30_000);
-    const f = r.host.feed!;
-    rig.lose();
-    // a Bluetooth headset joined: the microphone it brings runs at 16 kHz
-    rig.error = new RigError("rate", "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore");
-    f.reconnect();
-    expect(f.overlay().reconnect).toEqual({ phase: "trying", leave: false, why: null });
-    await settled();
-    expect(f.overlay().reconnect).toEqual({
-      phase: "failed",
-      leave: false,
-      why: "Le micro de ce téléphone tourne à 16000 Hz, inutilisable pour la liaison sonore. Réessaie avec le casque et le Bluetooth déconnectés."
-    });
-    // a reason with no advice of its own: its words alone
-    rig.error = new RigError("no-mic");
-    f.reconnect();
-    await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: true, why: "Aucun micro disponible : ferme les autres applis qui l'utilisent et réessaie." });
-    // the context didn't start: the rig has no reason, so the cover's own words
-    rig.error = null;
-    f.reconnect();
-    await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "failed", leave: true, why: null });
-  });
-
-  it("covers the match for a modem that stopped, as for any loss, and the tap brings it back", { timeout: 60_000 }, async () => {
-    const rig = new FakeRig();
-    const r = pair({ seed: 37, rigs: { host: rig } });
-    runUntil(r, () => tickOf(r.host) >= 20 && tickOf(r.guest) >= 20, 30_000);
-    const f = r.host.feed!;
-    rig.lose("modem");
-    expect(f.overlay().reconnect).toEqual({ phase: "lost", leave: false, why: null });
-    rig.works = true;
-    f.reconnect();
-    await settled();
-    expect(f.overlay().reconnect).toEqual({ phase: "settling", leave: false, why: null });
-    rig.capture = 1600;
-    f.pump();
-    expect(f.overlay().reconnect).toBeNull();
   });
 });
 

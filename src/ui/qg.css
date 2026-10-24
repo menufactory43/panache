@@ -424,17 +424,6 @@ html.belle .qg .qg-logo::after {
   border: 1px solid var(--line-hi);
   font-weight: 600 !important;
 }
-.qg-duo {
-  display: none;
-  width: 100%;
-  gap: 8px;
-}
-.qg-duo .qg-btn {
-  flex: 1;
-}
-.qg-mode[data-p="duel"] .qg-duo {
-  display: flex;
-}
 .qg-mode[data-p="duel"] .qg-th {
   display: none;
 }

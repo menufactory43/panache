@@ -49,7 +49,7 @@ export interface AwarenessHooks {
   /** The HQ-kill cinematic owns the camera: no glides, jumps or edge arrows meanwhile. */
   cinematic?(): boolean;
   /**
-   * The game runs at 1× and nobody may change it (a sound duel: both phones
+   * The game runs at 1× and nobody may change it (a duel: both phones
    * play at one speed). No speed chip or hold-to-fast-forward, the stored
    * speed is ignored, and nothing drops the speed: there is nothing to drop.
    */

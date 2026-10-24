@@ -29,8 +29,8 @@ import { tr } from "../lang";
  * Extension point: addReportSection() lets later features (career medals…)
  * add a block without touching this file's layout code.
  *
- * A sound duel's report (`opponent` set) names the sides You and Friend,
- * heads its line "vs your friend · <map> · <time> · over sound", and its tip
+ * A duel's report (`opponent` set) names the sides You and Friend,
+ * heads its line "vs your friend · <map> · <time> · online", and its tip
  * says nothing of difficulty or the AI; its own section (the record, the
  * link, the sync check) comes from src/versus through addReportSection. A
  * duel that ended with no result has no winner (null) and a head override.
@@ -38,7 +38,7 @@ import { tr } from "../lang";
 
 export interface ReportOpts {
   world: World;
-  /** Who won, or "draw" (Robot Love: two enemy Goliaths fell in love, World.love); null: no result (a sound duel cut short, with `head`). */
+  /** Who won, or "draw" (Robot Love: two enemy Goliaths fell in love, World.love); null: no result (a duel cut short, with `head`). */
   winner: Faction | "draw" | null;
   /** The local player's side (the report's point of view unless spectating). */
   pov: Faction;
@@ -55,9 +55,9 @@ export interface ReportOpts {
   /** Extra buttons before Rematch (Ops: "Next op"), and Rematch's own label. */
   actions?: { id: string; label: string; cls?: string; on(): void }[];
   rematchLabel?: string;
-  /** Extra buttons between Rematch and the menu (a sound duel: Save battle, Copy debug info). */
+  /** Extra buttons between Rematch and the menu (a duel: Save battle, Copy debug info). */
   after?: { id: string; label: string; cls?: string; on(): void }[];
-  /** A sound duel: who the other side is ("your friend"), and how the phones were linked ("over sound"). */
+  /** A duel: who the other side is ("your friend"), and how the phones were linked ("online"). */
   opponent?: string;
   via?: string;
 }
@@ -281,8 +281,8 @@ function headCore(ctx: ReportContext): string {
   const spec = ctx.spectator;
   const h = headline({ winner: ctx.winner, pov: ctx.pov, spectator: spec, love: !!ctx.world.love });
   if (ctx.opponent && !spec) {
-    // (a sound duel: "vs your friend · Riverlands · 7:42 · over sound")
-    const line = tr(`contre ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "par le son"}`, `vs ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "by sound"}`);
+    // (a duel: "vs your friend · Riverlands · 7:42 · online")
+    const line = tr(`contre ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "en ligne"}`, `vs ${ctx.opponent} · ${mapById(ctx.world.mapId).name} · ${fmtTime(ctx.secs)} · ${ctx.via ?? "online"}`);
     return `<h1 class="${h.cls}">${h.title}</h1><p class="time">${h.note ? `${h.note} · ` : ""}${escapeHtml(line)}</p>`;
   }
   const vs = spec

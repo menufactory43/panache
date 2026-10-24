@@ -8,7 +8,7 @@ import { battleRecord, duelEnd } from "../src/versus/records";
 
 const SETUP = { map: "riverlands", seed: 42, mutators: [], openers: { blue: "blitz", red: "airwing" } } as const;
 
-describe("resign (sound duels)", () => {
+describe("resign (duels)", () => {
   it("hands the match to the other side on the tick it's applied", () => {
     const w = setupWorld({ ...SETUP, mutators: [] });
     for (let i = 0; i < 20; i++) step(w, []);

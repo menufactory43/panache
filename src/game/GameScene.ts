@@ -79,7 +79,7 @@ const DEFAULT_ZOOM = 42;
 const EDGE_PAD = 2;
 /** Radius of an order's waypoint ring (CSS px). */
 const WAYPOINT_PX = 7;
-/** Production meters in the producer's side colour (blue is blue on both phones of a sound duel). */
+/** Production meters in the producer's side colour (blue is blue on both phones of a duel). */
 const METER: Record<Faction, string> = { blue: "#6eb0ff", red: "#ff7a6a" };
 /** Box-select dashes (CSS px), their dark rims (each 1 px longer at both ends), and none. */
 const DASH = [6, 4];
@@ -89,8 +89,8 @@ const NO_DASH: number[] = [];
 /**
  * A match played from outside instead of by the AI commanders: the battle
  * viewer (src/game/replay.ts, AGENT-BATTLES.md "Watching") feeds a recorded
- * battle through this, and spectator rules apply. A sound duel's feed
- * (src/versus/feed.ts, SOUND-DUEL.md "MatchFeed and GameScene") is an
+ * battle through this, and spectator rules apply. A duel's feed
+ * (src/versus/feed.ts, DUEL.md "MatchFeed and GameScene") is an
  * interactive one: it sets `local`, and this phone plays that side, its
  * orders and the friend's arriving through commands(). Every scene branch for
  * it tests `feed?.local !== undefined`, so watched matches run as before.
@@ -129,7 +129,7 @@ export interface MatchFeed {
 /** Why a duel ended with no result (GameScene.abort): the worlds drifted apart, the friend left, or this phone left. */
 export type AbortReason = "desync" | "left" | "lost";
 
-/** The end screen's head for each abort (SOUND-DUEL.md "Hash trail", "Leaving"). */
+/** The end screen's head for each abort (DUEL.md "Hash trail", "Leaving"). */
 const ABORT_HEAD: Record<AbortReason, { title: string; cls: "lose"; sub: string }> = {
   desync: { title: tr("DÉSYNCHRONISÉ", "DESYNCED"), cls: "lose", sub: tr("Sans résultat : les deux parties ont divergé", "No result: the two games diverged") },
   left: { title: tr("AMI PARTI", "FRIEND GONE"), cls: "lose", sub: tr("Sans résultat", "No result") },
@@ -213,7 +213,7 @@ export class GameScene {
   private ended = false;
   /** A duel's no-result end (abort): no finale, no report of a winner. */
   private aborted: AbortReason | null = null;
-  /** An interactive feed (a sound duel): this phone plays feed.local against a friend, not an AI. */
+  /** An interactive feed (a duel): this phone plays feed.local against a friend, not an AI. */
   private readonly interactive: boolean;
   /** The clock waits for the player's opener pick. */
   private holdStart = false;
@@ -619,7 +619,7 @@ export class GameScene {
     (window as unknown as Record<string, unknown>).__bd = {
       world: this.world,
       ctrl: this.ctrl,
-      /** The side this page commands (red under `?side=red`, or a sound duel's red phone). */
+      /** The side this page commands (red under `?side=red`, or a duel's red phone). */
       get player() {
         return PLAYER;
       },
@@ -1061,7 +1061,7 @@ export class GameScene {
         // (Robot Love: a draw resolves on its own sweet sting; its chime has already rung for music-off)
         const draw = this.world.winner === "draw";
         const outcome = draw ? "draw" : finaleOutcome({ won, newRecord: !!run?.isNew, spectator: gameMode.spectator, survival: !!this.survival });
-        // (a duel's draw is Robot Love's only when two Goliaths fell in love: both resigning has no love sting, SOUND-DUEL.md "Resign")
+        // (a duel's draw is Robot Love's only when two Goliaths fell in love: both resigning has no love sting, DUEL.md "Resign")
         const played = this.interactive ? music.finale(outcome, { love: !!this.world.love }) : music.finale(outcome);
         if (!played && !gameMode.spectator && outcome !== "draw") sfx.play(outcome);
       });
@@ -1103,7 +1103,7 @@ export class GameScene {
   }
 
   /**
-   * End a duel with no result (SOUND-DUEL.md "Hash trail and the end of the
+   * End a duel with no result (DUEL.md "Hash trail and the end of the
    * match", "Leaving"): the two worlds drifted apart, the friend left, or this
    * phone left ("Leave (no result)"). No finale and no career; selection and
    * placement go, and the end screen says why, with "Copy debug info" when
@@ -1325,7 +1325,7 @@ export class GameScene {
     const w = this.world;
     switch (ev.type) {
       case "resign": {
-        // (a sound duel) the finale looks at the side that gave up: its HQ, else the middle of its home box
+        // (a duel) the finale looks at the side that gave up: its HQ, else the middle of its home box
         if (this.finaleAt?.cause === "resign") break; // (both at once: the first one's)
         const hq = hqOf(w, ev.faction);
         const box = hq ? null : homeBox(w, ev.faction);
@@ -1574,7 +1574,7 @@ export class GameScene {
       const st = BUILDINGS[sb.kind];
       const c = buildingCenter(sb);
       if (st.range > 0) g.lineStyle(1.2, 0xffffff, 0.3).strokeCircle(c.x, c.y, st.range + size / 2);
-      // (a sound duel: a new rally point still on its way already shows)
+      // (a duel: a new rally point still on its way already shows)
       const rally = this.ctrl.ahead().rally(sb.id) ?? sb.rally;
       if (rally) g.lineStyle(1.5, 0xffe066, 0.8).lineBetween(c.x, c.y, rally.x, rally.y).strokeCircle(rally.x, rally.y, 0.16);
     }

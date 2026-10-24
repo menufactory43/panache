@@ -1,7 +1,7 @@
 /**
  * World hashes: battle records pin one every 100 ticks (AGENT-BATTLES.md),
- * and sound duels fold one into a trail every tick to catch two phones
- * drifting apart (SOUND-DUEL.md). Never change what worldHash covers: saved
+ * and duels fold one into a trail every tick to catch two phones
+ * drifting apart (DUEL.md). Never change what worldHash covers: saved
  * records pin its values.
  */
 import "./nations"; // (World.nation and the nations' unit fields)

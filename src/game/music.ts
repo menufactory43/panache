@@ -132,8 +132,6 @@ export class Music {
   private stingerUntil = 0;
   private lastStinger = -Infinity;
   private finished = false;
-  /** A sound duel's link mode: the reverb send is cut (its convolver idles, and nothing smears into the guard). */
-  private dry = false;
   /** The next start() comes in at full level (play's `downbeat`). */
   private downbeat = false;
 
@@ -159,16 +157,6 @@ export class Music {
   setEnabled(on: boolean): void {
     this.enabled = on;
     this.sync();
-  }
-
-  /** Link mode (sfx.linkMode): bypass the reverb send while a sound duel runs. */
-  setLinkMode(on: boolean): void {
-    if (on === this.dry) return;
-    this.dry = on;
-    const g = this.g;
-    if (!g) return;
-    if (on) g.reverbSend.disconnect(g.reverb);
-    else g.reverbSend.connect(g.reverb);
   }
 
   setHidden(hidden: boolean): void {
@@ -214,8 +202,8 @@ export class Music {
    * settle on a quiet coda. Returns false when music is off (play the SFX
    * jingle instead).
    *
-   * `love: false` is a draw that isn't Robot Love's (a sound duel's two
-   * resigns on one tick, SOUND-DUEL.md "Resign"), or a duel that ended with no
+   * `love: false` is a draw that isn't Robot Love's (a duel's two
+   * resigns on one tick, DUEL.md "Resign"), or a duel that ended with no
    * result (GameScene.abort): the score settles on the held tonic and its
    * coda with no sting, since the love sting would tell of hearts that never
    * showed. Victory and defeat don't change with it.
@@ -422,7 +410,7 @@ export class Music {
     reverb.buffer = impulse(c, 2.2);
     const reverbSend = gain(1);
     reverb.connect(gain(0.32, mix));
-    if (!this.dry) reverbSend.connect(reverb);
+    reverbSend.connect(reverb);
     sting.connect(gain(0.35, reverbSend));
     const delay = c.createDelay(1.5);
     delay.delayTime.value = (60 / MUSIC.battleBpm) * 0.75;
@@ -1049,12 +1037,8 @@ function driveCurve(drive: number): Float32Array<ArrayBuffer> {
 export const music = new Music();
 
 sfx.onReady((e) => music.attach({ ctx: e.ctx, out: e.musicIn, noise: e.noise }));
-sfx.onChange(() => {
-  music.setEnabled(sfx.enabled("music"));
-  music.setLinkMode(sfx.linkMode);
-});
+sfx.onChange(() => music.setEnabled(sfx.enabled("music")));
 music.setEnabled(sfx.enabled("music"));
-music.setLinkMode(sfx.linkMode);
 onAnnounce((a) => music.announced(a));
 if (typeof document !== "undefined")
   document.addEventListener("visibilitychange", () => music.setHidden(document.hidden));

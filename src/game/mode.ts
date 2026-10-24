@@ -77,7 +77,7 @@ export function activeMutators(): MutatorId[] {
 }
 
 /**
- * Point the coming match at a sound duel's agreed one (SOUND-DUEL.md "Getting
+ * Point the coming match at a duel's agreed one (DUEL.md "Getting
  * into a duel"): its map (a MAPS id, or a generated map's id) and mutators, a
  * plain skirmish played by this phone as `local`, so startGame loads the art
  * for the map both phones play. Never saved: the menu's own picks stay.

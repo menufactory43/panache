@@ -3,7 +3,7 @@
 Le relais du duel en ligne de Panache (« 🌐 Défier un ami (en ligne) »). Un Cloudflare Worker et un Durable Object
 par salon : l'hôte et l'invité s'y branchent par WebSocket, et chaque paquet de l'un part tel quel chez l'autre.
 Tout le reste (appairage, lockstep, synchro, revanche) se fait dans le jeu, comme pour le duel par le son
-(`src/versus/online.ts`, `SOUND-DUEL.md`).
+(`src/versus/online.ts`, `DUEL.md`).
 
 En ligne : **https://panache-relais.meffysto.workers.dev** (le jeu l'appelle en `wss://`, `RELAY_URL` dans
 `src/versus/online.ts`).

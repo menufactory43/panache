@@ -18,7 +18,7 @@ import { tr } from "../lang";
 
 /**
  * The side this device commands, and the other one. Live bindings: every
- * importer reads the current value, so a sound duel's guest (or `?side=red`)
+ * importer reads the current value, so a duel's guest (or `?side=red`)
  * plays red with no other change. Set once with setLocalSide, before
  * `new GameScene`: the scene's presenters, its fog and the Controller's
  * squads copy the side when they are built.
@@ -26,7 +26,7 @@ import { tr } from "../lang";
 export let PLAYER: Faction = "blue";
 export let ENEMY: Faction = "red";
 
-/** Command `f` from now on (SOUND-DUEL.md "Playing red"); a page reload starts over as blue. */
+/** Command `f` from now on (DUEL.md "Playing red"); a page reload starts over as blue. */
 export function setLocalSide(f: Faction): void {
   PLAYER = f;
   ENEMY = f === "blue" ? "red" : "blue";
@@ -74,7 +74,7 @@ export const isProducer = (kind: BuildingKind): boolean => PRODUCERS.has(kind);
  * is full.
  */
 export function pickProducer(w: World, kind: UnitKind, selected: ReadonlySet<number>, view?: BuildView): Producer | null {
-  // (a sound duel: orders on their way count as queued already, and a producer sold or packing up is gone, BuildView)
+  // (a duel: orders on their way count as queued already, and a producer sold or packing up is gone, BuildView)
   const len = (p: Producer) => p.queue.length + (view?.extra(p.id) ?? 0);
   const open = producersOf(w, PLAYER, kind).filter((p) => len(p) < producerCap(kind) && !view?.closed(p.id));
   const picked = open.filter((p) => p.goliath && selected.has(p.id));
@@ -86,7 +86,7 @@ export function pickProducer(w: World, kind: UnitKind, selected: ReadonlySet<num
 /**
  * A side's construction, scrap and queues as the build bar shows them: the
  * world's, with the placement and production orders still on their way
- * applied (Controller.inFlight). In a sound duel an order lands D ticks after
+ * applied (Controller.inFlight). In a duel an order lands D ticks after
  * the tap, and the bar must not offer the same tap again meanwhile: a placed
  * building is no longer ready to place, one started is under construction,
  * a unit ordered is queued and paid for, a building sold is paid back and
@@ -183,7 +183,7 @@ export function buildView(w: World, side: Faction, orders: readonly Command[] | 
 /**
  * The player's units as the Controller reads them (Controller.ahead()): the
  * world's, with this side's own orders still on their way applied, in the
- * order they were given. In a sound duel an order lands D ticks after the
+ * order they were given. In a duel an order lands D ticks after the
  * tap (later while the link holds it up), and a tap that builds on the one
  * before must find that one done, as single player does a tick later: two
  * Condors sent to lift a Goliath and then the map tapped fly the lift there
@@ -470,7 +470,7 @@ export class Controller {
   private loopTurn = new Map<number, number>();
   /**
    * Orders drained but not applied yet, oldest first, each with the tick it
-   * was drained on, while an interactive feed (a sound duel) carries them:
+   * was drained on, while an interactive feed (a duel) carries them:
    * they land D ticks after the tap, or later while the link holds them up.
    * Null where orders apply at the next tick (single player, replays). The
    * build bar counts them as applied (view()), and so do the Controller's own
@@ -478,7 +478,7 @@ export class Controller {
    * stepped (landed()), and those it knows can no longer land (settled()).
    */
   private flights: { c: Command; at: number }[] | null = null;
-  /** No new orders (a sound duel's resign is on its way). */
+  /** No new orders (a duel's resign is on its way). */
   locked = false;
   private queue: Command[] = [];
   /** Bumped whenever the orders not applied yet change: ahead() is rebuilt on the next read. */

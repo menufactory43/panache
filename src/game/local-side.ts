@@ -1,8 +1,8 @@
 /**
  * The order a match is set up and stepped in, whichever side this device
  * commands. The sim hands out entity ids from one shared counter as it
- * applies openers and commands, so blue's always go first: in a sound duel
- * (SOUND-DUEL.md) a phone that put its own first would give the same tank
+ * applies openers and commands, so blue's always go first: in a duel
+ * (DUEL.md) a phone that put its own first would give the same tank
  * another id than its friend's phone did, and the next order naming it would
  * move nothing on one of them. Single player keeps the same order, so red
  * against the AI plays the world a duel would. Engine-free.

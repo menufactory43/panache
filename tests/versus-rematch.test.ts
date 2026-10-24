@@ -6,7 +6,7 @@ vi.mock("../src/versus/feed", () => ({ VersusFeed: class {} }));
 import * as lobby from "../src/versus/lobby";
 import { DUEL_KEY, REMATCH_DUEL, REMATCH_KEY, readRematch, writeRematch, type RematchPlan } from "../src/versus/records";
 
-// The rematch's storage has one source of truth (SOUND-DUEL.md "Rematch"): records.ts owns the keys, the token
+// The rematch's storage has one source of truth (DUEL.md "Rematch"): records.ts owns the keys, the token
 // and the parser; the lobby re-exports them and reads with them; main.ts, which may import the duel's types only,
 // ties its literals to them by type. This checks the round trip the reloaded page makes, and the literals.
 
@@ -27,7 +27,7 @@ class Mem {
   }
 }
 
-const PLAN: RematchPlan = { role: "guest", plan: "low", micMode: "ec", hostSide: "red", mapId: "riverlands", mutators: ["rapidfab"] };
+const PLAN: RematchPlan = { role: "guest", hostSide: "red", mapId: "riverlands", mutators: ["rapidfab"] };
 
 describe("a rematch, from the report's Rematch to the reloaded page's lobby", () => {
   it("what the records' writer stores, the lobby's parser reads back whole", () => {
@@ -38,13 +38,12 @@ describe("a rematch, from the report's Rematch to the reloaded page's lobby", ()
     // (main.ts takes the token at boot: the lobby reads the rematch alone)
     store.removeItem(lobby.REMATCH_KEY);
     expect(lobby.parseRematch(store.getItem(lobby.DUEL_KEY))).toEqual(PLAN);
-    for (const role of ["host", "guest"] as const)
-      for (const micMode of ["raw", "ec"] as const) {
-        const p: RematchPlan = { ...PLAN, role, micMode, plan: role === "host" ? "high" : "low", hostSide: role === "host" ? "blue" : "red", mutators: [] };
-        writeRematch(p, store);
-        expect(lobby.parseRematch(store.getItem(lobby.DUEL_KEY))).toEqual(p);
-        expect(readRematch(store)).toEqual(p);
-      }
+    for (const role of ["host", "guest"] as const) {
+      const p: RematchPlan = { ...PLAN, role, hostSide: role === "host" ? "blue" : "red", mutators: [] };
+      writeRematch(p, store);
+      expect(lobby.parseRematch(store.getItem(lobby.DUEL_KEY))).toEqual(p);
+      expect(readRematch(store)).toEqual(p);
+    }
   });
 
   it("the lobby's keys and parser are the records' own", () => {
@@ -119,7 +118,7 @@ describe("a rematch, from the report's Rematch to the reloaded page's lobby", ()
 
 describe("nations in a duel's rematch and saved battle (LOBBY_PROTO 2)", () => {
   it("the rematch keeps the nation this phone played; anything else reads as Classique", () => {
-    const base = { role: "guest", plan: "high", micMode: "raw", hostSide: "red", mapId: "riverlands", mutators: [] };
+    const base = { role: "guest", hostSide: "red", mapId: "riverlands", mutators: [] };
     expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "empire" }))?.nation).toBe("empire");
     expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "classique" }))).not.toHaveProperty("nation");
     expect(lobby.parseRematch(JSON.stringify({ ...base, nation: "atlantis" }))).not.toHaveProperty("nation");

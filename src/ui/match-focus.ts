@@ -24,11 +24,7 @@ export interface FocusEnv {
   };
 }
 
-/**
- * An iOS Home Screen app before 18.4, whose wake lock resolves and does
- * nothing: src/link/rig.ts's wakeLockIsDud, repeated here so the duel's
- * modules stay a lazily loaded chunk (tests/versus-imports.test.ts).
- */
+/** An iOS Home Screen app before 18.4, whose wake lock resolves and does nothing. */
 function wakeLockIsDud(nav: { standalone?: unknown; maxTouchPoints?: number }): boolean {
   if (nav.standalone !== true || !nav.maxTouchPoints) return false;
   const it = (globalThis as { Iterator?: { prototype?: { map?: unknown } } }).Iterator;

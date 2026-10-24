@@ -107,63 +107,6 @@
   from { opacity: 0; transform: translateY(-6px); }
 }
 
-/* ------------------------------------------------- reconnect cover --- */
-.duel-cover {
-  position: absolute;
-  inset: 0;
-  z-index: 36;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 16px;
-  background: rgba(3, 5, 9, 0.8);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  pointer-events: auto;
-}
-.duel-cover-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: min(100%, 360px);
-  padding: 26px 20px;
-  border-radius: 16px;
-  background: var(--panel-solid);
-  border: 1px solid var(--line-hi);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  text-align: center;
-  cursor: pointer;
-}
-.duel-cover-box:active {
-  transform: scale(0.98);
-}
-.duel-cover-icon {
-  font-size: 40px;
-  line-height: 1;
-}
-.duel-cover-box b {
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.25;
-}
-.duel-cover-box small {
-  font-size: 13px;
-  color: var(--dim);
-}
-.duel-cover.busy .duel-cover-icon {
-  animation: duelPulse 1s ease-in-out infinite;
-}
-.duel-cover .duel-cover-leave {
-  width: min(100%, 280px);
-  margin: 0;
-}
-@keyframes duelPulse {
-  50% { opacity: 0.35; }
-}
-
 /* ------------------------------------------------------ report block --- */
 .sec-duel {
   display: flex;
@@ -208,27 +151,4 @@
   font-size: 14px;
   font-weight: 800;
   color: var(--gold);
-}
-/* the reconnect, once the match is over: a button in the block, the report's own buttons stay free */
-.sec-duel .duel-relink {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  width: 100%;
-  margin: 4px 0 2px;
-  padding: 8px 12px;
-  min-height: 44px;
-  font-size: 14px;
-}
-.duel-relink small {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dim);
-}
-p.duel-relink.busy {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--dim);
-  animation: duelPulse 1s ease-in-out infinite;
 }

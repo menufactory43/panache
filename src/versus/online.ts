@@ -1,5 +1,5 @@
 /**
- * The online duel's link ("Défier un ami (en ligne)"): the sound duel's
+ * The online duel's link ("Défier un ami (en ligne)"): the duel's
  * whole stack (pairing, lockstep, session, feed) over a WebSocket to a tiny
  * relay (relay/, a Cloudflare Worker with one Durable Object per room) in
  * place of the air. Nothing above the LinkTransport seam changes: the frames
@@ -12,7 +12,7 @@
  * 200 ms (robust), repeated whether or not it changed, so a lost or late
  * message costs nothing a later one doesn't fix; the pairing measures the
  * round trip through the relay and picks the input delay D from it (3–8
- * ticks, 300–800 ms: SOUND-DUEL.md "Config"), so a far friend gets more
+ * ticks, 300–800 ms: DUEL.md "Config"), so a far friend gets more
  * delay and a near one less.
  *
  * Wire: one text message per packet, `p<nbits> <base64>` (the base64 is

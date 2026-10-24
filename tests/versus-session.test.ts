@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { PacketAir, type PacketAirOptions } from "../src/link/packet-air";
-import { RoomLink } from "../src/link/room-transport";
 import type { LinkPacket, LinkStats, LinkTransport, ModemMode, OutFrame } from "../src/link/transport";
 import { createAiState, tickAi, type AiState, type StrategyName } from "../src/sim/ai/commander";
 import { worldHash } from "../src/sim/checksum";
@@ -124,7 +123,7 @@ interface Phone {
   switchLog: { at: number; to: ModemMode; why: string }[];
 }
 
-/** What the two phones' link ends hang on: a PacketAir, or the real modem in a simulated room (RoomLink). */
+/** What the two pages' link ends hang on (a PacketAir). */
 interface Air {
   readonly a: LinkTransport;
   readonly b: LinkTransport;
@@ -760,7 +759,7 @@ describe("the transmit mode during the match", () => {
 
 /**
  * From now on the air loses every packet one end sends in fast, while its
- * robust packets get through: the band, some 3.5 dB wide over RoomLink, where
+ * robust packets get through (the sound link had such a band, some 3.5 dB wide, where
  * fast delivers nothing and robust everything ("ab": what the host sends).
  * PacketAir draws loss per direction whatever the mode, so this wraps its own
  * draw, which runs at the packet's start with the sender's mode for it set.
@@ -1209,30 +1208,4 @@ describe("what a stall waits on", () => {
   });
 });
 
-describe("a session over the modem", () => {
-  it("pairs over RoomLink (the real modem in a simulated room) and plays in lockstep under the session CRC", { timeout: 180_000 }, () => {
-    const link = new RoomLink({ seed: 5, distanceCm: 20, b: { sampleRate: 44100, ppm: 100 } });
-    const r = duel({ seed: 19, ticks: 250, link, stepMs: 4 });
-    expectSameMatch(r, 250);
-    const res = r.host.s.result()!;
-    // the room's round trip, packet start to fully received both ways over the lobby's robust packets, is about
-    // 550 ms: D = 5 (4 at 500 ms or less), fast
-    const rtt = r.host.s.status().rttMs!;
-    expect(rtt).toBeGreaterThan(520);
-    expect(rtt).toBeLessThan(600);
-    expect([res.fast, res.delay]).toEqual([true, 5]);
-    expect(res.delay).toBe(delayFor(rtt, packetMs("high", "fast")));
-    for (const p of [r.host, r.guest]) {
-      const st = p.s.status();
-      expect(p.tap.keys.map(({ host, guest }) => [host, guest])).toEqual([[res.hostNonce, res.guestNonce]]);
-      // the friend's game frames came through the modem's session CRC, every one the lockstep took
-      const game = p.tap.heard.filter((pk) => typeOf(pk) === TYPE_GAME);
-      expect(game.length).toBeGreaterThan(150);
-      expect(game.every((pk) => pk.session)).toBe(true);
-      expect(st.lockstep!.framesIn).toBe(game.length - st.packets.ignored);
-      expect(st.link.txMode).toBe("fast");
-      expect(st.lockstep!.stallMs).toBeLessThanOrEqual(1000);
-    }
-  });
-});
 

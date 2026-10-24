@@ -1,6 +1,6 @@
 /**
  * The one way a skirmish match is set up from its description (battle
- * records, AGENT-BATTLES.md; sound duels, SOUND-DUEL.md): the map with
+ * records, AGENT-BATTLES.md; duels, DUEL.md): the map with
  * objectives, blue's opener then red's (they take ids from the shared counter,
  * so the order matters), each side's income, then the fog drawn once. Two
  * phones that call this with the same setup hold the same world.

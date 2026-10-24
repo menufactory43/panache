@@ -1,5 +1,5 @@
 /**
- * The session for sound duels (SOUND-DUEL.md "Architecture", "Game
+ * The session for duels (DUEL.md "Architecture", "Game
  * integration"): the glue between one LinkTransport and the two protocols
  * that take turns on it — the Pairing (the lobby) until the match starts, then
  * the Lockstep — with no engine of its own. It routes what the link delivers
@@ -27,7 +27,7 @@
  * (decided, left or out of sync: the frames go on, with the end report or
  * the end), "closed".
  *
- * Mode adaptation (SOUND-DUEL.md is silent on it beyond the starting mode).
+ * Mode adaptation (DUEL.md is silent on it beyond the starting mode).
  * The pairing starts the match in fast mode when both phones heard each other
  * at 12 dB or better (its FAST_RXQ); during the match each phone picks its
  * own transmit mode, from what its friend says of it, so a link that is poor
@@ -158,7 +158,7 @@
  *    link's mode until the match begins, and the mode stays as it is once the
  *    match is over;
  *  - beginMatch doesn't wait for anything: the lobby calls it once the rig has
- *    had its 1.5 s of gap-free capture (SOUND-DUEL.md "Capture");
+ *    had its 1.5 s of gap-free capture (DUEL.md "Capture");
  *  - the pairing's state after the match begins is the one it had then;
  *  - packets out counts slots (packet starts: every one carries a frame),
  *    packets in every packet polled, and ignored the game frames dropped
@@ -172,7 +172,7 @@ import { CodecError } from "./codec";
 import { Lockstep, rxqOf, type Decision, type LockstepStatus } from "./lockstep";
 import { FAST_RXQ, Pairing, packetMs, readLobbyFrame, type HostOffer, type LobbyFrame, type PairingResult, type PairingState } from "./pairing";
 
-/** After leave(), the end goes out this long before the session may close (SOUND-DUEL.md "Leaving"). */
+/** After leave(), the end goes out this long before the session may close (DUEL.md "Leaving"). */
 export const END_FRAMES_MS = 2000;
 /** Nothing heard for longer than this: this phone's receive quality reads 0. */
 export const RX_SILENT_MS = 1000;

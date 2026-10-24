@@ -68,10 +68,8 @@ class Speech {
     this.pick();
     s.addEventListener?.("voiceschanged", () => this.pick());
     // iOS only lets speech start after it was first used inside a gesture
-    // (not in a sound duel's link mode: no speech then, and the listener
-    // stays for the first tap after it)
     const prime = () => {
-      if (this.primed || sfx.linkMode) return;
+      if (this.primed) return;
       this.primed = true;
       this.failures = 0;
       try {
@@ -290,8 +288,7 @@ export function radioCheck(): void {
   if (!sfx.enabled("voice")) return;
   squelch(true);
   const fallback = (): void => void code("info", 2);
-  // link mode (a sound duel) speaks no words: the code stands in
-  if (!sfx.settings.speech || sfx.linkMode) return fallback();
+  if (!sfx.settings.speech) return fallback();
   const spoken = () => {
     if (!speech.usable || !speech.speak(tr("Essai radio", "Radio check"), "info", () => squelch(false), fallback)) fallback();
   };
@@ -371,15 +368,15 @@ export class Announcer {
     this.prefetch();
   }
 
-  /** Fetch the common clips once the audio context exists (never during a sound duel's link). */
+  /** Fetch the common clips once the audio context exists (never during a duel's link). */
   private prefetch(): void {
     const pack = this.pack;
     if (!pack || typeof window === "undefined") return;
     const tryNow = () => {
       if (this.destroyed) return;
       const e = sfx.engine;
-      if (!e || sfx.linkMode) return void window.setTimeout(tryNow, 1500);
-      void pack.prefetchCore(e.ctx, () => this.destroyed || sfx.linkMode);
+      if (!e) return void window.setTimeout(tryNow, 1500);
+      void pack.prefetchCore(e.ctx, () => this.destroyed);
     };
     tryNow();
   }
@@ -392,9 +389,9 @@ export class Announcer {
     this.serial++;
   }
 
-  /** May lines be spoken (not just coded)? Never in a sound duel's link mode. */
+  /** May lines be spoken (not just coded)? */
   private get speechOn(): boolean {
-    return sfx.enabled("voice") && sfx.settings.speech && !sfx.linkMode;
+    return sfx.enabled("voice") && sfx.settings.speech;
   }
 
   /** This tick's sim events at sim time `t`. */

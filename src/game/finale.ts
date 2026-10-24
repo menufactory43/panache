@@ -178,7 +178,7 @@ export function finaleOutcome(o: { won: boolean; newRecord: boolean; spectator: 
   return o.won || o.newRecord || (o.spectator && !o.survival) ? "victory" : "defeat";
 }
 
-/** What decided the match, for the finale's banner: an HQ, a side's last Goliath, Robot Love (a draw), or a resign (a sound duel). */
+/** What decided the match, for the finale's banner: an HQ, a side's last Goliath, Robot Love (a draw), or a resign (a duel). */
 export type FinaleCause = "hq" | "goliath" | "love" | "resign";
 
 /**
@@ -186,7 +186,7 @@ export type FinaleCause = "hq" | "goliath" | "love" | "resign";
  * announcer's (victory, defeat, hq-destroyed for a spectator, draw), only
  * the words change with the cause: an HQ ("Enemy HQ destroyed"), a side's
  * last Goliath ("Our last Goliath has fallen"), two Goliaths in love, or a
- * sound duel's resign ("Your friend resigned"; both at once is a draw, never
+ * duel's resign ("Your friend resigned"; both at once is a draw, never
  * the Robot Love line).
  */
 export function finaleBanner(o: {
