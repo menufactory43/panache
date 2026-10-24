@@ -2,9 +2,37 @@
 
 **Panache** est un jeu de stratégie en temps réel pour mobile et navigateur, dans la France de la Belle Époque (vers 1900) : dirigeables, Fardiers à vapeur, Creusot cuirassés, automates en képi, Gargantua la forteresse marchante — et beaucoup de panache.
 
-**Jouer : <https://menufactory43.github.io/panache/>**
+**Jouer : <https://menufactory43.github.io/panache/>** (en anglais : <https://menufactory43.github.io/panache/en/>)
 
-Panache est une adaptation française de [Battle Drones](https://github.com/simonw/battledrones) de Simon Willison (licence Apache 2.0) : traduction, nouveaux noms, modèles 3D, effets, son, musique, écran-titre et interface mobile repensés. `?style=original` dans l'adresse affiche le style d'origine pour comparer.
+Panache est une adaptation française de [Battle Drones](https://github.com/simonw/battledrones) de Simon Willison (licence Apache 2.0) : traduction, nouveaux noms, modèles 3D, effets, son, musique, écran-titre et interface mobile repensés, puis des modes et des mécaniques à lui. `?style=original` dans l'adresse affiche le style d'origine pour comparer.
+
+## Ce qu'il y a dedans
+
+- **L'Instruction**, en deux leçons guidées par une main gantée, un geste à la fois. *Premier jour* (3 min) : caméra, sélection, ordres, construction, production, la fiche d'une unité (appui long), ⚔ Armée, le charbon, le Feu roulant. *Deuxième jour* (4 min) : double toucher, ▢ Cadre, groupes, routes, marche en ordre, ⚑ Repli, les inactifs, une compétence.
+- **La Campagne de 1900** : 12 missions en trois actes (*L'Ultimatum*, *La Guerre des cimes*, *Paris !*), jouées tantôt pour la République, tantôt pour l'Empire de Carbonie, avec cartons de cinéma muet, briefing et trois étoiles chacune. Trois niveaux au choix dans le briefing : **Recrue**, **Normal**, **Vétéran** — les étoiles ne se gagnent qu'en Normal, mais une victoire à n'importe quel niveau ouvre la mission suivante. À côté, 8 **Épreuves classiques**.
+- **Deux nations asymétriques**, la République et l'Empire de Carbonie, chacune avec ses unités, ses bâtiments et ses pouvoirs — ou le mode Classique, symétrique.
+- **Escarmouche** contre une IA à plusieurs personnalités et trois difficultés, sur 6 cartes (Terrain d'essai, Terres fluviales, Mer de dunes, Engelure, Terres de cendres, Archipel) ou une carte générée, jouable à l'aveugle (*Inexplorée*). Des mutateurs changent les règles pour les deux camps.
+- **Duel en ligne** entre deux téléphones par un code de salon (le relais est un Worker Cloudflare, dossier `relay/`), et le mode **Éclair** : une partie de six minutes aux points.
+- **Survie** : des vagues annoncées, sans fin, avec un boss toutes les cinq.
+- **Les commandes d'un vrai STR au doigt** : marche en ordre (appui long sur la destination puis glisser pour tracer le front), routes et patrouilles tracées, groupes 1–3, production en boucle ↻, six **compétences** d'unités (Baïonnette, Plein gaz, En batterie, Tir de précision, Charge, Barrage), pouvoirs du commandant.
+- **Carrière** (grades, médailles, étoiles), **Op du jour**, **Archives** avec rediffusions et temps forts, **reprise** d'une partie interrompue.
+- **Français et anglais**, jusqu'à la voix radio (plus de 600 répliques enregistrées dans chaque langue).
+
+L'aide complète du jeu est dans **? Comment jouer**.
+
+## Développer
+
+```bash
+npm install
+npm run dev            # serveur Vite
+npx vitest run         # les tests
+npm run build          # vérification des types + build dans dist/
+npm run smoke          # le parcours tactile réel, sans écran (sur dist/)
+```
+
+Avant chaque push sur `main` : `npx vitest run`, `npm run build` et `npm run smoke`. Le push lance le workflow **Publier Panache** (GitHub Pages, environ une minute). Le relais du duel se déploie à part, depuis `relay/` (voir `relay/README.md`).
+
+Les documents de conception : `PANACHE-CONCEPTION.md` (nations et campagne), `ANGLAIS.md` (glossaire de la version anglaise), `DUEL.md`, `DESIGN.md`, `GOLIATH.md`, `INFANTRY.md`.
 
 ---
 
