@@ -52,29 +52,53 @@ await page.evaluate(() => localStorage.setItem("panache.intro.seen", "1"));
 await page.goto(page0.href, { waitUntil: "networkidle" });
 say(`salon ${code.toUpperCase()} : on rejoint…`);
 
-// the lobby: tap whatever moves it on (the title, Join, a nation, an opener), until the match runs
+// the lobby: tap whatever moves it on (the title, Join, a nation, an opener), until the match runs.
+// Real taps (pointer events, as a finger), the first visible of each in this order.
+const STEPS = [
+  [".op-card", "ouverture"],
+  ['[data-act="pick"]', "ouverture"],
+  ['[data-act="join"]', "rejoindre"],
+  ['[data-act="nation"]', "nation"]
+];
+/** The page's answer, or "figée" if it doesn't give one in 10 s (busy loading, or hung). */
+const ask = (fn, arg) => Promise.race([page.evaluate(fn, arg), new Promise((r) => setTimeout(() => r("figée"), 10_000))]);
 let last = "";
+let since = Date.now();
 for (let i = 0; i < 600; i++) {
-  const state = await page.evaluate(() => {
-    const vis = (el) => !!el && el.getClientRects().length > 0 && !el.disabled;
-    const tap = (sel) => {
-      const el = [...document.querySelectorAll(sel)].find(vis);
-      if (el) el.click();
-      return !!el;
-    };
+  const state = await ask(() => {
     if (window.__bd?.world?.tick > 0 && !document.querySelector(".duel-body")) return "match";
-    const status = document.querySelector(".duel-status, .duel-err")?.textContent?.trim() ?? "";
-    if (tap('.op-card')) return "ouverture choisie";
-    if (tap('[data-act="pick"]')) return "ouverture choisie";
-    if (tap('[data-act="join"]')) return "rejoindre";
-    if (tap('[data-act="nation"]')) return "nation";
-    if (!document.querySelector(".duel-body")) document.body.click(); // (the title: « Touchez l'écran »)
-    return status || "…";
+    return document.querySelector(".duel-status, .duel-err")?.textContent?.trim() || (document.querySelector(".duel-body") ? "salon" : "titre");
   });
-  if (state !== last) say(state);
-  last = state;
-  if (state === "match") break;
-  await page.waitForTimeout(500);
+  if (state === "match") {
+    say("match");
+    last = state;
+    break;
+  }
+  let tapped = "";
+  if (state !== "figée") {
+    for (const [sel, name] of STEPS) {
+      const el = page.locator(sel).filter({ visible: true }).first();
+      if (await el.count().catch(() => 0)) {
+        await el.tap({ timeout: 3000 }).catch(() => el.click({ timeout: 3000 }).catch(() => undefined));
+        tapped = name;
+        break;
+      }
+    }
+    if (!tapped && state === "titre") await page.mouse.click(320, 180);
+  }
+  const line = tapped ? `${state} → ${tapped}` : state;
+  if (line !== last) {
+    say(line);
+    last = line;
+    since = Date.now();
+  } else if (Date.now() - since > 10_000) {
+    // nothing moves: say what the page shows
+    since = Date.now();
+    const text = await ask(() => document.querySelector(".duel-body, .sheet, .op-cards, body")?.innerText?.replace(/\s+/g, " ").slice(0, 200));
+    await page.screenshot({ path: "/tmp/duel-bot.png" }).catch(() => undefined);
+    say(`toujours « ${line} » ; la page : ${text} (capture : /tmp/duel-bot.png)`);
+  }
+  await page.waitForTimeout(700);
 }
 if (last !== "match") {
   say("la partie n'a pas commencé (salon introuvable ? code faux ? versions différentes ?)");
