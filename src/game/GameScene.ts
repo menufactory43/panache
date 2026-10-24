@@ -42,6 +42,7 @@ import { CINE_KEY, Director } from "./director";
 import { FINALE, Finale, LOVE_FINALE, finaleBanner, finaleOutcome, finaleZoom, freeAreaOffset, type FinaleCause } from "./finale";
 import { HeroPresenter } from "./hero-fx";
 import { aiSeed, aiStrategy, announceRules, settleCareer } from "./meta";
+import { endRanked } from "./ranked";
 import { OpsPresenter } from "./ops";
 import { TutorialView } from "./tutorial-view";
 import { fullscreen } from "../ui/fullscreen";
@@ -1062,6 +1063,8 @@ export class GameScene {
       this.keepMatch();
       // XP, medals, stars (spectators: no-op; a duel keeps its own record, src/versus/records.ts)
       if (!this.interactive) settleCareer(this.world, PLAYER);
+      // (a ranked duel: the result to the ladder, game/ranked.ts)
+      else endRanked(this.world.winner, (t, tone) => this.hud.notify(t, tone));
       this.playFinale(() => {
         // at the flash the score resolves into a fanfare / lament; the SFX jingle covers music-off
         // (Robot Love: a draw resolves on its own sweet sting; its chime has already rung for music-off)
@@ -1123,6 +1126,8 @@ export class GameScene {
   abort(reason: AbortReason, info?: string): void {
     if (this.aborted) return;
     this.aborted = reason;
+    // (ranked: a friend gone is a win, leaving a loss; a desync, no result)
+    if (this.interactive) endRanked(reason === "left" ? PLAYER : reason === "lost" ? ENEMY : null, (t, tone) => this.hud.notify(t, tone));
     this.ended = true;
     this.finale = null;
     // (a finale past its flash has resolved the score already: this keeps that)

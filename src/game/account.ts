@@ -243,3 +243,19 @@ export async function deleteAccount(): Promise<boolean> {
   setStatus({ state: "off", at: null, apple: false });
   return true;
 }
+
+/**
+ * The account to play ranked with (ranked.ts): the relay's HTTP address and
+ * this device's id and token, the account made if need be. Null in
+ * development and for robots without `?relais=`, or with the cloud save off.
+ */
+export async function accountForRanked(): Promise<{ root: string; id: string; jeton: string } | null> {
+  const root = base();
+  if (!root || (await getPref(OFF_KEY)) === "1") return null;
+  try {
+    const c = await ensureCreds(root);
+    return c ? { root, ...c } : null;
+  } catch {
+    return null;
+  }
+}

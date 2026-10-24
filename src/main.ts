@@ -839,7 +839,12 @@ function showMenu(linkedMap?: string | null): void {
     void fullscreen.enter();
     const o = {
       host: menu, shownMap: shownMap(), mutators: activeMutators(), start: startDuel, onClose: duelClosed,
-      online: tap.online ? { code } : null
+      online: tap.online ? { code } : null,
+      // (the ranked queue's announced AI: an ordinary skirmish on the shown map, never ranked)
+      onAi: () => {
+        gameMode.mode = "skirmish";
+        void begin(false);
+      }
     };
     if (rematch) d.reconnect(o);
     else d.showLobby(o);

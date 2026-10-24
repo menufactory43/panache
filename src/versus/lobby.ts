@@ -58,6 +58,7 @@ import { MUTATORS, type MutatorId } from "../sim/rules";
 import type { Faction, Nation, NationOrClassic, Role, UnitKind } from "../sim/types";
 import { fullscreen } from "../ui/fullscreen";
 import { VersusFeed } from "./feed";
+import { fetchLadder, joinQueue, setRankedMatch, type Ladder, type LadderRow, type RankedMatch } from "../game/ranked";
 import { LoopLink, type LoopParams } from "./loop-peer";
 import { FAILED_MESSAGE, NOTHING_HEARD_MESSAGE, NOTHING_HEARD_MS, VERSION_MESSAGE, configNations, rivalOf, type DuelConfig, type HostOffer, type PairingState } from "./pairing";
 import { OnlineError, browserOnlineEnv, drawKey, hostRoom, inviteUrl, joinRoom, normCode, relayBase, type OnlineInfo, type OnlineLink } from "./online";
@@ -522,6 +523,8 @@ export interface LobbyOptions {
   start: (feed: VersusFeed) => void;
   /** Closed with no match (Cancel, an error, the rematch's fallback): the menu's music comes back. */
   onClose: (why: LobbyEnd) => void;
+  /** The ranked queue found no one and the player took the AI instead (an ordinary skirmish, unranked). */
+  onAi?: () => void;
   /** An online duel (src/versus/online.ts), and the room code an invite link brought (null: none). A rematch's is its own. */
   online?: { code: string | null } | null;
 }
@@ -763,6 +766,55 @@ export interface OnlineSheet {
   badCode: boolean;
   /** What the code box held when the sheet was last rebuilt (a nation tap rebuilds it): kept, not retyped. */
   typed?: string;
+  /** In the ranked queue: how many others wait, since when (ms), whether the AI is offered yet. */
+  queue?: { attente: number; since: number; ai: boolean } | null;
+  /** The ladder on show (null: not), "loading" while it comes, "none" if it can't. */
+  ladder?: Ladder | "loading" | "none" | null;
+  /** The ranked match found (game/ranked.ts): its opponent, its map. */
+  ranked?: RankedMatch | null;
+}
+
+/** After this long alone in the queue, an AI match is offered (announced, never ranked). */
+const QUEUE_AI_MS = 30_000;
+
+/** The ladder: the top 50, and this player's place. */
+function ladderHtml(l: NonNullable<OnlineSheet["ladder"]>): { body: string; actions: string } {
+  const actions = `<button class="cta alt" data-act="ladder-close">${tr("Retour", "Back")}</button>`;
+  if (l === "loading") return { body: `<p class="duel-status">${tr("Chargement du classement…", "Loading the ladder…")}</p>`, actions };
+  if (l === "none") return { body: `<p class="duel-err">${tr("Classement indisponible : il demande la sauvegarde dans le nuage et une connexion.", "Ladder unavailable: it needs the cloud save and a connection.")}</p>`, actions };
+  const row = (r: LadderRow, rang: number | null) =>
+    `<tr class="${r.moi ? "moi" : ""}"><td>${rang ?? "–"}</td><td>${esc(r.nom)}</td><td>${r.cote}</td><td>${r.gagnes}/${r.joues}</td></tr>`;
+  const mine = l.moi && !l.tete.some((r) => r.moi) ? row({ ...l.moi, moi: true }, l.moi.rang) : "";
+  const rows = l.tete.map((r, i) => row(r, i + 1)).join("") + mine;
+  const me = l.moi ? `<p class="sh-note">${tr(`Toi : ${esc(l.moi.nom)} · cote ${l.moi.cote}`, `You: ${esc(l.moi.nom)} · rating ${l.moi.cote}`)}</p>` : "";
+  return {
+    body: `<h3>${tr("🏆 Classement", "🏆 Ladder")}</h3>${me}${
+      rows
+        ? `<div class="duel-ladder"><table><thead><tr><th>#</th><th>${tr("Joueur", "Player")}</th><th>${tr("Cote", "Rating")}</th><th>${tr("V/J", "W/P")}</th></tr></thead><tbody>${rows}</tbody></table></div>`
+        : `<p class="duel-status">${tr("Personne n'est encore classé : à toi l'honneur.", "Nobody is ranked yet: the honour is yours.")}</p>`
+    }`,
+    actions
+  };
+}
+
+/** A ranked player's name and rating. */
+const rankedCard = (c: { nom: string; cote: number }) => `<b>${esc(c.nom)}</b> <small>(${c.cote})</small>`;
+
+/** The ranked queue's sheet: the wait, and after a while the AI. */
+function queueHtml(q: NonNullable<OnlineSheet["queue"]>): { body: string; actions: string } {
+  const s = Math.floor((performance.now() - q.since) / 1000);
+  const others = q.attente > 0 ? tr(`${q.attente} autre${q.attente > 1 ? "s" : ""} en attente`, `${q.attente} other${q.attente > 1 ? "s" : ""} waiting`) : "";
+  const ai = q.ai
+    ? `<p class="duel-hint">${tr("Personne sur le front pour l'instant.", "Nobody at the front right now.")}</p>
+       <button class="cta duel-tap" data-act="ranked-ai">${tr("🤖 Jouer contre l'IA (non classée)", "🤖 Play the AI (unranked)")}</button>
+       <p class="sh-note">${tr("Ou attends encore : la recherche continue.", "Or keep waiting: the search goes on.")}</p>`
+    : "";
+  return {
+    body: `<p class="duel-status">${tr("Recherche d'un adversaire…", "Looking for an opponent…")}</p>
+      <p class="duel-bigcode small" data-m="queue">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}</p>
+      <p class="sh-note" data-m="others">${others}</p>${ai}`,
+    actions: `<button class="cta alt" data-act="ranked-cancel">${tr("Annuler", "Cancel")}</button>`
+  };
 }
 
 /** The online duel's steps where they differ from a practice link's: choosing, connecting, waiting in the room. */
@@ -779,17 +831,23 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
           <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="${tr("Code du salon", "Lobby code")}" value="${esc(sheet.typed ?? linked ?? "")}"/><button class="cta" data-act="join">${tr("Rejoindre", "Join")}</button></div>
           ${bad}
         </div>`;
+      const ranked = linked ? "" : `<div class="duel-roles"><button class="duel-role duel-ranked" data-act="ranked"><b>${tr("⚔ Partie classée", "⚔ Ranked match")}</b><small>${tr("Un adversaire de ton niveau · une carte au hasard · ta cote en jeu", "An opponent at your level · a random map · your rating at stake")}</small></button></div><p class="duel-ladderlink"><button class="cta alt" data-act="ladder">${tr("🏆 Classement", "🏆 Ladder")}</button></p><p class="duel-or">${tr("ou", "or")}</p>`;
       const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>${tr("🏛 Créer un salon", "🏛 Create a lobby")}</b><small>${tr("Ta carte et tes mutateurs · un code à partager", "Your map and your mutators · a code to share")}</small></button></div>`;
       return {
-        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${linked ? join + `<p class="duel-or">${tr("ou", "or")}</p>` + create : create + `<p class="duel-or">${tr("ou", "or")}</p>` + join}`,
+        body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${ranked}${linked ? join + `<p class="duel-or">${tr("ou", "or")}</p>` + create : create + `<p class="duel-or">${tr("ou", "or")}</p>` + join}`,
         actions: cancel
       };
     }
     case "connecting":
+      if (sheet.ranked) return { body: rankedHead(sheet.ranked) + `<p class="duel-status">${tr("Connexion…", "Connecting…")}</p>`, actions: cancel };
       return { body: `<p class="duel-status">${v.role === "host" ? tr("Création du salon…", "Creating the lobby…") : tr("Connexion au salon…", "Joining the lobby…")}</p>`, actions: cancel };
     case "pairing": {
       const quiet = v.quiet ? `<p class="duel-hint">${QUIET_ONLINE}</p>` : "";
       const tips = v.tips ? `<p class="duel-hint">${tipsText(v)}</p>` : "";
+      if (sheet.ranked) {
+        const status = v.pairing?.phase === "linking" || o?.peer ? tr("Appairage…", "Pairing…") : tr("En attente de l'adversaire…", "Waiting for the opponent…");
+        return { body: `${rankedHead(sheet.ranked)}<p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`, actions: cancel };
+      }
       if (v.role === "host") {
         const status = v.pairing?.phase === "linking" || o?.peer ? tr("Ton ami est là. Appairage…", "Your friend is here. Pairing…") : v.rematch ? tr("En attente que ton ami touche Revanche…", "Waiting for your friend to tap Rematch…") : tr("En attente de ton ami…", "Waiting for your friend…");
         return {
@@ -807,6 +865,13 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
     default:
       return null;
   }
+}
+
+/** A ranked match's head: the two players and the map drawn. */
+function rankedHead(m: RankedMatch): string {
+  return `<p class="duel-paired">${tr("⚔ Partie classée", "⚔ Ranked match")}</p>
+    <p class="duel-status">${rankedCard(m.moi)} <span class="duel-or">${tr("contre", "vs")}</span> ${rankedCard(m.lui)}</p>
+    ${mapLine(m.carte, [])}`;
 }
 
 function bodyHtml(v: LobbyView, sheet: OnlineSheet = { linked: null, badCode: false }): { body: string; actions: string } {
@@ -937,6 +1002,9 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const stop = () => {
     if (stopped) return;
     stopped = true;
+    document.removeEventListener("visibilitychange", onVisible);
+    leaveQueue?.();
+    leaveQueue = null;
     clearInterval(timer);
     cancelAnimationFrame(raf);
   };
@@ -969,11 +1037,20 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
         const base = relayBase(location.search);
         const env = browserOnlineEnv();
         let l: OnlineLink;
-        if (cfg.tx === "host") l = await hostRoom({ base, key: seatKey, code: rematch?.online?.code, env, random: cryptoRandom });
+        if (cfg.tx === "host") l = await hostRoom({ base, key: seatKey, code: sheet.ranked?.code ?? rematch?.online?.code, env, random: cryptoRandom });
         else {
           const code = joinCode;
           if (!code) throw new OnlineError("unknown");
-          l = await joinRoom({ base, key: seatKey, code, env });
+          // (ranked: the host may not have opened the room yet)
+          for (let i = 0; ; i++) {
+            try {
+              l = await joinRoom({ base, key: seatKey, code, env });
+              break;
+            } catch (e) {
+              if (!sheet.ranked || i >= 8 || !(e instanceof OnlineError) || e.failure !== "unknown") throw e;
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
         }
         net = l;
         return l;
@@ -1028,7 +1105,31 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const render = () => {
     const v = m.state();
     if (v.step === "closed" || v.step === "started") return;
-    const k = layoutKey(v);
+    if (sheet.ladder) {
+      const k = `ladder|${typeof sheet.ladder === "string" ? sheet.ladder : "ok"}`;
+      if (k !== key) {
+        key = k;
+        const html = ladderHtml(sheet.ladder);
+        body.innerHTML = html.body;
+        actions.innerHTML = html.actions;
+      }
+      return;
+    }
+    const q = sheet.queue;
+    if (q) {
+      const k = `queue|${q.ai}|${q.attente}`;
+      if (k !== key) {
+        key = k;
+        const html = queueHtml(q);
+        body.innerHTML = html.body;
+        actions.innerHTML = html.actions;
+      }
+      const t = body.querySelector<HTMLElement>(`[data-m="queue"]`);
+      const sec = Math.floor((performance.now() - q.since) / 1000);
+      if (t) t.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+      return;
+    }
+    const k = layoutKey(v) + (sheet.ranked ? "|ranked" : "");
     if (k !== key) {
       key = k;
       const typed = body.querySelector<HTMLInputElement>(".duel-codein")?.value;
@@ -1115,10 +1216,98 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
     });
   }
 
+  /** The ranked queue (game/ranked.ts): joined from Ranked match, left on Cancel, the AI, or the page hidden (and joined again when it's back). */
+  let leaveQueue: (() => void) | null = null;
+  let queueAi = 0;
+  const enterQueue = () => {
+    const q = sheet.queue;
+    if (!q || leaveQueue) return;
+    leaveQueue = joinQueue(build, {
+      onWait: (w) => {
+        if (sheet.queue) sheet.queue.attente = w.attente;
+      },
+      onMatch: (found) => {
+        leaveQueue = null;
+        clearTimeout(queueAi);
+        sheet.queue = null;
+        sheet.ranked = found;
+        setRankedMatch(found);
+        // (the duel the relay drew: its map, no mutators, the host blue)
+        env.offer = { ...env.offer, map: found.carte, mutators: [], hostSide: "blue" };
+        key = "";
+        if (found.role === "hote") m.host();
+        else {
+          joinCode = found.code;
+          m.join();
+        }
+      },
+      onError: (why) => {
+        leaveQueue = null;
+        clearTimeout(queueAi);
+        sheet.queue = null;
+        key = "";
+        const msg =
+          why === "account"
+            ? tr("La partie classée demande la sauvegarde dans le nuage (Réglages).", "Ranked play needs the cloud save (Settings).")
+            : why === "version"
+              ? tr("Une nouvelle version du jeu est sortie : recharge-le.", "A new version of the game is out: reload it.")
+              : tr("Le serveur ne répond pas. Vérifie ta connexion.", "The server doesn't answer. Check your connection.");
+        render();
+        body.insertAdjacentHTML("afterbegin", `<p class="duel-err">${esc(msg)}</p>`);
+      }
+    });
+  };
+  const quitQueue = () => {
+    leaveQueue?.();
+    leaveQueue = null;
+    clearTimeout(queueAi);
+    sheet.queue = null;
+    key = "";
+  };
+  const onVisible = () => {
+    if (!sheet.queue) return;
+    if (document.hidden) {
+      leaveQueue?.();
+      leaveQueue = null;
+    } else enterQueue();
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  const startQueue = () => {
+    sheet.queue = { attente: 0, since: performance.now(), ai: false };
+    queueAi = window.setTimeout(() => {
+      if (sheet.queue) sheet.queue.ai = true;
+    }, QUEUE_AI_MS);
+    key = "";
+    enterQueue();
+    render();
+  };
+
   wrap.addEventListener("click", (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>("[data-act]");
     if (!el || !wrap.contains(el)) return;
     switch (el.dataset.act) {
+      case "ranked":
+        sfx.play("click", 0.5);
+        return startQueue();
+      case "ladder":
+        sfx.play("click", 0.5);
+        sheet.ladder = "loading";
+        void fetchLadder().then((l) => {
+          if (sheet.ladder === "loading") sheet.ladder = l ?? "none";
+        });
+        return render();
+      case "ladder-close":
+        sheet.ladder = null;
+        key = "";
+        return render();
+      case "ranked-cancel":
+        quitQueue();
+        return render();
+      case "ranked-ai":
+        quitQueue();
+        m.cancel();
+        closeSheet();
+        return o.onAi?.();
       case "host":
         return m.host();
       case "join":
