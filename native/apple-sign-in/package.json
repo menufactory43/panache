@@ -1,0 +1,13 @@
+{
+  "name": "panache-apple-sign-in",
+  "version": "1.0.0",
+  "private": true,
+  "description": "« Se connecter avec Apple » pour l'app iPhone de Panache (Capacitor 8, Swift Package Manager)",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts", "Package.swift", "ios/Sources"],
+  "peerDependencies": { "@capacitor/core": ">=8.0.0" },
+  "capacitor": { "ios": { "src": "ios" } }
+}

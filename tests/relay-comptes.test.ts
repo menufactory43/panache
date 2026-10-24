@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SAUVEGARDE_MAX, empreinte, enTetesCors, lireAuth, lireEnvoi, memeEmpreinte, nouveauJeton } from "../relay/src/comptes";
+import { SAUVEGARDE_MAX, empreinte, enTetesCors, lireAuth, lireEnvoi, nouveauJeton } from "../relay/src/comptes";
 
 describe("the relay's accounts", () => {
   it("draws tokens that can't be guessed, and keeps only their fingerprint", async () => {
@@ -9,9 +9,6 @@ describe("the relay's accounts", () => {
     const e = await empreinte(a);
     expect(e).toMatch(/^[0-9a-f]{64}$/);
     expect(e).not.toContain(a);
-    expect(memeEmpreinte(e, await empreinte(a))).toBe(true);
-    expect(memeEmpreinte(e, await empreinte(nouveauJeton()))).toBe(false);
-    expect(memeEmpreinte(e, e.slice(1))).toBe(false);
   });
 
   it("reads « Bearer <id>.<token> » and nothing else", () => {

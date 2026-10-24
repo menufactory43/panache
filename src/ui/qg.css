@@ -1447,3 +1447,38 @@ html.belle .rg-head .sheet-close.x {
   border-color: var(--line-hi);
   color: var(--gold);
 }
+
+/* « Se connecter avec Apple » (the iPhone app): Apple's own look, white on black */
+.rg-apple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 50px;
+  margin: 0 0 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  font: inherit;
+}
+.rg-apple span {
+  font: 600 16px -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+.rg-apple small {
+  color: #b9b9b9;
+  font-size: 11px;
+}
+.rg-apple.on {
+  background: transparent;
+  border-color: var(--line);
+}
+.rg-apple.on span {
+  color: var(--green);
+}
+.rg-apple:disabled {
+  opacity: 0.6;
+}

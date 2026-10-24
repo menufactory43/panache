@@ -34,7 +34,7 @@ import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
 import { bootApp, shareBase } from "./native";
-import { accountStatus, deleteAccount, enableCloudSave, startAccount, watchAccount, type AccountStatus } from "./game/account";
+import { accountStatus, appleOffered, deleteAccount, enableCloudSave, signInWithApple, startAccount, watchAccount, type AccountStatus } from "./game/account";
 import { mountSavedList } from "./ui/archives";
 import { reelWaiting, takeReel } from "./ui/reel-entry";
 import { SPOTLIGHT_KEY, setSpotlight, spotlightOn } from "./game/spotlight";
@@ -1052,6 +1052,7 @@ function showMenu(linkedMap?: string | null): void {
                    <span class="rg-l">☁️ ${tr("Sauvegarde en ligne", "Cloud save")}<small class="rg-cloud"></small></span>
                    <span class="rg-sw" aria-hidden="true"></span>
                  </button>
+                 ${appleOffered() ? `<button class="rg-apple" data-a="apple"></button>` : ""}
                  <div class="rg-ask" hidden>
                    <p>${tr(
                      "Supprimer ton compte et ta sauvegarde en ligne ? Ta progression reste sur cet appareil.",
@@ -1105,8 +1106,28 @@ function showMenu(linkedMap?: string | null): void {
             : s.state === "offline" ? tr("Hors ligne : elle reprendra d'elle-même", "Offline: it will catch up on its own")
             : tr("Synchronisation…", "Syncing…");
         };
+        // « Se connecter avec Apple » (the iPhone app): the progress follows the player to their other devices
+        const apple = wrap.querySelector<HTMLButtonElement>('[data-a="apple"]');
+        const showApple = (s: AccountStatus) => {
+          if (!apple || apple.disabled) return;
+          apple.hidden = s.state === "off";
+          apple.classList.toggle("on", s.apple);
+          apple.innerHTML = s.apple
+            ? `<span>✓ ${tr("Connecté avec Apple", "Signed in with Apple")}</span><small>${tr("Ta progression te suit sur tes appareils", "Your progress follows you to your devices")}</small>`
+            : `<span> ${tr("Se connecter avec Apple", "Sign in with Apple")}</span><small>${tr("Pour retrouver ta progression sur un autre appareil", "To find your progress on another device")}</small>`;
+        };
+        apple?.addEventListener("click", async () => {
+          if (accountStatus().apple) return;
+          sfx.play("click", 0.5);
+          apple.disabled = true;
+          const r = await signInWithApple();
+          apple.disabled = false;
+          showApple(accountStatus());
+          if (r === "failed") apple.querySelector("small")!.textContent = tr("La connexion n'a pas abouti : réessaie.", "Signing in didn't work: try again.");
+        });
         showCloud(accountStatus());
-        const offCloud = watchAccount(showCloud);
+        showApple(accountStatus());
+        const offCloud = watchAccount((s) => (showCloud(s), showApple(s)));
         cloud.addEventListener("click", () => {
           sfx.play("click", 0.5);
           if (accountStatus().state === "off") return void enableCloudSave();

@@ -19,7 +19,8 @@ import {
   APP_IPHONE, FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
   type Etat, type Role
 } from "./salon";
-import { empreinte, enTetesCors, lireAuth, lireEnvoi, memeEmpreinte, nouveauJeton } from "./comptes";
+import { APPLE_CLES, verifierJetonApple, type CleApple } from "./apple";
+import { empreinte, enTetesCors, lireAuth, lireEnvoi, nouveauJeton } from "./comptes";
 import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
 
 interface Env {
@@ -57,6 +58,15 @@ export default {
   }
 };
 
+/** Les requêtes qui effacent un compte : sa sauvegarde, ses jetons, lui. */
+function effacer(env: Env, id: string): D1PreparedStatement[] {
+  return [
+    env.DB.prepare("DELETE FROM sauvegardes WHERE compte = ?").bind(id),
+    env.DB.prepare("DELETE FROM jetons WHERE compte = ?").bind(id),
+    env.DB.prepare("DELETE FROM comptes WHERE id = ?").bind(id)
+  ];
+}
+
 /** Une réponse JSON du service des comptes. */
 function json(corps: unknown, statut: number, cors: Record<string, string>): Response {
   return new Response(corps === null ? null : JSON.stringify(corps), {
@@ -71,7 +81,9 @@ function json(corps: unknown, statut: number, cors: Record<string, string>): Res
  *   GET    /compte/sauvegarde   {"rev","donnees"} (rev 0 et donnees null : rien encore)
  *   PUT    /compte/sauvegarde   {"rev": la révision fusionnée, "donnees"} → {"rev"} ; 409 {"rev","donnees"} si un autre
  *                               appareil a envoyé entre-temps (le jeu fusionne et renvoie)
- *   DELETE /compte              le compte et sa sauvegarde effacés, pour de bon
+ *   POST   /compte/apple        {"jeton": le jeton d'Apple} → {"id","jeton","apple"} : le compte rattaché à Apple, ou celui
+ *                               qui l'était déjà (jeton neuf pour cet appareil ; celui d'ici est effacé)
+ *   DELETE /compte              le compte, ses jetons et sa sauvegarde effacés, pour de bon
  */
 async function comptes(req: Request, url: URL, env: Env): Promise<Response> {
   const origine = req.headers.get("Origin");
@@ -84,24 +96,55 @@ async function comptes(req: Request, url: URL, env: Env): Promise<Response> {
     if (!(await env.CREATION.limit({ key: ip })).success) return json({ erreur: "trop de comptes" }, 429, cors);
     const id = crypto.randomUUID();
     const jeton = nouveauJeton();
-    await env.DB.prepare("INSERT INTO comptes (id, empreinte, cree, vu) VALUES (?, ?, ?, ?)").bind(id, await empreinte(jeton), now, now).run();
+    const e = await empreinte(jeton);
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO comptes (id, empreinte, cree, vu) VALUES (?, ?, ?, ?)").bind(id, e, now, now),
+      env.DB.prepare("INSERT INTO jetons (empreinte, compte, cree) VALUES (?, ?, ?)").bind(e, id, now)
+    ]);
     return json({ id, jeton }, 201, cors);
   }
   const auth = lireAuth(req.headers.get("Authorization"));
-  const compte = auth ? await env.DB.prepare("SELECT empreinte, vu FROM comptes WHERE id = ?").bind(auth.id).first<{ empreinte: string; vu: number }>() : null;
-  if (!auth || !compte || !memeEmpreinte(compte.empreinte, await empreinte(auth.jeton))) return json({ erreur: "compte inconnu" }, 401, cors);
+  // (un compte a un jeton par appareil : celui-ci doit être un des siens)
+  const compte = auth
+    ? await env.DB.prepare("SELECT c.vu, c.apple FROM jetons j JOIN comptes c ON c.id = j.compte WHERE j.empreinte = ? AND j.compte = ?")
+        .bind(await empreinte(auth.jeton), auth.id)
+        .first<{ vu: number; apple: string | null }>()
+    : null;
+  if (!auth || !compte) return json({ erreur: "compte inconnu" }, 401, cors);
   // (vu : une écriture par heure au plus)
   if (now - compte.vu > 3_600_000) await env.DB.prepare("UPDATE comptes SET vu = ? WHERE id = ?").bind(now, auth.id).run();
   if (url.pathname === "/compte" && req.method === "DELETE") {
-    await env.DB.batch([
-      env.DB.prepare("DELETE FROM sauvegardes WHERE compte = ?").bind(auth.id),
-      env.DB.prepare("DELETE FROM comptes WHERE id = ?").bind(auth.id)
-    ]);
+    await env.DB.batch(effacer(env, auth.id));
     return json(null, 204, cors);
+  }
+  if (url.pathname === "/compte/apple" && req.method === "POST") {
+    // « Se connecter avec Apple » : le compte prend l'identifiant Apple du joueur ; s'il est déjà celui d'un autre
+    // compte (le joueur s'est connecté sur un autre appareil), c'est celui-là qui est rendu, avec un jeton neuf pour cet
+    // appareil, et le compte d'ici (anonyme) est effacé : le jeu fusionne sa progression dans l'autre à la synchro.
+    let corps: { jeton?: unknown };
+    try {
+      corps = (await req.json()) as { jeton?: unknown };
+    } catch {
+      return json({ erreur: "JSON attendu" }, 400, cors);
+    }
+    const cles = await fetch(APPLE_CLES, { headers: { "user-agent": "panache-relais (+https://menufactory43.github.io/panache/)", accept: "application/json" }, cf: { cacheTtl: 3600, cacheEverything: true } } as RequestInit)
+      .then((r) => (r.ok ? (r.json() as Promise<{ keys: CleApple[] }>) : null))
+      .catch(() => null);
+    if (!cles) return json({ erreur: "Apple injoignable" }, 503, cors);
+    const v = await verifierJetonApple(String(corps.jeton ?? ""), cles.keys, auth.id, now);
+    if (!v.ok) return json({ erreur: `jeton Apple refusé : ${v.raison}` }, 401, cors);
+    const deja = await env.DB.prepare("SELECT id FROM comptes WHERE apple = ?").bind(v.sub).first<{ id: string }>();
+    if (!deja || deja.id === auth.id) {
+      await env.DB.prepare("UPDATE comptes SET apple = ? WHERE id = ?").bind(v.sub, auth.id).run();
+      return json({ id: auth.id, jeton: null, apple: true }, 200, cors);
+    }
+    const jeton = nouveauJeton();
+    await env.DB.batch([env.DB.prepare("INSERT INTO jetons (empreinte, compte, cree) VALUES (?, ?, ?)").bind(await empreinte(jeton), deja.id, now), ...effacer(env, auth.id)]);
+    return json({ id: deja.id, jeton, apple: true }, 200, cors);
   }
   if (url.pathname !== "/compte/sauvegarde") return json({ erreur: "introuvable" }, 404, cors);
   const actuelle = () => env.DB.prepare("SELECT rev, donnees FROM sauvegardes WHERE compte = ?").bind(auth.id).first<{ rev: number; donnees: string }>();
-  const telle = (s: { rev: number; donnees: string } | null) => ({ rev: s?.rev ?? 0, donnees: s ? JSON.parse(s.donnees) : null });
+  const telle = (s: { rev: number; donnees: string } | null) => ({ rev: s?.rev ?? 0, donnees: s ? JSON.parse(s.donnees) : null, apple: !!compte.apple });
   if (req.method === "GET") return json(telle(await actuelle()), 200, cors);
   if (req.method !== "PUT") return json({ erreur: "méthode" }, 405, cors);
   const envoi = lireEnvoi(await req.text());

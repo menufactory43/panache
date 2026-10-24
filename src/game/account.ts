@@ -12,6 +12,7 @@
  * account and its save for good; progress on the device stays.
  */
 import { Preferences } from "@capacitor/preferences";
+import { AppleSignIn } from "panache-apple-sign-in";
 import { RELAY_URL, relayBase } from "../relay-url";
 import { isApp } from "../native";
 import { mergeSaves, readSave, sanitizeSave, saveText, writeSave } from "./save";
@@ -31,9 +32,11 @@ export interface AccountStatus {
   state: AccountState;
   /** When the save was last in step with the cloud (ms), or null. */
   at: number | null;
+  /** Signed in with Apple: the same account on every device the player signs in on. */
+  apple: boolean;
 }
 
-let status: AccountStatus = { state: "pending", at: null };
+let status: AccountStatus = { state: "pending", at: null, apple: false };
 const listeners = new Set<(s: AccountStatus) => void>();
 let onProgress: () => void = () => undefined;
 
@@ -127,7 +130,7 @@ export function syncSave(): Promise<void> {
 
 async function syncOnce(): Promise<void> {
   const root = base();
-  if (!root || (await getPref(OFF_KEY)) === "1") return setStatus({ state: "off", at: null });
+  if (!root || (await getPref(OFF_KEY)) === "1") return setStatus({ state: "off", at: null, apple: false });
   try {
     let creds = await ensureCreds(root);
     if (!creds) return setStatus({ ...status, state: "offline" });
@@ -140,17 +143,18 @@ async function syncOnce(): Promise<void> {
       res = await call(`${root}/compte/sauvegarde`, { method: "GET" }, creds);
     }
     if (!res.ok) return setStatus({ ...status, state: "offline" });
-    let remote = (await res.json()) as { rev: number; donnees: unknown };
+    let remote = (await res.json()) as { rev: number; donnees: unknown; apple?: boolean };
+    const apple = !!remote.apple;
     for (let tries = 0; tries < 4; tries++) {
       const theirs = remote.donnees ? sanitizeSave(remote.donnees) : null;
       const merged = theirs ? mergeSaves(readSave(store), theirs) : readSave(store);
       if (writeSave(store, merged)) onProgress();
-      if (theirs && saveText(theirs) === saveText(merged)) return setStatus({ state: "ok", at: Date.now() });
+      if (theirs && saveText(theirs) === saveText(merged)) return setStatus({ state: "ok", at: Date.now(), apple });
       const put = await call(`${root}/compte/sauvegarde`, { method: "PUT", body: JSON.stringify({ rev: remote.rev, donnees: merged }), keepalive: true }, creds);
-      if (put.ok) return setStatus({ state: "ok", at: Date.now() });
+      if (put.ok) return setStatus({ state: "ok", at: Date.now(), apple });
       if (put.status !== 409) return setStatus({ ...status, state: "offline" });
       // another device sent in between: merge with theirs and try again
-      remote = (await put.json()) as { rev: number; donnees: unknown };
+      remote = (await put.json()) as { rev: number; donnees: unknown; apple?: boolean };
     }
     setStatus({ ...status, state: "offline" });
   } catch {
@@ -179,10 +183,46 @@ export function startAccount(progressChanged: () => void): void {
   });
 }
 
+/** « Se connecter avec Apple » is offered: in the iPhone app, with the cloud save on. */
+export const appleOffered = (): boolean => isApp;
+
+export type AppleResult = "ok" | "canceled" | "failed";
+
+/**
+ * « Se connecter avec Apple »: Apple's sheet, then the relay ties this
+ * account to the player's Apple id, or hands back the account that already
+ * has it (signed in on another device), whose save this device's progress is
+ * then merged into.
+ */
+export async function signInWithApple(): Promise<AppleResult> {
+  const root = base();
+  if (!root || !isApp) return "failed";
+  try {
+    await setPref(OFF_KEY, null);
+    const creds = await ensureCreds(root);
+    if (!creds) return "failed";
+    let token: string;
+    try {
+      // (the account's id as the nonce: the token is good for this account only, relay/src/apple.ts)
+      token = (await AppleSignIn.authorize({ nonce: creds.id })).identityToken;
+    } catch (e) {
+      return (e as { code?: string })?.code === "CANCELED" ? "canceled" : "failed";
+    }
+    const res = await call(`${root}/compte/apple`, { method: "POST", body: JSON.stringify({ jeton: token }) }, creds);
+    if (!res.ok) return "failed";
+    const r = (await res.json()) as { id: string; jeton: string | null };
+    if (r.jeton) await setPref(CREDS_KEY, JSON.stringify({ id: r.id, jeton: r.jeton }));
+    await syncSave();
+    return "ok";
+  } catch {
+    return "failed";
+  }
+}
+
 /** Turn the cloud save back on: an account is made at the next sync. */
 export async function enableCloudSave(): Promise<void> {
   await setPref(OFF_KEY, null);
-  setStatus({ state: "pending", at: null });
+  setStatus({ state: "pending", at: null, apple: false });
   await syncSave();
 }
 
@@ -200,6 +240,6 @@ export async function deleteAccount(): Promise<boolean> {
   }
   await setPref(CREDS_KEY, null);
   await setPref(OFF_KEY, "1");
-  setStatus({ state: "off", at: null });
+  setStatus({ state: "off", at: null, apple: false });
   return true;
 }

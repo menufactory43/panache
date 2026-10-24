@@ -3,7 +3,7 @@
 //
 // Un compte est créé sans rien demander au premier lancement du jeu : un identifiant et un jeton tirés au hasard.
 // Le jeu garde les deux ; la base ne garde que l'empreinte du jeton (SHA-256), jamais le jeton lui-même. Chaque
-// requête d'un compte porte « Authorization: Bearer <id>.<jeton> ». Le compte tient la sauvegarde du joueur (sa
+// requête d'un compte porte « Authorization: Bearer <id>.<jeton> » (un jeton par appareil, table jetons). Le compte tient la sauvegarde du joueur (sa
 // progression, src/game/save.ts côté jeu) ; plus tard son classement. Aucune adresse, aucun nom, aucun e-mail.
 
 import { origineAdmise } from "./salon";
@@ -31,14 +31,6 @@ export function lireAuth(entete: string | null): { id: string; jeton: string } |
   const m = entete?.match(/^Bearer ([^.\s]+)\.(\S+)$/);
   if (!m || !ID.test(m[1]!) || !JETON.test(m[2]!)) return null;
   return { id: m[1]!, jeton: m[2]! };
-}
-
-/** Deux empreintes égales, comparées sans fuite de temps. */
-export function memeEmpreinte(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return d === 0;
 }
 
 /** Les en-têtes CORS pour une origine admise (le jeu publié, l'app, le développement) ; aucun pour les autres. */
