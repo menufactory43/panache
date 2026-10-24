@@ -20,6 +20,7 @@ import {
   type Etat, type Role
 } from "./salon";
 import { APPLE_CLES, verifierJetonApple, type CleApple } from "./apple";
+import { CARTES_CLASSEES, apparier, depouiller, issueAdmise, nomDe, variation, type Attente, type Issue } from "./classement";
 import { empreinte, enTetesCors, lireAuth, lireEnvoi, nouveauJeton } from "./comptes";
 import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
 
@@ -30,6 +31,8 @@ interface Env {
   DB: D1Database;
   /** Au plus quelques comptes créés par minute et par adresse. */
   CREATION: RateLimit;
+  /** La file d'attente des parties classées (un seul objet). */
+  FILE: DurableObjectNamespace<FileAttente>;
 }
 
 /** Seules la page publiée et l’app iPhone comptent (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
@@ -49,6 +52,8 @@ export default {
     }
     if (url.pathname === "/stats" && req.method === "GET") return env.STATS.get(env.STATS.idFromName("panache")).fetch(req);
     if (url.pathname === "/compte" || url.pathname.startsWith("/compte/")) return comptes(req, url, env);
+    if (url.pathname === "/file") return file(req, url, env);
+    if (url.pathname === "/classement" || url.pathname.startsWith("/classement/")) return classement(req, url, env);
     const code = codeDe(url.pathname);
     if (!code) return new Response("introuvable", { status: 404 });
     if (!origineAdmise(req.headers.get("Origin"))) return new Response("origine refusée", { status: 403 });
@@ -57,6 +62,125 @@ export default {
     return stub.fetch(req);
   }
 };
+
+/** Le compte d'un jeton (« <id>.<jeton> »), ou null. */
+async function compteDe(env: Env, auth: { id: string; jeton: string } | null) {
+  if (!auth) return null;
+  return env.DB.prepare("SELECT c.id, c.cote, c.joues, c.gagnes FROM jetons j JOIN comptes c ON c.id = j.compte WHERE j.empreinte = ? AND j.compte = ?")
+    .bind(await empreinte(auth.jeton), auth.id)
+    .first<{ id: string; cote: number; joues: number; gagnes: number }>();
+}
+
+/**
+ * La file d'attente des parties classées : wss://…/file?id=<compte>&jeton=<jeton>&build=<version du duel>. (Une
+ * WebSocket ne porte pas d'en-tête Authorization : le jeton passe dans l'adresse, en wss.) Le compte vérifié, la
+ * connexion va au Durable Object FileAttente, qui apparie et répond {"t":"adversaire",…} (README.md « Classement »).
+ */
+async function file(req: Request, url: URL, env: Env): Promise<Response> {
+  if (!origineAdmise(req.headers.get("Origin"))) return new Response("origine refusée", { status: 403 });
+  if (req.headers.get("Upgrade")?.toLowerCase() !== "websocket") return new Response("websocket attendu", { status: 426 });
+  const id = url.searchParams.get("id") ?? "";
+  const c = await compteDe(env, lireAuth(`Bearer ${id}.${url.searchParams.get("jeton") ?? ""}`));
+  const build = Number(url.searchParams.get("build"));
+  const pair = new WebSocketPair();
+  const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
+  // (refusé par la WebSocket : un navigateur lit le code de fermeture, pas le statut)
+  if (!c || !Number.isInteger(build) || build < 0 || build > 0xffff) {
+    server.accept();
+    fermer(server, 4001, c ? "version" : "compte inconnu");
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  const fwd = new Request(req.url, req);
+  fwd.headers.set("x-compte", c.id);
+  fwd.headers.set("x-cote", String(c.cote));
+  fwd.headers.set("x-build", String(build));
+  return env.FILE.get(env.FILE.idFromName("file")).fetch(fwd);
+}
+
+/** Une partie classée est tenue pour finie sans nouvelles de l'un des deux au bout de 20 min (il est parti). */
+const SILENCE_MS = 20 * 60_000;
+
+/** Applique l'issue d'une partie aux cotes (une seule fois). */
+async function solder(env: Env, p: { id: string; bleu: string; rouge: string }, issue: Issue, now: number): Promise<void> {
+  const b = await env.DB.prepare("SELECT cote, joues FROM comptes WHERE id = ?").bind(p.bleu).first<{ cote: number; joues: number }>();
+  const r = await env.DB.prepare("SELECT cote, joues FROM comptes WHERE id = ?").bind(p.rouge).first<{ cote: number; joues: number }>();
+  const sb: 0 | 0.5 | 1 = issue === "blue" ? 1 : issue === "draw" ? 0.5 : 0;
+  const db = b && r ? variation(b.cote, r.cote, sb, b.joues) : 0;
+  const dr = b && r ? variation(r.cote, b.cote, (1 - sb) as 0 | 0.5 | 1, r.joues) : 0;
+  const res = await env.DB.prepare("UPDATE parties SET issue = ?, fin = ?, delta_bleu = ?, delta_rouge = ? WHERE id = ? AND issue IS NULL").bind(issue, now, db, dr, p.id).run();
+  if (!res.meta.changes) return; // (déjà soldée par l'autre camp)
+  await env.DB.batch([
+    env.DB.prepare("UPDATE comptes SET cote = cote + ?, joues = joues + 1, gagnes = gagnes + ? WHERE id = ?").bind(db, issue === "blue" ? 1 : 0, p.bleu),
+    env.DB.prepare("UPDATE comptes SET cote = cote + ?, joues = joues + 1, gagnes = gagnes + ? WHERE id = ?").bind(dr, issue === "red" ? 1 : 0, p.rouge)
+  ]);
+}
+
+/** Les parties d'un joueur restées sans l'autre rapport trop longtemps : soldées sur le seul rapport reçu. */
+async function solderLesSilencieuses(env: Env, compte: string, now: number): Promise<void> {
+  const { results } = await env.DB.prepare(
+    "SELECT id, bleu, rouge, rapport_bleu, rapport_rouge FROM parties WHERE (bleu = ? OR rouge = ?) AND issue IS NULL AND debut < ? AND (rapport_bleu IS NOT NULL OR rapport_rouge IS NOT NULL)"
+  ).bind(compte, compte, now - SILENCE_MS).all<{ id: string; bleu: string; rouge: string; rapport_bleu: Issue | null; rapport_rouge: Issue | null }>();
+  for (const p of results) {
+    const issue = depouiller({ bleu: p.rapport_bleu, rouge: p.rapport_rouge }, true);
+    if (issue) await solder(env, p, issue, now);
+  }
+}
+
+/**
+ * Le classement :
+ *   GET  /classement            {"tete":[{"nom","cote","joues","gagnes"}…50],"moi":{…,"rang"}|null}
+ *   POST /classement/resultat   {"partie","issue":"blue"|"red"|"draw"} → {"issue","delta","cote"} (issue null : en
+ *                               attente du rapport de l'autre)
+ */
+async function classement(req: Request, url: URL, env: Env): Promise<Response> {
+  const origine = req.headers.get("Origin");
+  if (origine !== null && !origineAdmise(origine)) return new Response("origine refusée", { status: 403 });
+  const cors = enTetesCors(origine);
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  const now = Date.now();
+  const auth = lireAuth(req.headers.get("Authorization"));
+  if (url.pathname === "/classement" && req.method === "GET") {
+    const c = await compteDe(env, auth);
+    if (c) await solderLesSilencieuses(env, c.id, now);
+    const { results } = await env.DB.prepare("SELECT id, cote, joues, gagnes FROM comptes WHERE joues > 0 ORDER BY cote DESC, joues DESC LIMIT 50").all<{
+      id: string; cote: number; joues: number; gagnes: number;
+    }>();
+    const tete = results.map((r) => ({ nom: nomDe(r.id), cote: r.cote, joues: r.joues, gagnes: r.gagnes, moi: r.id === c?.id }));
+    let moi = null;
+    if (c) {
+      const m = await env.DB.prepare("SELECT cote, joues, gagnes FROM comptes WHERE id = ?").bind(c.id).first<{ cote: number; joues: number; gagnes: number }>();
+      const rang = m && m.joues > 0 ? ((await env.DB.prepare("SELECT count(*) AS n FROM comptes WHERE joues > 0 AND cote > ?").bind(m.cote).first<{ n: number }>())?.n ?? 0) + 1 : null;
+      moi = { nom: nomDe(c.id), cote: m?.cote ?? c.cote, joues: m?.joues ?? 0, gagnes: m?.gagnes ?? 0, rang };
+    }
+    return json({ tete, moi }, 200, cors);
+  }
+  if (url.pathname === "/classement/resultat" && req.method === "POST") {
+    const c = await compteDe(env, auth);
+    if (!c) return json({ erreur: "compte inconnu" }, 401, cors);
+    let corps: { partie?: unknown; issue?: unknown };
+    try {
+      corps = (await req.json()) as { partie?: unknown; issue?: unknown };
+    } catch {
+      return json({ erreur: "JSON attendu" }, 400, cors);
+    }
+    if (typeof corps.partie !== "string" || !issueAdmise(corps.issue)) return json({ erreur: "partie et issue attendues" }, 400, cors);
+    const p = await env.DB.prepare("SELECT id, bleu, rouge, rapport_bleu, rapport_rouge, issue FROM parties WHERE id = ?").bind(corps.partie).first<{
+      id: string; bleu: string; rouge: string; rapport_bleu: Issue | null; rapport_rouge: Issue | null; issue: Issue | null;
+    }>();
+    if (!p || (p.bleu !== c.id && p.rouge !== c.id)) return json({ erreur: "partie inconnue" }, 404, cors);
+    const camp = p.bleu === c.id ? "bleu" : "rouge";
+    if (!p.issue) {
+      await env.DB.prepare(`UPDATE parties SET rapport_${camp} = ? WHERE id = ? AND rapport_${camp} IS NULL`).bind(corps.issue, p.id).run();
+      const r = { bleu: camp === "bleu" ? corps.issue : p.rapport_bleu, rouge: camp === "rouge" ? corps.issue : p.rapport_rouge };
+      const issue = depouiller(r, false);
+      if (issue) await solder(env, p, issue, now);
+    }
+    const fin = await env.DB.prepare("SELECT issue, delta_bleu, delta_rouge FROM parties WHERE id = ?").bind(p.id).first<{ issue: Issue | null; delta_bleu: number; delta_rouge: number }>();
+    const cote = (await env.DB.prepare("SELECT cote FROM comptes WHERE id = ?").bind(c.id).first<{ cote: number }>())?.cote ?? c.cote;
+    return json({ issue: fin?.issue ?? null, delta: fin?.issue ? (camp === "bleu" ? fin.delta_bleu : fin.delta_rouge) : null, cote }, 200, cors);
+  }
+  return json({ erreur: "introuvable" }, 404, cors);
+}
 
 /** Les requêtes qui effacent un compte : sa sauvegarde, ses jetons, lui. */
 function effacer(env: Env, id: string): D1PreparedStatement[] {
@@ -303,5 +427,85 @@ export class Stats extends DurableObject<Env> {
     const vieux = await this.ctx.storage.list({ end: `${limiteMenage(Date.now())}|` });
     if (vieux.size) await this.ctx.storage.delete([...vieux.keys()].slice(0, 128));
     await this.ctx.storage.setAlarm(Date.now() + 86_400_000);
+  }
+}
+
+/** Ce que la file garde de chaque connexion (survit à l'hibernation). */
+interface EnFile {
+  compte: string;
+  cote: number;
+  build: number;
+  depuis: number;
+}
+
+/** Les lettres des codes de salon (salon.ts ALPHABET, versus/online.ts CODE_ALPHABET). */
+const LETTRES = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+/**
+ * La file d'attente des parties classées (classement.ts) : un seul objet. Chaque joueur qui cherche y tient une
+ * WebSocket ; toutes les 2 s (et à chaque arrivée) l'objet apparie ce qui peut l'être, inscrit la partie dans la base,
+ * envoie à chacun son adversaire, le code du salon, son rôle (l'hôte joue bleu) et la carte, puis ferme. Un joueur
+ * qui part (application en arrière-plan, Annuler) quitte la file en fermant sa connexion.
+ */
+export class FileAttente extends DurableObject<Env> {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+  }
+
+  private ouverts(): WebSocket[] {
+    return this.ctx.getWebSockets().filter((w) => w.readyState === WebSocket.OPEN);
+  }
+
+  async fetch(req: Request): Promise<Response> {
+    const compte = req.headers.get("x-compte")!;
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
+    // (le même compte déjà en file depuis un autre appareil, ou une connexion morte pas encore vue : la nouvelle remplace)
+    for (const w of this.ouverts()) if ((w.deserializeAttachment() as EnFile | null)?.compte === compte) fermer(w, 4000, "remplacé");
+    this.ctx.acceptWebSocket(server);
+    const moi: EnFile = { compte, cote: Number(req.headers.get("x-cote")), build: Number(req.headers.get("x-build")), depuis: Date.now() };
+    server.serializeAttachment(moi);
+    envoyer(server, JSON.stringify({ t: "file", nom: nomDe(compte), cote: moi.cote, attente: this.ouverts().length - 1 }));
+    await this.tenter();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async webSocketMessage(): Promise<void> {
+    // (le jeu n'envoie que « ping », répondu sans réveil)
+  }
+
+  async alarm(): Promise<void> {
+    await this.tenter();
+  }
+
+  private async tenter(): Promise<void> {
+    const now = Date.now();
+    const ws = this.ouverts();
+    const par = new Map<string, WebSocket>();
+    const file: Attente[] = ws.map((w, i) => {
+      const a = w.deserializeAttachment() as EnFile;
+      par.set(String(i), w);
+      return { ws: String(i), compte: a.compte, cote: a.cote, build: a.build, depuis: a.depuis };
+    });
+    const pris = new Set<string>();
+    for (const [a, b] of apparier(file, now)) {
+      pris.add(a.ws).add(b.ws);
+      const hote = Math.random() < 0.5 ? a : b;
+      const invite = hote === a ? b : a;
+      const code = Array.from(crypto.getRandomValues(new Uint8Array(4)), (x) => LETTRES[x % LETTRES.length]).join("");
+      const carte = CARTES_CLASSEES[Math.floor(Math.random() * CARTES_CLASSEES.length)]!;
+      const partie = crypto.randomUUID();
+      await this.env.DB.prepare("INSERT INTO parties (id, code, carte, bleu, rouge, debut) VALUES (?, ?, ?, ?, ?, ?)").bind(partie, code, carte, hote.compte, invite.compte, now).run();
+      const fiche = (x: Attente) => ({ nom: nomDe(x.compte), cote: x.cote });
+      for (const [moi, lui, role] of [[hote, invite, "hote"], [invite, hote, "invite"]] as const) {
+        const w = par.get(moi.ws)!;
+        envoyer(w, JSON.stringify({ t: "adversaire", partie, code, role, carte, moi: fiche(moi), lui: fiche(lui) }));
+        fermer(w, 1000, "adversaire trouvé");
+      }
+    }
+    const restent = file.filter((x) => !pris.has(x.ws));
+    for (const x of restent) envoyer(par.get(x.ws)!, JSON.stringify({ t: "file", attente: restent.length - 1, depuis: now - x.depuis }));
+    if (restent.length) await this.ctx.storage.setAlarm(now + 2000);
   }
 }

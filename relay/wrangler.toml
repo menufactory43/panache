@@ -35,3 +35,12 @@ migrations_dir = "migrations"
 name = "CREATION"
 namespace_id = "4301"
 simple = { limit = 5, period = 60 }
+
+# La file d'attente des parties classées (src/index.ts, classe FileAttente) : un seul objet pour tout le monde.
+[[durable_objects.bindings]]
+name = "FILE"
+class_name = "FileAttente"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["FileAttente"]
