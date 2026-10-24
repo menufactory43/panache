@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  The English share link, https://menufactory43.github.io/panache/en/: its
+  preview (Open Graph / Twitter) is in English, then it opens the game in
+  English (?lang=en, src/lang.ts; a language picked in the Réglages still wins),
+  passing a duel invite's ?salon= on. The French link is the game's own page.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#120c06" />
+    <title>Panache</title>
+    <meta name="description" content="Paris, 1900. Europe arms herself with steam, steel and radium… A free Belle Époque real-time strategy game for mobile and browser." />
+    <link rel="canonical" href="https://menufactory43.github.io/panache/en/" />
+    <link rel="alternate" hreflang="fr" href="https://menufactory43.github.io/panache/" />
+    <link rel="alternate" hreflang="en" href="https://menufactory43.github.io/panache/en/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Panache" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:title" content="Panache — the war of the machines, Belle Époque" />
+    <meta property="og:description" content="Paris, 1900. Airships, Steam Wagons, automatons in kepis and Gargantua, the walking fortress. A free RTS for mobile and browser." />
+    <meta property="og:url" content="https://menufactory43.github.io/panache/en/" />
+    <meta property="og:image" content="https://menufactory43.github.io/panache/og-en.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PANACHE: a Belle Époque battle, airships and automatons before Paris" />
+    <meta property="og:video" content="https://menufactory43.github.io/panache/og-en.mp4" />
+    <meta property="og:video:secure_url" content="https://menufactory43.github.io/panache/og-en.mp4" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="1280" />
+    <meta property="og:video:height" content="720" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Panache — the war of the machines, Belle Époque" />
+    <meta name="twitter:description" content="Paris, 1900. Airships, Steam Wagons, automatons in kepis and Gargantua. A free RTS for mobile." />
+    <meta name="twitter:image" content="https://menufactory43.github.io/panache/og-en.jpg" />
+    <link rel="icon" href="../icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../icons/apple-touch-icon.png" />
+    <noscript><meta http-equiv="refresh" content="0; url=../?lang=en" /></noscript>
+    <script>
+      const q = new URLSearchParams(location.search);
+      q.set("lang", "en");
+      location.replace("../?" + q + location.hash);
+    </script>
+    <style>html { background: #120c06; }</style>
+  </head>
+  <body></body>
+</html>

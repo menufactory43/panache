@@ -72,6 +72,9 @@ describe("the online wire", () => {
     expect(inviteUrl("https://menufactory43.github.io/panache/?duel=relay&seat=host&style=original#x", "QRST")).toBe(
       "https://menufactory43.github.io/panache/?style=original&salon=QRST"
     );
+    expect(inviteUrl("https://menufactory43.github.io/panache/index.html?lang=en", "QRST", "en")).toBe(
+      "https://menufactory43.github.io/panache/en/?salon=QRST"
+    );
     expect(relayBase("")).toBe(RELAY_URL);
     expect(relayBase("?relais=http://localhost:8787/")).toBe("ws://localhost:8787");
     expect(relayBase("?relais=javascript:alert(1)")).toBe(RELAY_URL);

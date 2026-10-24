@@ -94,9 +94,11 @@ export function relayBase(search: string): string {
   return RELAY_URL;
 }
 
-/** The invite link: this page's address with `?salon=CODE` (and nothing else of its query but `relais` and `style`). */
-export function inviteUrl(href: string, code: string): string {
+/** The invite link: this page's address with `?salon=CODE` (and nothing else of its query but `relais` and `style`); in English, its /en/. */
+export function inviteUrl(href: string, code: string, lang: "fr" | "en" = "fr"): string {
   const u = new URL(href);
+  // in English, the English share link: its preview is in English (public/en/ passes the room on)
+  if (lang === "en") u.pathname = u.pathname.replace(/[^/]*$/, "") + "en/";
   const keep = new URLSearchParams();
   for (const k of ["relais", "style"]) {
     const v = u.searchParams.get(k);

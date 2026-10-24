@@ -17,6 +17,11 @@ describe("detectLang", () => {
     expect(detectLang({ saved: "xx", languages: ["ja-JP"] })).toBe("en");
     expect(detectLang({ override: "en", saved: "fr", languages: ["fr"] })).toBe("en");
   });
+  it("follows the link's ?lang= when nothing is saved, before the phone's", () => {
+    expect(detectLang({ saved: null, link: "en", languages: ["fr-FR"] })).toBe("en");
+    expect(detectLang({ saved: "fr", link: "en", languages: ["en-US"] })).toBe("fr");
+    expect(detectLang({ saved: null, link: "de", languages: ["fr-FR"] })).toBe("fr");
+  });
   it("is French outside a browser", () => {
     expect(detectLang({})).toBe("fr");
   });
