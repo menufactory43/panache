@@ -976,6 +976,7 @@ export class GameScene {
           break; // (a live battle: the next round isn't played yet)
         }
         this.snapshotPrev();
+        if (!this.blueAi) this.ctrl.loopProduction(); // (↻ production in a loop: idle producers start the next one)
         // our orders (a spectator's: blue's commander; a duel's: drained by its feed) and the enemy commander's, stepped blue's first
         const mine = this.blueAi ? tickAi(this.world, "blue", this.blueAi) : this.interactive ? [] : this.ctrl.drainCommands();
         const theirs = this.ai ? tickAi(this.world, ENEMY, this.ai) : []; // (Last Stand: the waves have no commander)

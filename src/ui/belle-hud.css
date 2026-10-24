@@ -970,6 +970,11 @@ html.belle #hud.bh .bh-sheet .bb:not(.counter):not(.ready) {
 html.belle #hud.bh .bh-sheet .bb.placing {
   background: #2c3a22;
 }
+/* ↻ production in a loop: a gold rim */
+html.belle #hud.bh .bh-sheet .bb.looping {
+  border-color: #e8c06a;
+  box-shadow: 0 0 0 1px #e8c06a inset;
+}
 html.belle #hud.bh .bh-sheet .bb .nm {
   display: none;
 }

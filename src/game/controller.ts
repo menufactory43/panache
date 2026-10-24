@@ -1,6 +1,6 @@
 import { BUILDINGS, ECONOMY, GOLIATH, TICK_RATE, UNITS } from "../sim/balance";
 import { behaves, buildingCostFor, buildingMaxHp } from "../sim/nations";
-import { paidFor, producerCap, producersOf, type Producer } from "../sim/economy";
+import { paidFor, producerCap, producersOf, unitBlocker, type Producer } from "../sim/economy";
 import { anchorBlocker, canWalk, goliathReachAt, unitCost } from "../sim/goliath";
 import { isInfantry, isTransport } from "../sim/infantry";
 import { LIFT_NEEDS_TWO, LIFT_PACK_FIRST, canCarry, liftBlocker, liftedBy } from "../sim/lift";
@@ -461,6 +461,14 @@ export class Controller {
   /** Three saved control groups (squad chips, keys 1–3). */
   readonly squads = new Squads(PLAYER);
   /**
+   * Production in a loop (↻, the build bar's info card): unit kinds an idle
+   * producer of theirs starts again on its own (loopProduction). For this
+   * match only.
+   */
+  readonly loops = new Set<UnitKind>();
+  /** Each producer's turn among the looped kinds it makes (two looped at one Forge alternate). */
+  private loopTurn = new Map<number, number>();
+  /**
    * Orders drained but not applied yet, oldest first, each with the tick it
    * was drained on, while an interactive feed (a sound duel) carries them:
    * they land D ticks after the tap, or later while the link holds them up.
@@ -492,6 +500,44 @@ export class Controller {
     if (this.spectator || this.locked) return;
     this.queue.push(cmd);
     this.version++;
+  }
+
+  /**
+   * ↻ Production in a loop: each producer of a looped kind with nothing
+   * queued (nor on its way) starts the next one, taking its looped kinds in
+   * turn, while the coal allows. Only idle producers: what the player queues
+   * by hand always goes first. Plain produce orders, so the sim, replays and
+   * a duel's peer see nothing new. Called once per tick, before the orders
+   * are drained.
+   */
+  loopProduction(): void {
+    if (this.spectator || this.locked || this.loops.size === 0) return;
+    const w = this.world;
+    const view = this.view();
+    let scrap = view.scrap;
+    // (single player: orders not drained yet aren't in view())
+    const asked = new Set<number>();
+    if (!this.flights) for (const c of this.queue) if (c.type === "produce") asked.add(c.buildingId);
+    const byProducer = new Map<number, { p: Producer; kinds: UnitKind[] }>();
+    for (const kind of this.loops)
+      for (const p of producersOf(w, PLAYER, kind)) {
+        const e = byProducer.get(p.id) ?? { p, kinds: [] };
+        e.kinds.push(kind);
+        byProducer.set(p.id, e);
+      }
+    for (const [id, { p, kinds }] of [...byProducer].sort((a, b) => a[0] - b[0])) {
+      if (p.queue.length + view.extra(id) > 0 || view.closed(id) || asked.has(id)) continue;
+      const turn = this.loopTurn.get(id) ?? 0;
+      for (let i = 0; i < kinds.length; i++) {
+        const kind = kinds[(turn + i) % kinds.length]!;
+        const cost = unitCost(w, PLAYER, kind);
+        if (cost > scrap || unitBlocker(w, PLAYER, kind)) continue;
+        this.enqueue({ type: "produce", faction: PLAYER, buildingId: id, unit: kind });
+        scrap -= cost;
+        this.loopTurn.set(id, turn + i + 1);
+        break;
+      }
+    }
   }
 
   /** Track orders in flight from now on (an interactive feed). */
