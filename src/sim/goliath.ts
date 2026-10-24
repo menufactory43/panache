@@ -1,3 +1,4 @@
+import { orderedToMoveSkill } from "./skills";
 import { BUILDINGS, GOLIATH, ROLES, TERRAIN, TICK_RATE, UNITS, ZENITH, type GoliathWeaponStats, type ZenithWeapon } from "./balance";
 import { blocksObjective } from "./objectives";
 import { isStunned } from "./powers";
@@ -466,6 +467,7 @@ export function applyGoliathCommand(w: World, c: Extract<Command, { type: "ancho
  * packs up first and walks off once it is free (movement waits for it).
  */
 export function orderedToMove(w: World, u: Unit): void {
+  orderedToMoveSkill(w, u); // (and a French 75 in battery packs up first: skills.ts)
   const g = u.goliath;
   if (!g || g.lift) return;
   if (g.mode === "anchored" || g.mode === "anchoring") packUp(w, u);

@@ -1,3 +1,4 @@
+import { shifting, skillRate, unitStats } from "./skills";
 import { eclairKill } from "./modes/eclair";
 import { BUILDINGS, COMBAT, DAMAGE_VS, INFANTRY, OBJECTIVES, TERRAIN, TICK_RATE, UNITS, shotDamage, type ArmedStats } from "./balance";
 import { GOLIATH_WEAPONS, canRepair, canWalk, goliathReachAt, hasGoliath, repairUrgency, unplant, weaponReady, weaponStats } from "./goliath";
@@ -258,13 +259,13 @@ function fire(w: World, attacker: Attacker, targetId: number, incidents: Inciden
   const holder = isUnit ? attacker.unit : attacker.building;
   const clock = mount?.state ?? holder;
   if (clock.cooldown > 0) return;
-  const stats: ArmedStats = mount?.stats ?? (isUnit ? UNITS[attacker.unit.kind] : BUILDINGS[attacker.building.kind]);
+  const stats: ArmedStats = mount?.stats ?? (isUnit ? unitStats(attacker.unit) : BUILDINGS[attacker.building.kind]);
   const src = isUnit ? { x: attacker.unit.x, y: attacker.unit.y } : buildingCenter(attacker.building);
   const t = targetPosition(w, targetId);
   if (!t) return;
   const interval = stats.shotInterval ?? COMBAT.shotInterval;
-  // (Pression des chaudières: a boosted unit fires faster)
-  const rate = isUnit ? fireRateMult(attacker.unit) : 1;
+  // (Pression des chaudières: a boosted unit fires faster; so does a skill running, Baïonnette ! or the Barrage: skills.ts)
+  const rate = isUnit ? fireRateMult(attacker.unit) * (attacker.unit.skill ? skillRate(w, attacker.unit, t.domain) : 1) : 1;
   clock.cooldown = Math.max(1, Math.round(rate === 1 ? interval * TICK_RATE : (interval * TICK_RATE) / rate));
   const angle = atan2(t.x - src.x, -(t.y - src.y));
   holder.firedTick = w.tick;
@@ -404,7 +405,9 @@ export function tickCombat(w: World): Set<number> {
       engaged.add(u.id); // EMP'd (powers.ts): no firing, healing or moving
       continue;
     }
-    const stats = UNITS[u.kind];
+    // (a French 75 getting into battery or out of it doesn't fire; in it, it reaches further: skills.ts)
+    if (shifting(u)) continue;
+    const stats = unitStats(u);
     // (veterans patch themselves up; a Goliath only takes a Mender's repair)
     if (u.rank >= 3 && !u.goliath && u.hp < stats.hp && w.tick % TICK_RATE === 0)
       u.hp = Math.min(stats.hp, u.hp + stats.hp * COMBAT.eliteRegen);

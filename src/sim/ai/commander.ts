@@ -24,6 +24,7 @@ import {
   type AiKinds
 } from "./roles";
 import { planSalvage } from "./salvage";
+import { planSkills } from "./skills";
 import { parallelOf } from "../nations";
 import { objectiveHolds, planObjectives } from "./objectives";
 import { dodgeCalldowns, dodgingUnits, planCalldowns } from "./powers";
@@ -107,6 +108,8 @@ export interface Strategy {
    * commander marching holds a normal one), so no level has it by default.
    */
   march?: boolean;
+  /** Units use their skills (sim/skills.ts, ai/skills.ts): on unless a tweak turns it off. */
+  skills?: boolean;
   /** Lean on heavy tech ground units (mastodons, lancers, mortars). */
   heavy?: boolean;
   /** Early raids use stingers as well as wasps. */
@@ -1096,6 +1099,9 @@ function commandAi(w: World, faction: Faction, s: AiState, held: Set<number> | n
 
   // --- 4c. commander calldowns (ai/powers.ts) ------------------------------
   cmds.push(...planCalldowns(w, faction, s, { mode: s.mode, hqC, guardPoint, enemyHqPos, army, threats, wave }));
+
+  // --- 4d. unit skills (ai/skills.ts) --------------------------------------
+  if (s.strategy.skills !== false) cmds.push(...planSkills(w, faction, mine, seen));
 
   return cmds;
 }

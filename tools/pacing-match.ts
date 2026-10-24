@@ -138,6 +138,8 @@ export interface PlayOptions {
   noOpeners?: boolean;
   /** No map objectives (Uplinks, supply drops). */
   noObjectives?: boolean;
+  /** The commanders leave unit skills alone (sim/skills.ts). */
+  noSkills?: boolean;
 }
 
 export function playMatch(map: string, blue: PersonalityName, red: PersonalityName, seed: number, aiSeed: number, opts: PlayOptions = {}): Match {
@@ -149,7 +151,8 @@ export function playMatch(map: string, blue: PersonalityName, red: PersonalityNa
     w.rules = { ...r, bannedUnits: [...r.bannedUnits, "goliath"], bannedBuildings: [...r.bannedBuildings, "gantry"] };
   }
   const diff = opts.difficulty ?? "normal";
-  const ai = { blue: createAiState(blue, diff, aiSeed), red: createAiState(red, diff, aiSeed + 1) };
+  const tweak = opts.noSkills ? { skills: false } : undefined;
+  const ai = { blue: createAiState(blue, diff, aiSeed, tweak), red: createAiState(red, diff, aiSeed + 1, tweak) };
   const A = buildingCenter(hqOf(w, "blue")!);
   const B = buildingCenter(hqOf(w, "red")!);
   const vx = B.x - A.x;

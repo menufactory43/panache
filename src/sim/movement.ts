@@ -3,6 +3,7 @@ import { canWalk, goliathReachAt, isLifted } from "./goliath";
 import { crushes, isInfantry, tickCrush } from "./infantry";
 import { speedMult } from "./nations";
 import { marchArrived, marchPace } from "./march";
+import { rooted, skillSpeed } from "./skills";
 import { nextLeg, sweepsPast } from "./route";
 import { Terrain, type Faction, type Unit, type World } from "./types";
 import { domainOf, inBounds, moveClassOf, passable, regionAt, regionLabels, terrainMult, terrainSpeed, type LandClass, type MoveClass } from "./world";
@@ -261,7 +262,9 @@ export function findPath(
 
 /** Tiles per tick this unit moves at its current position. */
 export function unitStepSpeed(w: World, u: Unit): number {
-  const speed = (UNITS[u.kind].speed / TICK_RATE) * terrainSpeed(w, u.x, u.y, moveClassOf(u.kind));
+  let speed = (UNITS[u.kind].speed / TICK_RATE) * terrainSpeed(w, u.x, u.y, moveClassOf(u.kind));
+  // a skill running (Plein gaz, Charge: skills.ts)
+  if (u.skill) speed *= skillSpeed(w, u);
   // the nations' boosts (Réseau TSF, Pression des chaudières): never on a Classique unit
   return u.tsf || u.overdrive !== undefined ? speed * speedMult(u) : speed;
 }
@@ -377,6 +380,7 @@ export function tickMovement(w: World, pausedIds: Set<number>, spots: Map<number
     const o = u.order;
     if (pausedIds.has(u.id)) continue;
     if (!canWalk(u)) continue; // a Goliath digging in, anchored, packing up or on a lift (its order waits)
+    if (rooted(u)) continue; // a French 75 in battery, or getting in or out of it (skills.ts: its order waits)
     if (o.type === "move" || o.type === "attackMove") {
       // a route drawn on the map: sweep through its corners, on to the next point (route.ts)
       if (sweepsPast(u)) nextLeg(u);

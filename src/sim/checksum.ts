@@ -64,6 +64,7 @@ export function worldHash(w: World): string {
   if (w.nation) nationHash(h, w);
   routeHash(h, w);
   marchHash(h, w);
+  skillHash(h, w);
   if (w.eclair) {
     // (Éclair, modes/eclair.ts: only worlds that play it, so older records hash as before)
     h.num(w.eclair.points.blue);
@@ -91,6 +92,23 @@ function routeHash(h: Fnv, w: World): void {
       h.num(p.x);
       h.num(p.y);
     }
+  }
+}
+
+/**
+ * Skills (skills.ts), folded in only for the units that have used one:
+ * records from before skills never do, so their hashes stay what they were.
+ */
+function skillHash(h: Fnv, w: World): void {
+  for (const id of [...w.units.keys()].sort((a, b) => a - b)) {
+    const s = w.units.get(id)!.skill;
+    if (!s) continue;
+    h.num(id);
+    h.num(s.ready);
+    h.num(s.until);
+    h.str(s.battery);
+    h.num(s.shift);
+    h.num(s.snipe ?? -1);
   }
 }
 

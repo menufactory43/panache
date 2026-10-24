@@ -44,11 +44,15 @@ function replayTrail(r: BattleRecord): string[] {
   return out;
 }
 
-/** Two built-in AIs playing each other for `minutes` on a fixed seed. */
+/**
+ * Two built-in AIs playing each other for `minutes` on a fixed seed. Without
+ * unit skills (sim/skills.ts): they came after, as orders a side chooses to
+ * give, like any other; with nobody using one, Classique plays as it did.
+ */
 function aiTrail(map: string, opts: MatchOptions, blue: StrategyName, red: StrategyName, minutes: number): string[] {
   const w = createMapWorld(map, opts);
-  const sb = createAiState(blue, "normal", 1);
-  const sr = createAiState(red, "normal", 2);
+  const sb = createAiState(blue, "normal", 1, { skills: false });
+  const sr = createAiState(red, "normal", 2, { skills: false });
   const out: string[] = [worldHash(w)];
   let cmdLog = "";
   for (let i = 0; i < minutes * 600 && !w.winner; i++) {

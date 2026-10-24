@@ -1181,7 +1181,8 @@ export function playerBansOf(op: OpDef): { units: UnitKind[]; buildings: Buildin
 /** The enemy commander for an op (null when nobody commands: waves or no enemy). */
 export function opAiState(op: OpDef, seed?: number): AiState | null {
   if (!op.ai || op.ai === "survival") return null;
-  return createAiState(op.ai.strategy, op.ai.difficulty, seed, op.ai.tweak);
+  // (no unit skills: the missions were tuned without them, sim/skills.ts)
+  return createAiState(op.ai.strategy, op.ai.difficulty, seed, { skills: false, ...op.ai.tweak });
 }
 
 function spreadSpot(w: World, kind: UnitKind, x: number, y: number, i: number): { x: number; y: number } {

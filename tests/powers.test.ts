@@ -362,8 +362,9 @@ describe("AI and calldowns", () => {
       seed,
       openers: { blue: pickAiOpener("rush", seed, "blue"), red: pickAiOpener("balanced", seed, "red") }
     });
-    const blue = createAiState("rush", "easy", 1);
-    const red = createAiState("balanced", "normal", 2);
+    // (no unit skills: this seed's match is about the calldowns, and skills shorten it)
+    const blue = createAiState("rush", "easy", 1, { skills: false });
+    const red = createAiState("balanced", "normal", 2, { skills: false });
     let issued = 0;
     for (let i = 0; i < 14 * 60 * TICK_RATE && !w.winner; i++) {
       const cmds = [...tickAi(w, "blue", blue), ...tickAi(w, "red", red)];

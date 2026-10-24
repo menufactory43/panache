@@ -1550,7 +1550,9 @@ describe("two phones in lockstep over PacketAir, an AI on each", () => {
       expect(one[side].ls.status().stallMs).toBeGreaterThan(2_000); // (the loss really stalled the match)
       expect(k[side].ls.status().stallMs, side).toBeLessThanOrEqual(one[side].ls.status().stallMs + 300);
     }
-    expect(firstDiff(k, FIVE_MINUTES)).toBe(-1);
+    // (in sync to the end: five minutes, or the tick a side won, both phones together)
+    expect(k.blue.w.tick).toBe(k.red.w.tick);
+    expect(firstDiff(k, Math.min(FIVE_MINUTES, k.blue.w.tick))).toBe(-1);
   });
 
   it("rotate at each phone's own packet period when the two directions run different modes", { timeout: 120_000 }, () => {

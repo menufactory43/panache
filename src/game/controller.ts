@@ -5,10 +5,11 @@ import { anchorBlocker, canWalk, goliathReachAt, unitCost } from "../sim/goliath
 import { isInfantry, isTransport } from "../sim/infantry";
 import { LIFT_NEEDS_TWO, LIFT_PACK_FIRST, canCarry, liftBlocker, liftedBy } from "../sim/lift";
 import { marchLayout } from "../sim/march";
+import { skillOf, skillReady } from "../sim/skills";
 import { placementBlocker, snapPlacement } from "../sim/placement";
 import { POWER_NAMES, powerBlocker, powerCost, powerStatus, type PowerStatus } from "../sim/powers";
 import { carrierOf, freeSeats, isLoaded } from "../sim/transport";
-import type { BuildingKind, Command, Faction, GoliathMode, PendingBuilding, PowerKind, Unit, UnitKind, UnitOrder, World } from "../sim/types";
+import type { BuildingKind, Command, Faction, GoliathMode, PendingBuilding, PowerKind, SkillId, Unit, UnitKind, UnitOrder, World } from "../sim/types";
 import { buildingAtTile, distToBuilding, domainOf, isResource, moveClassOf, onHomeLand, regionAt, tileIndex } from "../sim/world";
 import { engageable } from "../sim/combat";
 import { Squads } from "./squads";
@@ -414,6 +415,8 @@ function sameOrder(a: Command, b: Command): boolean {
       return samePoint(a, b as typeof a);
     case "attack":
       return b.type === a.type && a.targetId === b.targetId;
+    case "skill":
+      return b.type === a.type && a.skill === b.skill && a.targetId === b.targetId;
     case "march":
       return (
         b.type === a.type && a.attack === b.attack && samePoint({ x: a.x1, y: a.y1 }, { x: b.x1, y: b.y1 }) && samePoint({ x: a.x2, y: a.y2 }, { x: b.x2, y: b.y2 })
@@ -468,6 +471,8 @@ export class Controller {
   readonly loops = new Set<UnitKind>();
   /** Each producer's turn among the looped kinds it makes (two looped at one Forge alternate). */
   private loopTurn = new Map<number, number>();
+  /** A targeted skill armed (sim/skills.ts: the snipe): the next tap on an enemy fires it. */
+  aiming: SkillId | null = null;
   /**
    * Orders drained but not applied yet, oldest first, each with the tick it
    * was drained on, while an interactive feed (a duel) carries them:
@@ -655,6 +660,7 @@ export class Controller {
     this.selectedUnits.clear();
     this.selectedBuilding = null;
     this.forceMove = false;
+    this.aiming = null;
   }
 
   /** Shift+click: add a unit to the selection, or take it out if it's already in. */
@@ -752,6 +758,15 @@ export class Controller {
   /** Player tapped world position (wx, wy in tile units); `toggle` (Shift) adds or removes a tapped unit. */
   tapWorld(wx: number, wy: number, hit: TapHit, toggle = false): void {
     const w = this.world;
+    // an armed snipe: an enemy ground unit takes it; anything else puts it away
+    if (this.aiming && !this.spectator) {
+      const id = this.aiming;
+      this.aiming = null;
+      const t = hit.kind === "enemy" ? w.units.get(hit.id) : undefined;
+      if (t && domainOf(t) === "ground") this.fireSkillAt(id, t);
+      else this.tip = tr("Tir annulé : il faut viser une unité ennemie au sol", "Shot called off: aim at an enemy ground unit");
+      return;
+    }
     this.lastFeedback = null;
     this.pendingDrop = null; // (a new order replaces a drop still waiting on boarders)
     if (this.spectator) {
@@ -933,6 +948,51 @@ export class Controller {
     this.forceMove = false;
     this.lastFeedback = { kind: "move", x: mid.x, y: mid.y, route: "route" };
     return true;
+  }
+
+  /**
+   * A skill button (sim/skills.ts): the selected units with that skill use
+   * it. A targeted one (the snipe) is armed instead: the next tap on an enemy
+   * fires it (tapWorld), a second tap on the button puts it away.
+   */
+  useSkill(id: SkillId): void {
+    if (this.spectator || this.locked) return;
+    if (id === "snipe") {
+      this.aiming = this.aiming === id ? null : id;
+      return;
+    }
+    const ids = this.skillUnits(id).map((u) => u.id);
+    if (ids.length) this.enqueue({ type: "skill", faction: PLAYER, unitIds: ids, skill: id });
+  }
+
+  /** The selected units of ours with skill `id` (as the orders on their way leave them). */
+  skillUnits(id: SkillId): Unit[] {
+    const out: Unit[] = [];
+    for (const uid of this.selectedUnits) {
+      const u = this.world.units.get(uid);
+      if (u && u.faction === PLAYER && skillOf(u.kind) === id) out.push(u);
+    }
+    return out;
+  }
+
+  /** The armed skill at `t`: the nearest selected unit that can use it now fires (SC2's smart cast). */
+  private fireSkillAt(id: SkillId, t: Unit): void {
+    let best: Unit | null = null;
+    let bestD = Infinity;
+    for (const u of this.skillUnits(id)) {
+      if (!skillReady(this.world, u) || u.skill?.snipe != null) continue;
+      const d = Math.hypot(u.x - t.x, u.y - t.y);
+      if (d < bestD) {
+        best = u;
+        bestD = d;
+      }
+    }
+    if (!best) {
+      this.tip = tr("Aucun tireur prêt", "No marksman ready");
+      return;
+    }
+    this.enqueue({ type: "skill", faction: PLAYER, unitIds: [best.id], skill: id, targetId: t.id });
+    this.lastFeedback = { kind: "attack", x: t.x, y: t.y };
   }
 
   /** ■ Stop: the selection halts (a lift hovers; one still hooking on is called off). */

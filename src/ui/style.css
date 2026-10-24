@@ -6209,3 +6209,169 @@ html.belle .aar-natline { font-family: var(--serif); font-size: 15px; }
   color: var(--dim);
   font-size: 13px;
 }
+
+/* ------------------------------------------------------------- skills --- */
+/* ui/skills.ts: one button per skill in the selection, over the chips */
+.skillrow {
+  display: flex;
+  gap: 6px;
+  flex-basis: 100%;
+  min-width: 0;
+  pointer-events: auto;
+}
+.skillrow[hidden] {
+  display: none;
+}
+.skb {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 180px;
+  position: relative;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: 14px;
+  border: 1.5px solid #c99a45;
+  background: linear-gradient(#4a3420, #2c1d0e);
+  color: #f6e7c6;
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+}
+.skb img {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  filter: drop-shadow(0 1px 2px #000);
+}
+.skb span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.skb b {
+  font-size: 12px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skb small {
+  font-size: 10.5px;
+  color: #d9c49a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.skb:active {
+  transform: scale(0.97);
+}
+/* recharging: a dark veil drawing back, the seconds left */
+.skb.cd {
+  border-color: #6b5434;
+  color: #bba98a;
+}
+.skb.cd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgba(0, 0, 0, 0.62) var(--p), transparent 0);
+  pointer-events: none;
+}
+.skb .skt {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+  font-style: normal;
+  font-weight: 800;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+}
+/* running: a gold glow, its time draining along the bottom */
+.skb.running {
+  border-color: #ffd56b;
+  box-shadow: 0 0 12px rgba(255, 205, 90, 0.55), inset 0 0 8px rgba(255, 205, 90, 0.2);
+}
+.skb.running::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: var(--w);
+  background: #ffd56b;
+}
+/* a battery deployed: pressed in */
+.skb.on {
+  background: linear-gradient(#6d4d1d, #3d2a12);
+  border-color: #ffd56b;
+}
+.skb.shift {
+  opacity: 0.7;
+}
+/* armed (the snipe): pulsing until an enemy is tapped */
+.skb.armed {
+  border-color: #ff8a6a;
+  animation: skbArm 1s ease-in-out infinite;
+}
+@keyframes skbArm {
+  50% {
+    box-shadow: 0 0 14px rgba(255, 120, 90, 0.7);
+  }
+}
+/* three buttons or more: the short name only, the timer on the button */
+.skillrow[data-n="3"] .skb small,
+.skillrow[data-n="4"] .skb small,
+.skillrow[data-n="5"] .skb small,
+.skillrow[data-n="6"] .skb small {
+  display: none;
+}
+.skillrow[data-n="3"] .skb,
+.skillrow[data-n="4"] .skb,
+.skillrow[data-n="5"] .skb,
+.skillrow[data-n="6"] .skb {
+  padding: 0 4px;
+  gap: 3px;
+}
+.skillrow[data-n="4"] .skb img,
+.skillrow[data-n="5"] .skb img,
+.skillrow[data-n="6"] .skb img {
+  width: 24px;
+  height: 24px;
+}
+.skillrow[data-n="4"] .skb b,
+.skillrow[data-n="5"] .skb b,
+.skillrow[data-n="6"] .skb b {
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.1;
+}
+/* five or six: two lines of buttons */
+.skillrow[data-n="5"],
+.skillrow[data-n="6"] {
+  flex-wrap: wrap;
+}
+.skillrow[data-n="5"] .skb,
+.skillrow[data-n="6"] .skb {
+  flex: 1 1 30%;
+}
+/* four or more: the portrait faint behind the name, which takes the whole width */
+.skillrow[data-n="4"] .skb img,
+.skillrow[data-n="5"] .skb img,
+.skillrow[data-n="6"] .skb img {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 38px;
+  height: 38px;
+  opacity: 0.4;
+}
+.skillrow[data-n="4"] .skb span,
+.skillrow[data-n="5"] .skb span,
+.skillrow[data-n="6"] .skb span {
+  position: relative;
+  padding-left: 2px;
+}

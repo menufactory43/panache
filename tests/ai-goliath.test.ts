@@ -416,7 +416,8 @@ describe("mutators", () => {
   /** AI vs AI under `mutators` until someone wins (or `mins` run out). */
   function play(map: string, blue: StrategyName, red: StrategyName, mins: number, mutators: ("nomads" | "robotlove")[]) {
     const w = createMapWorld(map, { mutators });
-    const ai = { blue: createAiState(blue, "normal", 3), red: createAiState(red, "normal", 4) };
+    // (no unit skills: this is about the Nomads' economy; with them, the riverlands seed is still level at 25:00)
+    const ai = { blue: createAiState(blue, "normal", 3, { skills: false }), red: createAiState(red, "normal", 4, { skills: false }) };
     const peak = { blue: 0, red: 0 };
     const harvestersBuilt = { blue: 0, red: 0 };
     for (let i = 0; i < mins * 60 * TICK_RATE && !w.winner; i++) {

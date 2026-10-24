@@ -81,7 +81,8 @@ describe("a match rebuilt from its journal", () => {
     const enemy = createAiState(START.ai.strategy, START.ai.difficulty, START.ai.seed);
     const j = new ResumeWriter(START, store);
     const TICKS = 4000;
-    while (w.tick < TICKS) {
+    // (a side may win before TICKS: a decided world steps no further)
+    while (w.tick < TICKS && !w.winner) {
       const mine = tickAi(w, "blue", player);
       const theirs = tickAi(w, "red", enemy);
       j.step(w.tick, mine);
@@ -93,12 +94,12 @@ describe("a match rebuilt from its journal", () => {
 
     // picked up: the same setup, the journal's commands, the enemy thinking afresh
     const saved = loadResume("abc", Date.now(), store)!;
-    expect(saved.checks.length).toBe(Math.floor(TICKS / RESUME.checkEvery));
+    expect(saved.checks.length).toBe(Math.floor(w.tick / RESUME.checkEvery));
     const w2 = createMapWorld(saved.mode.mapId, saved.opts);
     const enemy2 = createAiState(saved.ai!.strategy, saved.ai!.difficulty, saved.ai!.seed);
     const byTick = commandsByTick(saved);
     const checks = new Map(saved.checks);
-    while (w2.tick < saved.tick) {
+    while (w2.tick < saved.tick && !w2.winner) {
       const mine = byTick.get(w2.tick) ?? [];
       step(w2, [...mine, ...tickAi(w2, "red", enemy2)]);
       const want = checks.get(w2.tick);

@@ -32,6 +32,7 @@
  *     lift:                          units, id(goliathId)
  *     resign:                        –
  *     march:                         units, attack 1, x1, y1, x2, y2
+ *     skill:                         units, skill 3, hasTarget 1, [id(targetId)]
  *   units = sameAsPrevious 1 (1: the list of the previous command in this turn that had one), else
  *           UE(count − 1), UE(first), then UE(gap − 1) for each further id
  *   id    = UE
@@ -50,9 +51,9 @@
  *  - the decoder also rejects an id ≥ 2^24, so whatever it accepts is
  *    canonical and could be sent again unchanged.
  */
-import type { BuildingKind, Command, Faction, PowerKind, UnitKind } from "../sim/types";
+import type { BuildingKind, Command, Faction, PowerKind, SkillId, UnitKind } from "../sim/types";
 
-export const CODEC_VERSION = 4;
+export const CODEC_VERSION = 5;
 
 /** A split piece is at most this many bits, so any command fits in an empty turn. */
 export const C_MAX = 96;
@@ -68,7 +69,9 @@ export const COMMAND_TYPES = [
   // routes and patrols (sim/route.ts, CODEC_VERSION 3): after the rest, whose codes don't move
   "waypoint", "patrol",
   // marches in order (sim/march.ts, CODEC_VERSION 4)
-  "march"
+  "march",
+  // unit skills (sim/skills.ts, CODEC_VERSION 5)
+  "skill"
 ] as const satisfies readonly Command["type"][];
 
 export const UNIT_KINDS = [
@@ -85,6 +88,9 @@ export const BUILDING_KINDS = [
 ] as const satisfies readonly BuildingKind[];
 
 export const POWER_KINDS = ["barrage", "emp", "droppod", "hammer", "sonde", "curie", "gaz", "pression"] as const satisfies readonly PowerKind[];
+
+export const SKILL_KINDS = ["bayonet", "throttle", "battery", "snipe", "charge", "barrage"] as const satisfies readonly SkillId[];
+const SKILL_BITS = 3;
 
 const TYPE_BITS = 5;
 const UNIT_BITS = 5;
@@ -103,6 +109,7 @@ export const TABLES_COMPLETE: [
   | Exclude<UnitKind, (typeof UNIT_KINDS)[number]>
   | Exclude<BuildingKind, (typeof BUILDING_KINDS)[number]>
   | Exclude<PowerKind, (typeof POWER_KINDS)[number]>
+  | Exclude<SkillId, (typeof SKILL_KINDS)[number]>
 ] extends [never]
   ? true
   : never = true;
@@ -112,6 +119,7 @@ const TYPE_INDEX = indexOf(COMMAND_TYPES);
 const UNIT_INDEX = indexOf(UNIT_KINDS);
 const BUILDING_INDEX = indexOf(BUILDING_KINDS);
 const POWER_INDEX = indexOf(POWER_KINDS);
+const SKILL_INDEX = indexOf(SKILL_KINDS);
 
 /** A malformed frame or command: the whole frame is rejected. */
 export class CodecError extends Error {}
@@ -338,6 +346,13 @@ function canonical(c: Command, ctx: CanonContext): Command | null {
         ? { type: c.type, faction, unitIds, x1, y1, x2, y2, attack: c.attack === true }
         : null;
     }
+    case "skill": {
+      const unitIds = unitList(c.unitIds);
+      if (!unitIds || !SKILL_INDEX.has(c.skill)) return null;
+      if (c.targetId === undefined) return { type: c.type, faction, unitIds, skill: c.skill };
+      const targetId = idOf(c.targetId);
+      return targetId !== null ? { type: c.type, faction, unitIds, skill: c.skill, targetId } : null;
+    }
     default:
       return null; // (a type that isn't in the table)
   }
@@ -345,9 +360,12 @@ function canonical(c: Command, ctx: CanonContext): Command | null {
 
 /**
  * Unit-list commands the sim applies unit by unit, so splitting one changes
- * nothing; and march, whose later pieces join the first (sim/march.ts).
+ * nothing; and march, whose later pieces join the first (sim/march.ts). A
+ * skill is unit by unit too, but a battery tap deploys unless all it names are
+ * deployed: split, each piece decides alone (the Controller sends batteries
+ * few enough to fit).
  */
-const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload", "waypoint", "patrol", "march"]);
+const SPLITTABLE = new Set<Command["type"]>(["move", "attackMove", "attack", "harvest", "stop", "anchor", "packUp", "board", "unload", "waypoint", "patrol", "march", "skill"]);
 
 /**
  * Canonical commands for one issued command: none (dropped), one, or — for a
@@ -478,6 +496,12 @@ export function encodeCommand(wr: BitWriter, c: Command, map: MapSize, prev: rea
     case "lift":
       writeUnits(wr, c.unitIds, prev);
       writeId(wr, c.goliathId);
+      return c.unitIds;
+    case "skill":
+      writeUnits(wr, c.unitIds, prev);
+      writeEnum(wr, SKILL_INDEX, c.skill, SKILL_BITS);
+      wr.bit(c.targetId === undefined ? 0 : 1);
+      if (c.targetId !== undefined) writeId(wr, c.targetId);
       return c.unitIds;
     case "march":
       writeUnits(wr, c.unitIds, prev);
@@ -624,6 +648,12 @@ export function decodeCommand(
     case "lift": {
       const unitIds = readUnits(rd, prev);
       return { command: { type, faction, unitIds, goliathId: readId(rd) }, units: unitIds };
+    }
+    case "skill": {
+      const unitIds = readUnits(rd, prev);
+      const skill = readEnum(rd, SKILL_KINDS, SKILL_BITS);
+      if (!rd.bit()) return { command: { type, faction, unitIds, skill }, units: unitIds };
+      return { command: { type, faction, unitIds, skill, targetId: readId(rd) }, units: unitIds };
     }
     case "march": {
       const unitIds = readUnits(rd, prev);

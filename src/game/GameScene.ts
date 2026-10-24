@@ -10,7 +10,7 @@ import { unitSeenBy } from "../sim/infantry";
 import { createMapWorld, mapById } from "../sim/maps";
 import { OPENERS, OPENER_IDS, allowedOpener, applyOpener, openerBlocked, pickAiOpener, type OpenerId } from "../sim/openers";
 import { step } from "../sim/sim";
-import type { Building, Command, Faction, FxEvent, Unit, World } from "../sim/types";
+import type { Building, Command, Faction, FxEvent, Unit, UnitKind, World } from "../sim/types";
 import type { BattleRecord, PlayedInfo } from "../arena/record";
 import { MatchRecorder, BUILD_SIM_HASH } from "./match-record";
 import { RESUME, ResumeWriter, commandsByTick, takePendingResume, type ResumeJournal } from "./resume";
@@ -20,7 +20,7 @@ import { reelMoments } from "./reel";
 import { archiveMatch, archives } from "./archive";
 import { addReportSection } from "../ui/report";
 import { reelSection } from "../ui/reel-entry";
-import { buildingCenter, domainOf, hqOf } from "../sim/world";
+import { buildingCenter, domainOf, hqOf, spawnUnit } from "../sim/world";
 import { sfx } from "./audio";
 import { Controller, ENEMY, PLAYER, type TapHit } from "./controller";
 import { applyOpenersCanonical, composeTick } from "./local-side";
@@ -619,6 +619,8 @@ export class GameScene {
     (window as unknown as Record<string, unknown>).__bd = {
       world: this.world,
       ctrl: this.ctrl,
+      /** Tests and tools: put a unit on the field (outside the orders: a replay won't have it). */
+      spawn: (kind: UnitKind, faction: Faction, x: number, y: number) => spawnUnit(this.world, kind, faction, x, y).id,
       /** The side this page commands (red under `?side=red`, or a duel's red phone). */
       get player() {
         return PLAYER;
@@ -1427,6 +1429,17 @@ export class GameScene {
         }
         this.hud.ping(ev.x, ev.y);
         break;
+      case "skill": {
+        // a unit used its skill (sim/skills.ts): a ring of its colour where it stands (a battery's the size of its new reach)
+        const u = w.units.get(ev.id);
+        if (!u || !this.unitVisible(u)) return;
+        const tint = { bayonet: 0xff7a4a, throttle: 0x7ad7ff, battery: 0xffd56b, snipe: 0xffffff, charge: 0xff4a4a, barrage: 0x8ab8ff }[ev.skill];
+        const p = this.entities.pos(u.id);
+        const big = ev.skill === "battery" && u.skill?.battery === "deploying";
+        this.fx.pulse(u.x, u.y, tint, big ? (UNITS[u.kind].range + 3) / 1.55 : 1.1, UNITS[u.kind].domain === "air" && p ? p.h - 0.1 : undefined);
+        if (u.faction === PLAYER && ev.skill !== "snipe") sfx.play("ready", 0.35);
+        break;
+      }
       case "rankUp": {
         const u = w.units.get(ev.id);
         // (a Veterans crate promotes a hidden Sniper Team too: no gold ring on its spot)

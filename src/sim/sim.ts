@@ -1,4 +1,4 @@
-import { cleanupDeaths, tickCombat } from "./combat";
+import { cleanupDeaths, strikeDamage, tickCombat } from "./combat";
 import {
   applyEconomyCommand,
   tickConstruction,
@@ -20,6 +20,7 @@ import { tickObjectives } from "./objectives";
 import { applyCalldown, chargePowers, tickPowers } from "./powers";
 import { tickSalvage } from "./salvage";
 import { applyMarchCommand, dropMarches } from "./march";
+import { applySkillCommand, tickSkills } from "./skills";
 import { applyRouteCommand, dropRoutes } from "./route";
 import { applyTransportCommand, tickTransport } from "./transport";
 import type { Command, World } from "./types";
@@ -39,6 +40,8 @@ export function step(w: World, commands: Command[]): void {
   tickHarvest(w);
   tickTrickle(w);
   tickPowers(w); // calldowns land, stuns wear off (powers.ts)
+  // skills (skills.ts): batteries settle, a snipe in reach fires
+  for (const shot of tickSkills(w)) strikeDamage(w, [{ id: shot.targetId, damage: shot.damage }], shot.attackerId);
   const engaged = tickCombat(w);
   tickTransport(w); // squads board Condors, Condors fly drops (transport.ts)
   tickLift(w); // Condor pairs hook onto and carry Goliaths (lift.ts)
@@ -130,6 +133,9 @@ function applyCommand(w: World, c: Command, held?: HeldLiftOrders): void {
       break;
     case "march":
       applyMarchCommand(w, c, lifting);
+      break;
+    case "skill":
+      applySkillCommand(w, c, lifting);
       break;
     case "callWave":
       callWaveEarly(w, c.faction);

@@ -279,6 +279,25 @@ export interface Unit {
    * there. Absent when it isn't marching.
    */
   march?: { g: number; due: number; face: number };
+  /** Its skill's clocks (skills.ts); absent until it first uses one. */
+  skill?: SkillState;
+}
+
+/** A unit skill (skills.ts). */
+export type SkillId = "bayonet" | "throttle" | "battery" | "snipe" | "charge" | "barrage";
+
+/** A unit's skill clocks (Unit.skill, skills.ts). */
+export interface SkillState {
+  /** The tick it can be used again. */
+  ready: number;
+  /** A timed skill runs until this tick. */
+  until: number;
+  /** A French 75's battery: off, getting in, in, getting out. */
+  battery: "off" | "deploying" | "on" | "packing";
+  /** The tick a deploy or pack-up ends. */
+  shift: number;
+  /** A snipe waiting to be in reach: its target. */
+  snipe: number | null;
 }
 
 /** Legs still to go after the current move or attack-move (route.ts). */
@@ -681,7 +700,9 @@ export type FxEvent =
   /** `faction` resigned (a duel): the other side wins this tick. */
   | { type: "resign"; faction: Faction }
   /** Éclair (modes/eclair.ts): the last minute began, sudden death began, or Éclair decided the match this tick. */
-  | { type: "eclair"; phase: "rush" | "overtime" | "end" };
+  | { type: "eclair"; phase: "rush" | "overtime" | "end" }
+  /** Unit `id` used its skill (skills.ts): a battery's deploy or pack-up, a snipe's shot, the rest as they start. */
+  | { type: "skill"; id: number; skill: SkillId };
 
 /**
  * A capturable Uplink relay (objectives.ts). Not a building: nothing
@@ -962,4 +983,6 @@ export type Command =
    * each unit to its place by what it does, all arriving together; an
    * attack-move (`attack`), else a plain move.
    */
-  | { type: "march"; faction: Faction; unitIds: number[]; x1: number; y1: number; x2: number; y2: number; attack: boolean };
+  | { type: "march"; faction: Faction; unitIds: number[]; x1: number; y1: number; x2: number; y2: number; attack: boolean }
+  /** Units `unitIds` use their skill `skill` (skills.ts); a snipe names its target. */
+  | { type: "skill"; faction: Faction; unitIds: number[]; skill: SkillId; targetId?: number };
