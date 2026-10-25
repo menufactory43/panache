@@ -14,3 +14,6 @@ battles/*
 *.egg-info/
 .pytest_cache/
 llm-tools-battledrones/uv.lock
+
+# les vidéos d'aperçu App Store (tools/store-preview.mjs les refait)
+ios/store/previews/

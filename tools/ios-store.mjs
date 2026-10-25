@@ -3,6 +3,7 @@
 //   node tools/ios-store.mjs testflight  → le groupe de test interne « Équipe » (tous les builds), les membres du compte dedans
 //   node tools/ios-store.mjs fiche       → la fiche (ios/store/fiche.json) : catégories, textes fr/en, URLs, classement par âge
 //   node tools/ios-store.mjs captures    → les captures (ios/store/shots/<langue>/*.jpg, tools/store-shots.mjs)
+//   node tools/ios-store.mjs apercu      → la vidéo d'aperçu (ios/store/previews/<langue>.mp4, tools/store-preview.mjs)
 // Rien ici ne soumet l'app à la revue d'Apple : la soumission se fait à la main, quand on le décide.
 // L'app doit exister dans App Store Connect (l'API ne sait pas la créer) : Apps → + → Nouvelle app, identifiant de
 // lot io.github.menufactory43.panache.
@@ -183,7 +184,7 @@ async function captures() {
   const app = await theApp();
   const version = await editableVersion(app);
   const locs = await api("GET", `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
-  for (const [dir, locale] of [["fr", "fr-FR"], ["en", "en-US"]]) {
+  for (const [dir, locale] of [["fr", "fr-FR"], ["en", "en-US"], ["en", "en-GB"]]) {
     const folder = join(STORE, "shots", dir);
     const loc = locs.data.find((l) => l.attributes.locale === locale);
     if (!existsSync(folder) || !loc) {
@@ -215,10 +216,44 @@ async function captures() {
   }
 }
 
+async function apercu() {
+  const app = await theApp();
+  const version = await editableVersion(app);
+  const locs = await api("GET", `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
+  for (const [dir, locale] of [["fr", "fr-FR"], ["en", "en-US"], ["en", "en-GB"]]) {
+    const file = join(STORE, "previews", `${dir}.mp4`);
+    const loc = locs.data.find((l) => l.attributes.locale === locale);
+    if (!existsSync(file) || !loc) {
+      warn(`${locale} : ${loc ? "pas de vidéo (tools/store-preview.mjs)" : "pas de fiche (lancer « fiche » d'abord)"}`);
+      continue;
+    }
+    // the 6.9" set (1920 × 886), emptied then given the one video
+    const sets = await api("GET", `/v1/appStoreVersionLocalizations/${loc.id}/appPreviewSets`);
+    let set = sets.data.find((s) => s.attributes.previewType === "IPHONE_67");
+    if (set) {
+      const old = await api("GET", `/v1/appPreviewSets/${set.id}/appPreviews`);
+      for (const s of old.data) await api("DELETE", `/v1/appPreviews/${s.id}`);
+    } else
+      set = (await api("POST", "/v1/appPreviewSets", { data: { type: "appPreviewSets", attributes: { previewType: "IPHONE_67" }, relationships: { appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: loc.id } } } } })).data;
+    const bytes = readFileSync(file);
+    const name = `panache-${dir}.mp4`;
+    const prev = (
+      await api("POST", "/v1/appPreviews", { data: { type: "appPreviews", attributes: { fileName: name, fileSize: bytes.length, mimeType: "video/mp4", previewFrameTimeCode: "00:00:08:00" }, relationships: { appPreviewSet: { data: { type: "appPreviewSets", id: set.id } } } } })
+    ).data;
+    for (const op of prev.attributes.uploadOperations) {
+      const part = bytes.subarray(op.offset, op.offset + op.length);
+      const res = await fetch(op.url, { method: op.method, headers: Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value])), body: part });
+      if (!res.ok) throw new Error(`envoi de ${name} : ${res.status}`);
+    }
+    await api("PATCH", `/v1/appPreviews/${prev.id}`, { data: { type: "appPreviews", id: prev.id, attributes: { uploaded: true, sourceFileChecksum: createHash("md5").update(bytes).digest("hex") } } });
+    say(`${locale} : ${name} envoyée (Apple la traite quelques minutes)`);
+  }
+}
+
 const cmd = process.argv[2];
-const run = { etat, testflight, fiche, captures }[cmd];
+const run = { etat, testflight, fiche, captures, apercu }[cmd];
 if (!run) {
-  console.error("usage: node tools/ios-store.mjs etat|testflight|fiche|captures");
+  console.error("usage: node tools/ios-store.mjs etat|testflight|fiche|captures|apercu");
   process.exit(2);
 }
 await run();
