@@ -1,6 +1,8 @@
 /**
  * Full screen where the platform allows it (Android/desktop; iOS Safari has
- * no Fullscreen API for arbitrary elements — the dvh layout covers it).
+ * no Fullscreen API for arbitrary elements — the dvh layout covers it). Never
+ * in the iOS app: it is full screen already, and its web view's Fullscreen API
+ * only brings Safari's « capacitor://localhost est en plein écran » banner and ✕.
  *
  * Browsers grant full screen only inside a user gesture, and a page reload
  * drops it. Rematch, Retry, ▶ Next op, the Daily rematch and every Menu
@@ -8,6 +10,8 @@
  * (sessionStorage) and the next page asks again on the first tap or key.
  * Engine-free; the browser surface is injectable for tests.
  */
+
+import { isApp } from "../native";
 
 const KEY = "battledrones.fullscreen";
 
@@ -36,7 +40,8 @@ function browserEnv(): FullscreenEnv {
       return null;
     }
   };
-  return { doc: document, win: window, storage, reload: () => reloadWithoutLink(window.location, rematch()) };
+  const doc: FullscreenEnv["doc"] = isApp ? { documentElement: {}, fullscreenElement: null } : document;
+  return { doc, win: window, storage, reload: () => reloadWithoutLink(window.location, rematch()) };
 }
 
 /** What a replay's link (main.ts watchLinked) and a practice duel's (?duel=loop|relay, DUEL.md "Dev and test modes") put in the URL. */
