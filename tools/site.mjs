@@ -106,7 +106,7 @@ const T = {
       ]
     },
     finale: { h2: "En avant !", p: "Le front vous attend. Une partie suffit pour comprendre.", },
-    footer: { play: "Jouer", privacy: "Confidentialité", about: "À propos", source: "Code source", lang: "English", langHref: "en/", aboutHref: "a-propos.html", note: "Un jeu de Meffysto." },
+    footer: { play: "Jouer", privacy: "Confidentialité", about: "À propos", source: "Code source", lang: "English", langHref: "en/", aboutHref: "a-propos.html", note: `Un jeu de Meffysto, d’après <a href="https://github.com/simonw/battledrones">Battle Drones</a> de Simon Willison.` },
     about: {
       file: "a-propos.html",
       title: "À propos de Panache · un jeu de Meffysto",
@@ -120,6 +120,8 @@ const T = {
 <p>Des compteurs anonymes : combien de visites et de parties, et de quels types. Aucun identifiant, aucun cookie, aucun outil d’analyse tiers. Les comptes servent seulement à la sauvegarde dans le nuage et au classement ; on les supprime depuis les Réglages. Le détail est dans la <a href="../confidentialite.html">politique de confidentialité</a>.</p>
 <h2>Les images</h2>
 <p>Les illustrations du jeu ont été créées avec l’aide d’outils de génération d’images, puis retouchées et assemblées pour le jeu. Les unités, la carte et toute l’interface sont dessinées en code.</p>
+<h2>D’après Battle Drones, de Simon Willison</h2>
+<p>Panache est né d’un fork de <a href="https://github.com/simonw/battledrones">Battle Drones</a>, le jeu de stratégie en temps réel créé par <a href="https://simonwillison.net/2026/Oct/20/battledrones/">Simon Willison</a> et publié sous licence Apache 2.0. Tout le socle vient de lui : la simulation déterministe, les armées, l’IA, les opérations, la survie, l’Op du jour, les rediffusions et un premier duel entre deux téléphones, par le son. Panache l’a traduit et transporté en 1900 (noms, modèles 3D, sons, musique, écran-titre, interface mobile), puis y a ajouté ses deux nations, la Campagne de 1900, le duel en ligne et le classement, l’Éclair, les comptes et l’app iPhone. Merci à lui d’avoir ouvert son code.</p>
 <h2>Le code</h2>
 <p>Le code source de Panache est public, sur <a href="https://github.com/menufactory43/panache">GitHub</a>. Une remarque, un bug ? <a href="https://github.com/menufactory43/panache/issues">Ouvrez un ticket</a>.</p>`
     }
@@ -211,7 +213,7 @@ const T = {
       ]
     },
     finale: { h2: "Forward!", p: "The front is waiting. One match is all it takes." },
-    footer: { play: "Play", privacy: "Privacy", about: "About", source: "Source code", lang: "Français", langHref: "../", aboutHref: "about.html", note: "A game by Meffysto." },
+    footer: { play: "Play", privacy: "Privacy", about: "About", source: "Source code", lang: "Français", langHref: "../", aboutHref: "about.html", note: `A game by Meffysto, based on <a href="https://github.com/simonw/battledrones">Battle Drones</a> by Simon Willison.` },
     about: {
       file: "about.html",
       title: "About Panache · a game by Meffysto",
@@ -225,6 +227,8 @@ const T = {
 <p>Anonymous counters: how many visits and matches, and of what kind. No identifier, no cookie, no third-party analytics. Accounts only serve the cloud save and the ladder; you delete yours from Settings. The details are in the <a href="../../confidentialite.html#en">privacy policy</a>.</p>
 <h2>The pictures</h2>
 <p>The game’s illustrations were made with the help of image generation tools, then retouched and assembled for the game. The units, the map and the whole interface are drawn in code.</p>
+<h2>Based on Battle Drones, by Simon Willison</h2>
+<p>Panache started as a fork of <a href="https://github.com/simonw/battledrones">Battle Drones</a>, the real-time strategy game created by <a href="https://simonwillison.net/2026/Oct/20/battledrones/">Simon Willison</a> and released under the Apache 2.0 licence. The whole foundation is his: the deterministic simulation, the armies, the AI, the ops, Last Stand, the Daily Op, replays and a first duel between two phones, over sound. Panache translated it and moved it to 1900 (names, 3D models, sound, music, title screen, mobile interface), then added its two nations, the 1900 Campaign, online duels and the ladder, Éclair, accounts and the iPhone app. Thanks to him for opening his code.</p>
 <h2>The code</h2>
 <p>Panache’s source code is public, on <a href="https://github.com/menufactory43/panache">GitHub</a>. A remark, a bug? <a href="https://github.com/menufactory43/panache/issues">Open an issue</a>.</p>`
     }
@@ -309,6 +313,7 @@ function home(t) {
       gamePlatform: ["Web browser", "iPhone", "Android"],
       playMode: ["SinglePlayer", "MultiPlayer"],
       author: { "@type": "Person", name: "Meffysto" },
+      isBasedOn: { "@type": "VideoGame", name: "Battle Drones", url: "https://github.com/simonw/battledrones", author: { "@type": "Person", name: "Simon Willison", url: "https://simonwillison.net/" } },
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       screenshot: [`${BASE}img/2-bataille-${t.lang}-1200.webp`, `${BASE}img/3-assaut-${t.lang}-1200.webp`]
     },
@@ -516,7 +521,7 @@ writeFileSync(
 - Skirmish against the AI (three difficulties), Éclair (six-minute matches on points), Last Stand (survival), a Daily Op, mutators, generated maps, and replays of past battles.
 - Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. An iPhone app is coming to the App Store.
 
-Made by Meffysto.
+Made by Meffysto, based on Battle Drones by Simon Willison (https://github.com/simonw/battledrones, Apache 2.0).
 `
 );
 console.log("site écrit dans public/decouvrir/");
