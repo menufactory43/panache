@@ -68,3 +68,51 @@ export async function verifierJetonApple(
   if (typeof corps.sub !== "string" || !corps.sub || corps.sub.length > 128) return { ok: false, raison: "sans sub" };
   return { ok: true, sub: corps.sub };
 }
+
+// La révocation (exigée par Apple quand un joueur supprime son compte) : au moment de supprimer, l'app redemande à
+// Apple un code d'autorisation frais ; le relais l'échange contre un jeton de rafraîchissement, vérifie qu'il est bien
+// celui du joueur du compte, puis le révoque. Aucun jeton d'Apple n'est jamais gardé. Il faut la clé « Sign in with
+// Apple » de l'équipe (un .p8, secret APPLE_SIWA_CLE du Worker, et son identifiant APPLE_SIWA_KID).
+
+export const APPLE_EQUIPE = "AKMNXGVVGX";
+export const APPLE_JETON = "https://appleid.apple.com/auth/token";
+export const APPLE_REVOQUER = "https://appleid.apple.com/auth/revoke";
+
+const b64url = (b: ArrayBuffer | Uint8Array | string): string => {
+  const bytes = typeof b === "string" ? new TextEncoder().encode(b) : b instanceof Uint8Array ? b : new Uint8Array(b);
+  let s = "";
+  for (const x of bytes) s += String.fromCharCode(x);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+/** Le secret client qu'Apple demande : un JWT ES256 signé par la clé de l'équipe, valable quelques minutes. */
+export async function secretClient(pem: string, kid: string, now: number, app = APPLE_APP, equipe = APPLE_EQUIPE): Promise<string> {
+  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "")), (c) => c.charCodeAt(0));
+  const cle = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const t = Math.floor(now / 1000);
+  const corps = `${b64url(JSON.stringify({ alg: "ES256", kid }))}.${b64url(JSON.stringify({ iss: equipe, iat: t, exp: t + 300, aud: APPLE_EMETTEUR, sub: app }))}`;
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, cle, new TextEncoder().encode(corps));
+  return `${corps}.${b64url(sig)}`;
+}
+
+/** Révoque le lien d'Apple du joueur `sub` avec le code frais que l'app a obtenu. */
+export async function revoquerApple(
+  code: string,
+  sub: string,
+  cfg: { pem: string; kid: string },
+  now: number,
+  get: typeof fetch = fetch
+): Promise<{ ok: true } | { ok: false; raison: string }> {
+  const client_secret = await secretClient(cfg.pem, cfg.kid, now);
+  const form = (o: Record<string, string>) => ({ method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(o).toString() });
+  const r = await get(APPLE_JETON, form({ client_id: APPLE_APP, client_secret, code, grant_type: "authorization_code" }));
+  if (!r.ok) return { ok: false, raison: `échange refusé (${r.status})` };
+  const t = (await r.json()) as { refresh_token?: string; access_token?: string; id_token?: string };
+  // (le jeton d'identité dit à qui est ce code : il doit être le joueur du compte)
+  const qui = lireJson(String(t.id_token ?? "").split(".")[1] ?? "");
+  if (!qui || qui.sub !== sub) return { ok: false, raison: "code d'un autre joueur" };
+  const token = t.refresh_token ?? t.access_token;
+  if (!token) return { ok: false, raison: "pas de jeton" };
+  const v = await get(APPLE_REVOQUER, form({ client_id: APPLE_APP, client_secret, token, token_type_hint: t.refresh_token ? "refresh_token" : "access_token" }));
+  return v.ok ? { ok: true } : { ok: false, raison: `révocation refusée (${v.status})` };
+}

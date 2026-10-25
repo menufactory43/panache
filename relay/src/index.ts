@@ -19,7 +19,7 @@ import {
   APP_IPHONE, FERME, Seau, admettre, autre, codeDe, entrer, origineAdmise, perime, prochainReveil, relayable, sortir, CLE_MAX,
   type Etat, type Role
 } from "./salon";
-import { APPLE_CLES, verifierJetonApple, type CleApple } from "./apple";
+import { APPLE_CLES, revoquerApple, verifierJetonApple, type CleApple } from "./apple";
 import { CARTES_CLASSEES, apparier, depouiller, issueAdmise, nomDe, variation, type Attente, type Issue } from "./classement";
 import { empreinte, enTetesCors, lireAuth, lireEnvoi, nouveauJeton } from "./comptes";
 import { cleDe, evenementAdmis, jourDe, joursDepuis, limiteMenage, parJour } from "./stats";
@@ -33,6 +33,9 @@ interface Env {
   CREATION: RateLimit;
   /** La file d'attente des parties classées (un seul objet). */
   FILE: DurableObjectNamespace<FileAttente>;
+  /** La clé « Sign in with Apple » (.p8, secret) et son identifiant, pour révoquer le lien d'Apple d'un compte supprimé. */
+  APPLE_SIWA_CLE?: string;
+  APPLE_SIWA_KID?: string;
 }
 
 /** Seules la page publiée et l’app iPhone comptent (un développement local, un aperçu ou un outil ne gonflent pas les chiffres). */
@@ -238,6 +241,14 @@ async function comptes(req: Request, url: URL, env: Env): Promise<Response> {
   // (vu : une écriture par heure au plus)
   if (now - compte.vu > 3_600_000) await env.DB.prepare("UPDATE comptes SET vu = ? WHERE id = ?").bind(now, auth.id).run();
   if (url.pathname === "/compte" && req.method === "DELETE") {
+    // (un compte lié à Apple : l'app envoie un code frais, et le lien est révoqué chez Apple, apple.ts)
+    if (compte.apple && env.APPLE_SIWA_CLE && env.APPLE_SIWA_KID) {
+      const corps = (await req.json().catch(() => null)) as { appleCode?: unknown } | null;
+      if (typeof corps?.appleCode === "string" && corps.appleCode) {
+        const r = await revoquerApple(corps.appleCode, compte.apple, { pem: env.APPLE_SIWA_CLE, kid: env.APPLE_SIWA_KID }, now).catch((e) => ({ ok: false as const, raison: String(e) }));
+        if (!r.ok) console.log(`révocation Apple : ${r.raison}`);
+      }
+    }
     // (tout : le compte, sa sauvegarde, ses jetons et ses parties classées)
     await env.DB.batch([env.DB.prepare("DELETE FROM parties WHERE bleu = ? OR rouge = ?").bind(auth.id, auth.id), ...effacer(env, auth.id)]);
     return json(null, 204, cors);

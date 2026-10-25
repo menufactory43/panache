@@ -82,6 +82,17 @@ npx wrangler@4 d1 migrations apply panache-comptes --remote   # (après un nouve
 npx wrangler@4 deploy
 ```
 
+La révocation du lien d'Apple à la suppression d'un compte (exigée par Apple, `src/apple.ts`) attend la clé « Sign in with
+Apple » de l'équipe : un `.p8` créé dans le portail développeur (Keys → Sign in with Apple, App ID principal Panache).
+Elle reste hors du dépôt, en secret du Worker :
+
+```sh
+npx wrangler@4 secret put APPLE_SIWA_CLE < AuthKey_XXXXXXXXXX.p8
+echo XXXXXXXXXX | npx wrangler@4 secret put APPLE_SIWA_KID
+```
+
+Sans elle, un compte se supprime quand même ; le lien n'est simplement pas révoqué chez Apple.
+
 ## En local
 
 ```sh

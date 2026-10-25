@@ -231,8 +231,18 @@ export async function deleteAccount(): Promise<boolean> {
   const root = base();
   const creds = await loadCreds();
   if (root && creds) {
+    // (linked to Apple: a fresh code from Apple, for the relay to revoke the link, as Apple asks; a cancelled sheet
+    // still deletes the account)
+    let appleCode: string | null = null;
+    if (isApp && status.apple) {
+      try {
+        appleCode = (await AppleSignIn.authorize({ nonce: creds.id })).authorizationCode;
+      } catch {
+        appleCode = null;
+      }
+    }
     try {
-      const res = await call(`${root}/compte`, { method: "DELETE" }, creds);
+      const res = await call(`${root}/compte`, { method: "DELETE", ...(appleCode ? { body: JSON.stringify({ appleCode }) } : {}) }, creds);
       if (!res.ok && res.status !== 401) return false;
     } catch {
       return false;
