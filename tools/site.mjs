@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../public/decouvrir");
 const BASE = "https://menufactory43.github.io/panache/decouvrir/";
 const GAME = "https://menufactory43.github.io/panache/";
+/** The iPhone app's public beta (TestFlight), until the App Store. */
+const TESTFLIGHT = "https://testflight.apple.com/join/JYUS1DxV";
 const UPDATED = "2026-10-25";
 
 const ornament = `<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 114V30Q6 6 30 6h84" stroke-width="2.4"/><path d="M16 100V38q0-22 22-22h62" stroke-width="1"/><path d="M16 70c0-30 14-46 40-48M70 16c-30 0-46 14-48 40" stroke-width="1.2"/><path d="M30 30c10-10 26-6 24 6c-2 9-14 9-14 2c0-5 6-6 8-3" stroke-width="1.6"/><path d="M40 22c10-8 22-8 30-2M22 40c-8 10-8 22-2 30" stroke-width="1"/><circle cx="30" cy="30" r="2.6" fill="currentColor" stroke="none"/><circle cx="84" cy="11" r="1.6" fill="currentColor" stroke="none"/><circle cx="11" cy="84" r="1.6" fill="currentColor" stroke="none"/></g></svg>`;
@@ -35,6 +37,8 @@ const T = {
     ctaSmall: "dans le navigateur",
     store: "App Store",
     storeSmall: "bientôt",
+    beta: "Bêta iPhone",
+    betaSmall: "sur TestFlight",
     facts: "Gratuit · Sans publicité · Sans achat intégré · iPhone, Android et ordinateur",
     card1: "Pour la gagner, il faudra du courage…<br>et beaucoup de panache.",
     battle: {
@@ -98,7 +102,7 @@ const T = {
       h2: "Questions fréquentes",
       list: [
         ["Panache est-il vraiment gratuit ?", "Oui. Pas de publicité, pas d’achat intégré, pas d’abonnement. Le jeu entier est jouable gratuitement."],
-        ["Sur quels appareils peut-on jouer ?", "Sur iPhone, Android et ordinateur, directement dans le navigateur, sans rien installer. Une app iPhone arrive sur l’App Store."],
+        ["Sur quels appareils peut-on jouer ?", "Sur iPhone, Android et ordinateur, directement dans le navigateur, sans rien installer. L’app iPhone arrive sur l’App Store : en attendant, sa bêta est ouverte à tous sur TestFlight."],
         ["Faut-il créer un compte ?", "Non. Le jeu crée un compte anonyme tout seul pour sauvegarder votre progression dans le nuage. Vous pouvez le rattacher à « Se connecter avec Apple » pour la retrouver sur vos autres appareils."],
         ["Comment jouer contre un ami ?", "Duel → Créer un salon, puis envoyez le code de quatre lettres ou le lien. Votre ami le rejoint depuis son téléphone, où qu’il soit."],
         ["Peut-on jouer hors ligne ?", "Une fois chargé, le jeu tourne sans connexion pour la campagne, les escarmouches et la survie. Seuls les duels en ligne et le classement ont besoin d’Internet."],
@@ -142,6 +146,8 @@ const T = {
     ctaSmall: "in your browser",
     store: "App Store",
     storeSmall: "coming soon",
+    beta: "iPhone beta",
+    betaSmall: "on TestFlight",
     facts: "Free · No ads · No in-app purchases · iPhone, Android and desktop",
     card1: "To win it, you’ll need courage…<br>and a great deal of panache.",
     battle: {
@@ -205,7 +211,7 @@ const T = {
       h2: "Frequently asked questions",
       list: [
         ["Is Panache really free?", "Yes. No ads, no in-app purchases, no subscription. The whole game is free to play."],
-        ["Which devices can I play on?", "iPhone, Android and desktop, right in the browser, with nothing to install. An iPhone app is coming to the App Store."],
+        ["Which devices can I play on?", "iPhone, Android and desktop, right in the browser, with nothing to install. The iPhone app is coming to the App Store: until then, its beta is open to all on TestFlight."],
         ["Do I need an account?", "No. The game creates an anonymous account by itself to save your progress in the cloud. You can link it to Sign in with Apple to pick it up on your other devices."],
         ["How do I play against a friend?", "Duel → Create a lobby, then send the four-letter code or the link. Your friend joins from their phone, wherever they are."],
         ["Can I play offline?", "Once loaded, the game runs without a connection for the campaign, skirmishes and Last Stand. Only online duels and the ladder need the internet."],
@@ -351,7 +357,8 @@ function home(t) {
       <p class="lede">${t.lede}</p>
       <div class="ctas">
         <a class="btn btn-or" href="${t.play}">▶ ${t.cta} <small>${t.ctaSmall}</small></a>
-        <span class="btn btn-alt" aria-disabled="true"> ${t.store} <small>${t.storeSmall}</small></span>
+        <a class="btn btn-alt" href="${TESTFLIGHT}" rel="noopener">${t.beta} <small>${t.betaSmall}</small></a>
+        <span class="btn btn-alt btn-soon" aria-disabled="true"> ${t.store} <small>${t.storeSmall}</small></span>
       </div>
       <p class="facts">${t.facts}</p>
     </div>
@@ -439,7 +446,7 @@ function home(t) {
   <div class="wrap rv">
     <h2>${t.finale.h2}</h2>
     <p>${t.finale.p}</p>
-    <div class="ctas"><a class="btn btn-or" href="${t.play}">▶ ${t.cta} <small>${t.ctaSmall}</small></a></div>
+    <div class="ctas"><a class="btn btn-or" href="${t.play}">▶ ${t.cta} <small>${t.ctaSmall}</small></a><a class="btn btn-alt" href="${TESTFLIGHT}" rel="noopener">${t.beta} <small>${t.betaSmall}</small></a></div>
   </div>
 </section>
 </main>
@@ -519,7 +526,7 @@ writeFileSync(
 - The 1900 Campaign: twelve missions in three acts, told like a silent film.
 - Online duels with a friend (four-letter lobby code or link) and ranked matches with an Elo ladder; if nobody is online, the game offers an unranked match against the AI and says so.
 - Skirmish against the AI (three difficulties), Éclair (six-minute matches on points), Last Stand (survival), a Daily Op, mutators, generated maps, and replays of past battles.
-- Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. An iPhone app is coming to the App Store.
+- Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. The iPhone app is coming to the App Store; its public beta is on TestFlight: https://testflight.apple.com/join/JYUS1DxV
 
 Made by Meffysto, based on Battle Drones by Simon Willison (https://github.com/simonw/battledrones, Apache 2.0).
 `

@@ -13,6 +13,6 @@
 - The 1900 Campaign: twelve missions in three acts, told like a silent film.
 - Online duels with a friend (four-letter lobby code or link) and ranked matches with an Elo ladder; if nobody is online, the game offers an unranked match against the AI and says so.
 - Skirmish against the AI (three difficulties), Éclair (six-minute matches on points), Last Stand (survival), a Daily Op, mutators, generated maps, and replays of past battles.
-- Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. An iPhone app is coming to the App Store.
+- Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. The iPhone app is coming to the App Store; its public beta is on TestFlight: https://testflight.apple.com/join/JYUS1DxV
 
 Made by Meffysto, based on Battle Drones by Simon Willison (https://github.com/simonw/battledrones, Apache 2.0).

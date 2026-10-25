@@ -208,6 +208,8 @@ h1 { margin: 0; font-weight: 400; }
 .btn-or:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px #6b4c18, inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 14px 36px rgba(201, 164, 90, 0.4); }
 .btn-alt { color: var(--cream); border: 1px solid var(--brass); background: rgba(7, 10, 16, 0.5); }
 .btn-alt:hover { color: var(--gold); transform: translateY(-2px); }
+.btn-soon { opacity: 0.6; cursor: default; }
+.btn-soon:hover { color: var(--cream); transform: none; }
 .btn small { font: 600 11px/1 var(--sans); letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; }
 .facts { margin: 22px 0 0; font: 600 12px/1.4 var(--sans); letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
 
