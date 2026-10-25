@@ -60,7 +60,9 @@
     "parentalControls": false,
     "ageAssurance": false,
     "healthOrWellnessTopics": false,
-    "gunsOrOtherWeapons": "NONE"
+    "gunsOrOtherWeapons": "NONE",
+    "socialMedia": false,
+    "socialMediaAgeRestricted": false
   },
   "revue": {
     "_": "Pour l'équipe de revue d'Apple : aucun identifiant n'est nécessaire.",

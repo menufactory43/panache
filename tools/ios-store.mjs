@@ -184,21 +184,24 @@ async function captures() {
   const app = await theApp();
   const version = await editableVersion(app);
   const locs = await api("GET", `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
+  // the iPhone 6,9" (2868 × 1320), the iPad 13" (2732 × 2048), the iPhone Duo's outer screen (2034 × 1398)
+  const screens = [["shots", "APP_IPHONE_67"], ["shots-ipad", "APP_IPAD_PRO_3GEN_129"], ["shots-duo", "APP_IPHONE_DUO"]];
+  for (const [shots, displayType] of screens)
   for (const [dir, locale] of [["fr", "fr-FR"], ["en", "en-US"], ["en", "en-GB"]]) {
-    const folder = join(STORE, "shots", dir);
+    const folder = join(STORE, shots, dir);
     const loc = locs.data.find((l) => l.attributes.locale === locale);
     if (!existsSync(folder) || !loc) {
       warn(`${locale} : ${loc ? "pas de captures" : "pas de fiche (lancer « fiche » d'abord)"}`);
       continue;
     }
-    // the 6.9" set (2868 × 1320), emptied then filled in file order
+    // the set, emptied then filled in file order
     const sets = await api("GET", `/v1/appStoreVersionLocalizations/${loc.id}/appScreenshotSets`);
-    let set = sets.data.find((s) => s.attributes.screenshotDisplayType === "APP_IPHONE_67");
+    let set = sets.data.find((s) => s.attributes.screenshotDisplayType === displayType);
     if (set) {
       const old = await api("GET", `/v1/appScreenshotSets/${set.id}/appScreenshots`);
       for (const s of old.data) await api("DELETE", `/v1/appScreenshots/${s.id}`);
     } else
-      set = (await api("POST", "/v1/appScreenshotSets", { data: { type: "appScreenshotSets", attributes: { screenshotDisplayType: "APP_IPHONE_67" }, relationships: { appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: loc.id } } } } })).data;
+      set = (await api("POST", "/v1/appScreenshotSets", { data: { type: "appScreenshotSets", attributes: { screenshotDisplayType: displayType }, relationships: { appStoreVersionLocalization: { data: { type: "appStoreVersionLocalizations", id: loc.id } } } } })).data;
     for (const name of readdirSync(folder).filter((n) => /\.(png|jpe?g)$/.test(n)).sort()) {
       const file = join(folder, name);
       const bytes = readFileSync(file);
@@ -211,7 +214,7 @@ async function captures() {
         if (!res.ok) throw new Error(`envoi de ${name} : ${res.status}`);
       }
       await api("PATCH", `/v1/appScreenshots/${shot.id}`, { data: { type: "appScreenshots", id: shot.id, attributes: { uploaded: true, sourceFileChecksum: createHash("md5").update(bytes).digest("hex") } } });
-      say(`${locale} : ${name}`);
+      say(`${locale} ${displayType} : ${name}`);
     }
   }
 }

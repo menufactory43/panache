@@ -1,6 +1,10 @@
-// La vidéo d'aperçu de la fiche App Store (app preview) : iPhone 6,9" en paysage, 1920 × 886, 30 i/s, ~27 s, avec le son
-// du jeu, dans ios/store/previews/<langue>.mp4.
-//   npm run build && node tools/store-preview.mjs [fr|en]   (macOS : Google Chrome, ffmpeg)
+// Les vidéos de la fiche App Store, avec le son du jeu, dans ios/store/previews/ :
+//   apercu     l'aperçu de l'iPhone 6,9" en paysage, 1920 × 886, ~26 s : l'accueil puis une bataille → <langue>.mp4
+//   entete     l'en-tête de la page produit, 21:9, 3840 × 1646, 20 s en boucle sans couture → entete-<langue>.mp4
+//   recherche  la vignette des résultats de recherche, 3:2, 2880 × 1920, 20 s en boucle → recherche-<langue>.mp4
+//   npm run build && node tools/store-preview.mjs [fr|en] [apercu|entete|recherche]   (macOS : Google Chrome, ffmpeg)
+// L'aperçu part par l'API (ios-store.mjs apercu) ; l'en-tête et la recherche se chargent à la main dans App Store
+// Connect (Informations de la page produit), l'API ne les connaît pas encore.
 // Deux plans tournés pour de vrai, comme tools/og-video.mjs (images du screencast, son pris sur la sortie Web Audio) :
 // l'accueil tel qu'un joueur le voit, puis une escarmouche IA contre IA regardée en spectateur, la caméra passant d'un
 // combat à l'autre. Apple n'accepte que des images du jeu : rien n'est ajouté par-dessus.
@@ -11,14 +15,23 @@ import { readFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node
 import { join, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const langs = process.argv[2] ? [process.argv[2]] : ["fr", "en"];
+const langs = process.argv[2] && process.argv[2] !== "tout" ? [process.argv[2]] : ["fr", "en"];
+const KIND = process.argv[3] ?? "apercu";
+const KINDS = {
+  apercu: { w: 1920, h: 886, view: { width: 960, height: 443 }, scale: 2, hub: true },
+  entete: { w: 3840, h: 1646, view: { width: 1280, height: 549 }, scale: 3, hub: false, closer: 24 },
+  recherche: { w: 2880, h: 1920, view: { width: 960, height: 640 }, scale: 3, hub: false, closer: 18 }
+};
+const K = KINDS[KIND];
+if (!K) throw new Error(`usage : node tools/store-preview.mjs [fr|en|tout] [${Object.keys(KINDS).join("|")}]`);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../dist");
 const OUT = join(HERE, "../ios/store/previews");
 mkdirSync(OUT, { recursive: true });
-const W = 1920;
-const H = 886;
-const VIEW = { viewport: { width: 960, height: 443 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true };
+const W = K.w;
+const H = K.h;
+const VIEW = { viewport: K.view, deviceScaleFactor: K.scale, hasTouch: true, isMobile: true };
+const LOOP_S = 20; // the loops: the battle's last 2 s crossfade into its first
 const HUB_MS = 4200;
 // the camera: a first cut onto the busiest fight, then a new one every few seconds (the spectator's own camera
 // follows the action in between)
@@ -28,6 +41,8 @@ const CUTS = [
   { at: 11000, zoom: 38 },
   { at: 16500, zoom: 42 }
 ];
+// the banners cut more often: their camera stays put between cuts
+const BANNER_CUTS = [0, 3800, 7600, 11400, 15200, 19000].map((at, i) => ({ at, zoom: [40, 44, 38, 42, 40, 44][i] }));
 const INTO_S = 330; // at most this far into the match
 const BATTLE_MS = 22500;
 
@@ -140,6 +155,8 @@ for (const lang of langs) {
   console.log(lang);
 
   // 1. the hub, as a player opens it
+  let clipHub = null;
+  if (K.hub) {
   const a = await browser.newContext(VIEW);
   await a.addInitScript((l) => {
     Object.defineProperty(navigator, "webdriver", { get: () => false });
@@ -151,8 +168,9 @@ for (const lang of langs) {
   const hub = await a.newPage();
   await hub.goto(base, { waitUntil: "networkidle" });
   await hub.waitForTimeout(1500);
-  const clipHub = await film(a, hub, `${tmp}/hub`, HUB_MS, () => hub.mouse.click(480, 220));
+  clipHub = await film(a, hub, `${tmp}/hub`, HUB_MS, () => hub.mouse.click(K.view.width / 2, K.view.height / 2));
   await a.close();
+  }
 
   // 2. a battle, watched: well into the match, the camera from one fight to the next. The AI's matches differ each
   // time: one that ends (or has too little going on) while filmed is filmed again.
@@ -167,6 +185,17 @@ for (const lang of langs) {
       localStorage.setItem(k, JSON.stringify({ ...cur, mapId: "dune-sea", mode: "skirmish" }));
     }, lang);
     await b.addInitScript(tapAudio);
+    // the banners (header, search): the battle alone, none of the interface over it, and the camera ours (the
+    // cinematic one off: it would wander off between cuts)
+    if (!K.hub)
+      await b.addInitScript(() => {
+        localStorage.setItem("battledrones.cinecam", "0");
+        addEventListener("DOMContentLoaded", () => {
+          const css = document.createElement("style");
+          css.textContent = "*{visibility:hidden!important}canvas:not(#minimap){visibility:visible!important}";
+          document.head.append(css);
+        });
+      });
     const war = await b.newPage();
     await war.goto(base, { waitUntil: "networkidle" });
     await war.waitForTimeout(800);
@@ -219,13 +248,14 @@ for (const lang of langs) {
         },
         [zoom, skip]
       );
-    await cut(CUTS[0].zoom, false);
+    const cuts = K.hub ? CUTS : BANNER_CUTS;
+    await cut(cuts[0].zoom + (K.closer ?? 0), false);
     await war.waitForTimeout(1500);
     const clip = await film(b, war, `${tmp}/war${tries}`, BATTLE_MS, async () => {}, async () => {
       const t0 = Date.now();
-      for (const c of CUTS.slice(1)) {
+      for (const c of cuts.slice(1)) {
         await war.waitForTimeout(Math.max(0, c.at - (Date.now() - t0)));
-        await cut(c.zoom, true);
+        await cut(c.zoom + (K.closer ?? 0), true);
       }
     });
     const over = await war.evaluate(() => Boolean(window.__bd.world.winner));
@@ -236,6 +266,22 @@ for (const lang of langs) {
   if (!clipWar) throw new Error("pas de bataille filmée jusqu'au bout");
 
   // the two, crossfaded, faded out at the end
+  if (!K.hub) {
+    // a loop: from 2 s in, and the last 2 s crossfade into the first two, so its end is its start
+    const out = join(OUT, `${KIND}-${lang}.mp4`);
+    execFileSync("ffmpeg", [
+      "-y", "-loglevel", "error", "-i", clipWar,
+      "-filter_complex",
+      `[0:v]split[v1][v2];[v1]trim=2:${LOOP_S + 2},setpts=PTS-STARTPTS[body];[v2]trim=0:2,setpts=PTS-STARTPTS[head];` +
+        `[body][head]xfade=transition=fade:duration=2:offset=${LOOP_S - 2}[v];` +
+        `[0:a]asplit[a1][a2];[a1]atrim=2:${LOOP_S + 2},asetpts=PTS-STARTPTS[ab];[a2]atrim=0:2,asetpts=PTS-STARTPTS[ah];[ab][ah]acrossfade=d=2[a]`,
+      "-map", "[v]", "-map", "[a]", "-t", String(LOOP_S),
+      "-r", "30", "-c:v", "libx264", "-profile:v", "high", "-pix_fmt", "yuv420p", "-crf", "16", "-maxrate", "45M", "-bufsize", "60M",
+      "-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", out
+    ]);
+    console.log(`ios/store/previews/${KIND}-${lang}.mp4 (${W} × ${H}, ${LOOP_S} s en boucle)`);
+    continue;
+  }
   const total = (HUB_MS + BATTLE_MS) / 1000 - 0.5;
   const out = join(OUT, `${lang}.mp4`);
   execFileSync("ffmpeg", [
