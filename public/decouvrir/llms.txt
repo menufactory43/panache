@@ -1,0 +1,18 @@
+# Panache
+
+> Panache is a free real-time strategy game set in a Belle Époque Paris of 1900 (steam, steel and radium), made for the phone and playable in any browser. French and English.
+
+- Play: https://menufactory43.github.io/panache/ (English: https://menufactory43.github.io/panache/en/)
+- Site: https://menufactory43.github.io/panache/decouvrir/ (English: https://menufactory43.github.io/panache/decouvrir/en/)
+- Privacy: https://menufactory43.github.io/panache/confidentialite.html
+- Source code: https://github.com/menufactory43/panache
+
+## What it is
+- Real-time strategy controlled with touch gestures: select with a gesture, draw your troops' route with a finger; a skirmish lasts about ten minutes.
+- Two nations: the Republic (fast, airborne, electric) and the Empire (steam, steel, artillery), plus a Classic mode where both sides field the same units.
+- The 1900 Campaign: twelve missions in three acts, told like a silent film.
+- Online duels with a friend (four-letter lobby code or link) and ranked matches with an Elo ladder; if nobody is online, the game offers an unranked match against the AI and says so.
+- Skirmish against the AI (three difficulties), Éclair (six-minute matches on points), Last Stand (survival), a Daily Op, mutators, generated maps, and replays of past battles.
+- Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. An iPhone app is coming to the App Store.
+
+Made by Meffysto.
