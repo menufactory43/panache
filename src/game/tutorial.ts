@@ -1,4 +1,5 @@
 import { tr } from "../lang";
+import { syncGameCenter } from "./game-center";
 /**
  * L'Instruction (« Premier jour »): the guided first mission, one gesture at
  * a time. Engine-free and tested (tests/tutorial.test.ts): this module only
@@ -577,6 +578,7 @@ export function tutorial2Done(): boolean {
 export function setTutorial2Done(): void {
   try {
     localStorage.setItem(KEY2, "done");
+    syncGameCenter();
   } catch {
     /* ignore */
   }
@@ -597,6 +599,7 @@ export function setTutorialState(v: "done" | "no"): void {
     // (done stays done: leaving a replay doesn't undo it)
     if (v === "no" && localStorage.getItem(KEY) === "done") return;
     localStorage.setItem(KEY, v);
+    if (v === "done") syncGameCenter();
   } catch {
     /* ignore */
   }

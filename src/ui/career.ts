@@ -1,3 +1,4 @@
+import { gameCenterAvailable, showGameCenter } from "../game/game-center";
 import { DIFFICULTY, STRATEGIES, type Difficulty } from "../sim/ai/commander";
 import { AWARDS, MEDALS, MEDAL_IDS, type MedalId } from "../sim/awards";
 import { MAPS, mapById, mapBansMutator } from "../sim/maps";
@@ -279,7 +280,7 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
   const ladder = RANKS.map(
     (k, i) => `<li class="${i < r.index ? "past" : i === r.index ? "now" : ""}">${insigniaSvg(i)}<span>${k.name}</span><small>${fmt(k.xp)}</small></li>`
   ).join("");
-  openSheet(
+  const sheet = openSheet(
     host,
     "careersheet",
     `<div class="cs-head">${insigniaSvg(r.index)}
@@ -304,8 +305,13 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
      <table class="cs-table"><tr><th></th>${diffs.map((d) => `<th>${diffName(d)}</th>`).join("")}</tr>${lsRows}</table>
      <h3>Grades</h3><ol class="ladder">${ladder}</ol>
      <p class="sh-note">${tr("XP : victoire 100 · défaite 30 (× Facile 1 / Normal 1,5 / Difficile 2,2) · 25 par médaille · Survie 10 par vague · Op du jour gagnée +100 · Opérations 60 par réussite, +100 la première fois, +40 par nouvelle étoile. Les parties en spectateur ne comptent pas.", "XP: victory 100 · defeat 30 (× Easy 1 / Normal 1.5 / Hard 2.2) · 25 per medal · Last Stand 10 per wave · Daily Op won +100 · Operations 60 per success, +100 the first time, +40 per new star. Spectated matches don't count.")}</p>
-     <div class="sh-actions"><button class="cta sheet-close">${tr("Fermer", "Close")}</button></div>`
+     <div class="sh-actions">${gameCenterAvailable() ? `<button class="cta alt" id="cs-gc">Game Center</button>` : ""}<button class="cta sheet-close">${tr("Fermer", "Close")}</button></div>`
   );
+  sheet.querySelector("#cs-gc")?.addEventListener("click", () => {
+    void showGameCenter().then((ok) => {
+      if (!ok) sheet.querySelector("#cs-gc")!.textContent = tr("Game Center : connecte-toi dans Réglages", "Game Center: sign in from Settings");
+    });
+  });
 }
 
 // ------------------------------------------------------------- end screen ---

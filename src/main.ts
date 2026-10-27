@@ -34,6 +34,7 @@ import { mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
 import { bootApp, shareBase } from "./native";
+import { startGameCenter, syncGameCenter } from "./game/game-center";
 import { accountStatus, appleOffered, deleteAccount, enableCloudSave, signInWithApple, startAccount, watchAccount, type AccountStatus } from "./game/account";
 import { mountSavedList } from "./ui/archives";
 import { reelWaiting, takeReel } from "./ui/reel-entry";
@@ -1332,5 +1333,9 @@ else {
   showMenu(linkedMap);
 }
 bootApp();
+void startGameCenter();
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") syncGameCenter();
+});
 countVisit();
 startAccount(() => menuSync?.());

@@ -33,6 +33,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.4",
     "panache-apple-sign-in": "file:native/apple-sign-in",
+    "panache-game-center": "file:native/game-center",
     "three": "^0.185.1"
   },
   "devDependencies": {

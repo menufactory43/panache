@@ -8,6 +8,7 @@ import { matchKind, track } from "./stats";
 import { activeMutators, gameMode } from "./mode";
 import { tr } from "../lang";
 import { scheduleSync } from "./account";
+import { gameCenterAfterMatch } from "./game-center";
 
 /**
  * Glue between the match and the meta layer (mutators, Daily Op, career):
@@ -72,9 +73,11 @@ export function settleCareer(w: World, pov: Faction): Settlement | null {
     track(`fin:${matchKind()}${issue}`);
   }
   scheduleSync(); // (the career is written just below; the Last Stand records alongside)
-  return settleMatch(w, {
+  const s = settleMatch(w, {
     pov,
     difficulty: w.survival?.difficulty ?? gameMode.difficulty,
     daily: d ? { day: d.day, number: d.number } : null
   });
+  gameCenterAfterMatch(s, w.eclair ? w.eclair.points[pov] : null);
+  return s;
 }

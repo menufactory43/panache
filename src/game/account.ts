@@ -11,6 +11,7 @@
  * The player can turn the cloud save off in Réglages, which deletes the
  * account and its save for good; progress on the device stays.
  */
+import { syncGameCenter } from "./game-center";
 import { Preferences } from "@capacitor/preferences";
 import { AppleSignIn } from "panache-apple-sign-in";
 import { RELAY_URL, relayBase } from "../relay-url";
@@ -124,7 +125,10 @@ export function syncSave(): Promise<void> {
       again = false;
       await syncOnce();
     } while (again);
-  })().finally(() => (running = null));
+  })().finally(() => {
+    running = null;
+    syncGameCenter(); // (a career that came in from the cloud may have earned achievements)
+  });
   return running;
 }
 
