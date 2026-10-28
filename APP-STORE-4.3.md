@@ -13,8 +13,8 @@ Cause probable : Panache est parti d'un fork de Battle Drones (Simon Willison, A
 
 ## À faire avant d'envoyer
 
-1. Nouveau build : `sh tools/ios-testflight.sh`, puis le rattacher à la version 1.0.
-2. Une vidéo de 60 à 90 s jointe à la revue : la campagne (intertitres, film muet), le choix de nation, un duel en ligne, Game Center.
+1. ~~Nouveau build~~ : build 440 envoyé et rattaché à la version 1.0 le 28/10.
+2. ~~Vidéo jointe à la revue~~ : ios/store/revue/panache-revue-4.3.mp4 (55 s, anglais : accueil, campagne, briefing, mission, République contre Empire, duel en ligne), jointe le 28/10. L'aperçu de la fiche (escarmouche Classique « Rush · Blitz ») montre ce qui ressemble le plus à Battle Drones : il n'a pas été joint.
 3. Coller le texte ci-dessous au Resolution Center, puis resoumettre.
 4. Ne rien soumettre d'autre du compte (Rature, Mémoire vive, Ressources inhumaines) avant la réponse d'Apple.
 
