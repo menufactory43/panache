@@ -175,7 +175,7 @@ export function urlNations(): Record<Faction, Nation> | null {
   return typeof location === "undefined" ? null : parseNations(new URLSearchParams(location.search).get("nations"));
 }
 
-const KEY = "battledrones.settings";
+const KEY = "panache.settings";
 
 export function loadSettings(): void {
   try {

@@ -354,7 +354,7 @@ export function applyResult(c0: CareerData, r: MatchResult, day = todayIndex(), 
 
 // ---------------------------------------------------------------- storage ---
 
-const KEY = "battledrones.career";
+const KEY = "panache.career";
 
 /** A career read from anywhere (storage, the cloud save), every field checked. */
 export function sanitizeCareer(raw: unknown): CareerData {

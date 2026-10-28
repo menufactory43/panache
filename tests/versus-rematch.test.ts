@@ -74,7 +74,7 @@ describe("a rematch, from the report's Rematch to the reloaded page's lobby", ()
     const named: string[] = [];
     for (const [path, text] of Object.entries(sources)) {
       if (path.startsWith("../src/versus/") || path.startsWith("../src/link/")) continue;
-      for (const m of text.matchAll(/["'`](battledrones\.(?:rematch|duel)[\w.-]*)["'`]/g)) {
+      for (const m of text.matchAll(/["'`](panache\.(?:rematch|duel)(?:[.-][\w.-]*)?)["'`]/g)) {
         named.push(`${path.slice(3)}: ${m[1]}`);
         expect(keys.has(m[1]!), `${path.slice(3)} names "${m[1]}"`).toBe(true);
       }

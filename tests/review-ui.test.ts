@@ -153,7 +153,7 @@ describe("full screen survives the reload-based flows", () => {
     await Promise.resolve();
     // and the next reload remembers it again
     fs.reload();
-    expect(page2.store.get("battledrones.fullscreen")).toBe("1");
+    expect(page2.store.get("panache.fullscreen")).toBe("1");
   });
 
   it("does nothing when the game wasn't full screen, or where the API is missing (iOS)", () => {
@@ -165,7 +165,7 @@ describe("full screen survives the reload-based flows", () => {
     expect(next.count()).toBe(0);
 
     const ios = fakeEnv({ api: false });
-    ios.store.set("battledrones.fullscreen", "1");
+    ios.store.set("panache.fullscreen", "1");
     new Fullscreen(() => ios.env).restoreOnGesture();
     expect(ios.count()).toBe(0);
     expect(ios.store.size).toBe(0); // the note is used up either way
@@ -173,12 +173,12 @@ describe("full screen survives the reload-based flows", () => {
 
   it("a reload before the first gesture (or mid-request) keeps the note", () => {
     const page = fakeEnv();
-    page.store.set("battledrones.fullscreen", "1");
+    page.store.set("panache.fullscreen", "1");
     const fs = new Fullscreen(() => page.env);
     fs.restoreOnGesture();
     expect(page.store.size).toBe(0);
     fs.reload(); // e.g. ‹ Menu straight away: still wanted
-    expect(page.store.get("battledrones.fullscreen")).toBe("1");
+    expect(page.store.get("panache.fullscreen")).toBe("1");
   });
 });
 
@@ -189,7 +189,7 @@ describe("the Duel tap's full screen waits for the microphone prompt (iPadOS hid
     const disarm = fs.enterOnGesture();
     expect(page.requests).toHaveLength(0);
     fs.reload(); // armed counts as wanted
-    expect(page.store.get("battledrones.fullscreen")).toBe("1");
+    expect(page.store.get("panache.fullscreen")).toBe("1");
     page.fire("pointerup");
     expect(page.requests).toEqual([{ navigationUI: "hide" }]);
     expect(page.count()).toBe(0);

@@ -404,7 +404,7 @@ export function createHud(api: HudApi): Hud {
   /** Reload straight into another match ("1", "spectate", "daily", "op:<id>"). */
   const relaunch = (token: string) => {
     try {
-      sessionStorage.setItem("battledrones.rematch", token);
+      sessionStorage.setItem("panache.rematch", token);
     } catch {
       /* ignore */
     }
@@ -973,7 +973,7 @@ export function createHud(api: HudApi): Hud {
   });
 
   // ---------------------------------------------------- first-run hints ---
-  const TUTORIAL_KEY = "battledrones.tutorial";
+  const TUTORIAL_KEY = "panache.tutorial";
   let hintStage = 99;
   try {
     hintStage = localStorage.getItem(TUTORIAL_KEY) === "done" ? 99 : 0;

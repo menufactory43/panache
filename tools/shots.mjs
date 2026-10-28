@@ -26,7 +26,7 @@ const tag = `${w}x${h}`;
 const map = process.env.MAP;
 
 await page.goto(url, { waitUntil: "networkidle" });
-if (map) await page.evaluate((m) => localStorage.setItem("battledrones.settings", JSON.stringify({ mapId: m, difficulty: "normal" })), map);
+if (map) await page.evaluate((m) => localStorage.setItem("panache.settings", JSON.stringify({ mapId: m, difficulty: "normal" })), map);
 if (map) await page.reload({ waitUntil: "networkidle" });
 await page.waitForTimeout(600);
 await page.screenshot({ path: `${out}/menu-${tag}.png` });

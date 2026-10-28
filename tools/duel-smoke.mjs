@@ -308,7 +308,7 @@ for (const name of ["host", "guest"]) {
   }, [BEAT_MS, BLOCKED_MS]);
   await context.addInitScript((s) => {
     try {
-      localStorage.setItem("battledrones.settings", s);
+      localStorage.setItem("panache.settings", s);
     } catch {
       /* ignore */
     }
@@ -712,7 +712,7 @@ const synced = await run(15000, async () => (await both((p) => text(p, ".duel-sy
     check((await p.page.locator("#duel-save").count()) === 1 && (await p.page.locator("#menu").count()) === 1, "Save battle or Main menu missing");
     check((await p.page.evaluate(() => localStorage.getItem("panache.duelenligne"))) === null, "a practice link wrote the win/loss record");
     // (the duel played the host's map and mutators, and saved neither over this phone's menu picks)
-    const kept = await p.page.evaluate(() => JSON.parse(localStorage.getItem("battledrones.settings") ?? "null"));
+    const kept = await p.page.evaluate(() => JSON.parse(localStorage.getItem("panache.settings") ?? "null"));
     check(kept?.mapId === SETTINGS[p.name].mapId && JSON.stringify(kept?.mutators) === JSON.stringify(SETTINGS[p.name].mutators), `the duel saved over the ${p.name}'s settings: ${JSON.stringify(kept)}`);
   }
   await both((p) => shot(p, "4-report"));

@@ -51,8 +51,8 @@ const TRACK = 0x0b0f16;
 const FALL = 26;
 /** How high a crate starts its descent (world units). */
 const FALL_H = 7;
-const HINT_KEY = "battledrones.hint.uplinks";
-const ISLAND_HINT_KEY = "battledrones.hint.islands";
+const HINT_KEY = "panache.hint.uplinks";
+const ISLAND_HINT_KEY = "panache.hint.islands";
 
 const discGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 

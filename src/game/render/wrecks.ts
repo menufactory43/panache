@@ -88,7 +88,7 @@ const MAX_VIEWS = SALVAGE.maxWrecks + 15;
 /** Own salvage within this window (ms) adds up to a "haul". */
 const HAUL_WINDOW = 9000;
 const HAUL_AT = 400;
-const HINT_KEY = "battledrones.hint.salvage";
+const HINT_KEY = "panache.hint.salvage";
 
 /** Oily black smoke off a burning hull, greying as it climbs and leaning downwind (Belle Époque: coal-black, and thicker). */
 const SMOKE: EmitCfg = BELLE_EPOQUE ? WRECK_SMOKE : {

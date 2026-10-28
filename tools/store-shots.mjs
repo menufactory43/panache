@@ -44,7 +44,7 @@ const shot = (page, name) => page.screenshot({ path: join(OUT, `${name}.jpg`), t
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => false });
     localStorage.setItem("panache.intro.seen", "1");
-    localStorage.setItem("battledrones.tutorial", "done");
+    localStorage.setItem("panache.tutorial", "done");
   });
   await page.goto(base, { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
@@ -69,7 +69,7 @@ for (const [name, seconds, map] of [["2-bataille", 150, "riverlands"], ["3-assau
     const page = await browser.newPage(VIEW);
     await page.addInitScript((m) => {
       localStorage.setItem("panache.intro.seen", "1");
-      const k = "battledrones.settings";
+      const k = "panache.settings";
       const cur = JSON.parse(localStorage.getItem(k) || "{}");
       localStorage.setItem(k, JSON.stringify({ ...cur, mapId: m, mode: "skirmish" }));
     }, map);

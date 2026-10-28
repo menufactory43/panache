@@ -16,7 +16,7 @@ import { BUILDINGS, UNITS } from "../sim/balance";
 import type { Faction, FxEvent, World } from "../sim/types";
 
 /** localStorage: "0" when the player switched the cinematic camera off (on by default). */
-export const CINE_KEY = "battledrones.cinecam";
+export const CINE_KEY = "panache.cinecam";
 
 export const CINE = {
   /** Interest is bucketed into square cells this many tiles wide. */

@@ -18,7 +18,7 @@ page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 await page.goto(url, { waitUntil: "networkidle" });
 await page.evaluate(
-  (m) => localStorage.setItem("battledrones.settings", JSON.stringify({ mapId: m, difficulty: "normal" })),
+  (m) => localStorage.setItem("panache.settings", JSON.stringify({ mapId: m, difficulty: "normal" })),
   process.env.MAP ?? "dune-sea"
 );
 await page.reload({ waitUntil: "networkidle" });

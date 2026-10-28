@@ -35,7 +35,7 @@ import { buzz } from "../native";
 
 // --------------------------------------------------------------- prefs ---
 
-const PREFS_KEY = "battledrones.hud";
+const PREFS_KEY = "panache.hud";
 
 export interface HudPrefs {
   /** Show the ＋/− zoom buttons (pinch zooms either way). */

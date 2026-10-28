@@ -1,4 +1,6 @@
-// first: the Belle Époque switch tags <html> before the menu draws (src/ui/belle.css)
+// before anything reads the storage: the old « battledrones.* » keys move to « panache.* »
+import "./storage-rename";
+// then: the Belle Époque switch tags <html> before the menu draws (src/ui/belle.css)
 import { BELLE_EPOQUE } from "./game/three/theme";
 import { DIFFICULTY, type Difficulty } from "./sim/ai/commander";
 import { MAPS, isKnownMapId, mapBansMutator, mapById } from "./sim/maps";
@@ -127,7 +129,7 @@ const DUEL_UPDATE = tr("Une nouvelle version est prête : recharge ce téléphon
  * or a duel's "duel"). The duel's records.ts owns the key and the duel's token; main.ts may import the
  * duel's types only, so these literals are tied to them by type (and tests/versus-rematch.test.ts reads them).
  */
-const REMATCH_KEY: typeof DuelLobby.REMATCH_KEY = "battledrones.rematch";
+const REMATCH_KEY: typeof DuelLobby.REMATCH_KEY = "panache.rematch";
 const DUEL_REMATCH: typeof DuelLobby.REMATCH_DUEL = "duel";
 
 /** Render at device resolution (capped at 2× for phone GPUs) for crisp art. */
@@ -170,7 +172,7 @@ const BIOME_FR: Record<Biome, string> = tr(
   { temperate: "tempéré", desert: "désert", arctic: "arctique", volcanic: "volcanique", tropical: "tropical" },
   { temperate: "temperate", desert: "desert", arctic: "arctic", volcanic: "volcanic", tropical: "tropical" }
 );
-const RANDOM_KEY = "battledrones.randommaps";
+const RANDOM_KEY = "panache.randommaps";
 /** A transparent pixel: the Uncharted card keeps its image box (the fog sits on it) with nothing of the map in it. */
 const BLANK_IMG = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const RECENT_MAX = 6;

@@ -32,7 +32,7 @@ export interface PowerPanelApi {
   offerHint?(h: HintOffer): void;
 }
 
-const HINT_KEY = "battledrones.hint.calldowns";
+const HINT_KEY = "panache.hint.calldowns";
 
 export interface PowerPanel {
   /** The armed power while the player picks a target, else null. */

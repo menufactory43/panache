@@ -38,9 +38,9 @@ export interface AudioSettings {
   speech: boolean;
 }
 
-export const AUDIO_SETTINGS_KEY = "battledrones.audio";
+export const AUDIO_SETTINGS_KEY = "panache.audio";
 /** Pre-music builds stored only a master mute flag here. */
-const LEGACY_MUTE_KEY = "battledrones.muted";
+const LEGACY_MUTE_KEY = "panache.muted";
 
 /** Parse stored settings (tolerating junk), falling back to the legacy mute flag. */
 export function parseAudioSettings(raw: string | null, legacyMuted: string | null = null): AudioSettings {

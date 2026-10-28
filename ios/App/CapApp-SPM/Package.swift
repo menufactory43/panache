@@ -18,7 +18,8 @@ let package = Package(
         .package(name: "CapacitorPreferences", path: "../../../node_modules/@capacitor/preferences"),
         .package(name: "CapacitorSplashScreen", path: "../../../node_modules/@capacitor/splash-screen"),
         .package(name: "CapacitorStatusBar", path: "../../../node_modules/@capacitor/status-bar"),
-        .package(name: "PanacheAppleSignIn", path: "../../../native/apple-sign-in")
+        .package(name: "PanacheAppleSignIn", path: "../../../native/apple-sign-in"),
+        .package(name: "PanacheGameCenter", path: "../../../native/game-center")
     ],
     targets: [
         .target(
@@ -32,7 +33,8 @@ let package = Package(
                 .product(name: "CapacitorPreferences", package: "CapacitorPreferences"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CapacitorStatusBar", package: "CapacitorStatusBar"),
-                .product(name: "PanacheAppleSignIn", package: "PanacheAppleSignIn")
+                .product(name: "PanacheAppleSignIn", package: "PanacheAppleSignIn"),
+                .product(name: "PanacheGameCenter", package: "PanacheGameCenter")
             ]
         )
     ]

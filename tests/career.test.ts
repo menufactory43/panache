@@ -234,12 +234,12 @@ describe("career storage", () => {
     c.stars["frostbite:hard"] = 5;
     saveCareer(c);
     expect(loadCareer()).toEqual(c);
-    store.set("battledrones.career", JSON.stringify({ xp: "lots", medals: { ace: 1, bogus: 9 }, stars: { "a:b": 15 } }));
+    store.set("panache.career", JSON.stringify({ xp: "lots", medals: { ace: 1, bogus: 9 }, stars: { "a:b": 15 } }));
     const s = loadCareer();
     expect(s.xp).toBe(0);
     expect(s.medals).toEqual({ ace: 1 });
     expect(s.stars["a:b"]).toBe(7);
-    store.set("battledrones.career", "{not json");
+    store.set("panache.career", "{not json");
     expect(loadCareer()).toEqual(emptyCareer());
   });
 

@@ -58,7 +58,7 @@ const ff = (n) => page.evaluate((k) => window.__bd.scene.step(100, k), n);
 const world = (fn, arg) => page.evaluate(fn, arg);
 
 await page.goto(url, { waitUntil: "networkidle" });
-await page.evaluate(() => localStorage.setItem("battledrones.settings", JSON.stringify({ mapId: "riverlands", difficulty: "easy" })));
+await page.evaluate(() => localStorage.setItem("panache.settings", JSON.stringify({ mapId: "riverlands", difficulty: "easy" })));
 await page.reload({ waitUntil: "networkidle" });
 await shot("menu");
 await page.tap("#play");

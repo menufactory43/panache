@@ -17,6 +17,7 @@ DEST=upload
 [ "$1" = "--archive" ] && DEST=export
 
 npm run build
+node tools/ios-prune.mjs
 npx cap sync ios
 rm -rf "$OUT"
 mkdir -p "$OUT"

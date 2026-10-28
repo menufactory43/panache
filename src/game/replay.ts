@@ -192,7 +192,7 @@ export function pinnedLink(feed: ReplayFeed): string | null {
   const v = feed.record.version;
   // (the record's own word: only a version tag, as tools/build-pages.mjs publishes them)
   if (!v || v === BUILD_TAG || !feed.url || !/^v[0-9][A-Za-z0-9.+-]*$/.test(v)) return null;
-  // the site's root: a version's build is a folder in it (/battledrones/v11/)
+  // the site's root: a version's build is a folder in it (/v11/)
   const root = new URL(BUILD_TAG ? "../" : "./", new URL(import.meta.env.BASE_URL, location.href));
   return `${new URL(`${v}/`, root).href}?replay=${encodeURIComponent(feed.url)}`;
 }
@@ -203,10 +203,10 @@ export function parseRecord(text: string): BattleRecord {
   try {
     r = JSON.parse(text) as BattleRecord;
   } catch {
-    throw new Error(tr("Ce n'est pas du JSON : colle tout le fichier .json écrit par une bataille dans battles/", "That isn't JSON: paste the whole .json file a battle wrote to battles/"));
+    throw new Error(tr("Ce n'est pas du JSON : colle tout le fichier .json de la bataille", "That isn't JSON: paste the whole .json file of the battle"));
   }
   if (!r || typeof r !== "object" || r.v !== 1 || !Array.isArray(r.turns) || !Array.isArray(r.hashes) || !r.seats)
-    throw new Error(tr("Ce n'est pas un enregistrement de bataille (tools/arena.ts et llm battledrones les écrivent dans battles/)", "That isn't a battle record (tools/arena.ts and llm battledrones write them to battles/)"));
+    throw new Error(tr("Ce n'est pas un enregistrement de bataille", "That isn't a battle record"));
   if (!isKnownMapId(r.map)) throw new Error(tr(`Cette bataille s'est jouée sur « ${r.map} », une carte absente de cette version du jeu`, `This battle was played on « ${r.map} », a map missing from this version of the game`));
   if (!r.end && !r.tick) throw new Error(tr("Cette bataille n'a pas encore dépassé son premier tour", "This battle hasn't got past its first turn yet"));
   // nations (PANACHE-CONCEPTION.md §1.10): both sides, each a nation this build knows, or none (Classique)

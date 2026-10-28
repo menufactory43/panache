@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyCareer } from "../src/game/career";
 import { SAVE_KEYS, emptySave, mergeSaves, readSave, sanitizeSave, saveText, writeSave, type SaveData } from "../src/game/save";
+import { renameLegacyKeys } from "../src/storage-rename";
 
 const mem = (init: Record<string, string> = {}) => {
   const m = new Map(Object.entries(init));
@@ -18,7 +19,7 @@ function deviceA(): SaveData {
   s.career.daily = { lastWin: 300, streak: 4, bestStreak: 4, wins: 6, plays: 8 };
   s.career.ops = { "bridgehead-classique": { stars: 1, bestSecs: 600, plays: 3, wins: 1 } };
   s.laststand = { "dune-sea:hard": { best: 12, kills: 80, runs: 5 } };
-  s.flags = { "battledrones.tutorial": "done" };
+  s.flags = { "panache.tutorial": "done" };
   return s;
 }
 
@@ -33,7 +34,7 @@ function deviceB(): SaveData {
   s.career.daily = { lastWin: 302, streak: 1, bestStreak: 2, wins: 3, plays: 9 };
   s.career.ops = { "bridgehead-classique": { stars: 4, cleared: true, bestSecs: null, plays: 5, wins: 2 } };
   s.laststand = { "dune-sea:hard": { best: 12, kills: 95, runs: 2 }, "ashlands:easy": { best: 3, kills: 10, runs: 1 } };
-  s.flags = { "battledrones.instruction2": "done", "panache.intro.seen": "1" };
+  s.flags = { "panache.instruction2": "done", "panache.intro.seen": "1" };
   return s;
 }
 
@@ -51,7 +52,7 @@ describe("the cloud save", () => {
     expect(m.career.ops["bridgehead-classique"]).toEqual({ stars: 5, cleared: true, bestSecs: 600, plays: 5, wins: 2 });
     expect(m.laststand["dune-sea:hard"]).toEqual({ best: 12, kills: 95, runs: 5 });
     expect(m.laststand["ashlands:easy"]).toEqual({ best: 3, kills: 10, runs: 1 });
-    expect(m.flags).toEqual({ "battledrones.tutorial": "done", "battledrones.instruction2": "done", "panache.intro.seen": "1" });
+    expect(m.flags).toEqual({ "panache.tutorial": "done", "panache.instruction2": "done", "panache.intro.seen": "1" });
   });
 
   it("gives the same save in either order, and merging again changes nothing", () => {
@@ -63,7 +64,7 @@ describe("the cloud save", () => {
   });
 
   it("checks what comes from the cloud", () => {
-    const s = sanitizeSave({ career: { xp: -5, stars: { a: 255 } }, laststand: { x: { best: "lots" } }, flags: { "battledrones.tutorial": "no", evil: "done", "panache.intro.seen": "1" } });
+    const s = sanitizeSave({ career: { xp: -5, stars: { a: 255 } }, laststand: { x: { best: "lots" } }, flags: { "panache.tutorial": "no", evil: "done", "panache.intro.seen": "1" } });
     expect(s.career.xp).toBe(0);
     expect(s.career.stars).toEqual({ a: 7 });
     expect(s.laststand).toEqual({ x: { best: 0, kills: 0, runs: 0 } });
@@ -77,7 +78,7 @@ describe("the cloud save", () => {
     const store = mem({
       [SAVE_KEYS.career]: JSON.stringify(career),
       [SAVE_KEYS.laststand]: JSON.stringify({ "dune-sea:hard": { best: 2, kills: 5, runs: 1, extra: "kept" } }),
-      "battledrones.instruction": "no"
+      "panache.instruction": "no"
     });
     const here = readSave(store);
     expect(here.career.xp).toBe(50);
@@ -87,9 +88,35 @@ describe("the cloud save", () => {
     expect(writeSave(store, merged)).toBe(true);
     expect(JSON.parse(store.m.get(SAVE_KEYS.career)!).xp).toBe(1200);
     expect(JSON.parse(store.m.get(SAVE_KEYS.laststand)!)["dune-sea:hard"]).toEqual({ best: 12, kills: 80, runs: 5, extra: "kept" });
-    expect(store.m.get("battledrones.tutorial")).toBe("done");
-    expect(store.m.get("battledrones.instruction")).toBe("no");
+    expect(store.m.get("panache.tutorial")).toBe("done");
+    expect(store.m.get("panache.instruction")).toBe("no");
     expect(saveText(readSave(store))).toBe(saveText(merged));
     expect(writeSave(store, merged)).toBe(false);
+  });
+});
+
+describe("the keys renamed from battledrones.* to panache.*", () => {
+  const storage = (init: Record<string, string>) => {
+    const m = new Map(Object.entries(init));
+    return {
+      get length() { return m.size; },
+      key: (i: number) => [...m.keys()][i] ?? null,
+      getItem: (k: string) => m.get(k) ?? null,
+      setItem: (k: string, v: string) => void m.set(k, v),
+      removeItem: (k: string) => void m.delete(k),
+      clear: () => m.clear(),
+      m
+    };
+  };
+
+  it("moves this device's old keys, without overwriting a new one", () => {
+    const s = storage({ "battledrones.career": "old", "battledrones.settings": "s", "panache.settings": "new", other: "x" });
+    renameLegacyKeys(s as unknown as Storage);
+    expect(Object.fromEntries(s.m)).toEqual({ "panache.career": "old", "panache.settings": "new", other: "x" });
+  });
+
+  it("reads a cloud save made under the old flag names", () => {
+    const s = sanitizeSave({ flags: { "battledrones.tutorial": "done", "battledrones.instruction2": "done" } });
+    expect(s.flags).toEqual({ "panache.tutorial": "done", "panache.instruction2": "done" });
   });
 });

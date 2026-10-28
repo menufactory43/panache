@@ -162,7 +162,7 @@ for (const lang of langs) {
     Object.defineProperty(navigator, "webdriver", { get: () => false });
     localStorage.setItem("panache.lang", l);
     localStorage.setItem("panache.intro.seen", "1");
-    localStorage.setItem("battledrones.tutorial", "done");
+    localStorage.setItem("panache.tutorial", "done");
   }, lang);
   await a.addInitScript(tapAudio);
   const hub = await a.newPage();
@@ -180,7 +180,7 @@ for (const lang of langs) {
     await b.addInitScript((l) => {
       localStorage.setItem("panache.lang", l);
       localStorage.setItem("panache.intro.seen", "1");
-      const k = "battledrones.settings";
+      const k = "panache.settings";
       const cur = JSON.parse(localStorage.getItem(k) || "{}");
       localStorage.setItem(k, JSON.stringify({ ...cur, mapId: "dune-sea", mode: "skirmish" }));
     }, lang);
@@ -189,7 +189,7 @@ for (const lang of langs) {
     // cinematic one off: it would wander off between cuts)
     if (!K.hub)
       await b.addInitScript(() => {
-        localStorage.setItem("battledrones.cinecam", "0");
+        localStorage.setItem("panache.cinecam", "0");
         addEventListener("DOMContentLoaded", () => {
           const css = document.createElement("style");
           css.textContent = "*{visibility:hidden!important}canvas:not(#minimap){visibility:visible!important}";

@@ -14,7 +14,7 @@ export function showReplayPicker(host: HTMLElement, watch: (json: string) => Pro
     "replaysheet",
     `<h2>${tr("🎬 Voir une rediffusion", "🎬 Watch a replay")}</h2>
      ${saved ? `<h3>${tr("Tes parties", "Your matches")}</h3><div class="replay-saved"></div><h3>${tr("Une autre bataille", "Another battle")}</h3>` : ""}
-     <p class="sh-sub">${tr("Colle un enregistrement de bataille : le fichier <b>.json</b> qu'une bataille d'agents écrit dans <code>battles/</code> (<code>llm battledrones run</code>, <code>tools/arena.ts</code>). Ou choisis le fichier.", "Paste a battle record: the <b>.json</b> file an agent battle writes to <code>battles/</code> (<code>llm battledrones run</code>, <code>tools/arena.ts</code>). Or pick the file.")}</p>
+     <p class="sh-sub">${tr("Colle un enregistrement de bataille : le fichier <b>.json</b> d'une partie enregistrée. Ou choisis le fichier.", "Paste a battle record: the <b>.json</b> file of a recorded match. Or pick the file.")}</p>
      <textarea id="replay-json" spellcheck="false" autocomplete="off" placeholder='{"v":1,"map":"riverlands",…}'></textarea>
      <label class="cta alt replay-file">${tr("📂 Choisir un fichier…", "📂 Choose a file…")}<input type="file" accept=".json,application/json" hidden></label>
      <p class="sh-note replay-error" role="alert" hidden></p>

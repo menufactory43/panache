@@ -120,7 +120,7 @@ export function planTicks(acc: number, deltaMs: number, speed: number): { ticks:
   return { ticks, acc: a };
 }
 
-export const SPEED_KEY = "battledrones.speed";
+export const SPEED_KEY = "panache.speed";
 
 /** Stored speeds: one for playing, one for watching AI vs AI. */
 export interface StoredSpeed {

@@ -15,9 +15,9 @@ import { emptyCareer, sanitizeCareer, type CareerData, type OpRecord } from "./c
 
 /** The storage keys the save holds (career.ts, survival.ts, tutorial.ts, ui/hud.ts, ui/title.ts). */
 export const SAVE_KEYS = {
-  career: "battledrones.career",
-  laststand: "battledrones.laststand",
-  flags: ["battledrones.tutorial", "battledrones.instruction", "battledrones.instruction2", "panache.intro.seen"]
+  career: "panache.career",
+  laststand: "panache.laststand",
+  flags: ["panache.tutorial", "panache.instruction", "panache.instruction2", "panache.intro.seen"]
 } as const;
 
 /** A flag's value once it is earned (the hints' « done », the intro's « 1 »): it never goes back. */
@@ -58,7 +58,9 @@ export function sanitizeSave(raw: unknown): SaveData {
       if (r && typeof r === "object" && k.length <= 64) s.laststand[k] = { best: num(r.best), kills: num(r.kills), runs: num(r.runs) };
   if (o.flags && typeof o.flags === "object")
     for (const k of SAVE_KEYS.flags) {
-      const v = (o.flags as Record<string, unknown>)[k];
+      // (a save made before the keys were renamed holds « battledrones.x », storage-rename.ts)
+      const f = o.flags as Record<string, unknown>;
+      const v = f[k] ?? f[k.replace(/^panache\./, "battledrones.")];
       if (typeof v === "string" && EARNED.has(v)) s.flags[k] = v;
     }
   return s;

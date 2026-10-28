@@ -42,7 +42,7 @@ const dirFr = (d: string): string => DIR_FR[d] ?? d;
 
 // ------------------------------------------------------------- records ---
 
-const KEY = "battledrones.laststand";
+const KEY = "panache.laststand";
 
 export interface LastStandRecord {
   /** Most waves survived on this map and difficulty. */

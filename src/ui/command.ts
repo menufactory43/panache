@@ -48,7 +48,7 @@ export interface CommandHooks {
   offerHint(h: HintOffer): void;
 }
 
-const HINTS_KEY = "battledrones.cmdhints";
+const HINTS_KEY = "panache.cmdhints";
 /** Build-button and tab badges refresh this often (ms). */
 const BADGE_MS = 250;
 

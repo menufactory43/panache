@@ -562,9 +562,9 @@ export class TutorialRunner {
 
 // ------------------------------------------------------------- storage ---
 
-const KEY = "battledrones.instruction";
+const KEY = "panache.instruction";
 /** « Deuxième jour »: done or not (never offered unasked). */
-const KEY2 = "battledrones.instruction2";
+const KEY2 = "panache.instruction2";
 
 /** Is « Deuxième jour » done? */
 export function tutorial2Done(): boolean {

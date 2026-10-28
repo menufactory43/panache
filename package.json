@@ -1,5 +1,5 @@
 {
-  "name": "battledrones",
+  "name": "panache",
   "version": "0.2.0",
   "private": true,
   "type": "module",
@@ -19,8 +19,8 @@
     "art:process": "python3 art/process.py",
     "art:terrain": "python3 art/terrain.py",
     "art:textures": "python3 art/textures.py",
-    "ios": "npm run build && cap sync ios && cap open ios",
-    "ios:sync": "npm run build && cap sync ios",
+    "ios": "npm run build && node tools/ios-prune.mjs && cap sync ios && cap open ios",
+    "ios:sync": "npm run build && node tools/ios-prune.mjs && cap sync ios",
     "ios:testflight": "sh tools/ios-testflight.sh"
   },
   "dependencies": {

@@ -13,7 +13,7 @@
 
 import { isApp } from "../native";
 
-const KEY = "battledrones.fullscreen";
+const KEY = "panache.fullscreen";
 
 export interface FullscreenEnv {
   doc: {
@@ -35,7 +35,7 @@ function browserEnv(): FullscreenEnv {
   }
   const rematch = () => {
     try {
-      return storage?.getItem("battledrones.rematch") ?? null;
+      return storage?.getItem("panache.rematch") ?? null;
     } catch {
       return null;
     }

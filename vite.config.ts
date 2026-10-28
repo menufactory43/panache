@@ -95,13 +95,13 @@ export default defineConfig({
           {
             urlPattern: MAP_ART,
             handler: "CacheFirst",
-            options: { cacheName: "battledrones-maps", expiration: { maxEntries: 120 } }
+            options: { cacheName: "panache-maps", expiration: { maxEntries: 120 } }
           },
           {
             // (served from the cache, refreshed behind it: a re-tuned texture reaches players next game)
             urlPattern: /\/assets\/textures\/.*\.webp$/,
             handler: "StaleWhileRevalidate",
-            options: { cacheName: "battledrones-textures", expiration: { maxEntries: 16 } }
+            options: { cacheName: "panache-textures", expiration: { maxEntries: 16 } }
           },
           {
             // the recorded announcer (Panache, src/game/voice-pack.ts): ~400 small clips, 2–3 MB in all,

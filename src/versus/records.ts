@@ -18,8 +18,8 @@
  * the viewer (main.ts keeps its two import("./game/replay")), and the arena
  * code is used for its types only.
  *
- * Rematch. sessionStorage `battledrones.rematch` = "duel" and
- * `battledrones.duel` = { role, plan, micMode, hostSide, mapId, mutators, nation? },
+ * Rematch. sessionStorage `panache.rematch` = "duel" and
+ * `panache.duel` = { role, plan, micMode, hostSide, mapId, mutators, nation? },
  * the host side already flipped: rematches swap sides, never roles or bands.
  * main.ts reads it at boot, before any audio context exists, and the lobby
  * pairs with it. The keys, the token and the parser live here alone: the
@@ -43,7 +43,7 @@
  *    ("practice-duel:" on a practice link; older records "sound-duel:"),
  *    which the battle viewer labels "Host" and "Guest" with the opener's
  *    name (src/game/replay.ts, which may not import this);
- *  - the file is named battledrones-duel-<map>-<date>.json.
+ *  - the file is named panache-duel-<map>-<date>.json.
  */
 import type { BattleEnd, BattleRecord } from "../arena/record";
 import type { BandRole } from "../link/transport";
@@ -62,9 +62,9 @@ export const ONLINE_RECORD_KEY = "panache.duelenligne";
  * screen's Rematch writes its own tokens under the same key: "1", "spectate",
  * "daily", "op:<id>"), the duel's token, and the duel it rematches.
  */
-export const REMATCH_KEY = "battledrones.rematch";
+export const REMATCH_KEY = "panache.rematch";
 export const REMATCH_DUEL = "duel";
-export const DUEL_KEY = "battledrones.duel";
+export const DUEL_KEY = "panache.duel";
 
 type Store = Pick<Storage, "getItem" | "setItem">;
 
@@ -201,10 +201,10 @@ export function battleRecord(o: DuelRecordInput): BattleRecord {
   };
 }
 
-/** battledrones-duel-<map>-<yyyy-mm-dd-hhmm>.json */
+/** panache-duel-<map>-<yyyy-mm-dd-hhmm>.json */
 export function recordFileName(r: Pick<BattleRecord, "map" | "created">): string {
   const when = r.created.slice(0, 16).replace(/[T:]/g, "-");
-  return `battledrones-duel-${r.map.replace(/[^a-z0-9-]/gi, "")}-${when}.json`;
+  return `panache-duel-${r.map.replace(/[^a-z0-9-]/gi, "")}-${when}.json`;
 }
 
 /** Download the record as a .json file through a Blob link (no viewer, no network). */
