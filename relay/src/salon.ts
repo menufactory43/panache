@@ -175,6 +175,8 @@ export function origineAdmise(origin: string | null): boolean {
   }
   if (u.protocol !== "http:" && u.protocol !== "https:") return false;
   const h = u.hostname;
+  // La page du jeu sur itch.io (servie dans un cadre depuis html-classic.itch.zone ou un voisin).
+  if (u.protocol === "https:" && (h === "itch.zone" || h.endsWith(".itch.zone"))) return true;
   if (h === "localhost" || h === "127.0.0.1" || h === "[::1]") return true;
   return /^(10\.\d+|192\.168|172\.(1[6-9]|2\d|3[01]))\.\d+\.\d+$/.test(h);
 }
