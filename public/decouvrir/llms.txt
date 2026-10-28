@@ -16,3 +16,4 @@
 - Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. The iPhone app is coming to the App Store; its public beta is on TestFlight: https://testflight.apple.com/join/JYUS1DxV
 
 Made by Meffysto, based on Battle Drones by Simon Willison (https://github.com/simonw/battledrones, Apache 2.0).
+A Praxeon game (https://praxeongames.com/en/), an evening video game studio.

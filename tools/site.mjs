@@ -110,7 +110,7 @@ const T = {
       ]
     },
     finale: { h2: "En avant !", p: "Le front vous attend. Une partie suffit pour comprendre.", },
-    footer: { play: "Jouer", privacy: "Confidentialité", about: "À propos", source: "Code source", lang: "English", langHref: "en/", aboutHref: "a-propos.html", note: `Un jeu de Meffysto, d’après <a href="https://github.com/simonw/battledrones">Battle Drones</a> de Simon Willison.` },
+    footer: { play: "Jouer", privacy: "Confidentialité", about: "À propos", source: "Code source", lang: "English", langHref: "en/", aboutHref: "a-propos.html", note: `Un jeu de Meffysto, d’après <a href="https://github.com/simonw/battledrones">Battle Drones</a> de Simon Willison.`, studio: `Un jeu <a href="https://praxeongames.com/">Praxeon</a>, studio de jeux vidéo du soir.` },
     about: {
       file: "a-propos.html",
       title: "À propos de Panache · un jeu de Meffysto",
@@ -219,7 +219,7 @@ const T = {
       ]
     },
     finale: { h2: "Forward!", p: "The front is waiting. One match is all it takes." },
-    footer: { play: "Play", privacy: "Privacy", about: "About", source: "Source code", lang: "Français", langHref: "../", aboutHref: "about.html", note: `A game by Meffysto, based on <a href="https://github.com/simonw/battledrones">Battle Drones</a> by Simon Willison.` },
+    footer: { play: "Play", privacy: "Privacy", about: "About", source: "Source code", lang: "Français", langHref: "../", aboutHref: "about.html", note: `A game by Meffysto, based on <a href="https://github.com/simonw/battledrones">Battle Drones</a> by Simon Willison.`, studio: `A <a href="https://praxeongames.com/en/">Praxeon</a> game, an evening video game studio.` },
     about: {
       file: "about.html",
       title: "About Panache · a game by Meffysto",
@@ -287,7 +287,7 @@ function footer(t) {
       <a href="https://github.com/menufactory43/panache">${t.footer.source}</a>
       <a href="${t.footer.langHref}" hreflang="${t.lang === "fr" ? "en" : "fr"}">${t.footer.lang}</a>
     </nav>
-    <span>${t.footer.note}</span>
+    <span>${t.footer.note} ${t.footer.studio}</span>
   </div>
 </footer>`;
 }
@@ -319,6 +319,7 @@ function home(t) {
       gamePlatform: ["Web browser", "iPhone", "Android"],
       playMode: ["SinglePlayer", "MultiPlayer"],
       author: { "@type": "Person", name: "Meffysto" },
+      publisher: { "@type": "Organization", name: "Praxeon", url: "https://praxeongames.com/" },
       isBasedOn: { "@type": "VideoGame", name: "Battle Drones", url: "https://github.com/simonw/battledrones", author: { "@type": "Person", name: "Simon Willison", url: "https://simonwillison.net/" } },
       offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
       screenshot: [`${BASE}img/2-bataille-${t.lang}-1200.webp`, `${BASE}img/3-assaut-${t.lang}-1200.webp`]
@@ -529,6 +530,7 @@ writeFileSync(
 - Free: no ads, no in-app purchases, no subscription. No personal data collected; an anonymous account holds the cloud save. The iPhone app is coming to the App Store; its public beta is on TestFlight: https://testflight.apple.com/join/JYUS1DxV
 
 Made by Meffysto, based on Battle Drones by Simon Willison (https://github.com/simonw/battledrones, Apache 2.0).
+A Praxeon game (https://praxeongames.com/en/), an evening video game studio.
 `
 );
 console.log("site écrit dans public/decouvrir/");
