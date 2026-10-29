@@ -10,6 +10,7 @@ import { HINTS, type HintOffer } from "../game/hints";
 import { BELLE_EPOQUE } from "../game/three/theme";
 import { tr } from "../lang";
 import { buzz } from "../native";
+import { belleIcon } from "./belle-hud";
 
 /**
  * The commander's calldown buttons: a stack of four round buttons on the
@@ -105,7 +106,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
   const el = document.createElement("div");
   el.className = "powers";
   el.innerHTML = `
-    <div class="pw-meter" title="${tr("Jauge de commandement : se remplit avec le temps, tes pertes (et tes victimes)", "Command gauge: fills with time, your losses (and your victims)")}"><i>⚡</i><b>0</b></div>
+    <div class="pw-meter" title="${tr("Jauge de commandement : se remplit avec le temps, tes pertes (et tes victimes)", "Command gauge: fills with time, your losses (and your victims)")}"><i>${BELLE_EPOQUE ? belleIcon("pouvoir") : "⚡"}</i><b>0</b></div>
     <div class="pw-grid">
       ${POWER_KINDS.map(
         (p) => `<button class="pw" data-p="${p}" aria-label="${POWER_NAMES[p]}" title="${POWER_NAMES[p]}" style="--c:${COLOR[p]}">
@@ -232,7 +233,7 @@ export function createPowerPanel(api: PowerPanelApi): PowerPanel {
       api.offerHint?.({
         id: "calldowns",
         msg: BELLE_EPOQUE
-          ? tr("Ta jauge ⚡ peut payer un appui. Touche ⚡ en bas, un pouvoir lumineux, puis la carte.", "Your ⚡ gauge can pay for a strike. Tap ⚡ at the bottom, a lit-up power, then the map.")
+          ? tr("Ta jauge de commandement peut payer un appui. Touche le médaillon de l'éclair en bas, un pouvoir lumineux, puis la carte.", "Your command gauge can pay for a strike. Tap the lightning medallion at the bottom, a lit-up power, then the map.")
           : tr("Ta jauge ⚡ peut payer un appui. Touche un bouton lumineux à droite, puis la carte.", "Your ⚡ gauge can pay for a strike. Tap a lit-up button on the right, then the map."),
         priority: HINTS.priority.calldowns,
         valid: anyReady,

@@ -45,6 +45,8 @@ const shot = (page, name) => page.screenshot({ path: join(OUT, `${name}.jpg`), t
     Object.defineProperty(navigator, "webdriver", { get: () => false });
     localStorage.setItem("panache.intro.seen", "1");
     localStorage.setItem("panache.tutorial", "done");
+    localStorage.setItem("panache.instruction", "done");
+    localStorage.setItem("panache.portes", "toutes");
   });
   await page.goto(base, { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
@@ -53,9 +55,7 @@ const shot = (page, name) => page.screenshot({ path: join(OUT, `${name}.jpg`), t
   await shot(page, "1-accueil");
   // the duel: ranked match and the ladder
   if (device.dir !== "shots-duo") {
-  await page.evaluate(() => document.querySelector('.qg-ri[data-p="duel"]')?.click());
-  await page.waitForTimeout(600);
-  await page.evaluate(() => document.querySelector("#qg-go")?.click());
+  await page.evaluate(() => document.querySelector('[data-door="duel"]')?.click());
   await page.waitForTimeout(1500);
   await shot(page, "5-duel");
   }

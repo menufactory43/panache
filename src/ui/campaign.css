@@ -102,7 +102,7 @@
   min-height: 52px;
   border-radius: 8px;
   border: 1px solid rgba(201, 165, 101, 0.35);
-  background: linear-gradient(180deg, rgba(40, 28, 14, 0.82), rgba(22, 15, 8, 0.88));
+  background: linear-gradient(180deg, rgba(23, 36, 87, 0.82), rgba(13, 20, 48, 0.88));
   color: #f1e6c8;
   cursor: pointer;
   font: inherit;
@@ -155,7 +155,7 @@
 }
 .campch.done .cn {
   background: #c9a24f;
-  color: #1a120a;
+  color: #0f173a;
 }
 .campch.locked {
   opacity: 0.5;

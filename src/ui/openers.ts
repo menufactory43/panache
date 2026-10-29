@@ -7,6 +7,8 @@ import { sfx } from "../game/audio";
 import { PLAYER } from "../game/controller";
 import { fullscreen } from "./fullscreen";
 import { tr } from "../lang";
+import { BELLE_EPOQUE } from "../game/three/theme";
+import { belleIcon } from "./belle-hud";
 
 /**
  * The pre-match opener choice: three big cards over the (frozen) battlefield.
@@ -76,7 +78,7 @@ function pills(id: OpenerId, side: Faction, words: Words): string {
   return items
     .map(
       (it) =>
-        `<span class="op-pill ${it.cls ?? ""}">${it.icon ? `<img src="${ICON(it.icon, side)}" alt="" draggable="false"/>` : `<i>⚙</i>`}${it.label}</span>`
+        `<span class="op-pill ${it.cls ?? ""}">${it.icon ? `<img src="${ICON(it.icon, side)}" alt="" draggable="false"/>` : BELLE_EPOQUE ? belleIcon("charbon", "op-coal") : `<i>⚙</i>`}${it.label}</span>`
     )
     .join("");
 }

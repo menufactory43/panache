@@ -1,0 +1,1021 @@
+/*
+ * The hub of 1.1 (src/ui/qg.ts): one big button, three doors, the Cabinet.
+ * Materials from email.css (.m-plaque, .m-papier, .m-laiton via .cta, .m-medal).
+ * Landscape: the doors on the left, the hero in the middle, the ticket and the
+ * big button on the right. Portrait: the doors under the top bar, the button at
+ * the thumb. The panels (Campagne, Bataille, Cabinet) cover the hub.
+ */
+.qg.q19 {
+  font-family: var(--sans);
+}
+.qg.q19 :where(button, a) {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.qg.q19 :where(.m-medal) {
+  display: block;
+}
+/* the title scene's shade, in navy rather than walnut */
+html.belle .menu[data-view="qg"] .ttl-shade {
+  background:
+    linear-gradient(0deg, rgba(7, 11, 26, 0.88) 0%, rgba(7, 11, 26, 0) 28%),
+    linear-gradient(90deg, rgba(7, 11, 26, 0.92) 0%, rgba(7, 11, 26, 0.6) 22%, rgba(7, 11, 26, 0) 40%, rgba(7, 11, 26, 0) 58%, rgba(7, 11, 26, 0.6) 74%, rgba(7, 11, 26, 0.9) 100%);
+}
+.qg.q19:not([data-v="hub"]) > :is(.q-top, .q-doors, .q-act) {
+  visibility: hidden;
+}
+
+/* ---------------------------------------------------------------- top --- */
+.q19 .q-top {
+  position: absolute;
+  top: var(--st);
+  left: var(--sl);
+  right: var(--sr);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+}
+.q19 .q-sp {
+  flex: 1;
+}
+.q19 .q-rank {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.q19 .q-rank svg {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+}
+.q19 .q-rank b {
+  display: block;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+.q19 .q-rank i,
+.q19 .q-id i {
+  display: block;
+  width: 112px;
+  height: 5px;
+  margin-top: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--brass-lo);
+}
+.q19 .q-rank u,
+.q19 .q-id u {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brass-lo), var(--brass-hi));
+}
+.q19 .q-med {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.q19 .q-med img {
+  width: 48px;
+  height: 48px;
+}
+.q19 .q-med .m-tag {
+  margin-top: -8px;
+  position: relative;
+  font-size: 11.5px;
+}
+
+/* -------------------------------------------------------------- doors --- */
+.q19 .q-doors {
+  position: absolute;
+  left: var(--sl);
+  top: calc(var(--st) + 62px);
+  width: min(360px, 38vw);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q19 .q-door {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: clamp(84px, 21vh, 116px);
+  padding: 0 2px;
+  color: var(--ivory);
+  transition: transform 0.12s;
+}
+.q19 .q-door:active {
+  transform: scale(0.98);
+}
+.q19 .q-vign {
+  flex: none;
+  width: 88px;
+  height: 64px;
+  background: #0c1430 center / cover no-repeat;
+  box-shadow: 0 0 0 2px var(--brass), 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+.q19 .q-vduel {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #2b3f7a, #0c1430 70%);
+}
+.q19 .q-vduel img {
+  width: 52px;
+  height: 52px;
+}
+.q19 .q-dt {
+  min-width: 0;
+  flex: 1;
+}
+.q19 .q-dt b {
+  display: block;
+  font-family: var(--display);
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.q19 .q-dt small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q19 .q-prog {
+  display: block;
+  width: 150px;
+  max-width: 100%;
+  height: 5px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.q19 .q-prog u {
+  display: block;
+  height: 100%;
+  background: var(--brass-hi);
+}
+.q19 .q-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  padding: 0 8px 0 2px;
+  border-radius: 10px;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--navy-deep);
+  background: linear-gradient(var(--brass-hi), var(--brass));
+}
+.q19 .q-chip[hidden] {
+  display: none;
+}
+.q19 .q-chip .m-medal {
+  width: 18px;
+  height: 18px;
+  box-shadow: none;
+}
+.q19 .q-chip.new {
+  animation: q-glow 2.4s ease-in-out infinite;
+}
+@keyframes q-glow {
+  50% {
+    box-shadow: 0 0 10px rgba(243, 217, 140, 0.9);
+  }
+}
+.q19 .q-cad {
+  display: none;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translateY(-50%);
+}
+.q19 .q-door.lock {
+  filter: grayscale(0.85) brightness(0.62);
+}
+.q19 .q-door.lock .q-cad {
+  display: block;
+}
+.q19 .q-door.lock small {
+  color: var(--brass-hi);
+}
+
+/* ------------------------------------------------- the big button --- */
+.q19 .q-act {
+  position: absolute;
+  right: var(--sr);
+  bottom: var(--sb);
+  width: min(340px, 36vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.q19 .q-next {
+  position: relative;
+  padding: 8px 14px 9px;
+  transform: rotate(-0.6deg);
+}
+.q19 .q-nh {
+  display: block;
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--bordeaux);
+}
+.q19 .q-nt {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--display);
+  font-size: 21px;
+  line-height: 1.1;
+  color: var(--navy);
+}
+.q19 .q-nl {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b3f2e;
+}
+.q19 .q-drop {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--bordeaux);
+  border-bottom: 1px solid currentColor !important;
+}
+.q19 .qg-go {
+  width: 100%;
+  height: 80px;
+  margin: 0;
+  font-size: 31px;
+  font-style: italic;
+  text-align: center !important;
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------ panels --- */
+.q19 .q-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  padding: calc(var(--st) + 6px) var(--sr) var(--sb) var(--sl);
+  background: rgba(5, 8, 19, 0.86);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+.q19[data-v="campagne"] .q-camp,
+.q19[data-v="bataille"] .q-bat,
+.q19[data-v="cabinet"] .q-cab {
+  display: block;
+}
+.q19 .q-back {
+  position: absolute;
+  top: calc(var(--st) + 4px);
+  left: var(--sl);
+  height: 40px;
+  padding: 0 4px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ivory);
+}
+.q19 .q-h {
+  text-align: center;
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+  margin-top: 4px;
+}
+.q19 .q-fr {
+  width: 200px;
+  margin: 2px auto 10px;
+}
+
+/* Campagne: three cards, the Campaign in the middle */
+.q19 .q-cards {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.q19 .q-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center !important;
+  min-height: 200px;
+  padding: 4px;
+  color: var(--ivory);
+}
+.q19 .q-card .m-medal {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+.q19 .q-card b {
+  font-family: var(--display);
+  font-size: 20px;
+}
+.q19 .q-card small {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.q19 .q-art {
+  width: 100%;
+  height: 120px;
+  margin-bottom: 8px;
+  background: #0c1430 center / cover;
+  box-shadow: 0 0 0 2px var(--brass);
+}
+.q19 .q-more {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brass-hi);
+  border-bottom: 1px solid var(--brass);
+}
+
+/* Bataille: the Daily Op's poster on the left, the match on the right */
+.q19 .q-bat {
+  grid-template-columns: minmax(250px, 34%) 1fr;
+}
+.q19[data-v="bataille"] .q-bat {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  column-gap: 14px;
+}
+.q19 .q-bat > .q-h {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.q19 .q-bat > .q-fr {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.q19 .q-bat > .q-libre {
+  grid-column: 2;
+  grid-row: 3;
+}
+.q19 .q-op {
+  grid-column: 1;
+  grid-row: 3 / 5;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px 12px;
+  transform: rotate(-0.5deg);
+  color: var(--ink) !important;
+  min-height: 0;
+}
+.q19 .q-optag {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bordeaux);
+}
+.q19 .q-opmap {
+  flex: 1;
+  min-height: 70px;
+  margin-top: 8px;
+  background: center / cover;
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--bordeaux);
+}
+.q19 .q-op b {
+  margin-top: 8px;
+  font-family: var(--display);
+  font-size: 23px;
+  line-height: 1;
+  color: var(--navy);
+}
+.q19 .q-op small {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b3f2e;
+}
+.q19 .q-opfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.q19 .q-streak {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--bordeaux);
+}
+.q19 .q-streak .m-medal {
+  width: 26px;
+  height: 26px;
+}
+.q19 .q-streak em {
+  font-style: normal;
+}
+.q19 .q-stamp {
+  font-family: var(--display);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 19px;
+  color: var(--bordeaux);
+  border: 2.5px solid var(--bordeaux);
+  padding: 0 10px;
+  transform: rotate(-7deg);
+}
+.q19 .q-libre {
+  min-width: 0;
+  padding: 2px 4px;
+}
+.q19 .q-type {
+  display: flex;
+  gap: 6px;
+}
+.q19 .q-type button {
+  flex: 1;
+  text-align: center !important;
+  padding: 5px 0;
+  border-radius: 4px;
+  border: 1.5px solid rgba(241, 231, 207, 0.25) !important;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ivory);
+}
+.q19 .q-type button.on {
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  border-color: transparent !important;
+}
+.q19 .q-type small {
+  display: block;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.q19 .q-maps {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.q19 .q-map {
+  position: relative;
+  flex: none;
+  width: 108px;
+  height: 64px;
+  opacity: 0.72;
+  box-shadow: 0 0 0 1.5px rgba(241, 231, 207, 0.3);
+}
+.q19 .q-map.on {
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--brass-hi);
+}
+.q19 .q-map img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.q19 .q-map small {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px 2px;
+  background: rgba(12, 20, 48, 0.85);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ivory);
+}
+.q19 .q-map em {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--brass-hi);
+  text-shadow: 0 1px 2px #000;
+}
+.q19 .q-rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin-top: 10px;
+}
+.q19 .q-k {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--brass-hi);
+}
+.q19 .q-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.q19 .q-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(241, 231, 207, 0.3) !important;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ivory);
+}
+.q19 .q-seg button.on {
+  background: var(--ivory);
+  color: var(--navy);
+  border-color: var(--ivory) !important;
+}
+.q19 .q-crest {
+  height: 18px;
+  width: auto;
+}
+.q19 .q-extra {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.q19 .q-mut {
+  color: var(--ivory);
+}
+.q19 .q-mut b {
+  color: var(--brass-hi);
+}
+.q19 .q-salon {
+  color: var(--brass-hi);
+  border-bottom: 1px solid var(--brass) !important;
+  font-weight: 800;
+}
+.q19 .q-batgo {
+  grid-column: 2;
+  grid-row: 4;
+  justify-self: end;
+  width: min(320px, 100%);
+  height: 70px;
+  margin: 10px 0 0;
+  font-size: 27px;
+  font-style: italic;
+  text-align: center !important;
+}
+
+/* the Cabinet: a sheet of paper */
+.q19 .q-cab {
+  display: none;
+}
+.q19[data-v="cabinet"] .q-cab {
+  display: grid;
+  place-items: center;
+}
+.q19 .q-sheet {
+  position: relative;
+  width: min(820px, 100%);
+  padding: 14px 22px 20px;
+}
+.q19 .q-sheet .q-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--navy);
+}
+.q19 .q-sheet .q-h .m-medal {
+  width: 38px;
+  height: 38px;
+}
+.q19 .q-sheet .q-fr {
+  margin: 2px 0 12px;
+  filter: sepia(1) saturate(3) hue-rotate(-20deg) brightness(0.55);
+}
+.q19 .q-close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy) !important;
+  border-bottom: 1.5px solid var(--navy) !important;
+}
+.q19 .q-cabbody {
+  display: flex;
+  gap: 16px;
+}
+.q19 .q-id {
+  flex: none;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center !important;
+  color: var(--ivory) !important;
+  padding: 6px 4px;
+}
+.q19 .q-id svg {
+  width: 64px;
+  height: 64px;
+}
+.q19 .q-id b {
+  margin-top: 4px;
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brass-hi);
+}
+.q19 .q-id i {
+  width: 150px;
+}
+.q19 .q-id small {
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+.q19 .q-items {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.q19 .q-it {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px !important;
+  border: 1.5px solid rgba(22, 34, 79, 0.3) !important;
+  border-radius: 6px;
+  color: var(--ink) !important;
+}
+.q19 .q-it .m-medal {
+  width: 52px;
+  height: 52px;
+}
+.q19 .q-it b {
+  display: block;
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--navy);
+}
+.q19 .q-it small {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #4b3f2e;
+}
+
+/* ------------------------------------------------- a door opening --- */
+.q19 .q-unlock {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: var(--st) var(--sr) var(--sb) var(--sl);
+  background: rgba(5, 8, 19, 0.9);
+  animation: q-fade 0.4s both;
+}
+.q19 .q-unlock[hidden] {
+  display: none;
+}
+.q19 .q-ray {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 760px;
+  height: 760px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(243, 217, 140, 0.32) 0%, rgba(243, 217, 140, 0.06) 35%, transparent 60%);
+  animation: q-spin 6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.q19 .q-dep {
+  position: relative;
+  width: min(440px, 92vw);
+  padding: 8px 16px 10px;
+  text-align: center;
+  transform: rotate(-1deg);
+  animation: q-drop 0.5s 0.1s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.q19 .q-dep span {
+  display: block;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bordeaux);
+  border-bottom: 1px dashed rgba(110, 26, 36, 0.4);
+  padding-bottom: 4px;
+}
+.q19 .q-dep p {
+  margin-top: 6px;
+  font-family: var(--telex);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+.q19 .q-udoor {
+  position: relative;
+  width: min(360px, 84vw);
+  animation: q-pop 0.7s 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.q19 .q-udoor .q-door {
+  width: 100%;
+  filter: none;
+  box-shadow: 0 0 60px rgba(243, 217, 140, 0.35);
+}
+.q19 .q-udoor .q-cad {
+  display: none;
+}
+.q19 .q-ul {
+  position: relative;
+  max-width: 560px;
+  text-align: center;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 16px;
+  opacity: 0.92;
+}
+.q19 .q-unlock .cta {
+  position: relative;
+  width: 240px;
+  height: 64px;
+  font-size: 22px;
+  text-align: center !important;
+}
+@keyframes q-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes q-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-40px) rotate(-4deg);
+  }
+}
+@keyframes q-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes q-spin {
+  to {
+    transform: translate(-50%, -50%) scale(1.15) rotate(20deg);
+  }
+}
+
+/* ------------------------------------------------- short landscape --- */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* a phone on its side: the doors and the button stay small, the hero gets the screen */
+  .q19 .q-top {
+    height: 40px;
+  }
+  .q19 .q-rank svg {
+    width: 30px;
+    height: 30px;
+  }
+  .q19 .q-rank b {
+    font-size: 14px;
+  }
+  .q19 .q-rank i {
+    width: 86px;
+    height: 4px;
+  }
+  .q19 .q-med img {
+    width: 38px;
+    height: 38px;
+  }
+  .q19 .q-med .m-tag {
+    font-size: 10px;
+  }
+  .q19 .q-doors {
+    top: calc(var(--st) + 46px);
+    width: min(290px, 33vw);
+    gap: 4px;
+  }
+  .q19 .q-door {
+    height: min(68px, calc((100dvh - var(--st) - var(--sb) - 58px) / 3));
+    border-width: 11px;
+    border-image-width: 11px;
+    gap: 9px;
+  }
+  .q19 .q-dt b {
+    font-size: 16px;
+  }
+  .q19 .q-dt small {
+    margin-top: 2px;
+    font-size: 11.5px;
+  }
+  .q19 .q-prog {
+    width: 110px;
+    height: 4px;
+    margin-top: 4px;
+  }
+  .q19 .q-chip {
+    margin-top: 3px;
+    font-size: 10.5px;
+  }
+  /* two lines at most: when the Daily Op is up, it replaces the subtitle */
+  .q19 .q-door:has(.q-chip:not([hidden])) small {
+    display: none;
+  }
+  .q19 .q-chip .m-medal {
+    width: 14px;
+    height: 14px;
+  }
+  .q19 .q-vign {
+    width: 56px;
+    height: 38px;
+  }
+  .q19 .q-vduel img {
+    width: 34px;
+    height: 34px;
+  }
+  .q19 .q-cad {
+    width: 26px;
+    height: 26px;
+  }
+  .q19 .q-act {
+    width: min(260px, 29vw);
+    gap: 6px;
+  }
+  .q19 .q-next {
+    padding: 5px 10px 6px;
+  }
+  .q19 .q-nh {
+    font-size: 8.5px;
+  }
+  .q19 .q-nt {
+    font-size: 15px;
+  }
+  .q19 .q-nl {
+    font-size: 11px;
+  }
+  .q19 .q-drop {
+    top: 4px;
+    font-size: 10.5px;
+  }
+  .q19 .qg-go {
+    height: 52px;
+    font-size: 21px;
+  }
+  .q19 .q-card {
+    min-height: 160px;
+  }
+  .q19 .q-art {
+    height: 80px;
+  }
+  .q19 .q-h {
+    font-size: 22px;
+  }
+  /* Bataille in 440 px: no rule under the title, a shorter row of maps, the button beside the options */
+  .q19 .q-bat .q-fr {
+    display: none;
+  }
+  .q19 .q-bat .q-h {
+    margin: 2px 0 8px;
+  }
+  .q19 .q-type button {
+    padding: 2px 0;
+    font-size: 15px;
+  }
+  .q19 .q-maps {
+    margin-top: 6px;
+  }
+  .q19 .q-map {
+    width: 96px;
+    height: 52px;
+  }
+  .q19 .q-rows {
+    margin-top: 6px;
+    gap: 4px 10px;
+  }
+  .q19 .q-extra {
+    margin-top: 6px;
+  }
+  .q19 .q-batgo {
+    height: 58px;
+    margin-top: 6px;
+    font-size: 23px;
+  }
+  .q19 .q-op b {
+    font-size: 20px;
+  }
+}
+
+/* ------------------------------------------------------------ portrait --- */
+@media (orientation: portrait) {
+  /* the hero's face stays in view: the doors sit low, by the thumb, over the ticket and the button */
+  .q19 .q-doors {
+    top: auto;
+    bottom: calc(var(--sb) + 200px);
+    left: var(--sl);
+    right: var(--sr);
+    width: auto;
+  }
+  .q19 .q-door {
+    height: clamp(74px, 10.5vh, 96px);
+  }
+  .q19 .q-act {
+    left: var(--sl);
+    width: auto;
+    bottom: calc(var(--sb) + 8px);
+  }
+  .q19 .q-cards {
+    grid-template-columns: 1fr;
+  }
+  .q19 .q-card {
+    min-height: 0;
+    padding: 6px;
+  }
+  .q19 .q-card.q-big {
+    order: -1;
+  }
+  .q19[data-v="bataille"] .q-bat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .q19 .q-op {
+    min-height: 260px;
+  }
+  .q19 .q-batgo {
+    align-self: stretch;
+    width: auto;
+    flex: none;
+  }
+  .q19 .q-cabbody {
+    flex-direction: column;
+  }
+  .q19 .q-id {
+    width: auto;
+  }
+  .q19 .q-items {
+    grid-template-columns: 1fr;
+  }
+  .q19[data-v="cabinet"] .q-cab {
+    place-items: start center;
+  }
+  .q19 .q-back {
+    position: relative;
+    top: 0;
+    left: 0;
+    display: inline-block;
+    width: auto;
+  }
+}

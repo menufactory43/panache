@@ -672,10 +672,6 @@ html.belle #hud.bh .bh-frame.on {
 html.belle #hud.bh .bh-squads .sq {
   width: 46px;
   height: 46px;
-  background: rgba(30, 21, 12, 0.9);
-}
-html.belle #hud.bh .bh-squads .sq.empty {
-  background: rgba(24, 16, 8, 0.75);
 }
 
 /* left-handed: Construire and ⚡ on the left, Armée (and the squads) on the right */

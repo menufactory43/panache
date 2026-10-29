@@ -104,7 +104,7 @@ export function mountTutorialOverlay(h: TutOverlayHooks): TutOverlay {
     const sr = sheet?.getBoundingClientRect();
     if (sr && sr.width > 0) {
       const onRight = sr.left > W / 2;
-      const corner = 160; // (⚔ Armée, or 🔨 and ⚡ for a lefty, in the far bottom corner)
+      const corner = 160; // (Armée, or 🔨 and ⚡ for a lefty, in the far bottom corner)
       const x0 = onRight ? corner : sr.right + 12;
       const x1 = onRight ? sr.left - 12 : W - corner;
       const bw = Math.max(240, Math.min(360, x1 - x0));

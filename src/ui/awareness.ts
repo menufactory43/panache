@@ -16,6 +16,8 @@
  */
 import type { Rect } from "../game/awareness";
 import { tr } from "../lang";
+import { BELLE_EPOQUE } from "../game/three/theme";
+import { belleIcon } from "./belle-hud";
 
 export interface ArrowSpec {
   key: string;
@@ -181,7 +183,7 @@ export function mountAwareness(root: HTMLElement, h: AwarenessUiHooks): Awarenes
   const jump = document.createElement("button");
   jump.className = "zb jump";
   jump.title = tr("Aller à l'action (J)", "Go to the action (J)");
-  jump.innerHTML = `<span class="ji">⚡</span><span class="jdot" hidden></span>`;
+  jump.innerHTML = `<span class="ji">${BELLE_EPOQUE ? belleIcon("escarmouche") : "⚡"}</span><span class="jdot" hidden></span>`;
   root.querySelector(".zoombtns")?.appendChild(jump);
   jump.addEventListener("click", () => h.onJump());
   shield(jump);

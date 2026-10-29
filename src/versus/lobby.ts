@@ -592,7 +592,7 @@ function mapLine(mapId: string, mutators: readonly MutatorId[]): string {
   const muts = mutators.length
     ? mutators.map((id) => `<span class="duel-mut" title="${esc(MUTATORS[id].desc)}">${MUTATORS[id].icon} ${esc(MUTATORS[id].name)}</span>`).join("")
     : `<span class="duel-mut none">${tr("Aucun mutateur", "No mutators")}</span>`;
-  return `<p class="duel-map"><b>🗺 ${name}</b></p><p class="duel-muts">${muts}</p>`;
+  return `<p class="duel-map"><b>${name}</b></p><p class="duel-muts">${muts}</p>`;
 }
 
 /** The nations as the lobby names them, with a one-line identity (PANACHE-CONCEPTION.md §1.1). */
@@ -727,12 +727,12 @@ function onlineHtml(v: LobbyView): string {
 /** That line's words. */
 export function onlineLine(v: Pick<LobbyView, "online" | "meter" | "practice" | "pairing">): string {
   const o = v.online;
-  if (!o) return tr("🌐 Connexion au relais…", "🌐 Connecting to the relay…");
-  if (o.state === "closed") return tr("🌐 Hors ligne", "🌐 Offline");
-  if (o.state !== "open") return tr("🌐 Relais : reconnexion…", "🌐 Relay: reconnecting…");
+  if (!o) return tr("Connexion au relais…", "Connecting to the relay…");
+  if (o.state === "closed") return tr("Hors ligne", "Offline");
+  if (o.state !== "open") return tr("Relais : reconnexion…", "Relay: reconnecting…");
   const friend = o.peer ? tr("ton ami est là", "your friend is here") : o.peerGoneMs !== null ? tr("ton ami s'est déconnecté", "your friend disconnected") : tr("ton ami n'est pas encore là", "your friend isn't here yet");
   const rtt = v.meter?.rttMs ?? null;
-  return tr(`🌐 Salon ${o.code} · ${friend}${o.peer && rtt !== null ? ` · aller-retour ${Math.round(rtt)} ms` : ""}`, `🌐 Lobby ${o.code} · ${friend}${o.peer && rtt !== null ? ` · round trip ${Math.round(rtt)} ms` : ""}`);
+  return tr(`Salon ${o.code} · ${friend}${o.peer && rtt !== null ? ` · aller-retour ${Math.round(rtt)} ms` : ""}`, `Lobby ${o.code} · ${friend}${o.peer && rtt !== null ? ` · round trip ${Math.round(rtt)} ms` : ""}`);
 }
 
 /** A practice link's line: the round trip (on the loop, the input delay). */
@@ -788,7 +788,7 @@ function ladderHtml(l: NonNullable<OnlineSheet["ladder"]>): { body: string; acti
   const rows = l.tete.map((r, i) => row(r, i + 1)).join("") + mine;
   const me = l.moi ? `<p class="sh-note">${tr(`Toi : ${esc(l.moi.nom)} · cote ${l.moi.cote}`, `You: ${esc(l.moi.nom)} · rating ${l.moi.cote}`)}</p>` : "";
   return {
-    body: `<h3>${tr("🏆 Classement", "🏆 Ladder")}</h3>${me}${
+    body: `<h3>${tr("Classement", "Ladder")}</h3>${me}${
       rows
         ? `<div class="duel-ladder"><table><thead><tr><th>#</th><th>${tr("Joueur", "Player")}</th><th>${tr("Cote", "Rating")}</th><th>${tr("V/J", "W/P")}</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : `<p class="duel-status">${tr("Personne n'est encore classé : à toi l'honneur.", "Nobody is ranked yet: the honour is yours.")}</p>`
@@ -806,7 +806,7 @@ function queueHtml(q: NonNullable<OnlineSheet["queue"]>): { body: string; action
   const others = q.attente > 0 ? tr(`${q.attente} autre${q.attente > 1 ? "s" : ""} en attente`, `${q.attente} other${q.attente > 1 ? "s" : ""} waiting`) : "";
   const ai = q.ai
     ? `<p class="duel-hint">${tr("Personne sur le front pour l'instant.", "Nobody at the front right now.")}</p>
-       <button class="cta duel-tap" data-act="ranked-ai">${tr("🤖 Jouer contre l'IA (non classée)", "🤖 Play the AI (unranked)")}</button>
+       <button class="cta duel-tap" data-act="ranked-ai">${tr("Jouer contre l'IA (non classée)", "Play the AI (unranked)")}</button>
        <p class="sh-note">${tr("Ou attends encore : la recherche continue.", "Or keep waiting: the search goes on.")}</p>`
     : "";
   return {
@@ -831,8 +831,8 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
           <div class="duel-joinrow"><input class="duel-codein" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="ABCD" aria-label="${tr("Code du salon", "Lobby code")}" value="${esc(sheet.typed ?? linked ?? "")}"/><button class="cta" data-act="join">${tr("Rejoindre", "Join")}</button></div>
           ${bad}
         </div>`;
-      const ranked = linked ? "" : `<div class="duel-roles"><button class="duel-role duel-ranked" data-act="ranked"><b>${tr("⚔ Partie classée", "⚔ Ranked match")}</b><small>${tr("Un adversaire de ton niveau · une carte au hasard · ta cote en jeu", "An opponent at your level · a random map · your rating at stake")}</small></button></div><p class="duel-ladderlink"><button class="cta alt" data-act="ladder">${tr("🏆 Classement", "🏆 Ladder")}</button></p><p class="duel-or">${tr("ou", "or")}</p>`;
-      const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>${tr("🏛 Créer un salon", "🏛 Create a lobby")}</b><small>${tr("Ta carte et tes mutateurs · un code à partager", "Your map and your mutators · a code to share")}</small></button></div>`;
+      const ranked = linked ? "" : `<div class="duel-roles"><button class="duel-role duel-ranked" data-act="ranked"><b>${tr("Partie classée", "Ranked match")}</b><small>${tr("Un adversaire de ton niveau · une carte au hasard · ta cote en jeu", "An opponent at your level · a random map · your rating at stake")}</small></button></div><p class="duel-ladderlink"><button class="cta alt" data-act="ladder">${tr("Classement", "Ladder")}</button></p><p class="duel-or">${tr("ou", "or")}</p>`;
+      const create = `<div class="duel-roles"><button class="duel-role" data-act="host"><b>${tr("Créer un salon", "Create a lobby")}</b><small>${tr("Ta carte et tes mutateurs · un code à partager", "Your map and your mutators · a code to share")}</small></button></div>`;
       return {
         body: `<p class="sh-sub duel-place">${ONLINE_NOTE}</p>${nationPicker(v)}${ranked}${linked ? join + `<p class="duel-or">${tr("ou", "or")}</p>` + create : create + `<p class="duel-or">${tr("ou", "or")}</p>` + join}`,
         actions: cancel
@@ -853,7 +853,7 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
         return {
           body: `<p class="duel-lbl duel-codelbl">${tr("Code du salon", "Lobby code")}</p>
             <p class="duel-bigcode" data-code="${esc(o?.code ?? "")}">${esc(o?.code ?? "····")}</p>
-            <div class="duel-share"><button class="cta" data-act="share">${tr("🔗 Partager le lien", "🔗 Share the link")}</button><button class="cta alt" data-act="copy">${tr("Copier", "Copy")}</button></div>
+            <div class="duel-share"><button class="cta" data-act="share">${tr("Partager le lien", "Share the link")}</button><button class="cta alt" data-act="copy">${tr("Copier", "Copy")}</button></div>
             <p class="duel-copied" hidden>${tr("Lien copié", "Link copied")}</p>
             <p class="duel-status">${status}</p>${myNationLine(v)}${quiet}${onlineHtml(v)}${tips}`,
           actions: back + cancel
@@ -869,7 +869,7 @@ function onlineBody(v: LobbyView, sheet: OnlineSheet): { body: string; actions: 
 
 /** A ranked match's head: the two players and the map drawn. */
 function rankedHead(m: RankedMatch): string {
-  return `<p class="duel-paired">${tr("⚔ Partie classée", "⚔ Ranked match")}</p>
+  return `<p class="duel-paired">${tr("Partie classée", "Ranked match")}</p>
     <p class="duel-status">${rankedCard(m.moi)} <span class="duel-or">${tr("contre", "vs")}</span> ${rankedCard(m.lui)}</p>
     ${mapLine(m.carte, [])}`;
 }
@@ -889,8 +889,8 @@ function bodyHtml(v: LobbyView, sheet: OnlineSheet = { linked: null, badCode: fa
       // (a practice link: the page itself or the relay's other page plays the friend)
       return {
         body: `<div class="duel-roles">
-            <button class="duel-role" data-act="host"><b>${tr("📡 Héberger", "📡 Host")}</b><small>${tr("Ta carte et tes mutateurs", "Your map and your mutators")}</small></button>
-            <button class="duel-role" data-act="join"><b>${tr("📲 Rejoindre", "📲 Join")}</b><small>${tr("Ton ami héberge", "Your friend hosts")}</small></button>
+            <button class="duel-role" data-act="host"><b>${tr("Héberger", "Host")}</b><small>${tr("Ta carte et tes mutateurs", "Your map and your mutators")}</small></button>
+            <button class="duel-role" data-act="join"><b>${tr("Rejoindre", "Join")}</b><small>${tr("Ton ami héberge", "Your friend hosts")}</small></button>
           </div>
           ${nationPicker(v)}`,
         actions: cancel
@@ -927,7 +927,7 @@ function bodyHtml(v: LobbyView, sheet: OnlineSheet = { linked: null, badCode: fa
         : `<p class="duel-status">${tr("Aucune ouverture n'est permise avec ces règles.", "No opening is allowed under these rules.")}</p>`;
       const head = picked ? `<p class="duel-status">${tr("En attente du choix de ton ami…", "Waiting for your friend's choice…")}</p>` : `<h3>${tr("Choisis ton ouverture", "Choose your opening")} <small data-m="pickleft"></small></h3>`;
       return {
-        body: `<p class="duel-paired">${tr("✓ Appairés · tu joues", "✓ Paired · you play")} <b class="duel-side ${side}">${side === "red" ? tr("rouge", "red") : tr("bleu", "blue")}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${nationsLine(p?.config ?? null, p?.side ?? null)}${head}${quiet}${cards}${link}`,
+        body: `<p class="duel-paired">${tr("Appairés · tu joues", "Paired · you play")} <b class="duel-side ${side}">${side === "red" ? tr("rouge", "red") : tr("bleu", "blue")}</b></p>${p?.config ? mapLine(p.config.mapId, p.config.mutators) : ""}${nationsLine(p?.config ?? null, p?.side ?? null)}${head}${quiet}${cards}${link}`,
         actions: back + cancel
       };
     }
@@ -990,7 +990,7 @@ function run(o: LobbyOptions, rematch: DuelRematch | null): void {
   const wrap = document.createElement("div");
   wrap.className = "sheet-wrap duel-wrap";
   wrap.innerHTML = `<div class="sheet duelsheet" role="dialog" aria-label="${tr("Défier un ami", "Challenge a friend")}">
-      <h2>🌐 ${rematch ? tr("Revanche", "Rematch") : tr("Défier un ami", "Challenge a friend")}</h2>
+      <h2>${rematch ? tr("Revanche", "Rematch") : tr("Défier un ami", "Challenge a friend")}</h2>
       ${practice ? `<p class="duel-practice">${tr(`Liaison d'entraînement : ${practice === "loop" ? "un ami dans la page" : "le relais"}`, `Practice link: ${practice === "loop" ? "a friend in the page" : "the relay"}`)}</p>` : ""}
       <div class="duel-body"></div>
       <div class="sh-actions duel-actions"></div>

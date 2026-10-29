@@ -4,6 +4,7 @@ import { dropLandTick } from "../sim/objectives";
 import type { Faction, World } from "../sim/types";
 import { buildingCenter, hqOf } from "../sim/world";
 import { tr } from "../lang";
+import { BELLE_EPOQUE } from "../game/three/theme";
 
 /**
  * The top-bar objectives pill, beside the clock: one pip per Uplink in its
@@ -22,13 +23,16 @@ const clock = (ticks: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
+/** The supply crate in the pill (Belle Époque: a word, not an emoji). */
+const CRATE = BELLE_EPOQUE ? tr("Caisse", "Crate") : "📦";
+
 export function createObjectivePill(world: World, player: Faction, spectator: boolean): ObjectivePill | null {
   const o = world.objectives;
   const bar = document.querySelector<HTMLElement>("#hud .topbar");
   if (!bar || (o.uplinks.length === 0 && o.dropSites.length === 0)) return null;
   const el = document.createElement("div");
   el.className = "objpill";
-  el.innerHTML = `<span class="ol" title="${tr("Relais TSF", "Wireless Relays")}"><b>📡</b><span class="pips"></span></span><span class="lf" title="${tr("Une Montgolfière gratuite est en route", "A free Montgolfier Balloon is on its way")}" hidden></span><span class="od" title="${tr("Largages de ravitaillement", "Supply drops")}"></span>`;
+  el.innerHTML = `<span class="ol" title="${tr("Relais TSF", "Wireless Relays")}"><b>${BELLE_EPOQUE ? tr("TSF", "W/T") : "📡"}</b><span class="pips"></span></span><span class="lf" title="${tr("Une Montgolfière gratuite est en route", "A free Montgolfier Balloon is on its way")}" hidden></span><span class="od" title="${tr("Largages de ravitaillement", "Supply drops")}"></span>`;
   bar.appendChild(el);
   const pipsEl = el.querySelector<HTMLElement>(".pips")!;
   const dropEl = el.querySelector<HTMLElement>(".od")!;
@@ -70,7 +74,7 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
     }
     // a free replacement Condor on its way (lifeline.ts)
     const due = spectator ? null : world.lifeline?.[player]?.due ?? null;
-    const life = due === null ? "" : `🚁 ${clock(due - world.tick)}`;
+    const life = due === null ? "" : `${BELLE_EPOQUE ? tr("Ballon", "Balloon") : "🚁"} ${clock(due - world.tick)}`;
     if (life !== lastLife) {
       lastLife = life;
       lifeEl.hidden = life === "";
@@ -82,15 +86,15 @@ export function createObjectivePill(world: World, player: Faction, spectator: bo
     const landed = o.crates.filter((c) => world.tick >= c.landTick);
     const inbound = o.crates.filter((c) => world.tick < c.landTick);
     if (inbound.length > 0) {
-      text = `📦 ${clock(inbound[0]!.landTick - world.tick)}`;
+      text = `${CRATE} ${clock(inbound[0]!.landTick - world.tick)}`;
       cls = "od hot";
     } else if (landed.length > 0) {
       const left = Math.min(...landed.map((c) => c.expireTick - world.tick));
-      text = `📦×${landed.length} ${clock(left)}`;
+      text = `${CRATE}×${landed.length} ${clock(left)}`;
       cls = "od live";
     } else {
       // the next drop's landing (it's announced 10 s before)
-      text = `📦 ${clock(dropLandTick(o.drops) - world.tick)}`;
+      text = `${CRATE} ${clock(dropLandTick(o.drops) - world.tick)}`;
       cls = "od";
     }
     const key = text + cls;

@@ -102,11 +102,11 @@ function goalIcon(g: Goal): string {
   }
 }
 
-/** Pill shorthand for a goal: "Turrets 2/2", "⏱ 1:12", "✝ 2/6", "🏚 0/1", "Mastodons 1/2". */
+/** Pill shorthand for a goal: "Turrets 2/2", "1:12", "2/6", "0/1", "Mastodons 1/2". */
 function compact(g: Goal, e: GoalEval): string {
   switch (g.type) {
     case "within":
-      return `⏱ ${e.value}`;
+      return `${e.value}`;
     case "maxLosses":
       return `${g.buildings ? "🏚" : "✝"} ${e.value}`;
     case "protect":
@@ -142,17 +142,17 @@ function rulesNote(op: OpDef): string {
   const bits: string[] = [];
   const bans = op.rules?.playerBans;
   const nat = op.nations?.player;
-  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push(tr("⛔ Aucune production", "⛔ No production"));
+  if (bans?.units?.length === Object.keys(UNITS).length && bans.buildings?.length) bits.push(tr("Aucune production", "No production"));
   else {
-    if (bans?.buildings?.length) bits.push(tr(`⛔ Interdits : ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`, `⛔ Banned: ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`));
+    if (bans?.buildings?.length) bits.push(tr(`Interdits : ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`, `Banned: ${bans.buildings.map((k) => displayName(k, nat)).join(", ")}`));
     if (bans?.units?.length) {
       const ground = bans.units.filter((k) => UNITS[k].domain === "ground" && UNITS[k].dps > 0).length >= 4;
       const named = bans.units.filter((k) => !ground || !(UNITS[k].domain === "ground" && UNITS[k].dps > 0)).map((k) => pluralName(k, nat));
-      bits.push(tr(`⛔ Interdits : ${[...(ground ? ["unités terrestres"] : []), ...named].join(", ")}`, `⛔ Banned: ${[...(ground ? ["ground units"] : []), ...named].join(", ")}`));
+      bits.push(tr(`Interdits : ${[...(ground ? ["unités terrestres"] : []), ...named].join(", ")}`, `Banned: ${[...(ground ? ["ground units"] : []), ...named].join(", ")}`));
     }
   }
-  if (op.rules?.playerIncome === 0) bits.push(tr("❄ Aucun revenu", "❄ No income"));
-  if (op.rules?.calldowns === false) bits.push(tr("⚡ Aucun appui", "⚡ No calldowns"));
+  if (op.rules?.playerIncome === 0) bits.push(tr("Aucun revenu", "No income"));
+  if (op.rules?.calldowns === false) bits.push(tr("Aucun appui", "No calldowns"));
   for (const id of op.rules?.mutators ?? []) bits.push(`${MUTATORS[id].icon} ${MUTATORS[id].name}`);
   return bits.join(" · ");
 }
@@ -327,10 +327,10 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
           // (after « Premier jour »: the second lesson first)
           ...(day2
             ? []
-            : [{ id: "tuto-day2", label: tr("🎓 Deuxième jour", "🎓 Second Day"), on: () => opts.rematch(`op:${TUTORIAL2_OP.id}`) }]),
+            : [{ id: "tuto-day2", label: tr("Deuxième jour", "Second Day"), on: () => opts.rematch(`op:${TUTORIAL2_OP.id}`) }]),
           {
             id: "tuto-skirmish",
-            label: tr("⚔ Escarmouche", "⚔ Skirmish"),
+            label: tr("Escarmouche", "Skirmish"),
             ...(day2 ? {} : { cls: "alt" }),
             on: () => {
               // (a first skirmish: the Easy commander, unless one was picked before)
@@ -340,7 +340,7 @@ function tutorialHud(op: OpDef, w: World, opts: { rematch(token: string): void }
           },
           {
             id: "tuto-ops",
-            label: tr("🎖 Opérations", "🎖 Operations"),
+            label: tr("Opérations", "Operations"),
             cls: "alt",
             on: () => {
               pickMode("ops");
@@ -400,8 +400,8 @@ function opSectionHtml(ctx: ReportContext): string | null {
     ${st.level ? `<p class="op-level">${tr(`Niveau ${OP_LEVELS[st.level].label} : pas d'étoiles, elles ne se gagnent qu'en Normal.`, `${OP_LEVELS[st.level].label} level: no stars, they are only earned on Normal.`)}${r?.won ? tr(" La mission suivante est ouverte.", " The next mission is open.") : ""}</p>` : ""}
     ${starListHtml(op, mask)}
     ${bestLine}
-    ${unlocked ? `<p class="op-unlock">${tr(`🔓 ${isCampaignOp(unlocked) ? "Nouvelle mission" : "Nouvelle épreuve"} : <b>${unlocked.icon} ${esc(unlocked.title)}</b>`, `🔓 ${isCampaignOp(unlocked) ? "New mission" : "New trial"}: <b>${unlocked.icon} ${esc(unlocked.title)}</b>`)}</p>` : ""}
-    ${r?.won && kit ? `<p class="op-unlock op-unlock-kit">${tr(`🔧 ${esc(kit.by ?? "L'arsenal")} apporte : <b>${esc(unlockNames(kit))}</b>`, `🔧 ${esc(kit.by ?? "The arsenal")} brings: <b>${esc(unlockNames(kit))}</b>`)}</p>` : ""}
+    ${unlocked ? `<p class="op-unlock">${tr(`${isCampaignOp(unlocked) ? "Nouvelle mission" : "Nouvelle épreuve"} : <b>${unlocked.icon} ${esc(unlocked.title)}</b>`, `${isCampaignOp(unlocked) ? "New mission" : "New trial"}: <b>${unlocked.icon} ${esc(unlocked.title)}</b>`)}</p>` : ""}
+    ${r?.won && kit ? `<p class="op-unlock op-unlock-kit">${tr(`${esc(kit.by ?? "L'arsenal")} apporte : <b>${esc(unlockNames(kit))}</b>`, `${esc(kit.by ?? "The arsenal")} brings: <b>${esc(unlockNames(kit))}</b>`)}</p>` : ""}
     ${r?.won ? "" : `<p class="op-tip"><b>${tr("Conseil", "Tip")}</b><span>${esc(op.tip)}</span></p>`}
   </div>`;
 }
@@ -452,14 +452,14 @@ export interface MenuOps {
 type Book = "campaign" | "trials";
 const bookName = (op: OpDef): Book => (isCampaignOp(op) ? "campaign" : "trials");
 
-/** "📜 3/12 missions · 7/36 ★" or "🎖 2/8 épreuves · 5/24 ★". */
+/** "3/12 missions · 7/36 ★" or "2/8 épreuves · 5/24 ★". */
 function summaryHtml(c: CareerData, book: Book): string {
   const ops = book === "campaign" ? CAMPAIGN : TRIALS;
   const stars = ops.reduce((n, o) => n + starCount(c.ops[o.id]?.stars ?? 0), 0);
   const done = opsCompleted(c, ops);
   return book === "campaign"
-    ? tr(`📜 La Campagne de 1900 · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`, `📜 The 1900 Campaign · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`)
-    : tr(`🎖 Épreuves classiques · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`, `🎖 Classic Trials · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`);
+    ? tr(`La Campagne de 1900 · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`, `The 1900 Campaign · <b>${done}/${ops.length}</b> missions · <b>${stars}/${ops.length * 3}</b> ★`)
+    : tr(`Épreuves classiques · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`, `Classic Trials · <b>${done}/${ops.length}</b> · <b>${stars}/${ops.length * 3}</b> ★`);
 }
 
 function cardHtml(op: OpDef, c: CareerData): string {
@@ -505,14 +505,14 @@ function actsHtml(c: CareerData): string {
  */
 export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void; selectedId(): string; select(id: string): void }): MenuOps {
   const tab = menu.querySelector<HTMLElement>('[data-m="ops"]');
-  if (tab) tab.textContent = tr("📜 Campagne", "📜 Campaign");
+  if (tab) tab.textContent = tr("Campagne", "Campaign");
   const sum = menu.querySelector<HTMLElement>("#opsum");
   const cards = menu.querySelector<HTMLElement>("#opcards");
   const blurb = menu.querySelector<HTMLElement>("#opblurb");
   // the book switch and the chapter list sit round the Trials' row
   const seg = document.createElement("div");
   seg.className = "seg campseg";
-  seg.innerHTML = `<button data-b="campaign">${tr("📜 Campagne", "📜 Campaign")}</button><button data-b="trials">${tr("🎖 Épreuves", "🎖 Trials")}</button>`;
+  seg.innerHTML = `<button data-b="campaign">${tr("Campagne", "Campaign")}</button><button data-b="trials">${tr("Épreuves", "Trials")}</button>`;
   const acts = document.createElement("div");
   acts.className = "campacts";
   sum?.before(seg);
@@ -576,8 +576,8 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
       const need = opIndex(sel.id) + 1 - (book === "campaign" ? 1 + campaignCompleted(career) : 3 + opsCompleted(career, TRIALS));
       blurb.innerHTML = locked(sel)
         ? book === "campaign"
-          ? tr(`🔒 Gagne la mission précédente pour ouvrir <b>${esc(sel.title)}</b>`, `🔒 Win the previous mission to open <b>${esc(sel.title)}</b>`)
-          : tr(`🔒 Réussis encore ${need} épreuve${need === 1 ? "" : "s"} pour débloquer <b>${esc(sel.title)}</b>`, `🔒 Complete ${need} more trial${need === 1 ? "" : "s"} to unlock <b>${esc(sel.title)}</b>`)
+          ? tr(`Gagne la mission précédente pour ouvrir <b>${esc(sel.title)}</b>`, `Win the previous mission to open <b>${esc(sel.title)}</b>`)
+          : tr(`Réussis encore ${need} épreuve${need === 1 ? "" : "s"} pour débloquer <b>${esc(sel.title)}</b>`, `Complete ${need} more trial${need === 1 ? "" : "s"} to unlock <b>${esc(sel.title)}</b>`)
         : `<b>${esc(sel.tagline)}</b><small>${opKicker(sel)} · ${mapName(sel.map)} · ${enemyLine(sel)}</small>`;
     }
   };
@@ -604,14 +604,14 @@ export function mountMenuOps(menu: HTMLElement, hooks: { start(op: OpDef): void;
         <div class="ob-l">
           <p class="ob-brief">${esc(op.brief)}</p>
           <p class="ob-rules">${esc(sideLine(op))}${note ? ` · ${esc(note)}` : ""}</p>
-          ${fresh ? `<p class="ob-unlock">${tr(`🔓 Nouveau${fresh.by ? ` (${esc(fresh.by)})` : ""} : <b>${esc(unlockNames(fresh))}</b>`, `🔓 New${fresh.by ? ` (${esc(fresh.by)})` : ""}: <b>${esc(unlockNames(fresh))}</b>`)}</p>` : ""}
+          ${fresh ? `<p class="ob-unlock">${tr(`Nouveau${fresh.by ? ` (${esc(fresh.by)})` : ""} : <b>${esc(unlockNames(fresh))}</b>`, `New${fresh.by ? ` (${esc(fresh.by)})` : ""}: <b>${esc(unlockNames(fresh))}</b>`)}</p>` : ""}
           <h3>${tr("Objectif", "Objective")}</h3>
           <p class="ob-obj">${esc(objectiveLine(op))}</p>
         </div>
         <div class="ob-r">
           <h3>${tr("Étoiles", "Stars")} ${mask ? `<small>${tr("record", "best")} ${starRow(mask)}${rec?.bestSecs != null ? ` · ${fmtClock(rec.bestSecs)}` : ""}</small>` : ""}</h3>
           ${starListHtml(op, mask)}
-          <p class="ob-tip">💡 ${esc(op.tip)}</p>
+          <p class="ob-tip">${esc(op.tip)}</p>
         </div>
       </div>
       ${opHasLevel(op) ? levelPickHtml() : ""}

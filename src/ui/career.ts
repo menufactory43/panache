@@ -101,7 +101,7 @@ function rankBadgeHtml(c: CareerData): string {
   const xpLine = r.next === null ? tr(`${fmt(c.xp)} XP · grade max`, `${fmt(c.xp)} XP · top rank`) : `${fmt(c.xp)} / ${fmt(r.next)} XP`;
   return `${insigniaSvg(r.index)}
     <span class="rb-t"><b>${r.name}</b><span class="rb-xp">${xpLine}</span></span>
-    <span class="rb-medals" title="${tr("Médailles obtenues", "Medals earned")}">🏅 ${medals}/${MEDAL_IDS.length}</span>
+    <span class="rb-medals" title="${tr("Médailles obtenues", "Medals earned")}">${medals}/${MEDAL_IDS.length}</span>
     <span class="rb-bar"><i style="width:${(r.progress * 100).toFixed(1)}%"></i></span>`;
 }
 
@@ -112,9 +112,9 @@ function dailyHtml(op: DailyOp, c: CareerData): string {
   const muts = op.mutators.map((id) => `<span class="dl-mut">${MUTATORS[id].icon} ${MUTATORS[id].name}</span>`).join("");
   return `
     <div class="dl-head">
-      <span class="dl-tag">${tr(`📅 Op du jour n°${op.number}`, `📅 Daily Op #${op.number}`)}</span>
+      <span class="dl-tag">${tr(`Op du jour n°${op.number}`, `Daily Op #${op.number}`)}</span>
       <span class="dl-date">${op.label}</span>
-      <span class="dl-streak${streak > 0 ? " hot" : ""}" title="${tr("Série de victoires (Op du jour)", "Winning streak (Daily Op)")}">🔥 ${streak}</span>
+      <span class="dl-streak${streak > 0 ? " hot" : ""}" title="${tr("Série de victoires (Op du jour)", "Winning streak (Daily Op)")}">${streak}</span>
     </div>
     <div class="dl-body">
       <img src="${mapAssetBase(op.mapId)}/thumb.webp" alt="" draggable="false"/>
@@ -122,14 +122,14 @@ function dailyHtml(op: DailyOp, c: CareerData): string {
         <b>${mapName(op.mapId)}</b>
         <span class="dl-vs">${tr("contre", "vs")} ${STRATEGIES[op.strategy].label} · <i class="${op.difficulty}">${diffName(op.difficulty)}</i></span>
       </div>
-      <button class="dl-play${wonToday ? " done" : ""}" id="dl-play">${wonToday ? tr("✓ Gagné<small>rejouer</small>", "✓ Won<small>replay</small>") : tr("▶ Jouer", "▶ Play")}</button>
+      <button class="dl-play${wonToday ? " done" : ""}" id="dl-play">${wonToday ? tr("Gagné<small>rejouer</small>", "Won<small>replay</small>") : tr("▶ Jouer", "▶ Play")}</button>
       <span class="dl-muts">${muts}</span>
     </div>`;
 }
 
 function mutButtonHtml(): string {
   const on = gameMode.mutators;
-  if (on.length === 0) return `<span class="mb-k">${tr("🧪 Mutateurs", "🧪 Mutators")}</span><span class="mb-v">${tr("Non", "None")}</span>`;
+  if (on.length === 0) return `<span class="mb-k">${tr("Mutateurs", "Mutators")}</span><span class="mb-v">${tr("Non", "None")}</span>`;
   // (one the picked map can't be played with is left out of its matches: struck through)
   const def = mapById(gameMode.mapId);
   const names = on
@@ -216,7 +216,7 @@ export function showMutatorSheet(host: HTMLElement, onDone: () => void): void {
   const wrap = openSheet(
     host,
     "mutsheet",
-    `<h2>${tr("🧪 Mutateurs", "🧪 Mutators")}</h2>
+    `<h2>${tr("Mutateurs", "Mutators")}</h2>
      <p class="sh-sub">${tr("Change les règles de ta prochaine escarmouche. Les deux camps les subissent.", "Change the rules of your next skirmish. Both sides are subject to them.")}</p>
      <div class="mutgrid">${chips}</div>
      <p class="sh-note">${tr("Les parties mutées rapportent XP et médailles, mais pas d'étoiles de carte.", "Mutated matches earn XP and medals, but no map stars.")}</p>
@@ -273,7 +273,7 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
     (m) => `<tr><td>${m.name}</td>${diffs
       .map((d) => {
         const b = loadBest(m.id, d);
-        return `<td>${b ? `🛡 ${b.best}` : "—"}</td>`;
+        return `<td>${b ? `${b.best}` : "—"}</td>`;
       })
       .join("")}</tr>`
   ).join("");
@@ -291,7 +291,7 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
      <div class="cs-stats">
        <span><b>${c.wins}</b>${tr("victoires", "victories")}</span><span><b>${c.losses}</b>${tr("défaites", "defeats")}</span>
        <span><b>${totalStars}</b>/${MAPS.length * 9} ${tr("étoiles", "stars")}</span>
-       <span><b>🔥 ${currentStreak(c, day)}</b>${tr(`série quotidienne${c.daily.bestStreak > 1 ? ` (record ${c.daily.bestStreak})` : ""}`, `daily streak${c.daily.bestStreak > 1 ? ` (best ${c.daily.bestStreak})` : ""}`)}</span>
+       <span><b>${currentStreak(c, day)}</b>${tr(`série quotidienne${c.daily.bestStreak > 1 ? ` (record ${c.daily.bestStreak})` : ""}`, `daily streak${c.daily.bestStreak > 1 ? ` (best ${c.daily.bestStreak})` : ""}`)}</span>
      </div>
      <h3>${tr("Opérations", "Operations")} <small>${opsCompleted(c)}/${OPS.length} ${tr("terminées", "completed")}</small></h3>
      <table class="cs-table">${OPS.map((o) => {
@@ -316,11 +316,11 @@ export function showCareerSheet(host: HTMLElement, c: CareerData = loadCareer())
 
 // ------------------------------------------------------------- end screen ---
 
-/** "📅 Daily Op #12 · 💥 Glass Cannons · ⚡ Blitz" (or "" for a classic match). */
+/** "Daily Op #12 · 💥 Glass Cannons · ⚡ Blitz" (or "" for a classic match). */
 export function rulesLine(w: World): string {
   const parts: string[] = [];
   const d = gameMode.daily;
-  if (d) parts.push(tr(`📅 Op du jour n°${d.number}`, `📅 Daily Op #${d.number}`));
+  if (d) parts.push(tr(`Op du jour n°${d.number}`, `Daily Op #${d.number}`));
   for (const id of rulesOf(w).mutators) parts.push(`${MUTATORS[id].icon} ${MUTATORS[id].name}`);
   return parts.join(" · ");
 }
@@ -378,7 +378,7 @@ export function careerBlockHtml(s: Settlement, rules: string): string {
     }
   }
   const daily = s.daily
-    ? `<p class="cr-daily">${s.daily.won ? tr(`🔥 Série quotidienne <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · déjà gagnée aujourd'hui"}`, `🔥 Daily streak <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · already won today"}`) : tr(`Op du jour n°${s.daily.number} : réessaie — l'op reste ouverte jusqu'à minuit`, `Daily Op #${s.daily.number}: try again — the op stays open until midnight`)}</p>`
+    ? `<p class="cr-daily">${s.daily.won ? tr(`Série quotidienne <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · déjà gagnée aujourd'hui"}`, `Daily streak <b>${s.daily.streak}</b>${s.daily.firstWinToday ? "" : " · already won today"}`) : tr(`Op du jour n°${s.daily.number} : réessaie — l'op reste ouverte jusqu'à minuit`, `Daily Op #${s.daily.number}: try again — the op stays open until midnight`)}</p>`
     : "";
   return `${rules ? `<p class="cr-rules">${esc(rules)}</p>` : ""}
     <div class="cr-xp">

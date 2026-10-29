@@ -222,7 +222,7 @@ export function openMapPreview(def: MapDef, hooks: MapPreviewHooks): () => void 
       </div>
       <div class="mp-view" title="${tr("Touche pour zoomer", "Tap to zoom")}">
         <div class="mp-stage"><div class="mp-wait"><i></i>${tr("Relevé en cours…", "Surveying…")}</div></div>
-        <span class="mp-zoom">${tr("🔍 Touche pour zoomer", "🔍 Tap to zoom")}</span>
+        <span class="mp-zoom">${tr("Touche pour zoomer", "Tap to zoom")}</span>
       </div>
       <div class="mp-side">
         <p class="mp-blurb"></p>
@@ -234,8 +234,8 @@ export function openMapPreview(def: MapDef, hooks: MapPreviewHooks): () => void 
           <span><i class="k-drop"></i>${tr("Ravitaillement", "Supply")}</span>
         </div>
         <div class="mp-actions">
-          <button class="cta alt" data-a="close">${tr("✕ Fermer", "✕ Close")}</button>
-          <button class="cta alt" data-a="reroll">${tr("🎲 Relancer", "🎲 Reroll")}</button>
+          <button class="cta alt" data-a="close">${tr("Fermer", "Close")}</button>
+          <button class="cta alt" data-a="reroll">${tr("Relancer", "Reroll")}</button>
           <button class="cta" data-a="play"></button>
         </div>
       </div>

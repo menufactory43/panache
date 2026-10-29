@@ -3,7 +3,7 @@
  * same widgets as the original HUD, regrouped so a phone shows five things
  * at rest instead of twenty:
  *
- * - top left, one pill "⚙ 512 +88/m · 0:06": tap it for a small panel with
+^ * - top left, one enamel strip "512 +88/m · 0:06": tap it for a small panel with
  *   what left the screen (Relays and supply crates, the battle meter, game
  *   speed with its hold-the-clock fast-forward, sound, pause);
  *   under it, a mode's own pill (Last Stand's wave, an op's goal) and one
@@ -32,6 +32,37 @@ import { sfx } from "../game/audio";
 import type { Controller } from "../game/controller";
 import { tr } from "../lang";
 import { buzz } from "../native";
+
+/** An engraved medallion of the « émail, laiton, papier » skin (public/assets/ui/belle/i-<name>.webp, art/maquette-ui/). */
+export const belleIcon = (name: string, cls = "bi") => `<img class="${cls}" src="assets/ui/belle/i-${name}.webp" alt="" draggable="false"/>`;
+
+/** Pictographs (emoji) out of a line: the dispatches and chips say it in words, the stamps and medallions do the rest. */
+export const noEmoji = (s: string) => s.replace(/(?:\p{Extended_Pictographic}|■)\uFE0F?\s*/gu, "").replace(/\s{2,}/g, " ").trim();
+
+export type DispatchKind = "alert" | "good" | "epic" | "tip" | "radio" | "info";
+
+/** A dispatch's stamp: what kind of news it is, in two or three letters' worth of ink. */
+export function dispatchStamp(k: DispatchKind): string {
+  return {
+    alert: tr("ALERTE", "ALERT"),
+    good: tr("BRAVO", "WELL DONE"),
+    epic: tr("GLOIRE", "GLORY"),
+    tip: tr("CONSEIL", "TIP"),
+    radio: tr("RADIO", "RADIO"),
+    info: tr("DÉPÊCHE", "DISPATCH")
+  }[k];
+}
+
+/** A toast's kind from its class and its old emoji lead (💡 a tip, ⚠ an alert). */
+export function dispatchKind(msg: string, cls: string): DispatchKind {
+  const c = ` ${cls} `;
+  if (c.includes(" hint ") || msg.startsWith("💡")) return "tip";
+  if (c.includes(" radio ")) return c.includes(" bad ") ? "alert" : "radio";
+  if (c.includes(" bad ") || msg.startsWith("⚠")) return "alert";
+  if (c.includes(" epic ")) return "epic";
+  if (c.includes(" good ")) return "good";
+  return "info";
+}
 
 // --------------------------------------------------------------- prefs ---
 
@@ -185,7 +216,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   const rowBtns = drop.querySelector<HTMLElement>(".bh-r-btns")!;
   const mute = q("#btn-mute");
   if (mute) rowBtns.appendChild(mute);
-  const dpause = make("button", "round bh-dpause", "❚❚");
+  const dpause = make("button", "round bh-dpause", belleIcon("pause"));
   dpause.title = tr("Pause et réglages", "Pause and settings");
   rowBtns.appendChild(dpause);
   dpause.addEventListener("click", () => {
@@ -218,18 +249,18 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
   }
 
   // ------------------------------------------- the bottom-corner buttons ---
-  const army = make("button", "bh-fab bh-army", tr(`<span class="bh-ic">⚔</span><span class="bh-cap">Armée</span><span class="bh-badge" hidden></span>`, `<span class="bh-ic">⚔</span><span class="bh-cap">Army</span><span class="bh-badge" hidden></span>`));
+  const army = make("button", "bh-fab bh-army", `${belleIcon("armee", "bh-ic")}<span class="bh-cap">${tr("Armée", "Army")}</span><span class="bh-badge" hidden></span>`);
   army.title = tr("Touche : toute l'armée · appui long : les inactifs · glisse vers le haut : escouades et rôles", "Tap: whole army · long-press: idle units · swipe up: squads and roles");
-  const build = make("button", "bh-fab bh-build", tr(`<span class="bh-ic">🔨</span><span class="bh-cap">Construire</span><span class="bh-badge" hidden></span>`, `<span class="bh-ic">🔨</span><span class="bh-cap">Build</span><span class="bh-badge" hidden></span>`));
+  const build = make("button", "bh-fab bh-build", `${belleIcon("construire", "bh-ic")}<span class="bh-cap">${tr("Construire", "Build")}</span><span class="bh-badge" hidden></span>`);
   build.title = tr("Construire et produire", "Build and produce");
-  const pow = make("button", "bh-pow", `<span class="bh-ring"></span><span class="bh-face"><span class="bh-ic">⚡</span></span><span class="bh-n">0</span>`);
+  const pow = make("button", "bh-pow", `<span class="bh-ring"></span><span class="bh-face">${belleIcon("pouvoir", "bh-ic")}</span><span class="bh-n">0</span>`);
   pow.title = tr("Pouvoirs du commandant", "Commander powers");
   const squadsBox = make("div", "bh-squads");
-  // (a dashed frame: the box it draws)
+  // (four brass frame corners: the box it draws)
   const frame = make(
     "button",
     "bh-frame",
-    `<svg class="bh-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2.6"/></svg>`
+    belleIcon("selection", "bh-ic")
   );
   frame.title = tr("Cadre : la prochaine glissade sur la carte encadre les unités à sélectionner", "Frame: the next drag on the map frames the units to select");
   frame.setAttribute("aria-label", tr("Sélection en cadre", "Frame selection"));
@@ -352,7 +383,7 @@ export function mountBelleHud(h: BelleHudHooks): BelleHud {
     army.addEventListener("contextmenu", (e) => e.preventDefault());
     army.addEventListener("click", () => {
       if (fired) return;
-      if (ctrl.armyIds().length === 0) return h.tip(tr("Pas encore d'armée : produis des unités avec 🔨 Construire.", "No army yet: produce units with 🔨 Build."));
+      if (ctrl.armyIds().length === 0) return h.tip(tr("Pas encore d'armée : produis des unités avec Construire.", "No army yet: produce units with Build."));
       sfx.play("click", 0.5);
       ctrl.selectArmy();
     });

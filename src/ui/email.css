@@ -1,0 +1,148 @@
+/*
+ * Panache 1.1 — « émail, laiton, papier » over belle.css (loaded last, html.belle only).
+ * Navy vitreous enamel like the Paris street plaques for panels, polished brass kept for
+ * the one main action and the frames, ivory lithograph paper for dispatches and cards,
+ * burgundy for the Empire and alarms. Bodoni Moda for titles, Alegreya Sans for text,
+ * Special Elite for telegrams. Every material is an image (public/assets/ui/belle/,
+ * art/maquette-ui/), the plaques are nine-sliced with border-image.
+ */
+/* Bodoni Moda, Alegreya Sans, Special Elite (SIL Open Font License), from Google Fonts, latin + latin-ext */
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/AlegreyaSans-normal-500-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url(/fonts/AlegreyaSans-normal-500-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/AlegreyaSans-normal-700-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url(/fonts/AlegreyaSans-normal-700-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 800; font-display: swap; src: url(/fonts/AlegreyaSans-normal-800-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Alegreya Sans'; font-style: normal; font-weight: 800; font-display: swap; src: url(/fonts/AlegreyaSans-normal-800-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Bodoni Moda'; font-style: italic; font-weight: 500 700; font-display: swap; src: url(/fonts/BodoniModa-italic-500_700-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Bodoni Moda'; font-style: italic; font-weight: 500 700; font-display: swap; src: url(/fonts/BodoniModa-italic-500_700-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Bodoni Moda'; font-style: normal; font-weight: 500 900; font-display: swap; src: url(/fonts/BodoniModa-normal-500_900-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Bodoni Moda'; font-style: normal; font-weight: 500 900; font-display: swap; src: url(/fonts/BodoniModa-normal-500_900-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Special Elite'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/SpecialElite-normal-400-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Special Elite'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/SpecialElite-normal-400-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+html.belle {
+  --navy: #16224f;
+  --navy-deep: #0c1430;
+  --ivory: #f1e7cf;
+  --ink: #1c1a2e;
+  --brass: #c9a24f;
+  --brass-hi: #f3d98c;
+  --brass-lo: #7d5d22;
+  --bordeaux: #6e1a24;
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --sans: "Alegreya Sans", system-ui, -apple-system, sans-serif;
+  --telex: "Special Elite", "American Typewriter", "Courier New", monospace;
+  --serif: var(--display);
+
+  /* the old walnut tokens, now enamel and brass */
+  --panel: rgba(16, 26, 62, 0.92);
+  --panel-solid: #121c44;
+  --line: rgba(201, 162, 79, 0.42);
+  --line-hi: rgba(243, 217, 140, 0.75);
+  --text: #f1e7cf;
+  --dim: #b9b4a4;
+  --gold: #f3d98c;
+  --lift: 0 2px 8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(243, 217, 140, 0.12);
+
+  /* materials */
+  --img-plaque: url("/assets/ui/belle/plaque.webp");
+  --img-plaque-bx: url("/assets/ui/belle/plaque-bordeaux.webp");
+  --img-laiton: url("/assets/ui/belle/bouton.webp");
+  --img-papier: url("/assets/ui/belle/papier.webp");
+  --img-frise: url("/assets/ui/belle/frise.webp");
+}
+html.belle body {
+  font-family: var(--sans);
+  background: #070b1a;
+}
+
+/* ---------------------------------------------------------- materials --- */
+/* to use on any element: an enamel plaque, a burgundy one, a brass plate, a sheet of paper */
+html.belle .m-plaque {
+  border: 22px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 22px;
+  color: var(--ivory);
+}
+html.belle .m-plaque.thin {
+  border-width: 10px;
+  border-image-width: 10px;
+}
+html.belle .m-plaque.bx {
+  border-image-source: var(--img-plaque-bx);
+}
+html.belle .m-laiton {
+  border: 18px solid transparent;
+  border-image: var(--img-laiton) 70 fill / 18px;
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+html.belle .m-papier {
+  background: var(--img-papier) center / 380px;
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+html.belle .m-frise {
+  height: 16px;
+  background: var(--img-frise) center / contain no-repeat;
+}
+/* a round engraved medallion (public/assets/ui/belle/i-*.webp) */
+html.belle .m-medal {
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 2.5px var(--brass), 0 0 0 4px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.7);
+}
+html.belle .m-tag {
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-weight: 800;
+  padding: 0 7px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------ buttons --- */
+/* the main action: a brass nameplate */
+/* (border-image-width without border-width: the plate is painted over the button's own box, its size unchanged) */
+html.belle .cta:not(.alt):not(.warn) {
+  border: 0 solid transparent;
+  border-image: var(--img-laiton) 70 fill / 16px;
+  background: none;
+  box-shadow: none;
+  color: var(--navy-deep);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  font-family: var(--display);
+  font-weight: 800;
+}
+/* the secondary ones: enamel */
+html.belle .cta.alt {
+  border: 0 solid transparent;
+  border-image: var(--img-plaque) 62 fill / 10px;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory);
+}
+html.belle .cta.warn {
+  border: 0 solid transparent;
+  border-image: var(--img-plaque-bx) 62 fill / 10px;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory);
+}
+
+/* Bodoni is wider than the old serif: segmented choices in the sans, and the nation names wrap instead of running under the unit icons */
+html.belle .seg button,
+html.belle .seg.modes button {
+  font-family: var(--sans);
+  font-weight: 800;
+}
+html.belle .npcard .np-txt {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+html.belle .npcard .np-name {
+  font-family: var(--sans);
+  font-weight: 800;
+  line-height: 1.05;
+}

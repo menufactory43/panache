@@ -34,7 +34,7 @@ import { HINTS, HintQueue, type HintOffer } from "../game/hints";
 import { fullscreen } from "./fullscreen";
 import { mapById } from "../sim/maps";
 import { BELLE_EPOQUE } from "../game/three/theme";
-import { mountBelleHud, mountHudSettings, type BelleHud } from "./belle-hud";
+import { belleIcon, dispatchKind, dispatchStamp, mountBelleHud, mountHudSettings, noEmoji, type BelleHud, type DispatchKind } from "./belle-hud";
 import { watchMatchFocus } from "./match-focus";
 import { abandonMatch } from "../game/resume";
 import { tr } from "../lang";
@@ -149,6 +149,10 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "infantry", label: tr("Infanterie", "Infantry"), icon: "🤖" },
   { id: "air", label: tr("Aviation", "Aircraft"), icon: "✈" }
 ];
+/** The drawer's tabs as engraved medallions (Belle Époque: public/assets/ui/belle/). */
+const TAB_MEDALS: Record<Tab, string> = { build: "base", ground: "vehicules", infantry: "infanterie", air: "aviation" };
+/** The mute button's speaker, drawn in ink rather than an emoji. */
+const SPEAKER = `<svg class="bspk" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M16 9.2a4 4 0 0 1 0 5.6M18.6 6.8a7.4 7.4 0 0 1 0 10.4"/></svg>`;
 
 // Every kind in its drawer place, the nations' among Classique's; a match shows
 // its side's roster (inRoster: Classique, exactly the 16 units and 9 buildings as before)
@@ -322,7 +326,7 @@ export function createHud(api: HudApi): Hud {
   const root = document.getElementById("hud")!;
   root.innerHTML = `
     <div class="topbar">
-      <div class="res" id="res"><span class="gear">⚙</span><span id="scrap">0</span><span class="rate" id="rate"></span></div>
+      <div class="res" id="res">${BELLE_EPOQUE ? belleIcon("charbon", "gear bi") : `<span class="gear">⚙</span>`}<span id="scrap">0</span><span class="rate" id="rate"></span></div>
       <div class="clock" id="clock">0:00</div>
       <div id="versus" class="versus" hidden></div>
       <div class="wavepill" id="wavepill" hidden></div>
@@ -330,8 +334,8 @@ export function createHud(api: HudApi): Hud {
       <div class="opspill eclairpill" id="eclairpill" hidden></div>
     </div>
     <div class="tl">
-      <button id="btn-menu" class="round" title="Pause (P)">❚❚</button>
-      <button id="btn-mute" class="round" title="${tr("Couper le son (réglages audio dans le menu pause)", "Mute the sound (audio settings in the pause menu)")}">🔊</button>
+      <button id="btn-menu" class="round" title="Pause (P)">${BELLE_EPOQUE ? belleIcon("pause") : "❚❚"}</button>
+      <button id="btn-mute" class="round" title="${tr("Couper le son (réglages audio dans le menu pause)", "Mute the sound (audio settings in the pause menu)")}">${BELLE_EPOQUE ? SPEAKER : "🔊"}</button>
     </div>
     <div id="toasts" class="toasts"></div>
     <div id="banner" class="banner" hidden></div>
@@ -436,7 +440,7 @@ export function createHud(api: HudApi): Hud {
     const b = document.createElement("button");
     b.className = "tab";
     b.dataset.tab = t.id;
-    b.innerHTML = `<span class="ti">${t.icon}</span><span class="tl2">${t.label}</span><span class="tbadge" hidden></span>`;
+    b.innerHTML = `<span class="ti">${BELLE_EPOQUE ? belleIcon(TAB_MEDALS[t.id]) : t.icon}</span><span class="tl2">${t.label}</span><span class="tbadge" hidden></span>`;
     b.addEventListener("click", () => {
       sfx.play("click", 0.5);
       tab = t.id;
@@ -455,7 +459,7 @@ export function createHud(api: HudApi): Hud {
       <span class="cost">${cost}</span>
       <span class="badge" hidden></span>
       <span class="prog" hidden></span>
-      <span class="lock" hidden>🔒</span>
+      <span class="lock" hidden>${BELLE_EPOQUE ? belleIcon("cadenas") : "🔒"}</span>
       <span class="loopmark" hidden>↻</span>`;
     // long-press (touch) or right-click (mouse) opens the info card
     let timer = 0;
@@ -606,8 +610,8 @@ export function createHud(api: HudApi): Hud {
       <button class="x" id="card-x">✕</button></div>
       ${weapons ? `<table>${rows.slice(0, 2).join("")}</table>${weapons}<table>${rows.slice(2).join("")}</table>` : `<table>${rows.join("")}</table>`}
       ${m ? `<p class="good">▲ ${m.strong}</p><p class="bad">▼ ${m.weak}</p>` : ""}
-      ${rule ? `<p class="ctr nat-rule">${nation === "republique" ? "⚡" : "♨"} ${rule}</p>` : ""}
-      ${note ? `<p class="ctr">⚔ ${note}</p>` : ""}
+      ${rule ? `<p class="ctr nat-rule">${BELLE_EPOQUE ? belleIcon(nation === "republique" ? "pouvoir" : "charbon") : nation === "republique" ? "⚡" : "♨"} ${rule}</p>` : ""}
+      ${note ? `<p class="ctr">${BELLE_EPOQUE ? belleIcon("escarmouche") : "⚔"} ${note}</p>` : ""}
       ${isUnit ? `<button class="cta small${api.ctrl.loops.has(kind as UnitKind) ? " warn" : ""}" id="card-loop">${
         api.ctrl.loops.has(kind as UnitKind) ? tr("↻ Arrêter la production en boucle", "↻ Stop looping production") : tr("↻ Produire en boucle", "↻ Produce in a loop")
       }</button>` : ""}
@@ -653,6 +657,12 @@ export function createHud(api: HudApi): Hud {
   /** The class each chip was last given (so a refused tap's "nope" shake survives a label tick). */
   let chipCls: string[] = [];
   const chipClass = (c: Chip) => `chip ${c.cls ?? ""} ${c.active ? "active" : ""}`;
+  /** Belle Époque: the chip's words only (Stop, Repli… wear a medallion instead of ■ ⚑, belle-hud.css). */
+  const chipText = (c: Chip) => {
+    if (!BELLE_EPOQUE) return c.label;
+    const t = noEmoji(c.label);
+    return t || (c.id === "stop" ? "Stop" : c.label);
+  };
   /** The chips as last rendered: a tap runs the current chip's action (one updated in place may now do something else). */
   let chipList: Chip[] = [];
   function renderChips(list: Chip[]): void {
@@ -666,7 +676,7 @@ export function createHud(api: HudApi): Hud {
     if (shape === lastChipShape && chipsEl.children.length === list.length) {
       list.forEach((c, i) => {
         const el = chipsEl.children[i] as HTMLElement;
-        if (el.textContent !== c.label) el.textContent = c.label;
+        if (el.textContent !== chipText(c)) el.textContent = chipText(c);
         const cls = chipClass(c);
         if (chipCls[i] !== cls) el.className = chipCls[i] = cls;
       });
@@ -679,7 +689,7 @@ export function createHud(api: HudApi): Hud {
       const b = document.createElement("button");
       b.className = chipClass(c);
       b.dataset.id = c.id;
-      b.textContent = c.label;
+      b.textContent = chipText(c);
       b.addEventListener("click", () => {
         sfx.play("click", 0.5);
         chipList[i]?.on();
@@ -906,26 +916,97 @@ export function createHud(api: HudApi): Hud {
   });
 
   // ------------------------------------------------------------- toasts ---
+  /** Each toast's timer: re-armed when a dispatch is unfolded, held while an announcement has the line (Belle Époque). */
+  const toastTimers = new Map<HTMLElement, { arm(ms: number): void; hold(): void; ms: number }>();
   function toast(msg: string, onTap?: () => void, cls = "", ms = 2200): void {
     const t = document.createElement("div");
     t.className = `toast ${cls}`;
     const tx = document.createElement("span");
     tx.className = "tx";
-    tx.textContent = msg;
+    if (BELLE_EPOQUE) {
+      // a dispatch: a stamp for what kind of news, then the line in typewriter capitals (belle-hud.css)
+      const kind = dispatchKind(msg, cls);
+      t.classList.add("dep", `dep-${kind}`);
+      const st = document.createElement("em");
+      st.className = "stamp";
+      st.textContent = dispatchStamp(kind);
+      t.appendChild(st);
+      tx.textContent = noEmoji(msg);
+    } else tx.textContent = msg;
     t.appendChild(tx);
     if (onTap) t.addEventListener("click", onTap);
     // nothing to tap: let touches fall through to the battlefield underneath
+    // (a dispatch too long for its line becomes tappable, to unfold it: syncDispatch)
     else t.classList.add("passive");
+    let outT = 0;
+    let rmT = 0;
+    const timer = {
+      ms,
+      arm(d: number) {
+        window.clearTimeout(outT);
+        window.clearTimeout(rmT);
+        t.classList.remove("out");
+        outT = window.setTimeout(() => {
+          t.classList.add("out");
+          syncDispatch();
+        }, d);
+        rmT = window.setTimeout(() => {
+          t.remove();
+          toastTimers.delete(t);
+          syncDispatch();
+        }, d + 500);
+      },
+      hold() {
+        window.clearTimeout(outT);
+        window.clearTimeout(rmT);
+      }
+    };
+    toastTimers.set(t, timer);
+    if (BELLE_EPOQUE)
+      t.addEventListener("click", () => {
+        // tap: unfold the whole line (and give it time to be read), tap again: fold it
+        if (!t.classList.contains("long") && !t.classList.contains("open")) return;
+        const open = t.classList.toggle("open");
+        if (open) timer.arm(Math.max(ms, 6000));
+      });
     toastsEl.appendChild(t);
     // the ticker keeps two lines at most: the newest pushes the oldest out (a
     // waiting reader's 💡 hint outlives a burst of alerts)
     while (toastsEl.children.length > 2) {
       const kids = [...toastsEl.children].filter((c) => c !== t);
       const old = kids.find((c) => c.classList.contains("out")) ?? kids.find((c) => !c.classList.contains("hint")) ?? kids[0];
+      if (old) toastTimers.delete(old as HTMLElement);
       old?.remove();
     }
-    setTimeout(() => t.classList.add("out"), ms);
-    setTimeout(() => t.remove(), ms + 500);
+    // (Belle Époque: an announcement on the line holds the ticker until it's gone)
+    if (BELLE_EPOQUE && bannerCur) timer.hold();
+    else timer.arm(ms);
+    syncDispatch();
+  }
+
+  /**
+   * Belle Époque: one dispatch on screen at a time. The announcement if one is up (the ticker's lines wait
+   * behind it, their clocks held), else the newest toast; the rest show as "+N" on it. A line too long for
+   * its strip turns tappable, to unfold.
+   */
+  function syncDispatch(): void {
+    if (!BELLE_EPOQUE) return;
+    const up = bannerCur !== null && !bannerEl.hidden;
+    root.classList.toggle("bh-dep-banner", up);
+    const live = ([...toastsEl.children] as HTMLElement[]).filter((c) => !c.classList.contains("out"));
+    const shown = up ? bannerEl : live[live.length - 1];
+    const waiting = bannerQueue.length + (up ? live.length : Math.max(0, live.length - 1));
+    for (const el of [bannerEl, ...(toastsEl.children as unknown as HTMLElement[])]) if (el !== shown) delete el.dataset.more;
+    if (!shown) return;
+    if (waiting > 0) shown.dataset.more = `+${waiting}`;
+    else delete shown.dataset.more;
+    requestAnimationFrame(() => {
+      if (shown.classList.contains("open")) return;
+      const tx = shown.querySelector<HTMLElement>(".tx");
+      const long = !!tx && tx.scrollWidth > tx.clientWidth + 1;
+      shown.classList.toggle("long", long);
+      if (long) shown.classList.remove("passive");
+    });
   }
 
   // ------------------------------------------------------------ banners ---
@@ -935,18 +1016,25 @@ export function createHud(api: HudApi): Hud {
   let bannerTimer = 0;
   const bannerQueue: Announcement[] = [];
   const prio = (a: Announcement) => a.priority ?? 2;
-  function showBanner(a: Announcement): void {
-    bannerCur = a;
-    bannerEl.className = `banner ${a.tone ?? "info"}`;
-    bannerEl.innerHTML = `<b></b>${a.sub ? "<span></span>" : ""}`;
-    bannerEl.querySelector("b")!.textContent = a.text;
-    if (a.sub) bannerEl.querySelector("span")!.textContent = a.sub;
-    bannerEl.hidden = false;
-    layout.refresh(true); // centre it under the band at its real width
-    // restart the entrance animation
-    void bannerEl.offsetWidth;
-    bannerEl.classList.add("in");
-    layout.refresh(true); // (landscape: the ticker steps under it)
+  /** Belle Époque: an announcement as a dispatch. A short title is the stamp and the subtitle the line; else the tone's stamp. */
+  const bannerKind = (a: Announcement): DispatchKind =>
+    a.tone === "bad" ? "alert" : a.tone === "good" ? "good" : a.tone === "epic" ? "epic" : "info";
+  function bannerHtml(a: Announcement): void {
+    if (!BELLE_EPOQUE) {
+      bannerEl.innerHTML = `<b></b>${a.sub ? "<span></span>" : ""}`;
+      bannerEl.querySelector("b")!.textContent = a.text;
+      if (a.sub) bannerEl.querySelector("span")!.textContent = a.sub;
+      return;
+    }
+    const title = noEmoji(a.text);
+    const short = !!a.sub && title.length <= 18;
+    bannerEl.classList.add("dep", `dep-${bannerKind(a)}`);
+    bannerEl.innerHTML = `<em class="stamp"></em><span class="tx"></span>`;
+    bannerEl.querySelector("em")!.textContent = short ? title.replace(/\s*!$/, "") : dispatchStamp(bannerKind(a));
+    bannerEl.querySelector<HTMLElement>(".tx")!.textContent = short ? noEmoji(a.sub!) : a.sub ? `${title} ${noEmoji(a.sub)}` : title;
+  }
+  /** Take the announcement off the line in `d` ms, then the next one (or the ticker's held lines). */
+  function armBanner(d: number): void {
     window.clearTimeout(bannerTimer);
     bannerTimer = window.setTimeout(() => {
       bannerEl.classList.remove("in");
@@ -956,12 +1044,35 @@ export function createHud(api: HudApi): Hud {
         bannerCur = null;
         const next = bannerQueue.shift();
         if (next) showBanner(next);
-        else layout.refresh(true);
+        else {
+          layout.refresh(true);
+          // the ticker's held lines run again
+          if (BELLE_EPOQUE) for (const tm of toastTimers.values()) tm.arm(tm.ms);
+          syncDispatch();
+        }
       }, 260);
-    }, prio(a) <= 1 ? 3000 : 2200);
+    }, d);
+  }
+  function showBanner(a: Announcement): void {
+    bannerCur = a;
+    bannerEl.className = `banner ${a.tone ?? "info"}`;
+    bannerHtml(a);
+    bannerEl.hidden = false;
+    layout.refresh(true); // centre it under the band at its real width
+    // restart the entrance animation
+    void bannerEl.offsetWidth;
+    bannerEl.classList.add("in");
+    layout.refresh(true); // (landscape: the ticker steps under it)
+    if (BELLE_EPOQUE) for (const tm of toastTimers.values()) tm.hold();
+    armBanner(prio(a) <= 1 ? 3000 : 2200);
+    syncDispatch();
   }
   bannerEl.addEventListener("click", () => {
     if (bannerCur?.x !== undefined && bannerCur.y !== undefined) api.centerCamera(bannerCur.x, bannerCur.y);
+    // Belle Époque: unfold the whole line and keep it up long enough to read; tap again to fold it
+    if (BELLE_EPOQUE && bannerCur && (bannerEl.classList.contains("long") || bannerEl.classList.contains("open"))) {
+      if (bannerEl.classList.toggle("open")) armBanner(6000);
+    }
   });
   const offAnnounce = onAnnounce((a) => {
     if (bannerCur?.key === a.key || bannerQueue.some((q) => q.key === a.key)) return; // no stutter
@@ -970,6 +1081,7 @@ export function createHud(api: HudApi): Hud {
     bannerQueue.push(a);
     bannerQueue.sort((p, q) => prio(p) - prio(q));
     if (bannerQueue.length > 3) bannerQueue.pop();
+    syncDispatch();
   });
 
   // ---------------------------------------------------- first-run hints ---
@@ -1013,12 +1125,12 @@ export function createHud(api: HudApi): Hud {
       still = () => hasFactory() === factory && armySize() > 0 === army;
       if (factory) {
         msg = army
-          ? tr(`Tes ${workers()} minent seuls. Touche une unité (ou ⚔ Toute l'armée), puis la carte pour l'y envoyer.`, `Your ${workers()} are mining by themselves. Tap a unit (or ⚔ All army), then the map to send it there.`)
+          ? tr(`Tes ${workers()} minent seuls. Touche une unité (ou ${BELLE_EPOQUE ? "Armée" : "⚔ Toute l'armée"}), puis la carte pour l'y envoyer.`, `Your ${workers()} are mining by themselves. Tap a unit (or ${BELLE_EPOQUE ? "Army" : "⚔ All army"}), then the map to send it there.`)
           : tr(`Tes ${workers()} minent seuls. Produis des chars dans Véhicules, puis touche une unité et la carte pour l'y envoyer.`, `Your ${workers()} are mining by themselves. Produce tanks in Vehicles, then tap a unit and the map to send it there.`);
         next = 2;
       } else {
         msg = BELLE_EPOQUE
-          ? tr("Ton Fardier extrait le charbon seul. Touche 🔨 Construire, puis Forges pour bâtir des forges.", "Your Steam Wagon mines coal by itself. Tap 🔨 Build, then Forges to build forges.")
+          ? tr("Ton Fardier extrait le charbon seul. Touche Construire, puis Forges pour bâtir des forges.", "Your Steam Wagon mines coal by itself. Tap Build, then Forges to build forges.")
           : tr("Ton Fardier extrait le charbon seul. Ouvre Base et touche Forges pour bâtir des forges.", "Your Steam Wagon mines coal by itself. Open Base and tap Forges to build forges.");
         next = 1;
       }
@@ -1103,7 +1215,7 @@ export function createHud(api: HudApi): Hud {
         <p class="time">${line}</p>
         ${ops ? ops.pauseHtml() : ""}
         ${pauseRulesHtml(w)}
-        <button class="cta" id="p-resume">▶ ${tr("Reprendre", "Resume")}</button>
+        <button class="cta" id="p-resume">${BELLE_EPOQUE ? "" : "▶ "}${tr("Reprendre", "Resume")}</button>
         <div id="p-sound"></div>
         ${BELLE_EPOQUE ? `<div id="p-hud"></div>` : ""}
         <button class="cta alt" id="p-help">${tr("Comment jouer", "How to play")}</button>

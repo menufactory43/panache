@@ -330,12 +330,12 @@ export class ReelPlayer {
     } else {
       this.ui.className = `reel-ui ${state}`;
       const share = this.made
-        ? `<button class="cta" data-a="share" type="button">${tr("📤 Partager le film", "📤 Share the film")}</button>`
-        : `<button class="cta${state === "title" ? " alt" : ""}" data-a="film" type="button"${film ? "" : ` disabled title="${why}"`}>${tr("🎞 Filmer pour partager", "🎞 Film to share")}</button>`;
+        ? `<button class="cta" data-a="share" type="button">${tr("Partager le film", "Share the film")}</button>`
+        : `<button class="cta${state === "title" ? " alt" : ""}" data-a="film" type="button"${film ? "" : ` disabled title="${why}"`}>${tr("Filmer pour partager", "Film to share")}</button>`;
       this.ui.innerHTML = `<div class="reel-acts">
           ${state === "title" ? `<button class="cta big" data-a="play" type="button">${tr("▶ Projeter", "▶ Screen it")}</button>` : `<button class="cta alt" data-a="play" type="button">${tr("↻ Revoir", "↻ Rewatch")}</button>`}
           ${share}
-          <button class="cta alt" data-a="json" type="button" title="${tr("La partie elle-même : elle se rejoue dans Panache (🎬 Voir une rediffusion)", "The match itself: it replays in Panache (🎬 Watch a replay)")}">${tr("⬇ Partie (.json)", "⬇ Match (.json)")}</button>
+          <button class="cta alt" data-a="json" type="button" title="${tr("La partie elle-même : elle se rejoue dans Panache (Voir une rediffusion)", "The match itself: it replays in Panache (Watch a replay)")}">${tr("⬇ Partie (.json)", "⬇ Match (.json)")}</button>
           <button class="cta alt" data-a="menu" type="button">Menu</button>
         </div>
         <p class="reel-note">${esc(this.note || (film ? "" : tr("Ce navigateur ne sait pas filmer : garde plutôt la partie (.json), elle se rejoue dans Panache.", "This browser can't record video: keep the match (.json) instead, it replays in Panache.")))}</p>`;

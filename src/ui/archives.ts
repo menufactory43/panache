@@ -47,7 +47,7 @@ export function mountSavedList(host: HTMLElement, watch: (r: BattleRecord, reel:
             <div class="arch-t"><b>${esc(l.head)}</b><small>${esc(l.sub)}</small></div>
             <div class="arch-b">
               <button class="cta" data-a="reel" type="button" title="${tr("Les temps forts, en film muet", "The highlights, as a silent film")}">${tr("▶ Temps forts", "▶ Highlights")}</button>
-              <button class="cta alt" data-a="watch" type="button" title="${tr("Toute la partie", "The whole match")}">${tr("🎬 Revoir", "🎬 Rewatch")}</button>
+              <button class="cta alt" data-a="watch" type="button" title="${tr("Toute la partie", "The whole match")}">${tr("Revoir", "Rewatch")}</button>
               <button class="cta alt" data-a="file" type="button" title="${tr("Télécharger la partie (.json)", "Download the match (.json)")}" aria-label="${tr("Télécharger la partie", "Download the match")}">⬇</button>
             </div>
           </div>`;

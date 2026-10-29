@@ -20,10 +20,10 @@ import { loadBest } from "./game/survival";
 import { HELP_HTML } from "./ui/hud";
 import { mountMenuCareer, openSheet, starsText } from "./ui/career";
 import { dailyOp, today, type DailyOp } from "./game/daily";
-import { TUTORIAL2_OP, TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
+import { CAMPAIGN, TRIALS, TUTORIAL2_OP, TUTORIAL_OP, bookOf, isCampaignOp, opById, opIndex, type OpDef } from "./sim/ops";
 import { setTutorialState, tutorial2Done, tutorialState } from "./game/tutorial";
 import { showTutorialPicker, showTutorialPrompt } from "./ui/tutorial";
-import { loadCareer, opsCompleted, starCount } from "./game/career";
+import { loadCareer, opCleared, opUnlocked, opsCompleted, starCount } from "./game/career";
 import { MUTATORS, toggleMutator, type MutatorId } from "./sim/rules";
 import { mountMenuOps } from "./ui/ops";
 import { fullscreen } from "./ui/fullscreen";
@@ -32,7 +32,7 @@ import { scrollCue } from "./ui/hscroll";
 import { showReplayPicker } from "./ui/replay-picker";
 import { openMapPreview } from "./ui/map-preview";
 import { mountTitle } from "./ui/title";
-import { mountHub, type Hub, type HubPick } from "./ui/qg";
+import { doorsOpen, mountHub, type Hub, type HubPick } from "./ui/qg";
 import { mountAudioToggles } from "./ui/audio-panel";
 import { countVisit, matchKind, track } from "./game/stats";
 import { bootApp, shareBase } from "./native";
@@ -284,9 +284,9 @@ function showMenu(linkedMap?: string | null): void {
       </div>
       <p class="sub" id="sub"></p>
       <div class="seg modes" id="gmode">
-        <button data-m="skirmish">${tr("⚔ Escarmouche", "⚔ Skirmish")}</button>
-        <button data-m="survival">${tr("🛡 Survie", "🛡 Last Stand")}</button>
-        <button data-m="ops">${tr("🎖 Opérations", "🎖 Operations")}</button>
+        <button data-m="skirmish">${tr("Escarmouche", "Skirmish")}</button>
+        <button data-m="survival">${tr("Survie", "Last Stand")}</button>
+        <button data-m="ops">${tr("Opérations", "Operations")}</button>
       </div>
       <p class="lsbest" id="lsbest" hidden></p>
       <p class="lsbest opsum" id="opsum" hidden></p>
@@ -311,26 +311,26 @@ function showMenu(linkedMap?: string | null): void {
           <span class="mb"></span>
           <span class="mbest" hidden></span>
           <span class="mstars" hidden></span>
-          <span class="mrnd">${tr("🎲 Aléatoire", "🎲 Random")}</span>
+          <span class="mrnd">${tr("Aléatoire", "Random")}</span>
         </button>
       </div>
       <div class="rndpanel" id="rndpanel" hidden>
         <div class="seg rndbiome" id="rndbiome">
-          <button data-b="" title="${tr("Les relances choisissent n'importe quel biome", "Rerolls pick any biome")}">${tr("🎲 Tous", "🎲 Any")}</button>
+          <button data-b="" title="${tr("Les relances choisissent n'importe quel biome", "Rerolls pick any biome")}">${tr("Tous", "Any")}</button>
           ${BIOMES.map((b) => `<button data-b="${b}" title="${cap(BIOME_FR[b])}">${BIOME_ICON[b]}<span> ${cap(BIOME_FR[b])}</span></button>`).join("")}
         </div>
         <div class="rndrow">
           <label class="rndseed" title="${tr("Graine : tape ou colle un code pour générer cette carte", "Seed: type or paste a code to generate that map")}">#<input id="rndseed" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" /></label>
-          <button class="cta alt" id="rndroll">${tr("🎲 Relancer", "🎲 Reroll")}</button>
-          <button class="cta alt" id="rndcopy">${tr("🔗 Copier le lien", "🔗 Copy the link")}</button>
+          <button class="cta alt" id="rndroll">${tr("Relancer", "Reroll")}</button>
+          <button class="cta alt" id="rndcopy">${tr("Copier le lien", "Copy the link")}</button>
         </div>
         <p class="rndhint"><b>${tr("Avant de jouer", "Before playing")}</b> <span id="rndhint"></span></p>
         <div class="rndrow">
           <div class="seg rndview" id="rndview" role="radiogroup" aria-label="${tr("Avant de jouer", "Before playing")}">
-            <button data-u="0" role="radio" title="${tr("Voir toute la carte avant le match", "See the whole map before the match")}">${tr("👁️ Aperçu", "👁️ Preview")}</button>
-            <button data-u="1" role="radio" title="${tr("La carte reste noire tant que tu ne l'as pas explorée", "The map stays black until you've explored it")}">${tr("🌫️ Inconnue", "🌫️ Uncharted")}</button>
+            <button data-u="0" role="radio" title="${tr("Voir toute la carte avant le match", "See the whole map before the match")}">${tr("Aperçu", "Preview")}</button>
+            <button data-u="1" role="radio" title="${tr("La carte reste noire tant que tu ne l'as pas explorée", "The map stays black until you've explored it")}">${tr("Inconnue", "Uncharted")}</button>
           </div>
-          <button class="cta alt" id="rndfull">${tr(`🔍 Voir<span class="wide"> toute la</span> carte`, `🔍 View<span class="wide"> the whole</span> map`)}</button>
+          <button class="cta alt" id="rndfull">${tr(`Voir<span class="wide"> toute la</span> carte`, `View<span class="wide"> the whole</span> map`)}</button>
         </div>
         <div class="rndrecent" id="rndrecent"></div>
       </div>
@@ -355,26 +355,26 @@ function showMenu(linkedMap?: string | null): void {
           }).join("")}
         </div>
         <div class="np-foot">
-          <button class="npclassic" data-n="classique" role="radio">${tr("⚖ Classique", "⚖ Classic")} <small>${tr("les mêmes unités des deux côtés", "the same units on both sides")}</small></button>
+          <button class="npclassic" data-n="classique" role="radio">${tr("Classique", "Classic")} <small>${tr("les mêmes unités des deux côtés", "the same units on both sides")}</small></button>
           <div class="seg np-rival" id="rival" role="radiogroup" aria-label="${tr("Nation de l'adversaire", "Opponent's nation")}">
             <span class="np-rl">${tr("Adversaire", "Opponent")}</span>
             <button data-r="opposite" role="radio" title="${tr("L'IA joue l'autre nation", "The AI plays the other nation")}">${tr("Nation adverse", "Opposing nation")}</button>
-            <button data-r="random" role="radio" title="${tr("L'IA tire sa nation au sort à chaque partie", "The AI draws its nation at random each match")}">${tr("🎲 Au hasard", "🎲 Random")}</button>
+            <button data-r="random" role="radio" title="${tr("L'IA tire sa nation au sort à chaque partie", "The AI draws its nation at random each match")}">${tr("Au hasard", "Random")}</button>
             <button data-r="same" role="radio" title="${tr("L'IA joue ta nation : un miroir", "The AI plays your nation: a mirror")}">${tr("Miroir", "Mirror")}</button>
           </div>
         </div>
       </div>
       <button class="mutbtn main"></button>
       <button class="cta big" id="play">${tr("▶ Jouer", "▶ Play")}</button>
-      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-online" disabled>${tr("🌐 Défier un ami", "🌐 Challenge a friend")}</button></div>
+      <div class="row" id="duelrow" hidden><button class="cta alt" id="play-online" disabled>${tr("Défier un ami", "Challenge a friend")}</button></div>
       <div class="row">
-        <button class="cta alt" id="play-tuto" title="${tr("L'instruction guidée : un geste à la fois, 3 minutes", "The guided training: one gesture at a time, 3 minutes")}">${tr("🎓 Instruction", "🎓 Training")}</button>
-        <button class="cta alt" id="play-spectate">${tr("🤖 IA contre IA", "🤖 AI against AI")}</button>
-        <button class="cta alt" id="play-replay">${tr("🎬 Voir une rediffusion", "🎬 Watch a replay")}</button>
+        <button class="cta alt" id="play-tuto" title="${tr("L'instruction guidée : un geste à la fois, 3 minutes", "The guided training: one gesture at a time, 3 minutes")}">${tr("Instruction", "Training")}</button>
+        <button class="cta alt" id="play-spectate">${tr("IA contre IA", "AI against AI")}</button>
+        <button class="cta alt" id="play-replay">${tr("Voir une rediffusion", "Watch a replay")}</button>
         <button class="cta alt" id="howto">? ${tr("Comment jouer", "How to play")}</button>
       </div>
       <div class="help" id="helpbox" hidden>${HELP_HTML}</div>
-      ${BELLE_EPOQUE ? `<button class="linkbtn" id="replay-intro" type="button">${tr("🎞 Revoir l'intro", "🎞 Watch the intro again")}</button>` : ""}
+      ${BELLE_EPOQUE ? `<button class="linkbtn" id="replay-intro" type="button">${tr("Revoir l'intro", "Watch the intro again")}</button>` : ""}
       <p class="credits">${tr(`D'après <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> de Simon Willison · visuels OpenAI gpt-image-2.5 · son synthétisé en direct`, `Based on <a href="https://github.com/simonw/battledrones" target="_blank" rel="noopener">Battle Drones</a> by Simon Willison · visuals by OpenAI gpt-image-2.5 · sound synthesised live`)}</p>
     </div>
   `;
@@ -549,7 +549,7 @@ function showMenu(linkedMap?: string | null): void {
       const badge = el.querySelector<HTMLElement>(".mbest")!;
       const rec = survival ? loadBest(el.dataset.id!, gameMode.difficulty) : null;
       badge.hidden = !rec;
-      badge.textContent = rec ? `🛡 ${rec.best}` : "";
+      badge.textContent = rec ? `${rec.best}` : "";
       // (generated maps earn no stars: there are endlessly many)
       const stars = el.querySelector<HTMLElement>(".mstars")!;
       const noStars = survival || isRandomMapId(el.dataset.id!);
@@ -601,15 +601,15 @@ function showMenu(linkedMap?: string | null): void {
       const rec = loadBest(shown, gameMode.difficulty);
       const where = `${blind ? `${tr("Inconnue", "Uncharted")} #${m.random?.code ?? ""}` : m.name} · ${DIFFICULTY[gameMode.difficulty].label}`;
       best.innerHTML = rec
-        ? tr(`🏆 Record sur ${where} : <b>${rec.best} vague${rec.best === 1 ? "" : "s"}</b>`, `🏆 Record on ${where}: <b>${rec.best} wave${rec.best === 1 ? "" : "s"}</b>`)
+        ? tr(`Record sur ${where} : <b>${rec.best} vague${rec.best === 1 ? "" : "s"}</b>`, `Record on ${where}: <b>${rec.best} wave${rec.best === 1 ? "" : "s"}</b>`)
         : tr(`Aucun record sur ${where} : établis-en un !`, `No record on ${where}: set one!`);
     }
     const sel = ops.selected();
     menu.querySelector("#play")!.textContent = opsMode
-      ? ops.locked(sel) ? tr("🔒 Verrouillée", "🔒 Locked") : tr(`▶ Op : ${sel.title}`, `▶ Op: ${sel.title}`)
+      ? ops.locked(sel) ? tr("Verrouillée", "Locked") : tr(`▶ Op : ${sel.title}`, `▶ Op: ${sel.title}`)
       : survival ? tr("▶ Lancer la Survie", "▶ Start Last Stand") : tr("▶ Jouer", "▶ Play");
     menu.querySelector("#play")!.classList.toggle("locked", opsMode && ops.locked(sel));
-    menu.querySelector("#play-spectate")!.textContent = survival ? tr("🤖 Voir l'IA défendre", "🤖 Watch the AI defend") : tr("🤖 IA contre IA", "🤖 AI against AI");
+    menu.querySelector("#play-spectate")!.textContent = survival ? tr("Voir l'IA défendre", "Watch the AI defend") : tr("IA contre IA", "AI against AI");
     hub?.sync();
   };
   sync();
@@ -657,9 +657,9 @@ function showMenu(linkedMap?: string | null): void {
     void navigator.clipboard
       ?.writeText(mapLink(randomId))
       .then(() => {
-        copyBtn.textContent = tr("✓ Copié !", "✓ Copied!");
+        copyBtn.textContent = tr("Copié !", "Copied!");
         clearTimeout(copiedTimer);
-        copiedTimer = window.setTimeout(() => (copyBtn.textContent = tr("🔗 Copier le lien", "🔗 Copy the link")), 1600);
+        copiedTimer = window.setTimeout(() => (copyBtn.textContent = tr("Copier le lien", "Copy the link")), 1600);
       })
       .catch(() => {
         /* no clipboard (insecure context, denied): fail quietly */
@@ -787,7 +787,7 @@ function showMenu(linkedMap?: string | null): void {
     play();
   });
   const tutoBtn = menu.querySelector<HTMLElement>("#play-tuto")!;
-  if (tutorialState() === "done") tutoBtn.textContent = tr("🎓 Instruction ✓", "🎓 Training ✓");
+  if (tutorialState() === "done") tutoBtn.textContent = tr("Instruction ✓", "Training ✓");
   tutoBtn.addEventListener("click", pickTuto);
   menu.querySelector("#play-spectate")!.addEventListener("click", () => begin(true));
   /** A match from the Archives (ui/archives.ts): its highlight reel (ui/reel.ts), or the whole of it in the viewer. */
@@ -856,7 +856,7 @@ function showMenu(linkedMap?: string | null): void {
     const wrap = openSheet(
       menu,
       "duelupdate",
-      `<h2>🌐 ${tr("Défier un ami", "Challenge a friend")}</h2>
+      `<h2>${tr("Défier un ami", "Challenge a friend")}</h2>
        <p class="sh-sub">${DUEL_UPDATE}</p>
        <div class="sh-actions"><button class="cta alt sheet-close">${tr("Fermer", "Close")}</button><button class="cta" id="duel-reload">${tr("Recharger", "Reload")}</button></div>`
     );
@@ -940,6 +940,7 @@ function showMenu(linkedMap?: string | null): void {
           // (Éclair: a skirmish's and a duel's, unless the map bans it)
           eclair: pick === "skirmish" || pick === "duel" ? (mapBansMutator(mapById(shownMap()), "eclair") ? null : gameMode.mutators.includes("eclair")) : null,
           tutoDone: tutorialState() === "done",
+          tutoDeclined: tutorialState() === "no",
           tuto2Done: tutorial2Done(),
           maps: [...MAPS.map((m) => m.id), randomId].filter(offered).map((mid) => {
             const rnd = isRandomMapId(mid);
@@ -948,16 +949,16 @@ function showMenu(linkedMap?: string | null): void {
             const stars = rnd || gameMode.mode === "survival" ? 0 : starCount(career.starsFor(mid));
             return {
               id: mid,
-              name: hide ? tr("Inconnue", "Uncharted") : rnd ? `🎲 ${mapById(mid).name}` : mapById(mid).name,
+              name: hide ? tr("Inconnue", "Uncharted") : rnd ? `${mapById(mid).name}` : mapById(mid).name,
               thumb: hide ? BLANK_IMG : mapThumbUrl(mid),
               on: mid === shownMap(),
-              badge: rec ? `🛡 ${rec.best}` : stars ? "★".repeat(stars) : ""
+              badge: rec ? `${rec.best}` : stars ? "★".repeat(stars) : ""
             };
           }),
           diffs: diffs.map((d) => ({ id: d, label: DIFFICULTY[d].label, on: d === gameMode.difficulty })),
           rivals: gameMode.mode !== "skirmish" || gameMode.nation === "classique" || urlNations()
             ? null
-            : [["opposite", tr("Nation adverse", "Opposing nation")], ["random", tr("🎲 Au hasard", "🎲 Random")], ["same", tr("Miroir", "Mirror")]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
+            : [["opposite", tr("Nation adverse", "Opposing nation")], ["random", tr("Au hasard", "Random")], ["same", tr("Miroir", "Mirror")]].map(([r, label]) => ({ id: r!, label: label!, on: r === gameMode.rival })),
           mutators: activeMutators().map((m) => MUTATORS[m].name).join(" · "),
           missions: (() => {
             const i = book.indexOf(op);
@@ -969,8 +970,50 @@ function showMenu(linkedMap?: string | null): void {
           })(),
           opLine: op.tagline,
           opArt: op.art ? `assets/ui/campaign/${op.art}.webp` : null,
-          resume: resumeJ ? { label: resumeJ.label, secs: resumeJ.tick / TICK_RATE } : null
+          resume: resumeJ ? { label: resumeJ.label, secs: resumeJ.tick / TICK_RATE } : null,
+          ...(() => {
+            // the hub's three doors and its big button (ui/qg.ts): where the Campaign stands
+            const c = loadCareer();
+            const done = opsCompleted(c, CAMPAIGN);
+            const nxt = CAMPAIGN.find((o) => opUnlocked(c, o.id) && !opCleared(c.ops[o.id])) ?? null;
+            // (the act a mission belongs to: the last one that opened at or before it)
+            const actOf = (o: OpDef) => CAMPAIGN.slice(0, CAMPAIGN.indexOf(o) + 1).reduce((a, x) => x.act ?? a, 1);
+            const artOf = (o: OpDef) => {
+              const a = CAMPAIGN.slice(0, CAMPAIGN.indexOf(o) + 1).reverse().find((x) => x.art)?.art;
+              return a ? `assets/ui/campaign/${a}.webp` : null;
+            };
+            const at = nxt ?? CAMPAIGN[CAMPAIGN.length - 1]!;
+            return {
+              camp: {
+                done,
+                total: CAMPAIGN.length,
+                act: actOf(at),
+                art: artOf(at),
+                next: nxt ? { id: nxt.id, n: CAMPAIGN.indexOf(nxt) + 1, title: nxt.title, map: mapById(nxt.map).name } : null
+              },
+              trials: { done: opsCompleted(c, TRIALS), total: TRIALS.length },
+              doors: doorsOpen(done, c)
+            };
+          })()
         };
+      },
+      campaign: (id) => {
+        hubPick = "ops";
+        gameMode.mode = "ops";
+        if (id) gameMode.opId = id;
+        saveSettings();
+        sync();
+        play();
+      },
+      book: (b) => {
+        hubPick = "ops";
+        gameMode.mode = "ops";
+        const c = loadCareer();
+        const list = b === "campaign" ? CAMPAIGN : TRIALS;
+        const sel = opById(gameMode.opId);
+        if (!sel || !list.includes(sel)) gameMode.opId = (list.find((o) => opUnlocked(c, o.id) && !opCleared(c.ops[o.id])) ?? list[0]!).id;
+        saveSettings();
+        view("salon");
       },
       resume: () => {
         const j = resumeJ;
@@ -1008,7 +1051,7 @@ function showMenu(linkedMap?: string | null): void {
         const wrap = openSheet(
           menu,
           "archives",
-          `<h2>🎬 ${tr("Archives", "Archives")}</h2>
+          `<h2>${tr("Archives", "Archives")}</h2>
            <p class="sh-sub">${tr(
              "Revoir tes dernières parties et leurs temps forts, une bataille enregistrée, ou deux IA s'affronter.",
              "Watch your last matches and their highlights, a recorded battle, or two AIs fight it out."
@@ -1016,8 +1059,8 @@ function showMenu(linkedMap?: string | null): void {
            <h3>${tr("Tes parties", "Your matches")}</h3>
            <div id="arch-saved"></div>
            <div class="sh-actions sh-col">
-             <button class="cta alt" data-a="replay">🎬 ${tr("Voir une rediffusion", "Watch a replay")}</button>
-             <button class="cta alt" data-a="spectate">🤖 ${tr("IA contre IA", "AI against AI")}</button>
+             <button class="cta alt" data-a="replay">${tr("Voir une rediffusion", "Watch a replay")}</button>
+             <button class="cta alt" data-a="spectate">${tr("IA contre IA", "AI against AI")}</button>
              <button class="cta alt sheet-close">${tr("Fermer", "Close")}</button>
            </div>`
         );
@@ -1045,7 +1088,7 @@ function showMenu(linkedMap?: string | null): void {
           menu,
           "reglages",
           `<header class="rg-head">
-             <h2>⚙ ${tr("Réglages", "Settings")}</h2>
+             <h2>${tr("Réglages", "Settings")}</h2>
              <button class="sheet-close x" aria-label="${tr("Fermer", "Close")}">✕</button>
            </header>
            <div class="rg-cols">
@@ -1057,7 +1100,7 @@ function showMenu(linkedMap?: string | null): void {
                <section class="rg-sec">
                  <h3>${tr("Compte", "Account")}</h3>
                  <button class="rg-row" data-a="cloud" aria-pressed="false">
-                   <span class="rg-l">☁️ ${tr("Sauvegarde en ligne", "Cloud save")}<small class="rg-cloud"></small></span>
+                   <span class="rg-l">${tr("Sauvegarde en ligne", "Cloud save")}<small class="rg-cloud"></small></span>
                    <span class="rg-sw" aria-hidden="true"></span>
                  </button>
                  ${appleOffered() ? `<button class="rg-apple" data-a="apple"></button>` : ""}
@@ -1076,21 +1119,21 @@ function showMenu(linkedMap?: string | null): void {
              <section class="rg-sec">
                <h3>${tr("Partie", "Game")}</h3>
                <button class="rg-row" data-a="spot" aria-pressed="false">
-                 <span class="rg-l">✨ ${tr("Temps forts", "Highlights")}<small>${tr(
+                 <span class="rg-l">${tr("Temps forts", "Highlights")}<small>${tr(
                    "Ralenti, secousse et bandeau aux grands moments",
                    "Slow motion, shake and banner at the big moments"
                  )}</small></span>
                  <span class="rg-sw" aria-hidden="true"></span>
                </button>
                <div class="rg-row rg-lang">
-                 <span class="rg-l">🌐 ${tr("Langue", "Language")}</span>
+                 <span class="rg-l">${tr("Langue", "Language")}</span>
                  <div class="seg" role="group" aria-label="${tr("Langue", "Language")}">
                    <button data-lang="fr" lang="fr" class="${tr("on", "")}" aria-pressed="${tr("true", "false")}">Français</button>
                    <button data-lang="en" lang="en" class="${tr("", "on")}" aria-pressed="${tr("false", "true")}">English</button>
                  </div>
                </div>
                <div class="rg-links">
-                 ${intro ? `<button class="cta alt" data-a="intro">🎞 ${tr("Revoir l'intro", "Watch the intro")}</button>` : ""}
+                 ${intro ? `<button class="cta alt" data-a="intro">${tr("Revoir l'intro", "Watch the intro")}</button>` : ""}
                  <button class="cta alt" data-a="help" aria-expanded="false">? ${tr("Comment jouer", "How to play")}</button>
                </div>
              </section>
@@ -1121,7 +1164,7 @@ function showMenu(linkedMap?: string | null): void {
           apple.hidden = s.state === "off";
           apple.classList.toggle("on", s.apple);
           apple.innerHTML = s.apple
-            ? `<span>✓ ${tr("Connecté avec Apple", "Signed in with Apple")}</span><small>${tr("Ta progression te suit sur tes appareils", "Your progress follows you to your devices")}</small>`
+            ? `<span>${tr("Connecté avec Apple", "Signed in with Apple")}</span><small>${tr("Ta progression te suit sur tes appareils", "Your progress follows you to your devices")}</small>`
             : `<span> ${tr("Se connecter avec Apple", "Sign in with Apple")}</span><small>${tr("Pour retrouver ta progression sur un autre appareil", "To find your progress on another device")}</small>`;
         };
         apple?.addEventListener("click", async () => {

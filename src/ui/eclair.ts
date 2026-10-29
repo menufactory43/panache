@@ -12,6 +12,8 @@ import { TICK_RATE } from "../sim/balance";
 import type { Faction, World } from "../sim/types";
 import { tr } from "../lang";
 import { addReportSection, type ReportContext } from "./report";
+import { BELLE_EPOQUE } from "../game/three/theme";
+import { belleIcon } from "./belle-hud";
 
 export interface EclairHud {
   update(): void;
@@ -32,7 +34,7 @@ export const ECLAIR_RULES = tr(
  */
 export function createEclairHud(pill: HTMLElement, w: World, o: { side: Faction; names: Record<Faction, string>; toast(msg: string): void }): EclairHud {
   pill.hidden = false;
-  pill.innerHTML = `<b class="el">⏱ ${tr("Éclair", "Lightning")}</b><span class="et"></span><span class="es"><i class="ed ${o.side}"></i><span class="em"></span><span class="ex">–</span><span class="eo"></span><i class="ed ${o.side === "blue" ? "red" : "blue"}"></i></span>`;
+  pill.innerHTML = `<b class="el">${BELLE_EPOQUE ? belleIcon("pause") : "⏱"} ${tr("Éclair", "Lightning")}</b><span class="et"></span><span class="es"><i class="ed ${o.side}"></i><span class="em"></span><span class="ex">–</span><span class="eo"></span><i class="ed ${o.side === "blue" ? "red" : "blue"}"></i></span>`;
   const time = pill.querySelector<HTMLElement>(".et")!;
   const mine = pill.querySelector<HTMLElement>(".em")!;
   const theirs = pill.querySelector<HTMLElement>(".eo")!;

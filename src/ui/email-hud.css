@@ -1,0 +1,1187 @@
+/*
+ * Panache 1.1 — the in-game HUD in « émail, laiton, papier » (over belle-hud.css, same scope:
+ * html.belle #hud.bh, so ?style=original never sees it). Enamel strip for the coal and the clock,
+ * one-line paper dispatches instead of stacked bubbles, engraved medallions for the corner buttons,
+ * the drawer as a big enamel plaque, the selection as a paper card, the openers as posters.
+ * Materials and tokens: email.css; images: public/assets/ui/belle/.
+ */
+html.belle #hud.bh {
+  --bh-walnut: linear-gradient(180deg, rgba(26, 40, 88, 0.96), rgba(12, 20, 48, 0.96));
+  --bh-brass: linear-gradient(180deg, var(--brass-hi), var(--brass) 55%, var(--brass-lo));
+  --bh-ring: 0 0 0 2.5px var(--brass), 0 0 0 4px rgba(0, 0, 0, 0.45), 0 4px 10px rgba(0, 0, 0, 0.6);
+  font-family: var(--sans);
+}
+
+/* ------------------------------------------------ the coal and the clock --- */
+/* one slim enamel strip: medallion, coal in Bodoni, income, a rule, the clock */
+html.belle #hud.bh .bh-pill {
+  height: 44px;
+  padding: 0 10px 0 2px;
+  gap: 8px;
+  border-radius: 0;
+  border: 9px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 9px;
+  background: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  color: var(--ivory);
+}
+html.belle #hud.bh .bh-pill.open {
+  filter: brightness(1.12);
+}
+html.belle #hud.bh .bh-pill .res {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+}
+html.belle #hud.bh .bh-pill .res .gear.bi {
+  width: 28px;
+  height: 28px;
+  margin-left: -4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--brass), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+html.belle #hud.bh .bh-pill .res .rate {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--brass-hi);
+}
+html.belle #hud.bh .bh-clock {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ivory);
+}
+html.belle #hud.bh .bh-pill .res + .bh-clock::before {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: -3px;
+  background: rgba(241, 231, 207, 0.35);
+}
+html.belle #hud.bh .bh-speed {
+  font-family: var(--sans);
+  font-weight: 800;
+  color: var(--brass-hi);
+}
+html.belle #hud.bh .bh-caret {
+  color: var(--brass);
+}
+html.belle #hud.bh .bh-pill .bh-crest {
+  width: 30px;
+  height: 30px;
+  margin-left: -2px;
+}
+html.belle #hud.bh .bh-pill.nat-republique,
+html.belle #hud.bh .bh-pill.nat-empire {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+/* its panel (Relays, battle meter, speed, sound, pause): an enamel plaque too */
+html.belle #hud.bh .bh-drop {
+  border-radius: 0;
+  border: 14px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 14px;
+  background: none;
+  padding: 2px 4px;
+}
+html.belle #hud.bh .bh-lb {
+  font-family: var(--display);
+  font-style: italic;
+  color: var(--brass-hi);
+}
+html.belle #hud.bh .bh-r-btns .round {
+  border-radius: 50%;
+  background: var(--navy-deep);
+  box-shadow: var(--bh-ring);
+  border: none;
+  color: var(--ivory);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 0;
+}
+html.belle #hud.bh .bh-r-btns .round .bi {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+html.belle #hud.bh .bspk {
+  width: 22px;
+  height: 22px;
+}
+
+/* a mode's pills (wave, op goal, Éclair, versus): slim enamel too */
+html.belle #hud.bh .opspill,
+html.belle #hud.bh .wavepill,
+html.belle #hud.bh .versus,
+html.belle #hud.bh .objpill {
+  border-radius: 0;
+  border: 8px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 8px;
+  background: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  color: var(--ivory);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.belle #hud.bh .eclairpill .el .bi {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  vertical-align: -4px;
+}
+
+/* ------------------------------------------------------ the dispatches --- */
+/* One slim strip of paper, one line, a stamp for the kind of news, typewriter capitals; "+N" when
+   more wait; a long line ends in "…" and unfolds on a tap (hud.ts toast, showBanner, syncDispatch). */
+html.belle #hud.bh .banner.dep,
+html.belle #hud.bh .toast.dep {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  max-width: min(330px, 100%);
+  min-height: 28px;
+  padding: 3px 10px 3px 6px;
+  border: none;
+  border-radius: 1px;
+  background: var(--img-papier) center / 300px;
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), 0 4px 10px rgba(0, 0, 0, 0.45);
+  text-align: left;
+  transform: rotate(-0.4deg);
+  font-family: var(--telex);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  text-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.belle #hud.bh .banner.dep {
+  opacity: 0;
+}
+html.belle #hud.bh .banner.dep.in {
+  animation: depIn 0.24s ease-out forwards;
+}
+html.belle #hud.bh .banner.dep.out {
+  opacity: 1;
+  animation: depOut 0.26s ease-in forwards;
+}
+@keyframes depIn {
+  from { opacity: 0; transform: translateY(-6px) rotate(-0.4deg); }
+  to { opacity: 1; transform: rotate(-0.4deg); }
+}
+@keyframes depOut {
+  to { opacity: 0; transform: translateY(-6px) rotate(-0.4deg); }
+}
+html.belle #hud.bh .toast.dep {
+  animation: depIn 0.22s ease-out;
+}
+html.belle #hud.bh .toast.dep.out {
+  opacity: 0;
+  transform: translateY(-6px) rotate(-0.4deg);
+}
+/* the stamp */
+html.belle #hud.bh .dep .stamp {
+  flex: none;
+  font-style: normal;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  line-height: 15px;
+  padding: 0 5px;
+  border-radius: 2px;
+  color: #fff;
+  background: var(--navy);
+  white-space: nowrap;
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.belle #hud.bh .dep-alert .stamp { background: var(--bordeaux); }
+html.belle #hud.bh .dep-good .stamp { background: #2f5a2a; }
+html.belle #hud.bh .dep-epic .stamp { background: linear-gradient(var(--brass), var(--brass-lo)); }
+html.belle #hud.bh .dep-tip .stamp { background: var(--navy); }
+html.belle #hud.bh .dep-radio .stamp { background: #3e4a5e; }
+/* the line: one, cut with "…" (unfolded: all of it) */
+html.belle #hud.bh .dep > .tx,
+html.belle #hud.bh .bh-col:has(> .banner.in) .toasts > .toast.dep > .tx,
+html.belle #hud.bh.tick-under:has(> .banner.in) .toasts > .toast.dep > .tx {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+html.belle #hud.bh .dep.open > .tx {
+  white-space: normal;
+}
+html.belle #hud.bh .dep.open {
+  align-items: flex-start;
+}
+html.belle #hud.bh .dep.long:not(.open)::before {
+  /* a tap unfolds it: a small fold mark */
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border: 5px solid transparent;
+  border-right-color: rgba(28, 26, 46, 0.35);
+  border-bottom-color: rgba(28, 26, 46, 0.35);
+}
+/* how many more wait behind it */
+html.belle #hud.bh .dep[data-more]::after {
+  content: attr(data-more);
+  flex: none;
+  margin-left: 1px;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--bordeaux);
+}
+/* (the radio caption's blinking dot and hit area: the stamp says it) */
+html.belle #hud.bh .toast.dep.radio::before {
+  display: none;
+}
+html.belle #hud.bh .toast.dep.passive {
+  pointer-events: none;
+}
+/* one on screen: the announcement while it's up, else the newest line of the ticker */
+html.belle #hud.bh .toasts > .toast.dep:not(:last-child),
+html.belle #hud.bh.bh-dep-banner .toasts > .toast.dep {
+  display: none;
+}
+html.belle #hud.bh .toasts {
+  gap: 0;
+}
+/* the banner's old title and subtitle (no `dep`: never under Belle Époque, kept safe) */
+html.belle #hud.bh .banner.dep b {
+  display: none;
+}
+
+/* ------------------------------------------------ minimap and pause --- */
+/* round, ringed in brass like a compass (the canvas stays square underneath: every tap still lands) */
+html.belle #hud.bh .minimap-wrap {
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--navy-deep);
+  box-shadow: 0 0 0 4px var(--brass), 0 0 0 6px var(--brass-lo), 0 5px 12px rgba(0, 0, 0, 0.6);
+}
+html.belle #hud.bh .minimap-wrap::after {
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.55);
+}
+html.belle #hud.bh #minimap {
+  border-radius: 50%;
+}
+html.belle #hud.bh .bh-pause {
+  left: -12px;
+  bottom: -10px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--navy-deep);
+  box-shadow: var(--bh-ring);
+  overflow: hidden;
+}
+html.belle #hud.bh .bh-pause .bi {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* (44 px of target round the 40 px medallion) */
+html.belle #hud.bh .bh-pause::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+}
+
+/* zoom and jump-to-action: small medallions */
+html.belle #hud.bh .zb {
+  border-radius: 50%;
+  border: none;
+  background: var(--bh-walnut);
+  box-shadow: var(--bh-ring);
+  color: var(--brass-hi);
+  font-family: var(--display);
+  font-weight: 800;
+}
+html.belle #hud.bh .zb.jump {
+  padding: 0;
+  overflow: hidden;
+}
+html.belle #hud.bh .zb.jump .ji .bi {
+  display: block;
+  width: 44px;
+  height: 44px;
+}
+
+/* ------------------------------------------- the corner medallions --- */
+html.belle #hud.bh .bh-fab {
+  background: none;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+html.belle #hud.bh .bh-fab .bh-ic {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: var(--bh-ring);
+}
+html.belle #hud.bh .bh-fab .bh-cap {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  padding: 0 7px;
+  border-radius: 3px;
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-style: normal;
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+html.belle #hud.bh .bh-army,
+html.belle #hud.bh .bh-build {
+  background: none;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+/* Construire: the bigger one, with a brass halo */
+html.belle #hud.bh .bh-build .bh-ic {
+  box-shadow: 0 0 0 3px var(--brass-hi), 0 0 0 5px var(--brass-lo), 0 0 18px rgba(243, 217, 140, 0.55), 0 5px 10px rgba(0, 0, 0, 0.6);
+}
+html.belle #hud.bh .bh-build.ready {
+  animation: none;
+}
+html.belle #hud.bh .bh-build.ready .bh-ic {
+  animation: bhReadyBrass 1s ease-in-out infinite alternate;
+}
+@keyframes bhReadyBrass {
+  to { box-shadow: 0 0 0 3px var(--brass-hi), 0 0 0 5px #2f5a2a, 0 0 26px rgba(120, 220, 140, 0.7), 0 5px 10px rgba(0, 0, 0, 0.6); }
+}
+html.belle #hud.bh .bh-badge {
+  border: 1.5px solid var(--brass-hi);
+  font-family: var(--sans);
+  line-height: 20px;
+}
+html.belle #hud.bh .bh-army .bh-badge { background: var(--bordeaux); }
+html.belle #hud.bh .bh-build .bh-badge { background: var(--navy); }
+html.belle #hud.bh .bh-build.ready .bh-badge { background: #2f5a2a; color: #fff; }
+
+/* the powers medallion: the Command meter as a brass ring round it, the count on a brass tag */
+html.belle #hud.bh .bh-pow {
+  bottom: calc(var(--bh-b) + var(--bh-build) + 26px);
+  background: none;
+  box-shadow: none;
+}
+html.belle #hud.bh .bh-pow .bh-ring {
+  inset: -5px;
+  background: conic-gradient(var(--brass-hi) calc(var(--k) * 1turn), rgba(12, 20, 48, 0.75) 0);
+  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+  mask: radial-gradient(circle closest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+}
+html.belle #hud.bh .bh-pow .bh-face {
+  inset: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  overflow: hidden;
+  border-radius: 50%;
+}
+html.belle #hud.bh .bh-pow .bh-ic {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  font-size: 0;
+  box-shadow: 0 0 0 2px var(--brass-lo);
+  filter: saturate(0.75) brightness(0.85);
+}
+html.belle #hud.bh .bh-pow.ready .bh-ic {
+  filter: none;
+  animation: none;
+}
+html.belle #hud.bh .bh-pow.ready {
+  animation: bhPowBrass 1.2s ease-in-out infinite alternate;
+}
+@keyframes bhPowBrass {
+  to { filter: drop-shadow(0 0 8px rgba(243, 217, 140, 0.9)); }
+}
+html.belle #hud.bh .bh-pow .bh-n {
+  bottom: -9px;
+  min-width: 0;
+  padding: 0 6px;
+  border: none;
+  border-radius: 3px;
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 15px;
+  text-shadow: none;
+}
+html.belle #hud.bh .bh-pow.ready .bh-n {
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+}
+/* the fan of calldowns: enamel medallions ringed in brass */
+html.belle #hud.bh .powers.bh-fan::before {
+  background: radial-gradient(circle, rgba(12, 20, 48, 0.55), transparent 70%);
+}
+html.belle #hud.bh .powers .pw {
+  background: radial-gradient(circle at 50% 35%, #2b3f7a, var(--navy-deep) 75%);
+  border: none;
+  box-shadow: var(--bh-ring);
+  color: var(--brass-hi);
+}
+html.belle #hud.bh .powers .pw-tag {
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-weight: 800;
+  border: none;
+}
+html.belle #hud.bh .powers .pw-meter i .bi,
+html.belle .powers .pw-meter i .bi {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  vertical-align: -4px;
+}
+
+/* the frame medallion beside Armée */
+html.belle #hud.bh .bh-frame {
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+}
+html.belle #hud.bh .bh-frame .bh-ic {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: var(--bh-ring);
+}
+html.belle #hud.bh .bh-frame.on .bh-ic {
+  box-shadow: 0 0 0 3px var(--brass-hi), 0 0 14px rgba(243, 217, 140, 0.8), 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* ------------------------------------------- squads 1–3 and roles --- */
+/* squads: brass tokens (an empty one stays hollow) */
+html.belle #hud.bh .sq {
+  border: none;
+  border-radius: 5px;
+  background: linear-gradient(var(--brass-hi), var(--brass) 60%, var(--brass-lo));
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--navy-deep);
+}
+html.belle #hud.bh .sq .sqn {
+  font-family: var(--display);
+  font-weight: 800;
+  color: var(--navy-deep);
+}
+html.belle #hud.bh .sq .sqc {
+  font-family: var(--display);
+  color: var(--navy-deep);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+html.belle #hud.bh .sq.empty {
+  border: none;
+  background: rgba(12, 20, 48, 0.72);
+  box-shadow: inset 0 0 0 1.5px var(--brass), 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+html.belle #hud.bh .sq.empty .sqn {
+  font-size: 19px;
+  color: var(--brass-hi);
+}
+html.belle #hud.bh .sq.empty::after {
+  color: var(--brass);
+}
+html.belle #hud.bh .sq.on {
+  box-shadow: 0 0 0 2.5px var(--ivory), 0 0 12px rgba(243, 217, 140, 0.8), 0 2px 5px rgba(0, 0, 0, 0.55);
+}
+html.belle #hud.bh .sq.on .sqn {
+  color: var(--navy-deep);
+}
+html.belle #hud.bh .sq.hurt {
+  background: linear-gradient(#b44a52, var(--bordeaux));
+  box-shadow: 0 0 0 2px #ff8a7a, 0 0 12px rgba(255, 90, 74, 0.75);
+}
+html.belle #hud.bh .sq.hurt .sqn,
+html.belle #hud.bh .sq.hurt .sqc {
+  color: var(--ivory);
+  text-shadow: none;
+}
+html.belle #hud.bh .bh-squads .rl {
+  border-radius: 0;
+  border: 7px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 7px;
+  background: none;
+  color: var(--ivory);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+html.belle #hud.bh .bh-squads .rl.on {
+  filter: brightness(1.2);
+  box-shadow: 0 0 0 2px var(--brass-hi), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* --------------------------------------- the command bar: a paper card --- */
+html.belle #hud.bh .ctx {
+  border-radius: 1px;
+  border: none;
+  background: var(--img-papier) center / 380px;
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 8px 18px rgba(0, 0, 0, 0.5);
+}
+html.belle #hud.bh[data-bh="chips"] .ctx {
+  background: none;
+  box-shadow: none;
+}
+html.belle #hud.bh .selpanel {
+  color: var(--ink);
+}
+html.belle #hud.bh .selpanel .pt b {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--navy);
+}
+html.belle #hud.bh .selpanel .hp {
+  color: #2f5a2a;
+  font-weight: 800;
+}
+html.belle #hud.bh .selpanel .robots,
+html.belle #hud.bh .selpanel .hint {
+  color: #4b3f2e;
+  font-weight: 700;
+}
+html.belle #hud.bh .selpanel .rank {
+  color: var(--brass-lo);
+}
+html.belle #hud.bh .selpanel .gi {
+  background: radial-gradient(circle at 50% 35%, #2b3f7a, var(--navy-deep) 80%);
+  border: none;
+  box-shadow: 0 0 0 1.5px var(--brass);
+}
+html.belle #hud.bh .selpanel .gi b {
+  background: var(--ivory);
+  color: var(--ink);
+  border: 1px solid var(--brass-lo);
+}
+html.belle #hud.bh .bh-count {
+  color: var(--navy);
+}
+/* chips: small enamel plaques; Stop and Repli as medallions with a brass tag */
+html.belle #hud.bh .chip {
+  border-radius: 0;
+  border: 9px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 9px;
+  background: none;
+  box-shadow: none;
+  color: var(--ivory);
+  font-family: var(--sans);
+  font-weight: 800;
+  text-shadow: none;
+}
+html.belle #hud.bh .chip.warn,
+html.belle #hud.bh .chip.bad {
+  border-image-source: var(--img-plaque-bx);
+}
+html.belle #hud.bh .chip.go {
+  border-image-source: var(--img-laiton);
+  color: var(--navy-deep);
+}
+html.belle #hud.bh .chip.active {
+  filter: brightness(1.25);
+  box-shadow: 0 0 0 2px var(--brass-hi);
+}
+html.belle #hud.bh .chip[data-id="stop"],
+html.belle #hud.bh .chip[data-id="move"] {
+  position: relative;
+  min-width: 52px;
+  min-height: 56px;
+  padding: 40px 0 0;
+  border: none;
+  border-image: none;
+  background: none;
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-size: 11px;
+}
+html.belle #hud.bh .chip[data-id="stop"]::before,
+html.belle #hud.bh .chip[data-id="move"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: center / cover no-repeat;
+  box-shadow: var(--bh-ring);
+}
+html.belle #hud.bh .chip[data-id="stop"]::before { background-image: url("/assets/ui/belle/i-stop.webp"); }
+html.belle #hud.bh .chip[data-id="move"]::before { background-image: url("/assets/ui/belle/i-repli.webp"); }
+html.belle #hud.bh .chip[data-id="stop"],
+html.belle #hud.bh .chip[data-id="move"] {
+  line-height: 15px;
+}
+html.belle #hud.bh .chip[data-id="stop"]::after,
+html.belle #hud.bh .chip[data-id="move"]::after {
+  content: none;
+}
+html.belle #hud.bh .chip[data-id="move"].active::before {
+  box-shadow: 0 0 0 3px var(--brass-hi), 0 0 12px rgba(243, 217, 140, 0.8);
+}
+/* the skills over the chips: small enamel plaques with the unit's portrait */
+html.belle #hud.bh .skb {
+  border-radius: 14px;
+  border: 1.5px solid var(--brass);
+  background: var(--navy);
+  color: var(--ivory);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+html.belle #hud.bh .skb b {
+  font-family: var(--display);
+}
+html.belle #hud.bh .skb small {
+  color: var(--brass-hi);
+}
+
+/* ------------------------------------------- the drawer: an enamel plaque --- */
+html.belle #hud.bh .bh-sheet {
+  border-radius: 0;
+  border: 18px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 18px;
+  background: none;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
+}
+html.belle #hud.bh .bh-handle i {
+  background: var(--brass);
+}
+/* tabs: engraved medallions with their name on a brass tag; "inactif" in burgundy */
+html.belle #hud.bh .bh-sheet .tabs {
+  gap: 4px;
+}
+html.belle #hud.bh .bh-sheet .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+html.belle #hud.bh .bh-sheet .tab .ti {
+  display: block;
+  width: min(44px, 100%);
+  aspect-ratio: 1;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--brass), 0 3px 6px rgba(0, 0, 0, 0.5);
+  opacity: 0.55;
+  font-size: 0;
+}
+html.belle #hud.bh .bh-sheet .tab .ti .bi {
+  width: 100%;
+  height: 100%;
+}
+html.belle #hud.bh .bh-sheet .tab.on {
+  background: none;
+}
+html.belle #hud.bh .bh-sheet .tab.on .ti {
+  opacity: 1;
+  box-shadow: 0 0 0 2.5px var(--brass-hi), 0 0 12px rgba(243, 217, 140, 0.7);
+}
+html.belle #hud.bh .bh-sheet .tab:has(.tidle:not([hidden])) .ti {
+  transform: none;
+}
+html.belle #hud.bh .bh-sheet .tab .tidle {
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--bordeaux);
+  color: #fff;
+  border: 1px solid var(--brass-hi);
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: none;
+}
+html.belle #hud.bh .bh-sheet .tab .tctr {
+  background: var(--bordeaux);
+  color: #fff;
+}
+/* the cards: enamel, the price on a brass band */
+html.belle #hud.bh .bh-sheet .bb {
+  border: none;
+  border-radius: 6px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #2b3f7a, var(--navy-deep) 75%);
+  box-shadow: inset 0 0 0 1.5px var(--brass);
+}
+html.belle #hud.bh .bh-sheet .bb:not(.counter):not(.ready) {
+  border-color: transparent;
+}
+html.belle #hud.bh .bh-sheet .bb .cost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1px 0;
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 12.5px;
+  line-height: 15px;
+  text-align: center;
+  text-shadow: none;
+}
+html.belle #hud.bh .bh-sheet .bb.poor .cost,
+html.belle #hud.bh .bh-sheet .bb.broke .cost {
+  background: linear-gradient(#d9c9a0, #a89466);
+  color: var(--bordeaux);
+}
+html.belle #hud.bh .bh-sheet .bb.placing,
+html.belle #hud.bh .bh-sheet .bb.armed,
+html.belle #hud.bh .bh-sheet .bb.on {
+  background: radial-gradient(circle at 50% 35%, #3c5598, var(--navy-deep) 75%);
+  box-shadow: inset 0 0 0 2.5px var(--brass-hi), 0 0 12px rgba(243, 217, 140, 0.6);
+}
+html.belle #hud.bh .bh-sheet .bb.looping {
+  box-shadow: inset 0 0 0 2px var(--brass-hi);
+}
+html.belle #hud.bh .bh-sheet .bb.locked,
+html.belle #hud.bh .bh-sheet .bb:disabled {
+  filter: grayscale(1) brightness(0.55);
+}
+html.belle #hud.bh .bb .lock {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  font-size: 0;
+}
+html.belle #hud.bh .bb .lock .bi {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+html.belle #hud.bh .bb .badge {
+  background: var(--bordeaux);
+  border: 1.5px solid var(--brass-hi);
+  color: #fff;
+}
+html.belle #hud.bh .bb .prog {
+  background: rgba(243, 217, 140, 0.35);
+}
+
+/* ----------------------------- the info card (long-press): a paper card --- */
+html.belle #hud.bh .card {
+  border-radius: 1px;
+  border: none;
+  background: var(--img-papier) center / 380px;
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2), 0 10px 24px rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.belle #hud.bh .card h3,
+html.belle #hud.bh .card b {
+  font-family: var(--display);
+  color: var(--navy);
+}
+html.belle #hud.bh .card p,
+html.belle #hud.bh .card .role {
+  color: #3d3325;
+}
+html.belle #hud.bh .card .good { color: #2f5a2a; }
+html.belle #hud.bh .card .bad { color: var(--bordeaux); }
+html.belle #hud.bh .card .ctr .bi {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  vertical-align: -4px;
+}
+html.belle #hud.bh .card .x {
+  color: var(--navy);
+}
+html.belle #hud.bh .card .cta.alt,
+html.belle #hud.bh .card button:not(.x) {
+  color: var(--ivory);
+}
+
+/* --------------------------------------- the opening choice: posters --- */
+html.belle .openers {
+  background: radial-gradient(ellipse at center, rgba(5, 8, 19, 0.55) 0%, rgba(5, 8, 19, 0.88) 75%);
+}
+html.belle .op-head h2 {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--brass-hi);
+  text-shadow: 0 2px 8px #000;
+}
+html.belle .op-head::after {
+  content: "";
+  display: block;
+  width: 220px;
+  height: 14px;
+  margin: 4px auto 0;
+  background: var(--img-frise) center / contain no-repeat;
+}
+html.belle .op-ctx {
+  font-family: var(--sans);
+  color: var(--ivory);
+}
+html.belle .op-back {
+  border-radius: 0;
+  border: 9px solid transparent;
+  border-image: var(--img-plaque) 62 fill / 9px;
+  background: none;
+  color: var(--ivory);
+  font-family: var(--display);
+  min-height: 40px;
+  padding: 0 4px;
+}
+html.belle .op-card {
+  border: none;
+  border-radius: 1px;
+  background: var(--img-papier) center / 380px;
+  color: var(--ink);
+  box-shadow: inset 0 9px 0 var(--accent), 0 2px 0 rgba(0, 0, 0, 0.2), 0 10px 22px rgba(0, 0, 0, 0.55);
+  padding-top: 18px;
+}
+html.belle .op-blitz { --accent: var(--bordeaux); --ink-accent: var(--bordeaux); }
+html.belle .op-industry { --accent: var(--brass); --ink-accent: #7d5d22; }
+html.belle .op-airwing { --accent: var(--navy); --ink-accent: var(--navy); }
+html.belle .op-card.picked {
+  box-shadow: inset 0 9px 0 var(--accent), 0 0 0 3px var(--brass-hi), 0 0 30px rgba(243, 217, 140, 0.5);
+}
+html.belle .op-art {
+  background: none;
+}
+html.belle .op-art .op-n {
+  font-family: var(--display);
+  color: var(--ink-accent);
+  text-shadow: none;
+}
+html.belle .op-name {
+  font-family: var(--display);
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: var(--ink-accent);
+}
+html.belle .op-tag {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 14px;
+  color: #3d3325;
+}
+html.belle .op-pill {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1.5px solid var(--ink-accent);
+  color: var(--ink-accent);
+  font-weight: 800;
+}
+html.belle .op-pill i {
+  color: var(--ink-accent);
+}
+html.belle .op-pill.neg {
+  color: var(--bordeaux);
+  border-color: var(--bordeaux);
+}
+html.belle .op-rec {
+  background: linear-gradient(var(--brass-hi), var(--brass));
+  color: var(--navy-deep);
+  border: none;
+  font-family: var(--display);
+}
+html.belle .op-key {
+  color: rgba(28, 26, 46, 0.35);
+}
+html.belle .op-foot {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ivory);
+}
+@media (orientation: landscape) {
+  html.belle .op-card {
+    border-top: none;
+  }
+}
+@media (orientation: portrait) {
+  html.belle .op-card {
+    border-left: none;
+    box-shadow: inset 7px 0 0 var(--accent), 0 2px 0 rgba(0, 0, 0, 0.2), 0 10px 22px rgba(0, 0, 0, 0.55);
+    padding-top: 10px;
+    padding-left: 16px;
+  }
+  html.belle .op-card.picked {
+    box-shadow: inset 7px 0 0 var(--accent), 0 0 0 3px var(--brass-hi), 0 0 30px rgba(243, 217, 140, 0.5);
+  }
+}
+
+/* ---------------------------------------------- what's left: no walnut --- */
+html.belle #hud.bh .edge,
+html.belle #hud.bh .edges button {
+  background: var(--bh-walnut);
+  border-color: var(--brass);
+  color: var(--brass-hi);
+}
+html.belle .op-pill .op-coal {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--brass);
+}
+
+/* the advisor's ⚔ (counters seen enemies): the skirmish medallion */
+html.belle #hud.bh .bb.counter {
+  border-color: var(--brass-hi);
+  box-shadow: 0 0 0 2px var(--brass-hi), 0 0 10px rgba(243, 217, 140, 0.6);
+}
+html.belle #hud.bh .bb.counter::before,
+html.belle #hud.bh .bh-sheet .tab .tctr {
+  content: "";
+  width: 22px;
+  height: 22px;
+  font-size: 0;
+  color: transparent;
+  background: url("/assets/ui/belle/i-escarmouche.webp") center / cover;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--brass-hi), 0 0 8px rgba(243, 217, 140, 0.7);
+}
+
+/* while the openers are up, the strip (still 0 · 0:00) would sit under their « ‹ Menu » */
+html.belle #hud.bh:has(> .openers:not(.out)) .bh-pill {
+  visibility: hidden;
+}
+
+/* ------------------------------------- a phone on its side: smaller, one line --- */
+@media (orientation: landscape) and (max-height: 500px) {
+  html.belle #hud.bh {
+    --bh-army: 50px;
+    --bh-build: 56px;
+    --bh-pow: 42px;
+    --bh-mini: 76px;
+    --bh-frame: 44px;
+  }
+  html.belle #hud.bh .bh-pill {
+    height: 36px;
+    border-width: 7px;
+    border-image-width: 7px;
+    gap: 6px;
+  }
+  html.belle #hud.bh .bh-pill .res {
+    font-size: 17px;
+    gap: 5px;
+  }
+  html.belle #hud.bh .bh-pill .res .gear.bi {
+    width: 22px;
+    height: 22px;
+  }
+  html.belle #hud.bh .bh-pill .res .rate {
+    font-size: 11px;
+  }
+  html.belle #hud.bh .bh-clock {
+    font-size: 14px;
+  }
+  html.belle #hud.bh .bh-fab .bh-cap {
+    font-size: 9.5px;
+    line-height: 13px;
+    bottom: -5px;
+  }
+
+  html.belle #hud.bh .bh-squads .sq {
+    width: 36px;
+    height: 36px;
+  }
+  html.belle #hud.bh .sq .sqn {
+    font-size: 17px;
+  }
+
+  /* the selection: one row — skill, who, how many, Stop, Repli, close */
+  html.belle #hud.bh .ctx {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 5px 8px;
+  }
+  html.belle #hud.bh .skillrow {
+    flex: 0 1 auto;
+    flex-basis: auto;
+    order: 2;
+  }
+  html.belle #hud.bh .skb {
+    min-height: 0;
+    height: 38px;
+    padding: 2px 10px 2px 4px;
+  }
+  html.belle #hud.bh .skb img {
+    width: 26px;
+    height: 26px;
+  }
+  html.belle #hud.bh .skb b {
+    font-size: 13px;
+  }
+  html.belle #hud.bh .skb small {
+    font-size: 10px;
+  }
+  html.belle #hud.bh .selpanel {
+    order: 1;
+    flex: 0 1 auto;
+  }
+  html.belle #hud.bh .selpanel .pi {
+    width: 32px;
+    height: 32px;
+  }
+  html.belle #hud.bh .selpanel .pt b {
+    font-size: 14px;
+  }
+  html.belle #hud.bh .selpanel .hp {
+    font-size: 11px;
+  }
+  html.belle #hud.bh .selpanel .hint {
+    display: none;
+  }
+  html.belle #hud.bh .selpanel .gi {
+    width: 32px;
+    height: 32px;
+  }
+  html.belle #hud.bh .selpanel .gi img {
+    width: 25px;
+    height: 25px;
+  }
+  html.belle #hud.bh .bh-count {
+    order: 3;
+    font-size: 15px;
+  }
+  html.belle #hud.bh .chiprow {
+    order: 4;
+  }
+  html.belle #hud.bh .chips {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  html.belle #hud.bh .chip {
+    min-height: 38px;
+    min-width: 38px;
+  }
+  /* Stop and Repli: the medallion alone (the hand and the flag say it) */
+  html.belle #hud.bh .chip[data-id="stop"],
+  html.belle #hud.bh .chip[data-id="move"] {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+    font-size: 0;
+  }
+  html.belle #hud.bh .chip[data-id="stop"]::before,
+  html.belle #hud.bh .chip[data-id="move"]::before {
+    top: 2px;
+    width: 34px;
+    height: 34px;
+  }
+  html.belle #hud.bh .chip[data-id="clear"] {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-width: 6px;
+    border-image-width: 6px;
+  }
+
+  /* the drawer: flush with the edge, its plaque open on that side; only the Dynamic Island's side keeps its margin */
+  html.belle #hud.bh .bh-sheet {
+    width: 228px;
+    padding: var(--bh-t) 0 0 0;
+    border-width: 12px 0 12px 12px;
+    border-image-width: 12px 0 12px 12px;
+  }
+  html.belle[data-notch="r"] #hud.bh:not(.bh-lefty) .bh-sheet {
+    width: calc(228px + env(safe-area-inset-right));
+    padding-right: env(safe-area-inset-right);
+  }
+  html.belle #hud.bh.bh-lefty .bh-sheet {
+    border-width: 12px 12px 12px 0;
+    border-image-width: 12px 12px 12px 0;
+  }
+  html.belle[data-notch="l"] #hud.bh.bh-lefty .bh-sheet {
+    width: calc(228px + env(safe-area-inset-left));
+    padding-left: env(safe-area-inset-left);
+  }
+}
+
+/* ------------------------------------------------- the pause: two columns --- */
+/* the sound and interface toggles without their emoji (the words say it) */
+html.belle #pause .snd .si {
+  display: none;
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  /* wide and short: what the match is on the left, the buttons on the right, little to scroll */
+  html.belle #pause .panel {
+    width: min(calc(100vw - 2 * max(16px, env(safe-area-inset-left))), 820px);
+    max-width: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-flow: row dense;
+    column-gap: 22px;
+    align-content: start;
+  }
+  html.belle #pause .panel > * {
+    grid-column: 1;
+    min-width: 0;
+  }
+  html.belle #pause .panel > :is(.cta, #p-sound, #p-hud, #p-duel) {
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+  }
+  html.belle #pause .panel > :is(#p-helptext) {
+    grid-column: 1 / -1;
+  }
+  html.belle #pause .panel > #p-resume {
+    margin-top: 4px;
+  }
+}

@@ -38,7 +38,7 @@
   font-size: 15px;
   letter-spacing: 0.06em;
   color: var(--text);
-  background: rgba(30, 21, 12, 0.88);
+  background: rgba(18, 27, 67, 0.88);
   border: 1px solid var(--line-hi);
   border-radius: 8px;
   padding: 10px 14px;
@@ -57,8 +57,8 @@
 }
 .menu[data-view="qg"] .ttl-shade {
   background:
-    linear-gradient(0deg, rgba(14, 8, 3, 0.9) 0%, rgba(14, 8, 3, 0) 26%),
-    linear-gradient(90deg, rgba(14, 8, 3, 0.94) 0%, rgba(14, 8, 3, 0.6) 17%, rgba(14, 8, 3, 0) 34%, rgba(14, 8, 3, 0) 60%, rgba(14, 8, 3, 0.78) 72%, rgba(14, 8, 3, 0.94) 100%);
+    linear-gradient(0deg, rgba(7, 11, 27, 0.9) 0%, rgba(7, 11, 27, 0) 26%),
+    linear-gradient(90deg, rgba(7, 11, 27, 0.94) 0%, rgba(7, 11, 27, 0.6) 17%, rgba(7, 11, 27, 0) 34%, rgba(7, 11, 27, 0) 60%, rgba(7, 11, 27, 0.78) 72%, rgba(7, 11, 27, 0.94) 100%);
 }
 
 /* the title and the film: no hub yet; then it pops in */
@@ -82,7 +82,7 @@
   --sr: max(18px, env(safe-area-inset-right));
   --st: max(8px, env(safe-area-inset-top));
   --sb: max(14px, env(safe-area-inset-bottom));
-  --card: rgba(26, 18, 10, 0.88);
+  --card: rgba(15, 23, 58, 0.88);
   position: fixed;
   inset: 0;
   z-index: 1;
@@ -381,7 +381,7 @@ html.belle .qg .qg-logo::after {
   object-fit: cover;
   border: 1px solid var(--line);
   flex: none;
-  background: #2a1d10;
+  background: #19265d;
 }
 .qg-t {
   display: flex;
@@ -410,9 +410,9 @@ html.belle .qg .qg-logo::after {
   white-space: nowrap;
   font-weight: 700 !important;
   font-size: 13px !important;
-  color: #2a1906 !important;
+  color: #15204e !important;
   background: linear-gradient(180deg, #f6dc92, #c9973f);
-  border: 1px solid #6e4b1c;
+  border: 1px solid #3c5ce3;
 }
 .qg-chg {
   padding: 8px 11px;
@@ -452,7 +452,7 @@ html.belle .qg .qg-go {
   height: 12px;
   border-radius: 50%;
   background: #d6452f;
-  border: 2px solid #120c06;
+  border: 2px solid #0a1026;
 }
 
 /* ------------------------------------------------- short landscape phones --- */
@@ -600,7 +600,7 @@ html.belle .qg .qg-go {
     top: calc(var(--st, 8px) + 120px);
   }
   .menu[data-view="qg"] .ttl-shade {
-    background: linear-gradient(180deg, rgba(14, 8, 3, 0.7) 0%, rgba(14, 8, 3, 0) 18%, rgba(14, 8, 3, 0) 50%, rgba(14, 8, 3, 0.9) 64%, rgba(14, 8, 3, 0.97) 100%);
+    background: linear-gradient(180deg, rgba(7, 11, 27, 0.7) 0%, rgba(7, 11, 27, 0) 18%, rgba(7, 11, 27, 0) 50%, rgba(7, 11, 27, 0.9) 64%, rgba(7, 11, 27, 0.97) 100%);
   }
   /* Daily Op, Instruction, Archives, Arsenal: pastilles on the sides */
   .qg-side {
@@ -886,7 +886,7 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(229, 122, 100, 0.45);
-  background: rgba(90, 28, 20, 0.35);
+  background: rgba(39, 60, 147, 0.35);
 }
 .rg-ask p {
   margin: 0 0 8px;
@@ -1015,7 +1015,7 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
   object-fit: contain;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #1d140b;
+  background: #111a40;
 }
 
 /* ------------------------------------------------- the salon, two columns --- */
@@ -1061,7 +1061,7 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
   }
   /* the scene steps back behind the salon */
   .menu[data-view="salon"] .ttl-shade {
-    background: rgba(14, 8, 3, 0.82);
+    background: rgba(7, 11, 27, 0.82);
   }
 }
 
@@ -1126,7 +1126,7 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
   height: clamp(44px, 5.2vh, 64px);
   object-fit: cover;
   border-radius: 5px;
-  background: #2a1d10;
+  background: #19265d;
   filter: sepia(0.2);
 }
 .qg-map small {
@@ -1350,13 +1350,13 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
     margin-top: calc(-1 * max(10px, env(safe-area-inset-top)));
     padding-top: max(10px, env(safe-area-inset-top));
     padding-bottom: 8px;
-    background: linear-gradient(180deg, rgba(14, 8, 3, 0.96) 70%, rgba(14, 8, 3, 0));
+    background: linear-gradient(180deg, rgba(7, 11, 27, 0.96) 70%, rgba(7, 11, 27, 0));
   }
   .menu[data-view="salon"] #play {
     position: sticky;
     bottom: max(10px, env(safe-area-inset-bottom));
     z-index: 5;
-    box-shadow: 0 0 0 1px #6e4b1c, 0 -10px 30px rgba(14, 8, 3, 0.85), 0 6px 18px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px #3c5ce3, 0 -10px 30px rgba(7, 11, 27, 0.85), 0 6px 18px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -1438,12 +1438,12 @@ html.belle .rg-row[aria-pressed="true"] .rg-sw {
 }
 .qg-ecl.on .qg-sw::after {
   transform: translateX(16px);
-  background: #2a1d10;
+  background: #19265d;
 }
 
 /* the Réglages ✕ in brass and walnut */
 html.belle .rg-head .sheet-close.x {
-  background: linear-gradient(180deg, rgba(58, 40, 22, 0.94), rgba(34, 23, 12, 0.94));
+  background: linear-gradient(180deg, rgba(34, 52, 128, 0.94), rgba(20, 30, 74, 0.94));
   border-color: var(--line-hi);
   color: var(--gold);
 }

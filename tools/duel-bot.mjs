@@ -54,15 +54,16 @@ if (ranked) await page.addInitScript(() => Object.defineProperty(navigator, "web
 const plain = new URL(page0.href);
 plain.searchParams.delete("salon");
 await page.goto(plain.href, { waitUntil: "networkidle" });
-await page.evaluate(() => localStorage.setItem("panache.intro.seen", "1"));
+await page.evaluate(() => {
+  localStorage.setItem("panache.intro.seen", "1");
+  localStorage.setItem("panache.portes", "toutes");
+});
 await page.goto(page0.href, { waitUntil: "networkidle" });
 say(ranked ? "partie classée : en file…" : `salon ${code.toUpperCase()} : on rejoint…`);
 if (ranked) {
-  // the menu (the hub, without the robot flag): Duel, then its button
-  await page.waitForSelector('.qg-ri[data-p="duel"]', { state: "attached", timeout: 20_000 });
-  await page.evaluate(() => document.querySelector('.qg-ri[data-p="duel"]').click());
-  await page.waitForTimeout(500);
-  await page.evaluate(() => document.querySelector("#qg-go").click());
+  // the menu (the hub, without the robot flag): the Duel door opens the duel
+  await page.waitForSelector('[data-door="duel"]', { state: "attached", timeout: 20_000 });
+  await page.evaluate(() => document.querySelector('[data-door="duel"]').click());
   const act = hosting ? "host" : "ranked";
   await page.waitForSelector(`[data-act="${act}"]`, { state: "attached", timeout: 15_000 });
   await page.evaluate((a) => document.querySelector(`[data-act="${a}"]`).click(), act);
