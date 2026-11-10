@@ -1,4 +1,5 @@
 // before anything reads the storage: the old « battledrones.* » keys move to « panache.* »
+import { loadSkins } from "./game/three/skins";
 import "./storage-rename";
 // then: the Belle Époque switch tags <html> before the menu draws (src/ui/belle.css)
 import { BELLE_EPOQUE } from "./game/three/theme";
@@ -147,9 +148,12 @@ async function startGame(feed?: MatchFeed): Promise<void> {
   hud.appendChild(loading);
   const bar = loading.querySelector<HTMLElement>("#loadbar");
   // the painted terrain is draped over the 3D landscape; a failed chunk falls back to flat colours
+  // (the baked unit models come with it: models are built on the spot, so their files must be in first)
+  const skinsIn = loadSkins();
   const art = await loadTerrainArt(def.id, def.size, def.biome, (k) => {
     if (bar) bar.style.width = `${Math.round(k * 90)}%`;
   });
+  await skinsIn;
   if (bar) bar.style.width = "100%";
   // (let the full bar paint before the scene build blocks the main thread)
   await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));

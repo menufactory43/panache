@@ -1,4 +1,5 @@
 import type { UnitKind } from "../../../sim/types";
+import { skinPart } from "../skins";
 import { ModelBuilder, type Section, type Vec3 } from "../builder";
 import {
   AMBER, BARREL, BRASS, CRAWLER_LEGS, GM, GM_D, GM_L, TRACK, WHITE,
@@ -65,6 +66,10 @@ function porthole(b: ModelBuilder, at: Vec3, s: number, r = 0.022): void {
  * `cargo`: a heap of coal with a few glowing radium lumps.
  */
 function fardier(t: Team): ModelDef {
+  // the baked model (art/models3d/fardier.py), when it has loaded
+  const hd = skinPart("fardier", "hull", t.main);
+  if (hd)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, 0.3, -0.5], rotors: [], cargo: skinPart("fardier", "cargo", t.main), height: 0.74, stacks: [[0, 0.84, -0.345]] };
   const b = hullB();
   // the timber frame and the rear axle
   b.pairBlock(0.05, 0.06, 0.9, [0.11, 0.2, 0.02], WOOD, { bevel: 0.012 });
@@ -132,6 +137,10 @@ function fardier(t: Team): ModelDef {
  * Hotchkiss machine-gun (brass cooling rings).
  */
 function panhard(t: Team): ModelDef {
+  // the baked model (art/models3d/panhard.py), when it has loaded
+  const hd = skinPart("panhard", "hull", t.main);
+  const hdTurret = skinPart("panhard", "turret", t.main);
+  if (hd && hdTurret) return { hull: hd, turret: hdTurret, mount: [0, 0.412, 0.17], muzzle: [0, 0.066, -0.585], rotors: [], height: 0.68 };
   const b = hullB();
   b.block(0.3, 0.06, 0.86, [0, 0.15, 0], GM_D, { bevel: 0.01 });
   for (const s of [1, -1]) for (const z of [-0.27, 0.27]) spokedWheel(b, [s * 0.2, 0.11, z], 0.11, 0.06, 10);
@@ -187,6 +196,18 @@ function panhard(t: Team): ModelDef {
  * barrels pitched at the sky on a brass turret.
  */
 function faucheux(t: Team): ModelDef {
+  // the baked model (art/models3d/faucheux.py: the same hips, knees and feet, so the gait stays), when it has loaded
+  const hd = skinPart("faucheux", "hull", t.main);
+  const hdTurret = skinPart("faucheux", "turret", t.main);
+  if (hd && hdTurret) {
+    const legs: NonNullable<ModelDef["parts"]> = {};
+    for (const leg of CRAWLER_LEGS) {
+      const geo = skinPart("faucheux", leg.name, t.main);
+      if (geo) legs[leg.name] = { geo, at: [leg.side * Math.cos(leg.angle) * 0.18, 0.23, Math.sin(leg.angle) * 0.24] };
+    }
+    if (Object.keys(legs).length === CRAWLER_LEGS.length)
+      return { hull: hd, turret: hdTurret, mount: [0, 0.375, 0.05], muzzle: [0, 0.348, -0.261], rotors: [], parts: legs, height: 0.7 };
+  }
   const b = hullB();
   b.drum(0.1, 0.08, 0.1, 8, [0, 0.15, 0], GM_D, { scale: [1, 1, 1.25] });
   b.sphere(0.21, [0, 0.25, 0], GM, { phi: Math.PI / 2, rot: [Math.PI, 0, 0], w: 12, h: 4, scale: [1, 0.5, 1.3] });
@@ -245,6 +266,10 @@ function faucheux(t: Team): ModelDef {
  * shield, the cradle with its recoil cylinder and a long barrel pitched high.
  */
 function canon75(t: Team): ModelDef {
+  // the baked model (art/models3d/canon75.py), when it has loaded
+  const hd = skinPart("canon75", "hull", t.main);
+  const hdGun = skinPart("canon75", "turret", t.main);
+  if (hd && hdGun) return { hull: hd, turret: hdGun, mount: [0, 0.25, -0.06], muzzle: [0, 0.637, -0.295], rotors: [], height: 0.9 };
   const b = hullB();
   b.cyl(0.025, 0.025, 0.56, 6, [0, 0.18, -0.06], GM_D, { rot: [0, 0, Math.PI / 2] });
   for (const s of [1, -1]) spokedWheel(b, [s * 0.27, 0.18, -0.06], 0.18, 0.06, 12);
@@ -293,6 +318,11 @@ function canon75(t: Team): ModelDef {
  * turret with a team roof and two cannon.
  */
 function creusot(t: Team): ModelDef {
+  // the baked model (art/models3d/creusot.py: its turret pivot and muzzle, turned to y up, nose -z), when it has loaded
+  const hd = skinPart("creusot", "hull", t.main);
+  const hdTurret = skinPart("creusot", "turret", t.main);
+  if (hd && hdTurret)
+    return { hull: hd, turret: hdTurret, mount: [0, 0.489, -0.1], muzzle: [0, 0.08, -0.835], rotors: [], height: 0.9, stacks: [[0.15, 0.83, 0.455], [-0.15, 0.83, 0.455]] };
   const b = hullB();
   tracks(b, 0.36, 0.2, 0.2, 1.0, 0.02);
   // the lower hull over the tracks, its portholes, a ram prow
@@ -340,6 +370,12 @@ function creusot(t: Team): ModelDef {
  * electric lance turret: brass coils, a blue-white spark at the tip.
  */
 function hydroglisseur(t: Team): ModelDef {
+  // the baked model (art/models3d/hydroglisseur.py), when it has loaded
+  const hd = skinPart("hydroglisseur", "hull", t.main);
+  const hdTurret = skinPart("hydroglisseur", "turret", t.main);
+  const hdProp = skinPart("hydroglisseur", "rotor0", t.main);
+  if (hd && hdTurret && hdProp)
+    return { hull: hd, turret: hdTurret, mount: [0, 0.274, -0.1], muzzle: [0, 0.05, -0.668], rotors: [{ geo: hdProp, at: [0, 0.47, 0.438], axis: "z", speed: 30 }], height: 0.7 };
   const b = hullB();
   skirt(b, 0.64, 0.95, 0.02, 0, [0, 0.025, 0], WHITE, 0.25);
   skirt(b, 0.6, 0.9, 0.1, 0.06, [0, 0.08, 0], 0x2b231c);

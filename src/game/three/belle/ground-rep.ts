@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { UnitKind } from "../../../sim/types";
 import type { ModelBuilder, Section, Vec3 } from "../builder";
+import { skinPart } from "../skins";
 import { BRASS, barrel, barrelTip, hullB, partB, strut, type ModelDef, type Team } from "../models";
 
 /**
@@ -98,6 +99,9 @@ function studs(b: ModelBuilder, a: Vec3, c: Vec3, n: number, s = 0.01, hex = NIC
  * `cargo`: coal and glowing radium on the rear tray.
  */
 function fourgon(t: Team): ModelDef {
+  // the baked model (art/models3d/fourgon.py), when it has loaded
+  const hd = skinPart("fourgon", "hull", t.main);
+  if (hd) return { hull: hd, mount: [0, 0, 0], muzzle: [0, 0.25, -0.46], rotors: [], cargo: skinPart("fourgon", "cargo", t.main), height: 0.86 };
   const b = hullB();
   // chassis rails, leaf springs, axles, wire wheels (small in front, larger behind)
   b.pairBlock(0.04, 0.05, 0.86, [0.12, 0.16, 0.02], LACQUER, { bevel: 0.01 });
@@ -200,6 +204,10 @@ function fourgon(t: Team): ModelDef {
  * turret: Leyden jars and twin copper horns round a blue spark.
  */
 function jamaisContente(t: Team): ModelDef {
+  // the baked model (art/models3d/jamais-contente.py), when it has loaded
+  const hd = skinPart("jamais-contente", "hull", t.main);
+  const hdTurret = skinPart("jamais-contente", "turret", t.main);
+  if (hd && hdTurret) return { hull: hd, turret: hdTurret, mount: [0, 0.3, -0.22], muzzle: [0, 0.07, -0.18], rotors: [], height: 0.6 };
   const b = hullB();
   const body: Section[] = [
     [-0.47, 0.012, 0.2, 0.18], [-0.42, 0.045, 0.235, 0.145], [-0.36, 0.075, 0.265, 0.115], [-0.26, 0.095, 0.29, 0.1],
@@ -263,6 +271,10 @@ function jamaisContente(t: Team): ModelDef {
  * at the sky behind a curved team shield, a drum magazine at its side.
  */
 function deDion(t: Team): ModelDef {
+  // the baked model (art/models3d/de-dion.py), when it has loaded
+  const hd = skinPart("de-dion", "hull", t.main);
+  const hdGun = skinPart("de-dion", "turret", t.main);
+  if (hd && hdGun) return { hull: hd, turret: hdGun, mount: [0, 0.26, 0.16], muzzle: [0, 0.415, -0.149], rotors: [], height: 0.68 };
   const b = hullB();
   // the front wheel in its nickel fork, the handlebar with a lamp, the frame, the saddle and the driver
   wireWheel(b, [0, 0.12, -0.34], 0.12, 0.045, 12);
@@ -338,6 +350,10 @@ function deDion(t: Team): ModelDef {
  * and a blue glow at the muzzle.
  */
 function branly(t: Team): ModelDef {
+  // the baked model (art/models3d/branly.py), when it has loaded
+  const hd = skinPart("branly", "hull", t.main);
+  const hdGun = skinPart("branly", "turret", t.main);
+  if (hd && hdGun) return { hull: hd, turret: hdGun, mount: [0, 0.24, -0.04], muzzle: [0, 0.363, -0.624], rotors: [], height: 0.62 };
   const b = hullB();
   b.cyl(0.022, 0.022, 0.52, 8, [0, 0.17, -0.04], LACQUER, { rot: AX });
   for (const s of [1, -1]) {

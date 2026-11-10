@@ -1007,7 +1007,7 @@ export class EntityRenderer {
     // hover tanks stir a faint spray over water
     if (v.hover && moved > 0.006 && t.heightAt(gx, gy) < -0.1 && Math.random() < 0.3) this.fx.dust(gx, gy);
     // Belle Époque steam machines puff coal smoke (or steam, aloft) from their stacks: faster on the move
-    const stacks = BELLE_EPOQUE ? STACKS[u.kind] : undefined;
+    const stacks = BELLE_EPOQUE ? v.m?.def.stacks ?? STACKS[u.kind] : undefined;
     if (stacks && dtMs > 0) {
       v.stackT = (v.stackT ?? Math.random() * 400) - dtMs;
       if (v.stackT <= 0) {

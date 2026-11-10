@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { UnitKind } from "../../../sim/types";
 import type { ModelBuilder, Section, Vec3 } from "../builder";
+import { skinPart } from "../skins";
 import { AMBER, barrel, barrelTip, hullB, partB, strut, type ModelDef, type Team } from "../models";
 
 /**
@@ -109,6 +110,9 @@ function coalHeap(b: ModelBuilder, x0: number, x1: number, z0: number, z1: numbe
  * coal sack and its own wheel.
  */
 function estafette(t: Team): ModelDef {
+  // the baked model (art/models3d/estafette.py), when it has loaded
+  const hd = skinPart("estafette", "hull", t.main);
+  if (hd) return { hull: hd, mount: [0, 0, 0], muzzle: [-0.09, 0.3, -0.35], rotors: [], height: 0.62 };
   const b = hullB();
   const x = -0.09;
   // two wheels, mudguards, the fork, the frame and the handlebar
@@ -166,6 +170,10 @@ function estafette(t: Team): ModelDef {
  * handwheel and a brass breech.
  */
 function mortier280(t: Team): ModelDef {
+  // the baked model (art/models3d/mortier-280.py), when it has loaded
+  const hd = skinPart("mortier-280", "hull", t.main);
+  const hdGun = skinPart("mortier-280", "turret", t.main);
+  if (hd && hdGun) return { hull: hd, turret: hdGun, mount: [0, 0.3, -0.06], muzzle: [0, 0.423, -0.142], rotors: [], height: 0.85 };
   const b = hullB();
   // the tracks: a linked belt over road wheels, a toothed sprocket in front, a mudguard over each
   for (const s of [1, -1]) {
@@ -242,6 +250,11 @@ function mortier280(t: Team): ModelDef {
  * (its `rotors`) slowly swinging its jib, a welding torch spitting at the hook.
  */
 function atelier(t: Team): ModelDef {
+  // the baked model (art/models3d/atelier.py), when it has loaded
+  const hd = skinPart("atelier", "hull", t.main);
+  const hdCrane = skinPart("atelier", "rotor0", t.main);
+  if (hd && hdCrane)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0.12, 0.64, 0.24], height: 0.8, rotors: [{ geo: hdCrane, at: [0.12, 0.57, 0.24], axis: "y", speed: 0.6 }] };
   const b = hullB();
   b.block(0.36, 0.05, 0.86, [0, 0.16, 0], IRON, { bevel: 0.01 });
   rivets(b, [-0.181, 0.16, -0.4], [-0.181, 0.16, 0.4], 6, 0.011);

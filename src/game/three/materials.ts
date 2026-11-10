@@ -192,12 +192,34 @@ export const eliteUniform = { value: 0.12 };
 /** …scaled up into the elite sheen's colour. */
 const ELITE_SHEEN = 6;
 
-function modelMaterial(v: VariantSpec, elite: boolean, canopy = false, clear = false): THREE.MeshStandardMaterial {
+/**
+ * A baked model's textures (three/skins.ts): `color` with the team-paint mask in its alpha, `normal` with
+ * the lamp mask in its alpha, `orm` (occlusion, roughness, metal), and the colour its team paint takes.
+ */
+export interface SkinLook {
+  key: string;
+  color: THREE.Texture;
+  normal: THREE.Texture;
+  orm: THREE.Texture;
+  team: number;
+}
+
+/** The reflections baked models show on their metal (the scene's environment, set by the Stage). */
+let skinEnv: THREE.Texture | null = null;
+export function setSkinEnv(t: THREE.Texture | null): void {
+  skinEnv = t;
+}
+
+function modelMaterial(v: VariantSpec, elite: boolean, canopy = false, clear = false, skin?: SkinLook): THREE.MeshStandardMaterial {
   const m = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    flatShading: true,
-    roughness: v.roughness ?? 0.58,
-    metalness: v.metalness ?? 0.35,
+    vertexColors: !skin,
+    flatShading: !skin,
+    // (a baked model's roughness and metal are in its texture: these scale it)
+    roughness: skin ? (v.roughness ? 1.5 : 1) : v.roughness ?? 0.58,
+    metalness: skin ? (v.metalness !== undefined ? 0.3 : 1) : v.metalness ?? 0.35,
+    ...(skin
+      ? { map: skin.color, normalMap: skin.normal, aoMap: skin.orm, roughnessMap: skin.orm, metalnessMap: skin.orm, envMap: skinEnv, envMapIntensity: 0.7 }
+      : {}),
     side: THREE.DoubleSide,
     transparent: !!v.ghost,
     opacity: v.ghost ? 0.6 : 1,
@@ -214,22 +236,34 @@ function modelMaterial(v: VariantSpec, elite: boolean, canopy = false, clear = f
     uFlashLit: { value: v.flashLit ?? 0 },
     uDesat: { value: v.desat ?? 0 },
     uSheen: elite ? eliteUniform : { value: v.sheen ?? 0 },
-    uSheenColor: { value: new THREE.Color(v.sheenColor ?? 0xffffff).multiplyScalar(elite ? ELITE_SHEEN : 1) }
+    uSheenColor: { value: new THREE.Color(v.sheenColor ?? 0xffffff).multiplyScalar(elite ? ELITE_SHEEN : 1) },
+    uTeam: { value: new THREE.Color(skin?.team ?? 0xffffff) }
   };
   return fogged(m, {
-    key: `model${v.ghost ? "g" : ""}${canopy ? "c" : ""}`,
+    key: `model${v.ghost ? "g" : ""}${canopy ? "c" : ""}${skin ? "s" : ""}`,
     also: (s) => {
       Object.assign(s.uniforms, uniforms);
       // a fog-free twin: the same program, its own switch held off (see clearMat)
       if (clear) s.uniforms.uFowOn = CLEAR_FOW;
-      s.vertexShader = s.vertexShader
-        .replace("#include <common>", `#include <common>\nattribute float glow;\nvarying float vGlow;${canopy ? CANOPY_VERT_DECL : ""}`)
-        .replace("#include <color_vertex>", `#include <color_vertex>\nvGlow = glow;${canopy ? CANOPY_VERT : ""}`);
+      // (a baked model has no vertex colours or glow weights: its lamps are a mask in its normal map's alpha)
+      if (!skin)
+        s.vertexShader = s.vertexShader
+          .replace("#include <common>", `#include <common>\nattribute float glow;\nvarying float vGlow;${canopy ? CANOPY_VERT_DECL : ""}`)
+          .replace("#include <color_vertex>", `#include <color_vertex>\nvGlow = glow;${canopy ? CANOPY_VERT : ""}`);
+      else
+        s.fragmentShader = s.fragmentShader.replace(
+          "#include <map_fragment>",
+          `vec4 skin = texture2D( map, vMapUv );
+          // the team paint is baked white and tinted here (its wear and grime stay under the tint)
+          // (0.75: the procedural models' paint is as dark, their material being part metal)
+          diffuseColor.rgb *= mix( skin.rgb, skin.rgb * uTeam * 1.45, skin.a ) * 0.75;
+          vGlow = texture2D( normalMap, vNormalMapUv ).a;`
+        );
       s.fragmentShader = s.fragmentShader
         .replace(
           "#include <common>",
           `#include <common>
-          varying float vGlow;${canopy ? CANOPY_FRAG_DECL : ""}
+          ${skin ? "float vGlow; uniform vec3 uTeam;" : "varying float vGlow;"}${canopy ? CANOPY_FRAG_DECL : ""}
           uniform vec3 uTint; uniform float uFlash; uniform vec3 uFlashColor; uniform float uGlowK; uniform float uBleach;
           uniform float uFlashLit; uniform float uDesat; uniform float uSheen; uniform vec3 uSheenColor;`
         )
@@ -247,7 +281,7 @@ function modelMaterial(v: VariantSpec, elite: boolean, canopy = false, clear = f
           // contact shade: walls darken toward the ground they stand on (roofs and lamps don't)
           float wall = 1.0 - max( 0.0, dot( normal, viewMatrix[ 1 ].xyz ) );
           diffuseColor.rgb *= 1.0 - 0.38 * wall * ( 1.0 - smoothstep( -0.02, 0.32, vFowW.y ) ) * ( 1.0 - min( 1.0, vGlow ) );
-          totalEmissiveRadiance += glowBase * vGlow * uGlowK * 1.05 + uFlashColor * ( uFlash + glowBase * uFlashLit );
+          totalEmissiveRadiance += glowBase * vGlow * uGlowK * ${skin ? "1.5" : "1.05"} + uFlashColor * ( uFlash + glowBase * uFlashLit );
           diffuseColor.rgb = mix( diffuseColor.rgb, uFlashColor, uFlash * uBleach );
           if ( uSheen > 0.0 ) {
             float edge = 1.0 - abs( dot( normal, normalize( vViewPosition ) ) );
@@ -302,8 +336,9 @@ export function clearOfFog(root: THREE.Object3D): void {
     if (!(o as THREE.Mesh).isMesh || !o.userData.model) return;
     const m = o as THREE.Mesh;
     o.userData.clear = true;
-    const v = (Object.keys(VARIANTS) as Variant[]).find((k) => modelMats?.[k] === m.material) ?? "normal";
-    m.material = clearMat(v);
+    const skin = o.userData.skin as SkinLook | undefined;
+    const v = (Object.keys(VARIANTS) as Variant[]).find((k) => (skin ? skinMat(skin, k) : modelMats?.[k]) === m.material) ?? "normal";
+    m.material = skin ? skinMat(skin, v, true) : clearMat(v);
   });
 }
 
@@ -319,11 +354,23 @@ export function canopyMat(): THREE.MeshStandardMaterial {
   return (canopyMat_ ??= modelMaterial(VARIANTS.normal, false, true));
 }
 
+const skinMats = new Map<string, THREE.MeshStandardMaterial>();
+
+/** A baked model's material for a variant (and its fog-free twin): the model shader, fed by its textures. */
+export function skinMat(skin: SkinLook, v: Variant = "normal", clear = false): THREE.MeshStandardMaterial {
+  const key = `${skin.key}/${skin.team}/${v}/${clear}`;
+  let m = skinMats.get(key);
+  if (!m) skinMats.set(key, (m = modelMaterial(VARIANTS[v], v === "elite", false, clear, skin)));
+  return m;
+}
+
 /** Swap every swappable mesh under `root` to a material variant (fog-free meshes to its fog-free twin). */
 export function setVariant(root: THREE.Object3D, v: Variant): void {
   const mat = modelMat(v);
   root.traverse((o) => {
-    if ((o as THREE.Mesh).isMesh && o.userData.model) (o as THREE.Mesh).material = o.userData.clear ? clearMat(v) : mat;
+    if (!(o as THREE.Mesh).isMesh || !o.userData.model) return;
+    const skin = o.userData.skin as SkinLook | undefined;
+    (o as THREE.Mesh).material = skin ? skinMat(skin, v, !!o.userData.clear) : o.userData.clear ? clearMat(v) : mat;
   });
 }
 

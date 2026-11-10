@@ -4,7 +4,7 @@ import type { Biome } from "../../sim/types";
 import { CameraRig } from "./camera";
 import { GroundGfx } from "./ground-gfx";
 import { SquadRig } from "./infantry";
-import { discMat, glowMat, modelMat, setFogLook, type FogLook } from "./materials";
+import { discMat, glowMat, modelMat, setFogLook, setSkinEnv, type FogLook } from "./materials";
 import { ScreenLayer } from "./screen";
 import { BELLE_EPOQUE } from "./theme";
 
@@ -176,6 +176,7 @@ export class Stage {
     const pmrem = new THREE.PMREMGenerator(r);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     this.scene.environmentIntensity = 0.3;
+    setSkinEnv(this.scene.environment);
     pmrem.dispose();
 
     this.software = isSoftwareGl(r);

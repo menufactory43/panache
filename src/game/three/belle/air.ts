@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { UnitKind } from "../../../sim/types";
 import { ModelBuilder, type Vec3 } from "../builder";
+import { skinPart } from "../skins";
 import {
   BRASS, CANVAS, CONDOR_BAY, EXHAUST, GM, GM_D, TRACK, WHITE, light, partB, rotorGeo, sided, strut, type ModelDef, type Team
 } from "../models";
@@ -55,6 +56,11 @@ function rz([x, y, z]: Vec3, a: number): Vec3 {
  * windows and a pusher propeller.
  */
 export function dirigible(t: Team): ModelDef {
+  // the baked model (art/models3d/dirigeable.py, at twice this one's scale), when it has loaded
+  const hd = skinPart("dirigeable", "hull", t.main);
+  const hdProp = skinPart("dirigeable", "rotor0", t.main);
+  if (hd && hdProp)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, -0.26, -0.18], rotors: [{ geo: hdProp, at: [0, -0.26, 0.275], axis: "z", speed: 30 }], height: 0.4 };
   const b = partB();
   const L = 0.25;
   const R = 0.1;
@@ -95,6 +101,11 @@ export function dirigible(t: Team): ModelDef {
  * propeller on the nose. Racks of little rockets under the wing roots.
  */
 export function eole(t: Team): ModelDef {
+  // the baked model (art/models3d/eole.py), when it has loaded
+  const hd = skinPart("eole", "hull", t.main);
+  const hdProp = skinPart("eole", "rotor0", t.main);
+  if (hd && hdProp)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, -0.04, -0.12], rotors: [{ geo: hdProp, at: [0, -0.004, -0.297], axis: "z", speed: 46 }], height: 0.17, stacks: [[0, 0.165, -0.03]] };
   const b = partB();
   // the nacelle: a slim varnished hull, pointed behind (the Éole had no tail)
   b.fuselage([[-0.23, 0.026, 0.02, -0.03], [-0.17, 0.05, 0.04, -0.05], [0.0, 0.056, 0.046, -0.055], [0.14, 0.04, 0.034, -0.04], [0.27, 0.01, 0.012, -0.012]], [0, 0, 0], WOOD, { chamfer: 0.02, edge: 1.4 });
@@ -153,6 +164,11 @@ export function eole(t: Team): ModelDef {
  * machine gun over the cowl.
  */
 export function bleriot(t: Team): ModelDef {
+  // the baked model (art/models3d/bleriot.py), when it has loaded
+  const hd = skinPart("bleriot", "hull", t.main);
+  const hdProp = skinPart("bleriot", "rotor0", t.main);
+  if (hd && hdProp)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, 0.074, -0.44], rotors: [{ geo: hdProp, at: [0, -0.003, -0.432], axis: "z", speed: 60 }], height: 0.16 };
   const b = partB();
   // the cowl and the covered front of the fuselage
   b.fuselage([[-0.39, 0.032, 0.03, -0.035], [-0.33, 0.044, 0.042, -0.05], [-0.28, 0.044, 0.042, -0.05]], [0, 0, 0], GM, { chamfer: 0.016, edge: 1.4 });
@@ -224,6 +240,23 @@ export function bleriot(t: Team): ModelDef {
  * (axis z), deckhouses with gaslit windows and racks of bombs underneath.
  */
 export function albatros(t: Team): ModelDef {
+  // the baked model (art/models3d/albatros.py: the same masts), when it has loaded
+  const hd = skinPart("albatros", "hull", t.main);
+  const hdLift = skinPart("albatros", "lift", t.main);
+  const hdScrew = skinPart("albatros", "screw", t.main);
+  if (hd && hdLift && hdScrew) {
+    const at: Vec3[] = [];
+    for (const [si, s] of [[0, 1], [1, -1]] as [number, number][])
+      [-0.43, -0.145, 0.14, 0.43].forEach((z, i) => at.push([s * 0.075, ((i + si) % 2 ? 0.22 : 0.3) + 0.006, z]));
+    return {
+      hull: hd, mount: [0, 0, 0], muzzle: [0, -0.16, 0], height: 0.34,
+      rotors: [
+        ...at.map((p, i) => ({ geo: hdLift, at: p, axis: "y" as const, speed: (i % 2 ? -1 : 1) * (30 + (i % 3) * 4) })),
+        { geo: hdScrew, at: [0, 0.01, -0.775], axis: "z", speed: 36 },
+        { geo: hdScrew, at: [0, 0.0, 0.715], axis: "z", speed: -36 }
+      ]
+    };
+  }
   const b = partB();
   const top = 0.03;
   // the hull: a sharp bow, a rounded counter stern, an ivory waterline stripe, a brass keel
@@ -294,6 +327,11 @@ export function albatros(t: Team): ModelDef {
  * underneath and a small pusher propeller.
  */
 export function pasteur(t: Team): ModelDef {
+  // the baked model (art/models3d/pasteur.py, at twice this one's scale), when it has loaded
+  const hd = skinPart("pasteur", "hull", t.main);
+  const hdProp = skinPart("pasteur", "rotor0", t.main);
+  if (hd && hdProp)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, -0.4, -0.4], height: 0.56, rotors: [{ geo: hdProp, at: [0, -0.34, 0.29], axis: "z", speed: 40 }] };
   const b = partB();
   const Y = 0.1;
   const R = 0.135;
@@ -376,6 +414,18 @@ export function pasteur(t: Team): ModelDef {
  * mouth. Outriggers carry two tractor propellers; a team rudder over the stern.
  */
 export function montgolfiere(t: Team): ModelDef {
+  // the baked model (art/models3d/montgolfiere.py: the same bay, CONDOR_BAY, and the same ramp), when it has loaded
+  const hd = skinPart("montgolfiere", "hull", t.main);
+  const hdScrew = skinPart("montgolfiere", "screw", t.main);
+  const hdRamp = skinPart("montgolfiere", "ramp", t.main);
+  if (hd && hdScrew && hdRamp) {
+    const bay = CONDOR_BAY;
+    return {
+      hull: hd, mount: [0, 0, 0], muzzle: [0, -0.1, 0], height: 0.72,
+      rotors: [1, -1].map((sx, i) => ({ geo: hdScrew, at: [sx * 0.37, -0.06, -0.215] as Vec3, axis: "z" as const, speed: i ? -40 : 40 })),
+      ramp: { geo: hdRamp, hinge: [0, bay.floor, bay.ramp], open: 1.85, tip: [0, bay.wall + 0.02 - bay.floor, 0] }
+    };
+  }
   const b = partB();
   const B = CONDOR_BAY;
   const W0 = 0.205;

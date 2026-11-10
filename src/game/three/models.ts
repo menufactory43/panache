@@ -4,7 +4,8 @@ import { BUILDINGS, UNITS } from "../../sim/balance";
 import { ModelBuilder, type Section, type Vec3 } from "./builder";
 import { GANTRY_STAGES, GOLIATH_RIG, gantryStage, goliathStatic } from "./goliath";
 import { botStatic, botHeight, J, squadStatic, type BotKind } from "./infantry";
-import { modelMat } from "./materials";
+import { modelMat, skinMat, type SkinLook } from "./materials";
+import { skinPart } from "./skins";
 import { BELLE_EPOQUE } from "./theme";
 import { BE_BUILDING_MODELS, BE_LANDMARKS, BE_NATION_BUILDING_MODELS, BE_OBJECTIVES, BE_UNIT_MODELS, NATION_TEAMS, PLACEHOLDER_MODEL, STAND_IN_BUILDING, type LandmarkKind } from "./belle";
 
@@ -92,6 +93,8 @@ export interface ModelDef {
   parts?: Record<string, { geo: THREE.BufferGeometry; at: Vec3; parent?: string }>;
   /** Model height, for labels and bars. */
   height: number;
+  /** Its smokestacks' tops (model space), where a steam machine puffs: overrides render/entities.ts STACKS. */
+  stacks?: Vec3[];
 }
 
 // ------------------------------------------------------------ helpers ---
@@ -1278,6 +1281,12 @@ export interface ModelInstance {
 
 const cache = new Map<string, ModelDef>();
 
+/** Tools: drop the built models, so the next ones are built again (after the baked models load, say). */
+export function forgetModels(): void {
+  cache.clear();
+  scales.clear();
+}
+
 function def(key: string, make: () => ModelDef): ModelDef {
   let d = cache.get(key);
   if (!d) {
@@ -1298,6 +1307,31 @@ function nationFor(own: Nation | undefined, owner?: NationOrClassic): Nation | u
 }
 const teamFor = (f: Faction, n: Nation | undefined): Team => (n ? NATION_TEAMS[n][f] : TEAMS[f]);
 
+/** The baked model (three/skins.ts) of a building: a nation's own drawing of the kind has its own. */
+export function buildingSkin(kind: BuildingKind, owner?: NationOrClassic): string {
+  const n = nationFor(BUILDINGS[kind].nation, owner);
+  return n && BE_NATION_BUILDING_MODELS[n][kind] ? `b-${kind}-${n}` : `b-${kind}`;
+}
+
+/**
+ * Swap a model's parts for their baked versions (three/skins.ts), where they have loaded: the same
+ * shapes, so mounts, muzzles, pivots and bounds stay the procedural model's.
+ */
+function reskin(name: string, d: ModelDef, t: Team): ModelDef {
+  const part = (p: string, geo: THREE.BufferGeometry) => skinPart(name, p, t.main) ?? geo;
+  // (a model made by hand in Blender comes baked already)
+  if (d.hull.userData.skin || !skinPart(name, "hull", t.main)) return d;
+  return {
+    ...d,
+    hull: part("hull", d.hull),
+    turret: d.turret && part("turret", d.turret),
+    cargo: d.cargo && part("cargo", d.cargo),
+    ramp: d.ramp && { ...d.ramp, geo: part("ramp", d.ramp.geo) },
+    rotors: d.rotors.map((r, i) => ({ ...r, geo: part(`rotor${i}`, r.geo) })),
+    parts: d.parts && Object.fromEntries(Object.entries(d.parts).map(([k, p]) => [k, { ...p, geo: part(`part_${k}`, p.geo) }]))
+  };
+}
+
 /**
  * A unit's model. `owner` (nationOf the unit's side) paints a shared kind in
  * its nation's colours too. A nation's own models exist only in the Belle
@@ -1312,7 +1346,7 @@ export function unitDef(kind: UnitKind, f: Faction, owner?: NationOrClassic): Mo
   const stand = own ? undefined : (PLACEHOLDER_MODEL as Partial<Record<UnitKind, ClassicUnitKind>>)[kind];
   const make = own || (stand && ((BELLE_EPOQUE && BE_UNIT_MODELS[stand]) || UNIT_MODELS[stand])) || UNIT_MODELS[kind as ClassicUnitKind];
   const n = MAP_SCALE.has(kind) || (stand && MAP_SCALE.has(stand)) ? undefined : nationFor(mine, owner);
-  return def(`u/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
+  return def(`u/${f}/${kind}/${n ?? "-"}`, () => reskin(`u-${stand ?? kind}`, make(teamFor(f, n)), teamFor(f, n)));
 }
 
 /**
@@ -1327,7 +1361,7 @@ export function buildingDef(kind: BuildingKind, f: Faction, owner?: NationOrClas
   // (?style=original: a nation-only defence borrows its stand-in's original model)
   const stand = own ? undefined : (STAND_IN_BUILDING as Partial<Record<BuildingKind, ClassicBuildingKind>>)[kind];
   const make = own || BUILDING_MODELS[stand ?? (kind as ClassicBuildingKind)];
-  return def(`b/${f}/${kind}/${n ?? "-"}`, () => make(teamFor(f, n)));
+  return def(`b/${f}/${kind}/${n ?? "-"}`, () => reskin(buildingSkin(kind, owner), make(teamFor(f, n)), teamFor(f, n)));
 }
 
 /** A campaign landmark (the Eiffel Tower), its flag in `f`'s colours, or neutral. */
@@ -1413,8 +1447,11 @@ export function pileDef(f: Faction, variant: number): ModelDef {
 
 /** A mesh using the shared model material (swappable variants). */
 export function modelMesh(geo: THREE.BufferGeometry, shadows = true): THREE.Mesh {
-  const m = new THREE.Mesh(geo, modelMat("normal"));
+  // (a baked model's geometry carries its textures: three/skins.ts)
+  const skin = geo.userData.skin as SkinLook | undefined;
+  const m = new THREE.Mesh(geo, skin ? skinMat(skin) : modelMat("normal"));
   m.userData.model = true;
+  if (skin) m.userData.skin = skin;
   m.castShadow = shadows;
   m.receiveShadow = shadows;
   return m;

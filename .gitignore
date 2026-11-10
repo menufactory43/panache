@@ -17,3 +17,6 @@ llm-tools-battledrones/uv.lock
 
 # les vidéos d'aperçu App Store (tools/store-preview.mjs les refait)
 ios/store/previews/
+
+# les passes brutes des cuissons de modèles (art/models3d : creusot.py les refait)
+art/models3d/out/

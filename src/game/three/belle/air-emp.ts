@@ -1,3 +1,4 @@
+import { skinPart } from "../skins";
 import * as THREE from "three";
 import type { UnitKind } from "../../../sim/types";
 import { ModelBuilder, type Vec3 } from "../builder";
@@ -174,6 +175,15 @@ function enginePod(b: ModelBuilder, at: Vec3, r: number, len: number, t: Team, s
  * fin and tailplane and a pusher screw, a lamp in the nose, landing skids.
  */
 export function gyroptere(t: Team): ModelDef {
+  // the baked model (art/models3d/gyroptere.py, at twice this one's scale), when it has loaded
+  const hd = skinPart("gyroptere", "hull", t.main);
+  const hdRotor = skinPart("gyroptere", "rotor0", t.main);
+  const hdScrew = skinPart("gyroptere", "rotor1", t.main);
+  if (hd && hdRotor && hdScrew)
+    return {
+      hull: hd, mount: [0, 0, 0], muzzle: [0, -0.22, -0.78], height: 0.6,
+      rotors: [{ geo: hdRotor, at: [0, 0.52, 0], axis: "y", speed: 20 }, { geo: hdScrew, at: [0, 0.06, 1.07], axis: "z", speed: 50 }]
+    };
   const b = partB();
   const S: Vec3 = [0.84, 0.78, 1.6];
   const R = 0.13;
@@ -257,6 +267,11 @@ export function gyroptere(t: Team): ModelDef {
  * two-bladed tractor screw with brass tips.
  */
 export function epervier(t: Team): ModelDef {
+  // the baked model (art/models3d/epervier.py), when it has loaded
+  const hd = skinPart("epervier", "hull", t.main);
+  const hdProp = skinPart("epervier", "rotor0", t.main);
+  if (hd && hdProp)
+    return { hull: hd, mount: [0, 0, 0], muzzle: [0, 0.077, -0.37], height: 0.2, rotors: [{ geo: hdProp, at: [0, 0, -0.35], axis: "z", speed: 60 }] };
   const b = partB();
   b.fuselage([[-0.27, 0.06, 0.06, -0.06], [-0.1, 0.065, 0.065, -0.065], [0.12, 0.05, 0.05, -0.05], [0.42, 0.012, 0.03, 0.0]], [0, 0, 0], IRON_M, { chamfer: 0.025, edge: 1.5 });
   // riveted plate seams along the flanks and over the back
@@ -346,6 +361,14 @@ export function epervier(t: Team): ModelDef {
  * screws; a cruciform iron tail, the top fin team.
  */
 export function vulcain(t: Team): ModelDef {
+  // the baked model (art/models3d/vulcain.py), when it has loaded
+  const hd = skinPart("vulcain", "hull", t.main);
+  const hdScrew = skinPart("vulcain", "screw", t.main);
+  if (hd && hdScrew)
+    return {
+      hull: hd, mount: [0, 0, 0], muzzle: [0, -0.36, 0], height: 0.4,
+      rotors: [1, -1].map((sx, i) => ({ geo: hdScrew, at: [sx * 0.31, -0.08, 0.172] as Vec3, axis: "z" as const, speed: i ? -36 : 36 }))
+    };
   const b = partB();
   const S: Vec3 = [1.05, 0.88, 1.75];
   const R = 0.2;
@@ -430,6 +453,20 @@ export function vulcain(t: Team): ModelDef {
  * coal smoke off the prow.
  */
 export function titan(t: Team): ModelDef {
+  // the baked model (art/models3d/titan.py: the same bay, CONDOR_BAY, the same ramp and winch), when it has loaded
+  const hd = skinPart("titan", "hull", t.main);
+  const hdScrew = skinPart("titan", "screw", t.main);
+  const hdRamp = skinPart("titan", "ramp", t.main);
+  if (hd && hdScrew && hdRamp) {
+    const bay = CONDOR_BAY;
+    const at: Vec3[] = [];
+    for (const z of [-0.2, 0.18]) for (const sx of [1, -1]) at.push([sx * 0.42, -0.06, z - 0.15]);
+    return {
+      hull: hd, mount: [0, 0, 0], muzzle: [0, -0.1, 0], height: 0.72,
+      rotors: at.map((p, i) => ({ geo: hdScrew, at: p, axis: "z" as const, speed: i % 2 ? -38 : 38 })),
+      ramp: { geo: hdRamp, hinge: [0, bay.floor, bay.ramp], open: 1.85, tip: [0, bay.wall + 0.02 - bay.floor, 0] }
+    };
+  }
   const b = partB();
   const B = CONDOR_BAY;
   const Y = 0.44;

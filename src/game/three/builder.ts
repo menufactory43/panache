@@ -161,6 +161,11 @@ function bevelRings(rx: number, rz: number, h: number, o: BevelOpts, roundish: b
 }
 
 export class ModelBuilder {
+  /**
+   * Tools only (tools/export-models.ts, set before any model is built): every vertex also keeps its
+   * primitive's own colour, unshaded, in a `base` attribute — what the Blender bake paints from.
+   */
+  static keepBase = false;
   private parts: THREE.BufferGeometry[] = [];
 
   constructor(private opts: BuilderOpts = {}) {}
@@ -178,6 +183,12 @@ export class ModelBuilder {
     const shade = g.attributes.shade as THREE.BufferAttribute | undefined;
     for (const name of Object.keys(g.attributes)) if (name !== "position" && name !== "normal") g.deleteAttribute(name);
     const p = g.attributes.position!;
+    if (ModelBuilder.keepBase) {
+      color.setHex(hex);
+      const base = new Float32Array(p.count * 3);
+      for (let i = 0; i < p.count; i++) base.set([color.r, color.g, color.b], i * 3);
+      g.setAttribute("base", new THREE.BufferAttribute(base, 3));
+    }
     const n = p.count;
     const glowW = o.glow ?? 0;
     const grade = glowW > 0 ? 0 : this.opts.grade ?? 0;
@@ -221,7 +232,7 @@ export class ModelBuilder {
   addBuilt(geo: THREE.BufferGeometry, at: Vec3, o: PartOpts = {}): this {
     const g = geo.clone();
     for (const name of Object.keys(g.attributes))
-      if (name !== "position" && name !== "normal" && name !== "color" && name !== "glow") g.deleteAttribute(name);
+      if (name !== "position" && name !== "normal" && name !== "color" && name !== "glow" && name !== "base") g.deleteAttribute(name);
     g.applyMatrix4(
       new THREE.Matrix4().compose(
         new THREE.Vector3(...at),
